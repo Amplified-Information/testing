@@ -13,13 +13,17 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   currentTheme: string;
   onThemeChange: (theme: string) => void;
+  currentTexture: string;
+  onTextureChange: (texture: string) => void;
 }
 
 const SettingsDialog = ({ 
   open, 
   onOpenChange, 
   currentTheme, 
-  onThemeChange 
+  onThemeChange,
+  currentTexture,
+  onTextureChange
 }: SettingsDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -40,6 +44,8 @@ const SettingsDialog = ({
             <ThemeSettings 
               currentTheme={currentTheme}
               onThemeChange={onThemeChange}
+              currentTexture={currentTexture}
+              onTextureChange={onTextureChange}
             />
           </TabsContent>
         </Tabs>

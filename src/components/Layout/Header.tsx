@@ -15,7 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 const Header = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, backgroundTexture, setBackgroundTexture } = useTheme();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -69,6 +69,8 @@ const Header = () => {
         onOpenChange={setSettingsOpen}
         currentTheme={theme}
         onThemeChange={setTheme}
+        currentTexture={backgroundTexture}
+        onTextureChange={setBackgroundTexture}
       />
     </header>
   );

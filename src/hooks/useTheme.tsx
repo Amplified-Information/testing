@@ -1,10 +1,16 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import geometricPattern from "@/assets/textures/geometric-pattern.jpg";
+import noiseTexture from "@/assets/textures/noise-texture.jpg";
+import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
 
 type Theme = "default" | "ocean" | "sunset";
+type BackgroundTexture = "none" | "geometric" | "noise" | "carbon";
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  backgroundTexture: BackgroundTexture;
+  setBackgroundTexture: (texture: BackgroundTexture) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -33,10 +39,22 @@ const themeColors = {
   }
 };
 
+const backgroundTextures = {
+  none: "none",
+  geometric: `url(${geometricPattern})`,
+  noise: `url(${noiseTexture})`,
+  carbon: `url(${carbonFiber})`
+};
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem("hedera-theme");
     return (stored as Theme) || "default";
+  });
+
+  const [backgroundTexture, setBackgroundTexture] = useState<BackgroundTexture>(() => {
+    const stored = localStorage.getItem("hedera-background-texture");
+    return (stored as BackgroundTexture) || "none";
   });
 
   useEffect(() => {
@@ -66,8 +84,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("hedera-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const texture = backgroundTextures[backgroundTexture];
+    
+    // Apply background texture to body
+    if (texture === "none") {
+      document.body.style.backgroundImage = "none";
+    } else {
+      document.body.style.backgroundImage = texture;
+      document.body.style.backgroundRepeat = "repeat";
+      document.body.style.backgroundSize = "200px 200px";
+      document.body.style.backgroundAttachment = "fixed";
+    }
+
+    // Store in localStorage
+    localStorage.setItem("hedera-background-texture", backgroundTexture);
+  }, [backgroundTexture]);
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, backgroundTexture, setBackgroundTexture }}>
       {children}
     </ThemeContext.Provider>
   );
