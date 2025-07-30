@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, DollarSign, Users, BarChart3 } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-bg.jpg";
 
 const HeroSection = () => {
@@ -47,8 +48,10 @@ const HeroSection = () => {
               <Button variant="trading" size="xl">
                 Start Trading
               </Button>
-              <Button variant="outline" size="xl">
-                Explore Markets
+              <Button variant="outline" size="xl" asChild>
+                <Link to="/markets">
+                  Explore Markets
+                </Link>
               </Button>
             </div>
 

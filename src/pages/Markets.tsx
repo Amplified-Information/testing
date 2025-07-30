@@ -1,0 +1,306 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Search, 
+  Filter, 
+  TrendingUp, 
+  Calendar, 
+  DollarSign,
+  Trophy,
+  Zap,
+  Globe,
+  Briefcase,
+  Gamepad2,
+  Activity
+} from "lucide-react";
+import Header from "@/components/Layout/Header";
+import MarketCard from "@/components/Markets/MarketCard";
+
+const Markets = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const categories = [
+    { id: "all", label: "All Markets", icon: Globe, count: 847 },
+    { id: "politics", label: "Politics", icon: Trophy, count: 234 },
+    { id: "crypto", label: "Crypto", icon: TrendingUp, count: 156 },
+    { id: "sports", label: "Sports", icon: Activity, count: 189 },
+    { id: "business", label: "Business", icon: Briefcase, count: 98 },
+    { id: "entertainment", label: "Entertainment", icon: Gamepad2, count: 87 },
+    { id: "science", label: "Science", icon: Zap, count: 83 },
+  ];
+
+  const featuredMarkets = [
+    {
+      id: "1",
+      question: "Will Bitcoin reach $100,000 by end of 2024?",
+      category: "Crypto",
+      yesPrice: 72,
+      noPrice: 28,
+      volume: 45230,
+      endDate: "Dec 31, 2024",
+      liquidity: 52000,
+      change24h: 5.2
+    },
+    {
+      id: "2", 
+      question: "Will the 2024 US Presidential Election be decided by more than 5% margin?",
+      category: "Politics",
+      yesPrice: 34,
+      noPrice: 66,
+      volume: 89450,
+      endDate: "Nov 5, 2024",
+      liquidity: 125000,
+      change24h: -2.1
+    },
+    {
+      id: "3",
+      question: "Will OpenAI release GPT-5 in 2024?",
+      category: "Technology",
+      yesPrice: 68,
+      noPrice: 32,
+      volume: 23120,
+      endDate: "Dec 31, 2024",
+      liquidity: 34000,
+      change24h: 8.7
+    }
+  ];
+
+  const trendingMarkets = [
+    {
+      id: "4",
+      question: "Will Tesla stock hit $300 before Q2 2024?",
+      category: "Business", 
+      yesPrice: 45,
+      noPrice: 55,
+      volume: 34890,
+      endDate: "Jun 30, 2024",
+      liquidity: 42000,
+      change24h: 12.3
+    },
+    {
+      id: "5",
+      question: "Will the Champions League final have over 2.5 goals?",
+      category: "Sports",
+      yesPrice: 78,
+      noPrice: 22,
+      volume: 67230,
+      endDate: "Jun 1, 2024",
+      liquidity: 78000,
+      change24h: 3.4
+    }
+  ];
+
+  const newMarkets = [
+    {
+      id: "6",
+      question: "Will Apple announce a VR headset successor in 2024?",
+      category: "Technology",
+      yesPrice: 82,
+      noPrice: 18,
+      volume: 12340,
+      endDate: "Dec 31, 2024",
+      liquidity: 18500,
+      change24h: -1.2
+    },
+    {
+      id: "7",
+      question: "Will any team break the 100-point barrier in NBA playoffs?",
+      category: "Sports", 
+      yesPrice: 91,
+      noPrice: 9,
+      volume: 18760,
+      endDate: "Jun 20, 2024",
+      liquidity: 22000,
+      change24h: 15.8
+    }
+  ];
+
+  const filteredMarkets = (markets: typeof featuredMarkets) => {
+    return markets.filter(market => {
+      const matchesSearch = market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           market.category.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || 
+                             market.category.toLowerCase() === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="container py-8">
+        {/* Header Section */}
+        <div className="space-y-6 mb-12">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold">Explore Markets</h1>
+            <p className="text-lg text-muted-foreground">
+              Discover and trade on prediction markets across various categories
+            </p>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search markets..."
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" className="sm:w-auto">
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Categories</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+            {categories.map((category) => (
+              <Card 
+                key={category.id}
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  selectedCategory === category.id ? 'ring-2 ring-primary bg-primary/5' : ''
+                }`}
+                onClick={() => setSelectedCategory(category.id)}
+              >
+                <CardContent className="p-4 text-center">
+                  <category.icon className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="font-medium text-sm">{category.label}</p>
+                  <p className="text-xs text-muted-foreground">{category.count}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Market Sections */}
+        <Tabs defaultValue="featured" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsTrigger value="featured" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Featured
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Trending
+            </TabsTrigger>
+            <TabsTrigger value="new" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              New
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="featured" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">Featured Markets</h3>
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                High Volume
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMarkets(featuredMarkets).map((market) => (
+                <MarketCard key={market.id} {...market} />
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="trending" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">Trending Markets</h3>
+              <Badge variant="secondary" className="bg-up/10 text-up">
+                Hot
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMarkets(trendingMarkets).map((market) => (
+                <MarketCard key={market.id} {...market} />
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="new" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">New Markets</h3>
+              <Badge variant="secondary" className="bg-accent/10 text-accent-foreground">
+                Fresh
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMarkets(newMarkets).map((market) => (
+                <MarketCard key={market.id} {...market} />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Stats Section */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">Total Markets</h4>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">847</p>
+              <p className="text-xs text-muted-foreground">+12% from last week</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">24h Volume</h4>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">$156K</p>
+              <p className="text-xs text-up">+8.2% from yesterday</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">Active Traders</h4>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">2,431</p>
+              <p className="text-xs text-up">+15% this month</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">Avg Resolution</h4>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">2.3 days</p>
+              <p className="text-xs text-muted-foreground">Median time</p>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Markets;
