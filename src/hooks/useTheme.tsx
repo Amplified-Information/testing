@@ -2,9 +2,12 @@ import { createContext, useContext, useEffect, useState } from "react";
 import geometricPattern from "@/assets/textures/geometric-pattern.jpg";
 import noiseTexture from "@/assets/textures/noise-texture.jpg";
 import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
+import abstractGeometric from "@/assets/backgrounds/abstract-geometric.jpg";
+import digitalCircuit from "@/assets/backgrounds/digital-circuit.jpg";
+import flowingWaves from "@/assets/backgrounds/flowing-waves.jpg";
 
 type Theme = "default" | "ocean" | "sunset";
-type BackgroundTexture = "none" | "geometric" | "noise" | "carbon";
+type BackgroundTexture = "none" | "geometric" | "noise" | "carbon" | "abstract" | "circuit" | "waves";
 
 interface ThemeContextType {
   theme: Theme;
@@ -43,7 +46,10 @@ const backgroundTextures = {
   none: "none",
   geometric: `url(${geometricPattern})`,
   noise: `url(${noiseTexture})`,
-  carbon: `url(${carbonFiber})`
+  carbon: `url(${carbonFiber})`,
+  abstract: `url(${abstractGeometric})`,
+  circuit: `url(${digitalCircuit})`,
+  waves: `url(${flowingWaves})`
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -93,9 +99,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.body.style.backgroundImage = "none";
     } else {
       document.body.style.backgroundImage = texture;
-      document.body.style.backgroundRepeat = "repeat";
-      document.body.style.backgroundSize = "200px 200px";
-      document.body.style.backgroundAttachment = "fixed";
+      
+      // Different settings for textures vs background images
+      if (texture.includes("backgrounds")) {
+        // Full background images
+        document.body.style.backgroundRepeat = "no-repeat";
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+        document.body.style.backgroundAttachment = "fixed";
+      } else {
+        // Repeating textures
+        document.body.style.backgroundRepeat = "repeat";
+        document.body.style.backgroundSize = "200px 200px";
+        document.body.style.backgroundAttachment = "fixed";
+      }
     }
 
     // Store in localStorage

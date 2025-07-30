@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils";
 import geometricPattern from "@/assets/textures/geometric-pattern.jpg";
 import noiseTexture from "@/assets/textures/noise-texture.jpg";
 import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
+import abstractGeometric from "@/assets/backgrounds/abstract-geometric.jpg";
+import digitalCircuit from "@/assets/backgrounds/digital-circuit.jpg";
+import flowingWaves from "@/assets/backgrounds/flowing-waves.jpg";
 
 const themes = [
   {
@@ -50,6 +53,24 @@ const backgroundTextures = [
     value: "carbon",
     description: "Woven carbon texture",
     preview: `bg-[url('${carbonFiber}')] bg-repeat`
+  },
+  {
+    name: "Abstract Geometric",
+    value: "abstract",
+    description: "Modern geometric background",
+    preview: `bg-[url('${abstractGeometric}')] bg-cover bg-center`
+  },
+  {
+    name: "Digital Circuit",
+    value: "circuit", 
+    description: "Tech circuit board design",
+    preview: `bg-[url('${digitalCircuit}')] bg-cover bg-center`
+  },
+  {
+    name: "Flowing Waves",
+    value: "waves",
+    description: "Smooth ocean wave patterns",
+    preview: `bg-[url('${flowingWaves}')] bg-cover bg-center`
   }
 ];
 
