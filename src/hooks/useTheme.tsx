@@ -101,7 +101,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.body.style.backgroundImage = texture;
       
       // Different settings for textures vs background images
-      if (texture.includes("backgrounds")) {
+      if (backgroundTexture === 'abstract' || backgroundTexture === 'circuit' || backgroundTexture === 'waves') {
         // Full background images
         document.body.style.backgroundRepeat = "no-repeat";
         document.body.style.backgroundSize = "cover";

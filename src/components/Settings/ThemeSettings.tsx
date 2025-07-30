@@ -34,43 +34,43 @@ const backgroundTextures = [
     name: "None",
     value: "none",
     description: "Clean solid background",
-    preview: "bg-muted"
+    preview: null
   },
   {
     name: "Geometric",
     value: "geometric",
     description: "Subtle hexagonal pattern",
-    preview: `bg-[url('${geometricPattern}')] bg-repeat`
+    preview: geometricPattern
   },
   {
     name: "Noise",
     value: "noise", 
     description: "Film grain texture",
-    preview: `bg-[url('${noiseTexture}')] bg-repeat`
+    preview: noiseTexture
   },
   {
     name: "Carbon Fiber",
     value: "carbon",
     description: "Woven carbon texture",
-    preview: `bg-[url('${carbonFiber}')] bg-repeat`
+    preview: carbonFiber
   },
   {
     name: "Abstract Geometric",
     value: "abstract",
     description: "Modern geometric background",
-    preview: `bg-[url('${abstractGeometric}')] bg-cover bg-center`
+    preview: abstractGeometric
   },
   {
     name: "Digital Circuit",
     value: "circuit", 
     description: "Tech circuit board design",
-    preview: `bg-[url('${digitalCircuit}')] bg-cover bg-center`
+    preview: digitalCircuit
   },
   {
     name: "Flowing Waves",
     value: "waves",
     description: "Smooth ocean wave patterns",
-    preview: `bg-[url('${flowingWaves}')] bg-cover bg-center`
+    preview: flowingWaves
   }
 ];
 
@@ -146,11 +146,17 @@ const ThemeSettings = ({ currentTheme, onThemeChange, currentTexture, onTextureC
             >
               <div className="flex items-start space-x-3 w-full">
                 <div 
-                  className={cn(
-                    "w-8 h-8 rounded mt-1 border-2 border-border bg-muted",
-                    texture.preview
-                  )}
-                  style={{ backgroundSize: "16px 16px" }}
+                  className="w-8 h-8 rounded mt-1 border-2 border-border bg-muted"
+                  style={{
+                    backgroundImage: texture.preview ? `url(${texture.preview})` : 'none',
+                    backgroundSize: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' 
+                      ? 'cover' 
+                      : '16px 16px',
+                    backgroundRepeat: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' 
+                      ? 'no-repeat' 
+                      : 'repeat',
+                    backgroundPosition: 'center'
+                  }}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{texture.name}</div>
