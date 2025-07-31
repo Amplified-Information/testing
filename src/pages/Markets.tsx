@@ -67,6 +67,28 @@ const Markets = () => {
       endDate: "Dec 31, 2024",
       liquidity: 34000,
       change24h: 8.7
+    },
+    {
+      id: "16",
+      question: "Will LeBron James play in the 2024-25 NBA season?",
+      category: "Sports",
+      yesPrice: 85,
+      noPrice: 15,
+      volume: 56780,
+      endDate: "Jun 1, 2025",
+      liquidity: 72000,
+      change24h: 4.6
+    },
+    {
+      id: "17",
+      question: "Will the Super Bowl 2025 go to overtime?",
+      category: "Sports",
+      yesPrice: 12,
+      noPrice: 88,
+      volume: 78450,
+      endDate: "Feb 9, 2025",
+      liquidity: 95000,
+      change24h: -1.3
     }
   ];
 
