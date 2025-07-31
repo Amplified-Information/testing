@@ -307,7 +307,7 @@ const Markets = () => {
   };
 
   return (
-    <div className="min-h-screen page-container">
+    <div className="min-h-screen">
       <Header />
       
       <main className="container py-8">

@@ -117,16 +117,5 @@ All colors MUST be HSL.
   body {
     @apply text-foreground;
     background-color: hsl(var(--background));
-    background-image: var(--background-texture, none);
-    background-size: var(--background-texture-size, auto);
-    background-repeat: var(--background-texture-repeat, no-repeat);
-    background-position: var(--background-texture-position, center);
-    background-attachment: var(--background-texture-attachment, scroll);
-  }
-  
-  /* Allow background texture to show through page containers */
-  .page-container {
-    background: hsl(var(--background) / 0.95);
-    backdrop-filter: blur(1px);
   }
 }

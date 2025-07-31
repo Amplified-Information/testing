@@ -4,7 +4,7 @@ import MarketsList from "@/components/Markets/MarketsList";
 
 const Index = () => {
   return (
-    <div className="min-h-screen page-container">
+    <div className="min-h-screen">
       <Header />
       <main>
         <HeroSection />
