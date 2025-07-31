@@ -307,7 +307,7 @@ const Markets = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen page-container">
       <Header />
       
       <main className="container py-8">

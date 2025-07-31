@@ -124,8 +124,9 @@ All colors MUST be HSL.
     background-attachment: var(--background-texture-attachment, scroll);
   }
   
-  /* Make page containers transparent to show background texture */
-  .bg-background {
-    background-color: transparent !important;
+  /* Allow background texture to show through page containers */
+  .page-container {
+    background: hsl(var(--background) / 0.95);
+    backdrop-filter: blur(1px);
   }
 }
