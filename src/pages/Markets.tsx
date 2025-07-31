@@ -89,6 +89,72 @@ const Markets = () => {
       endDate: "Feb 9, 2025",
       liquidity: 95000,
       change24h: -1.3
+    },
+    {
+      id: "18",
+      question: "Will Amazon stock reach $200 by end of 2024?",
+      category: "Business",
+      yesPrice: 58,
+      noPrice: 42,
+      volume: 67890,
+      endDate: "Dec 31, 2024",
+      liquidity: 82000,
+      change24h: 3.8
+    },
+    {
+      id: "19", 
+      question: "Will Apple's market cap exceed $4 trillion in 2024?",
+      category: "Business",
+      yesPrice: 73,
+      noPrice: 27,
+      volume: 89450,
+      endDate: "Dec 31, 2024",
+      liquidity: 115000,
+      change24h: 6.2
+    },
+    {
+      id: "20",
+      question: "Will the next Marvel movie gross over $1 billion worldwide?",
+      category: "Entertainment",
+      yesPrice: 64,
+      noPrice: 36,
+      volume: 54320,
+      endDate: "Dec 31, 2024", 
+      liquidity: 68000,
+      change24h: 2.1
+    },
+    {
+      id: "21",
+      question: "Will Taylor Swift announce a new album in 2024?",
+      category: "Entertainment", 
+      yesPrice: 81,
+      noPrice: 19,
+      volume: 73210,
+      endDate: "Dec 31, 2024",
+      liquidity: 92000,
+      change24h: 7.9
+    },
+    {
+      id: "22",
+      question: "Will NASA announce evidence of life on Mars in 2024?",
+      category: "Science",
+      yesPrice: 8,
+      noPrice: 92,
+      volume: 41230,
+      endDate: "Dec 31, 2024",
+      liquidity: 55000,
+      change24h: -0.5
+    },
+    {
+      id: "23",
+      question: "Will a quantum computer break RSA encryption in 2024?",
+      category: "Science",
+      yesPrice: 15,
+      noPrice: 85,
+      volume: 29840,
+      endDate: "Dec 31, 2024",
+      liquidity: 38000,
+      change24h: 1.2
     }
   ];
 
