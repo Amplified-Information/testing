@@ -92,6 +92,39 @@ const Markets = () => {
       endDate: "Jun 1, 2024",
       liquidity: 78000,
       change24h: 3.4
+    },
+    {
+      id: "8",
+      question: "Will Patrick Mahomes throw for over 4,500 yards this NFL season?",
+      category: "Sports",
+      yesPrice: 65,
+      noPrice: 35,
+      volume: 45670,
+      endDate: "Feb 15, 2025",
+      liquidity: 58000,
+      change24h: 7.2
+    },
+    {
+      id: "9",
+      question: "Will any NBA team win 70+ games this season?",
+      category: "Sports",
+      yesPrice: 23,
+      noPrice: 77,
+      volume: 29840,
+      endDate: "Apr 14, 2024",
+      liquidity: 35000,
+      change24h: -4.1
+    },
+    {
+      id: "10",
+      question: "Will Lionel Messi score 15+ goals in MLS this season?",
+      category: "Sports",
+      yesPrice: 89,
+      noPrice: 11,
+      volume: 52310,
+      endDate: "Nov 9, 2024",
+      liquidity: 67000,
+      change24h: 2.8
     }
   ];
 
@@ -117,6 +150,61 @@ const Markets = () => {
       endDate: "Jun 20, 2024",
       liquidity: 22000,
       change24h: 15.8
+    },
+    {
+      id: "11",
+      question: "Will Max Verstappen win the 2024 Formula 1 Championship?",
+      category: "Sports",
+      yesPrice: 94,
+      noPrice: 6,
+      volume: 73420,
+      endDate: "Dec 8, 2024",
+      liquidity: 89000,
+      change24h: 1.5
+    },
+    {
+      id: "12",
+      question: "Will the US Women's Soccer team win Olympic Gold in Paris 2024?",
+      category: "Sports",
+      yesPrice: 47,
+      noPrice: 53,
+      volume: 31250,
+      endDate: "Aug 10, 2024",
+      liquidity: 41000,
+      change24h: 6.3
+    },
+    {
+      id: "13", 
+      question: "Will Shohei Ohtani hit 50+ home runs this MLB season?",
+      category: "Sports",
+      yesPrice: 38,
+      noPrice: 62,
+      volume: 42890,
+      endDate: "Oct 1, 2024",
+      liquidity: 55000,
+      change24h: 9.7
+    },
+    {
+      id: "14",
+      question: "Will there be a perfect game thrown in MLB this season?",
+      category: "Sports",
+      yesPrice: 15,
+      noPrice: 85,
+      volume: 19670,
+      endDate: "Oct 31, 2024",
+      liquidity: 24000,
+      change24h: -2.4
+    },
+    {
+      id: "15",
+      question: "Will Novak Djokovic win Wimbledon 2024?",
+      category: "Sports",
+      yesPrice: 56,
+      noPrice: 44,
+      volume: 38450,
+      endDate: "Jul 14, 2024",
+      liquidity: 47000,
+      change24h: -1.8
     }
   ];
 
