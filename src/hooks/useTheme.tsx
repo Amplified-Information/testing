@@ -1,13 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import geometricPattern from "@/assets/textures/geometric-pattern.jpg";
-import noiseTexture from "@/assets/textures/noise-texture.jpg";
 import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
 import abstractGeometric from "@/assets/backgrounds/abstract-geometric.jpg";
 import digitalCircuit from "@/assets/backgrounds/digital-circuit.jpg";
 import flowingWaves from "@/assets/backgrounds/flowing-waves.jpg";
+import nightSky from "@/assets/backgrounds/night-sky.jpg";
 
 type Theme = "default" | "ocean" | "sunset";
-type BackgroundTexture = "none" | "geometric" | "noise" | "carbon" | "abstract" | "circuit" | "waves";
+type BackgroundTexture = "none" | "carbon" | "abstract" | "circuit" | "waves" | "nightsky";
 
 interface ThemeContextType {
   theme: Theme;
@@ -44,12 +43,11 @@ const themeColors = {
 
 const backgroundTextures = {
   none: "none",
-  geometric: `url(${geometricPattern})`,
-  noise: `url(${noiseTexture})`,
   carbon: `url(${carbonFiber})`,
   abstract: `url(${abstractGeometric})`,
   circuit: `url(${digitalCircuit})`,
-  waves: `url(${flowingWaves})`
+  waves: `url(${flowingWaves})`,
+  nightsky: `url(${nightSky})`
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -106,7 +104,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       body.style.backgroundImage = texture;
       
       // Different settings for textures vs background images
-      if (backgroundTexture === 'abstract' || backgroundTexture === 'circuit' || backgroundTexture === 'waves') {
+      if (backgroundTexture === 'abstract' || backgroundTexture === 'circuit' || backgroundTexture === 'waves' || backgroundTexture === 'nightsky') {
         // Full background images
         body.style.backgroundRepeat = "no-repeat";
         body.style.backgroundSize = "cover";

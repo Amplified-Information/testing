@@ -1,12 +1,11 @@
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import geometricPattern from "@/assets/textures/geometric-pattern.jpg";
-import noiseTexture from "@/assets/textures/noise-texture.jpg";
 import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
 import abstractGeometric from "@/assets/backgrounds/abstract-geometric.jpg";
 import digitalCircuit from "@/assets/backgrounds/digital-circuit.jpg";
 import flowingWaves from "@/assets/backgrounds/flowing-waves.jpg";
+import nightSky from "@/assets/backgrounds/night-sky.jpg";
 
 const themes = [
   {
@@ -37,18 +36,6 @@ const backgroundTextures = [
     preview: null
   },
   {
-    name: "Geometric",
-    value: "geometric",
-    description: "Subtle hexagonal pattern",
-    preview: geometricPattern
-  },
-  {
-    name: "Noise",
-    value: "noise", 
-    description: "Film grain texture",
-    preview: noiseTexture
-  },
-  {
     name: "Carbon Fiber",
     value: "carbon",
     description: "Woven carbon texture",
@@ -71,6 +58,12 @@ const backgroundTextures = [
     value: "waves",
     description: "Smooth ocean wave patterns",
     preview: flowingWaves
+  },
+  {
+    name: "Night Sky",
+    value: "nightsky",
+    description: "Starry night sky background",
+    preview: nightSky
   }
 ];
 
@@ -149,10 +142,10 @@ const ThemeSettings = ({ currentTheme, onThemeChange, currentTexture, onTextureC
                   className="w-8 h-8 rounded mt-1 border-2 border-border bg-muted"
                   style={{
                     backgroundImage: texture.preview ? `url(${texture.preview})` : 'none',
-                    backgroundSize: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' 
+                    backgroundSize: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' || texture.value === 'nightsky'
                       ? 'cover' 
                       : '16px 16px',
-                    backgroundRepeat: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' 
+                    backgroundRepeat: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' || texture.value === 'nightsky'
                       ? 'no-repeat' 
                       : 'repeat',
                     backgroundPosition: 'center'
