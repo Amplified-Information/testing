@@ -38,10 +38,9 @@ const HeroSection = () => {
                 </span>
               </h1>
               
-              <p className="text-xl text-muted-foreground max-w-lg">
-                The world's leading prediction market platform on Hedera. 
-                Trade on real-world events with sustainable, low-cost transactions.
-              </p>
+               <p className="text-xl text-muted-foreground max-w-lg">
+                 Bet on the future with Hederabet: fast, affordable, and secure predictions powered by Hedera's cutting-edge technology!
+               </p>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
