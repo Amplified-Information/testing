@@ -94,24 +94,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     const texture = backgroundTextures[backgroundTexture];
     
-    // Apply background texture to body
+    // Apply background texture using CSS custom properties
     if (texture === "none") {
-      document.body.style.backgroundImage = "none";
+      root.style.setProperty("--background-texture", "none");
+      root.style.setProperty("--background-texture-size", "auto");
+      root.style.setProperty("--background-texture-repeat", "no-repeat");
+      root.style.setProperty("--background-texture-position", "center");
+      root.style.setProperty("--background-texture-attachment", "scroll");
     } else {
-      document.body.style.backgroundImage = texture;
+      root.style.setProperty("--background-texture", texture);
       
       // Different settings for textures vs background images
       if (backgroundTexture === 'abstract' || backgroundTexture === 'circuit' || backgroundTexture === 'waves') {
         // Full background images
-        document.body.style.backgroundRepeat = "no-repeat";
-        document.body.style.backgroundSize = "cover";
-        document.body.style.backgroundPosition = "center";
-        document.body.style.backgroundAttachment = "fixed";
+        root.style.setProperty("--background-texture-repeat", "no-repeat");
+        root.style.setProperty("--background-texture-size", "cover");
+        root.style.setProperty("--background-texture-position", "center");
+        root.style.setProperty("--background-texture-attachment", "fixed");
       } else {
         // Repeating textures
-        document.body.style.backgroundRepeat = "repeat";
-        document.body.style.backgroundSize = "200px 200px";
-        document.body.style.backgroundAttachment = "fixed";
+        root.style.setProperty("--background-texture-repeat", "repeat");
+        root.style.setProperty("--background-texture-size", "200px 200px");
+        root.style.setProperty("--background-texture-position", "center");
+        root.style.setProperty("--background-texture-attachment", "fixed");
       }
     }
 
