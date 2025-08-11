@@ -27,21 +27,6 @@ const HeroSection = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
         
-        {/* Collapse/Expand Button */}
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="outline"
-            size="lg"
-            className="absolute top-6 left-6 z-10 bg-primary/10 backdrop-blur-sm hover:bg-primary/20 border-primary/30 shadow-lg hover:shadow-xl transition-all duration-200 px-4 py-3"
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-6 w-6 text-primary" />
-            ) : (
-              <ChevronDown className="h-6 w-6 text-primary" />
-            )}
-          </Button>
-        </CollapsibleTrigger>
-
         <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
           <div className="relative container py-16 lg:py-24">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -112,6 +97,23 @@ const HeroSection = () => {
           </div>
         </CollapsibleContent>
       </div>
+      
+      {/* Collapse/Expand Button - positioned to be visible in both states */}
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="outline"
+          size="lg"
+          className={`fixed top-6 left-6 z-50 bg-primary/10 backdrop-blur-sm hover:bg-primary/20 border-primary/30 shadow-lg hover:shadow-xl transition-all duration-200 px-4 py-3 ${
+            !isExpanded ? 'top-24' : ''
+          }`}
+        >
+          {isExpanded ? (
+            <ChevronUp className="h-6 w-6 text-primary" />
+          ) : (
+            <ChevronDown className="h-6 w-6 text-primary" />
+          )}
+        </Button>
+      </CollapsibleTrigger>
     </Collapsible>
   );
 };
