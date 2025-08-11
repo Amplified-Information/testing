@@ -31,13 +31,13 @@ const HeroSection = () => {
         <CollapsibleTrigger asChild>
           <Button
             variant="outline"
-            size="sm"
-            className="absolute top-4 right-4 z-10 bg-background/80 backdrop-blur-sm hover:bg-background/90 border-border/50"
+            size="lg"
+            className="absolute top-6 left-6 z-10 bg-primary/10 backdrop-blur-sm hover:bg-primary/20 border-primary/30 shadow-lg hover:shadow-xl transition-all duration-200 px-4 py-3"
           >
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-6 w-6 text-primary" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-6 w-6 text-primary" />
             )}
           </Button>
         </CollapsibleTrigger>
