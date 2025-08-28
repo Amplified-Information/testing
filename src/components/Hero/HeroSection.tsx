@@ -33,10 +33,6 @@ const HeroSection = () => {
               {/* Content */}
               <div className="space-y-8">
                 <div className="space-y-4">
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    Powered by Hedera Hashgraph
-                  </Badge>
-                  
                   <h1 className="text-4xl lg:text-6xl font-bold tracking-tight">
                     Predict the Future,
                     <span className="block text-transparent bg-gradient-to-r from-primary to-primary-glow bg-clip-text">

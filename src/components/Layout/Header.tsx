@@ -26,6 +26,9 @@ const Header = () => {
         <Link to="/" className="flex items-center space-x-2">
           <TrendingUp className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold">Hedera Markets</span>
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 ml-3">
+            Powered by Hedera Hashgraph
+          </Badge>
         </Link>
 
         {/* Search */}
