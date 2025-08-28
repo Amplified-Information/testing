@@ -8,9 +8,9 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-        <section className="container py-16">
-          <div className="space-y-8">
-            <div className="text-center space-y-4">
+        <section className="container py-8">
+          <div className="space-y-6">
+            <div className="text-center">
               <h2 className="text-3xl font-bold">Featured Markets</h2>
             </div>
             
