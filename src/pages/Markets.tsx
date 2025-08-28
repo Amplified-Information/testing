@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,24 +15,76 @@ import {
   Globe,
   Briefcase,
   Gamepad2,
-  Activity
+  Activity,
+  Heart,
+  TreePine,
+  Building2,
+  Microscope,
+  Stethoscope,
+  MapPin
 } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
+import { supabase } from "@/integrations/supabase/client";
 
 const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categories, setCategories] = useState([
+    { id: "all", label: "All Markets", icon: Globe, count: 847 }
+  ]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = [
-    { id: "all", label: "All Markets", icon: Globe, count: 847 },
-    { id: "politics", label: "Politics", icon: Trophy, count: 234 },
-    { id: "crypto", label: "Crypto", icon: TrendingUp, count: 156 },
-    { id: "sports", label: "Sports", icon: Activity, count: 189 },
-    { id: "business", label: "Business", icon: Briefcase, count: 98 },
-    { id: "entertainment", label: "Entertainment", icon: Gamepad2, count: 87 },
-    { id: "science", label: "Science", icon: Zap, count: 83 },
-  ];
+  // Map category names to icons
+  const getIconForCategory = (name: string) => {
+    const iconMap: { [key: string]: any } = {
+      'Politics': Trophy,
+      'Sports': Activity,
+      'Culture': Heart,
+      'Crypto': TrendingUp,
+      'Climate': TreePine,
+      'Economics': DollarSign,
+      'Mentions': Activity,
+      'Companies': Building2,
+      'Financials': Briefcase,
+      'Tech & Science': Microscope,
+      'Health': Stethoscope,
+      'World': MapPin
+    };
+    return iconMap[name] || Globe;
+  };
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('market_categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+
+        const dbCategories = data?.map(category => ({
+          id: category.name.toLowerCase().replace(/\s+/g, '-').replace('&', ''),
+          label: category.name,
+          icon: getIconForCategory(category.name),
+          count: Math.floor(Math.random() * 200) + 50 // Placeholder count
+        })) || [];
+
+        setCategories([
+          { id: "all", label: "All Markets", icon: Globe, count: 847 },
+          ...dbCategories
+        ]);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const featuredMarkets = [
     {
@@ -300,9 +352,14 @@ const Markets = () => {
     return markets.filter(market => {
       const matchesSearch = market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            market.category.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || 
-                             market.category.toLowerCase() === selectedCategory;
-      return matchesSearch && matchesCategory;
+      
+      if (selectedCategory === "all") return matchesSearch;
+      
+      // Match by category name directly or by mapped category ID
+      const categoryMatch = market.category.toLowerCase() === selectedCategory ||
+                           market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategory;
+      
+      return matchesSearch && categoryMatch;
     });
   };
 
