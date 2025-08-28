@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Search, UserPlus, User, TrendingUp, Settings, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -21,6 +22,7 @@ const Header = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [userProfile, setUserProfile] = useState<{ avatar_url?: string } | null>(null);
   const { theme, setTheme, backgroundTexture, setBackgroundTexture } = useTheme();
 
   useEffect(() => {
@@ -38,6 +40,30 @@ const Header = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch user profile when user changes
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) {
+        setUserProfile(null);
+        return;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -91,8 +117,17 @@ const Header = () => {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="relative">
+                  {userProfile?.avatar_url ? (
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={userProfile.avatar_url} alt="User avatar" />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <User className="h-4 w-4" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
