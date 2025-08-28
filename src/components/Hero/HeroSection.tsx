@@ -60,7 +60,7 @@ const HeroSection = () => {
                 <div className="flex items-center gap-6 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                    <span>Live on Hedera Testnet</span>
+                    <span>Not Yet Live on Hedera Testnet</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-up rounded-full" />
