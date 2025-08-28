@@ -40,9 +40,9 @@ const HeroSection = () => {
                     </span>
                   </h1>
                   
-                   <p className="text-xl text-muted-foreground max-w-lg">
-                     Bet on the future with Hederabet: fast, affordable, and secure predictions powered by Hedera's cutting-edge technology!
-                   </p>
+                     <p className="text-xl text-muted-foreground max-w-lg">
+                      Bet on the future with Hedera Markets: fast, affordable, and secure predictions powered by Hedera's cutting-edge technology!
+                    </p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
