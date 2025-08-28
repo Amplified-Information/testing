@@ -41,7 +41,7 @@ const HeroSection = () => {
                   </h1>
                   
                      <p className="text-xl text-muted-foreground max-w-lg">
-                      Bet on the future with Hedera Markets: fast, affordable, and secure predictions powered by Hedera's cutting-edge technology!
+                      Hedera Markets uses Hedera's lightning-fast transactions, ultra-low fees, and fair ordering that make us the ideal platform for prediction markets, ensuring rapid, cost-effective, and trustworthy outcomes. Hedera's enterprise-grade security and scalability, backed by a council including Google and IBM, provide a reliable platform for seamless market participation.
                     </p>
                 </div>
                 
