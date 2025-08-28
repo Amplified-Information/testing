@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, User, TrendingUp, Settings } from "lucide-react";
+import { Search, UserPlus, User, TrendingUp, Settings, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import {
@@ -9,15 +9,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import SettingsDialog from "@/components/Settings/SettingsDialog";
 import SignUpDialog from "@/components/Auth/SignUpDialog";
 import { useTheme } from "@/hooks/useTheme";
+import { toast } from "sonner";
 
 const Header = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const { theme, setTheme, backgroundTexture, setBackgroundTexture } = useTheme();
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error("Error logging out");
+      } else {
+        toast.success("Logged out successfully");
+      }
+    } catch (error) {
+      toast.error("Error logging out");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,24 +81,32 @@ const Header = () => {
             Testnet
           </Badge>
           
-          <Button variant="outline" size="sm" onClick={() => setSignUpOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Sign Up / Log In
-          </Button>
+          {!user && (
+            <Button variant="outline" size="sm" onClick={() => setSignUpOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Sign Up / Log In
+            </Button>
+          )}
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <User className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <User className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       
