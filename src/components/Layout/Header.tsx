@@ -50,7 +50,7 @@ const Header = () => {
           
           <Button variant="outline" size="sm" onClick={() => setSignUpOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
-            Sign Up
+            Sign Up / Log In
           </Button>
           
           <DropdownMenu>
