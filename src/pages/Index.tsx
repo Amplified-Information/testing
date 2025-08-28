@@ -8,7 +8,6 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-        
         <section className="container py-16">
           <div className="space-y-8">
             <div className="text-center space-y-4">
