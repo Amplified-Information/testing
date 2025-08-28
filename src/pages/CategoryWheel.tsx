@@ -168,7 +168,7 @@ const CategoryWheel = () => {
                   return (
                     <CarouselItem 
                       key={category.id} 
-                      className="basis-1/3 lg:basis-1/5 flex justify-center"
+                      className="basis-1/4 lg:basis-1/6 flex justify-center px-1"
                     >
                       <div 
                         className={`
@@ -193,7 +193,7 @@ const CategoryWheel = () => {
                         {/* Category Card */}
                         <Card 
                           className={`
-                            relative w-32 h-32 cursor-pointer transition-all duration-500
+                            relative w-24 h-20 cursor-pointer transition-all duration-500
                             ${isCenter 
                               ? 'shadow-2xl ring-2 ring-primary' 
                               : 'shadow-md hover:shadow-lg'
@@ -203,16 +203,13 @@ const CategoryWheel = () => {
                             transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`,
                           }}
                         >
-                          <CardContent className="p-4 text-center h-full flex flex-col items-center justify-center">
+                          <CardContent className="p-2 text-center h-full flex flex-col items-center justify-center">
                             <Icon 
-                              className={`
-                                h-6 w-6 mx-auto mb-2 text-primary transition-all duration-500
-                                ${isCenter ? 'animate-bounce' : ''}
-                              `}
+                              className="h-5 w-5 mx-auto mb-1 text-primary transition-all duration-500"
                             />
                             
                             {/* Category Label */}
-                            <p className="font-medium text-sm">{category.label}</p>
+                            <p className="font-medium text-xs">{category.label}</p>
                             <p className="text-xs text-muted-foreground">{category.count}</p>
                           </CardContent>
                           
