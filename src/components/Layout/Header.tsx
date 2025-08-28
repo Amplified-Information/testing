@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Wallet, User, TrendingUp, Settings } from "lucide-react";
+import { Search, UserPlus, User, TrendingUp, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import {
@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import SettingsDialog from "@/components/Settings/SettingsDialog";
+import SignUpDialog from "@/components/Auth/SignUpDialog";
 import { useTheme } from "@/hooks/useTheme";
 
 const Header = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [signUpOpen, setSignUpOpen] = useState(false);
   const { theme, setTheme, backgroundTexture, setBackgroundTexture } = useTheme();
 
   return (
@@ -43,9 +45,9 @@ const Header = () => {
             Testnet
           </Badge>
           
-          <Button variant="outline" size="sm">
-            <Wallet className="mr-2 h-4 w-4" />
-            Connect Wallet
+          <Button variant="outline" size="sm" onClick={() => setSignUpOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Sign Up
           </Button>
           
           <DropdownMenu>
@@ -71,6 +73,11 @@ const Header = () => {
         onThemeChange={setTheme}
         currentTexture={backgroundTexture}
         onTextureChange={setBackgroundTexture}
+      />
+      
+      <SignUpDialog
+        open={signUpOpen}
+        onOpenChange={setSignUpOpen}
       />
     </header>
   );
