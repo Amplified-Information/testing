@@ -110,9 +110,10 @@ const Header = () => {
         </div>
       </div>
       
-      <SettingsDialog
+      <SettingsDialog 
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        user={user}
         currentTheme={theme}
         onThemeChange={setTheme}
         currentTexture={backgroundTexture}
