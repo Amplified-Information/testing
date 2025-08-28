@@ -515,6 +515,60 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          email_verified: boolean
+          first_name: string | null
+          id: string
+          is_active: boolean
+          last_name: string | null
+          location: string | null
+          phone: string | null
+          updated_at: string
+          username: string | null
+          website_url: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          email_verified?: boolean
+          first_name?: string | null
+          id: string
+          is_active?: boolean
+          last_name?: string | null
+          location?: string | null
+          phone?: string | null
+          updated_at?: string
+          username?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          email_verified?: boolean
+          first_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_name?: string | null
+          location?: string | null
+          phone?: string | null
+          updated_at?: string
+          username?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       secrets: {
         Row: {
           created_at: string
