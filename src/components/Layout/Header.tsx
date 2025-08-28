@@ -90,6 +90,19 @@ const Header = () => {
           </Badge>
         </Link>
 
+        {/* Navigation */}
+        <nav className="hidden md:flex items-center space-x-6 ml-8">
+          <Link to="/markets" className="text-sm font-medium hover:text-primary transition-colors">
+            Markets
+          </Link>
+          <Link to="/category-wheel" className="text-sm font-medium hover:text-primary transition-colors">
+            Categories
+          </Link>
+          <Link to="/portfolio" className="text-sm font-medium hover:text-primary transition-colors">
+            Portfolio
+          </Link>
+        </nav>
+
         {/* Search */}
         <div className="flex-1 max-w-md mx-8">
           <div className="relative">
