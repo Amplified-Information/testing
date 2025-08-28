@@ -518,6 +518,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          background_texture: string | null
           bio: string | null
           created_at: string
           date_of_birth: string | null
@@ -529,12 +530,14 @@ export type Database = {
           last_name: string | null
           location: string | null
           phone: string | null
+          theme_preference: string | null
           updated_at: string
           username: string | null
           website_url: string | null
         }
         Insert: {
           avatar_url?: string | null
+          background_texture?: string | null
           bio?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -546,12 +549,14 @@ export type Database = {
           last_name?: string | null
           location?: string | null
           phone?: string | null
+          theme_preference?: string | null
           updated_at?: string
           username?: string | null
           website_url?: string | null
         }
         Update: {
           avatar_url?: string | null
+          background_texture?: string | null
           bio?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -563,6 +568,7 @@ export type Database = {
           last_name?: string | null
           location?: string | null
           phone?: string | null
+          theme_preference?: string | null
           updated_at?: string
           username?: string | null
           website_url?: string | null
