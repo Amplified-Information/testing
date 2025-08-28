@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Clock, DollarSign } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MarketCardProps {
   id: string;
@@ -17,6 +18,7 @@ interface MarketCardProps {
 }
 
 const MarketCard = ({ 
+  id,
   question, 
   category, 
   yesPrice, 
@@ -26,10 +28,18 @@ const MarketCard = ({
   liquidity,
   change24h 
 }: MarketCardProps) => {
+  const navigate = useNavigate();
   const yesPercentage = (yesPrice / (yesPrice + noPrice)) * 100;
   
+  const handleCardClick = () => {
+    navigate(`/market/${id}`);
+  };
+  
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50 border-border/50">
+    <Card 
+      className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50 border-border/50 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <Badge variant="outline" className="mb-2">
@@ -76,10 +86,26 @@ const MarketCard = ({
 
         {/* Trading Buttons */}
         <div className="grid grid-cols-2 gap-2 pt-2">
-          <Button variant="yes" size="sm" className="w-full">
+          <Button 
+            variant="yes" 
+            size="sm" 
+            className="w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Handle buy yes action
+            }}
+          >
             Buy YES
           </Button>
-          <Button variant="no" size="sm" className="w-full">
+          <Button 
+            variant="no" 
+            size="sm" 
+            className="w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Handle buy no action
+            }}
+          >
             Buy NO
           </Button>
         </div>
