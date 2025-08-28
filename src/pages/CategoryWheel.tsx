@@ -16,7 +16,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -193,52 +193,33 @@ const CategoryWheel = () => {
                         {/* Category Card */}
                         <Card 
                           className={`
-                            relative w-32 h-40 p-4 flex flex-col items-center justify-center
-                            border-2 transition-all duration-500
+                            relative w-32 h-32 cursor-pointer transition-all duration-500
                             ${isCenter 
-                              ? 'shadow-2xl' 
+                              ? 'shadow-2xl ring-2 ring-primary' 
                               : 'shadow-md hover:shadow-lg'
                             }
                           `}
                           style={{
-                            borderColor: isCenter ? category.color : 'hsl(var(--border))',
                             transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`,
                           }}
                         >
-                          {/* Icon Background Circle */}
-                          <div 
-                            className={`
-                              w-16 h-16 rounded-full flex items-center justify-center mb-3
-                              transition-all duration-500
-                              ${isCenter ? 'animate-pulse' : ''}
-                            `}
-                            style={{
-                              backgroundColor: `${category.color}20`,
-                              boxShadow: isCenter ? `0 0 20px ${category.color}40` : 'none'
-                            }}
-                          >
+                          <CardContent className="p-4 text-center h-full flex flex-col items-center justify-center">
                             <Icon 
                               className={`
-                                w-8 h-8 transition-all duration-500
+                                h-6 w-6 mx-auto mb-2 text-primary transition-all duration-500
                                 ${isCenter ? 'animate-bounce' : ''}
                               `}
-                              style={{ color: category.color }}
                             />
-                          </div>
-                          
-                          {/* Category Label */}
-                          <h3 className={`
-                            text-sm font-semibold text-center leading-tight
-                            ${isCenter ? 'text-foreground' : 'text-muted-foreground'}
-                          `}>
-                            {category.label}
-                          </h3>
+                            
+                            {/* Category Label */}
+                            <p className="font-medium text-sm">{category.label}</p>
+                            <p className="text-xs text-muted-foreground">{category.count}</p>
+                          </CardContent>
                           
                           {/* Market Count Badge */}
                           {isCenter && (
                             <div 
-                              className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white animate-fade-in"
-                              style={{ backgroundColor: category.color }}
+                              className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in"
                             >
                               {category.count}
                             </div>
@@ -252,12 +233,10 @@ const CategoryWheel = () => {
               
               {/* Custom Navigation Buttons */}
               <CarouselPrevious 
-                className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform"
-                style={{ borderColor: selectedCategory?.color }}
+                className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
               />
               <CarouselNext 
-                className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform"
-                style={{ borderColor: selectedCategory?.color }}
+                className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
               />
             </Carousel>
             
@@ -271,19 +250,13 @@ const CategoryWheel = () => {
           {/* Selected Category Details */}
           {selectedCategory && (
             <div className="animate-fade-in">
-              <Card className="max-w-2xl mx-auto p-8 space-y-6 border-2" style={{ borderColor: selectedCategory.color }}>
+              <Card className="max-w-2xl mx-auto p-8 space-y-6 border-2 border-primary">
                 <div className="text-center space-y-4">
                   <div 
-                    className="w-24 h-24 mx-auto rounded-full flex items-center justify-center border-4 animate-scale-in"
-                    style={{ 
-                      backgroundColor: selectedCategory.color + '15',
-                      borderColor: selectedCategory.color,
-                      boxShadow: `0 0 30px ${selectedCategory.color}30`
-                    }}
+                    className="w-24 h-24 mx-auto rounded-full flex items-center justify-center border-4 border-primary bg-primary/5 animate-scale-in"
                   >
                     <selectedCategory.icon 
-                      className="w-12 h-12"
-                      style={{ color: selectedCategory.color }}
+                      className="w-12 h-12 text-primary"
                     />
                   </div>
                   
@@ -319,9 +292,8 @@ const CategoryWheel = () => {
                 </div>
 
                 <Button 
-                  className="w-full py-6 text-lg font-semibold hover:scale-105 transition-transform"
+                  className="w-full py-6 text-lg font-semibold hover:scale-105 transition-transform bg-primary text-primary-foreground"
                   onClick={() => navigate(`/markets?category=${selectedCategory.id}`)}
-                  style={{ backgroundColor: selectedCategory.color }}
                 >
                   Explore {selectedCategory.label} Markets
                 </Button>
