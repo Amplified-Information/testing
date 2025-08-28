@@ -1,13 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Trophy,
   TrendingUp,
   DollarSign,
-  Zap,
   Globe,
   Briefcase,
-  Gamepad2,
   Activity,
   Heart,
   TreePine,
@@ -15,10 +13,11 @@ import {
   Microscope,
   Stethoscope,
   MapPin,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Category {
@@ -33,14 +32,9 @@ interface Category {
 
 const CategoryWheel = () => {
   const navigate = useNavigate();
-  const wheelRef = useRef<HTMLDivElement>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [rotation, setRotation] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [velocity, setVelocity] = useState(0);
-  const [lastMousePosition, setLastMousePosition] = useState({ x: 0, y: 0 });
-  const animationRef = useRef<number>();
+  const [api, setApi] = useState<CarouselApi>();
 
   const getIconForCategory = (name: string) => {
     const iconMap: { [key: string]: any } = {
@@ -89,7 +83,7 @@ const CategoryWheel = () => {
 
         if (error) throw error;
 
-        const dbCategories = data?.map((category, index) => ({
+        const dbCategories = data?.map((category) => ({
           id: category.name.toLowerCase().replace(/\s+/g, '-').replace('&', ''),
           label: category.name,
           icon: getIconForCategory(category.name),
@@ -108,68 +102,20 @@ const CategoryWheel = () => {
     fetchCategories();
   }, []);
 
-  // Physics animation for momentum scrolling
   useEffect(() => {
-    const animate = () => {
-      if (!isDragging && Math.abs(velocity) > 0.1) {
-        setRotation(prev => prev + velocity);
-        setVelocity(prev => prev * 0.95); // Friction
-        
-        // Update selected category based on rotation
-        const normalizedRotation = ((rotation % 360) + 360) % 360;
-        const segmentAngle = 360 / categories.length;
-        const newIndex = Math.round(normalizedRotation / segmentAngle) % categories.length;
-        setSelectedIndex(newIndex);
-        
-        animationRef.current = requestAnimationFrame(animate);
-      }
+    if (!api) return;
+
+    const onSelect = () => {
+      setSelectedIndex(api.selectedScrollSnap());
     };
 
-    if (!isDragging && Math.abs(velocity) > 0.1) {
-      animationRef.current = requestAnimationFrame(animate);
-    }
+    api.on("select", onSelect);
+    onSelect();
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      api?.off("select", onSelect);
     };
-  }, [velocity, isDragging, rotation, categories.length]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setVelocity(0);
-    setLastMousePosition({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !wheelRef.current) return;
-
-    const rect = wheelRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-    const lastAngle = Math.atan2(lastMousePosition.y - centerY, lastMousePosition.x - centerX);
-    
-    const deltaAngle = currentAngle - lastAngle;
-    const deltaRotation = (deltaAngle * 180) / Math.PI;
-
-    setRotation(prev => prev + deltaRotation);
-    setVelocity(deltaRotation * 0.5);
-    setLastMousePosition({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleCategoryClick = (index: number) => {
-    const targetRotation = -(index * (360 / categories.length));
-    setRotation(targetRotation);
-    setSelectedIndex(index);
-    setVelocity(0);
-  };
+  }, [api]);
 
   const selectedCategory = categories[selectedIndex];
 
@@ -190,147 +136,204 @@ const CategoryWheel = () => {
                 Back to Markets
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Category Wheel Demo</h1>
-                <p className="text-sm text-muted-foreground">Interactive spinning category browser</p>
+                <h1 className="text-2xl font-bold">Category Carousel</h1>
+                <p className="text-sm text-muted-foreground">Interactive diner wheel-style category browser</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
-          {/* Category Wheel */}
-          <div className="flex items-center justify-center">
-            <div className="relative w-96 h-96">
-              <div
-                ref={wheelRef}
-                className="relative w-full h-full rounded-full border-2 border-border/20 cursor-grab active:cursor-grabbing"
-                style={{
-                  transform: `rotate(${rotation}deg)`,
-                  transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-              >
-                {/* Center circle */}
-                <div className="absolute inset-0 w-20 h-20 m-auto rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center">
-                  <Globe className="w-8 h-8 text-primary" />
-                </div>
-
-                {/* Category segments */}
+      <div className="container mx-auto px-4 py-12">
+        <div className="space-y-12">
+          {/* Carousel Wheel */}
+          <div className="relative">
+            <Carousel
+              setApi={setApi}
+              className="w-full max-w-6xl mx-auto"
+              opts={{
+                align: "center",
+                loop: true,
+                skipSnaps: false,
+                dragFree: true,
+              }}
+            >
+              <CarouselContent className="py-8">
                 {categories.map((category, index) => {
-                  const angle = (360 / categories.length) * index;
-                  const isSelected = index === selectedIndex;
                   const Icon = category.icon;
-
+                  const isCenter = index === selectedIndex;
+                  const distance = Math.abs(index - selectedIndex);
+                  const isAdjacent = distance === 1 || (distance === categories.length - 1);
+                  
                   return (
-                    <div
-                      key={category.id}
-                      className="absolute inset-0"
-                      style={{ transform: `rotate(${angle}deg)` }}
+                    <CarouselItem 
+                      key={category.id} 
+                      className="basis-1/3 lg:basis-1/5 flex justify-center"
                     >
-                      <div
-                        className={`absolute top-4 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full border-2 transition-all duration-300 cursor-pointer hover:scale-110 ${
-                          isSelected 
-                            ? 'scale-125 shadow-lg border-primary bg-primary/20' 
-                            : 'border-border/40 bg-card hover:bg-card/80'
-                        }`}
-                        style={{
-                          backgroundColor: isSelected ? category.color + '20' : undefined,
-                          borderColor: isSelected ? category.color : undefined,
-                          boxShadow: isSelected ? `0 0 20px ${category.color}40` : undefined
-                        }}
-                        onClick={() => handleCategoryClick(index)}
+                      <div 
+                        className={`
+                          relative transition-all duration-500 ease-out cursor-pointer
+                          ${isCenter 
+                            ? 'scale-125 z-20' 
+                            : isAdjacent 
+                              ? 'scale-100 z-10' 
+                              : 'scale-75 z-0 opacity-50'
+                          }
+                        `}
+                        onClick={() => api?.scrollTo(index)}
                       >
-                        <div
-                          className="w-full h-full rounded-full flex items-center justify-center"
-                          style={{ transform: `rotate(-${angle + rotation}deg)` }}
-                        >
-                          <Icon 
-                            className={`w-6 h-6 transition-all duration-300 ${
-                              isSelected ? 'text-foreground' : 'text-muted-foreground'
-                            }`}
-                            style={{ color: isSelected ? category.color : undefined }}
+                        {/* Card Shadow/Glow Effect */}
+                        {isCenter && (
+                          <div 
+                            className="absolute inset-0 rounded-2xl blur-xl opacity-30"
+                            style={{ backgroundColor: category.color }}
                           />
-                        </div>
+                        )}
+                        
+                        {/* Category Card */}
+                        <Card 
+                          className={`
+                            relative w-32 h-40 p-4 flex flex-col items-center justify-center
+                            border-2 transition-all duration-500
+                            ${isCenter 
+                              ? 'shadow-2xl' 
+                              : 'shadow-md hover:shadow-lg'
+                            }
+                          `}
+                          style={{
+                            borderColor: isCenter ? category.color : 'hsl(var(--border))',
+                            transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`,
+                          }}
+                        >
+                          {/* Icon Background Circle */}
+                          <div 
+                            className={`
+                              w-16 h-16 rounded-full flex items-center justify-center mb-3
+                              transition-all duration-500
+                              ${isCenter ? 'animate-pulse' : ''}
+                            `}
+                            style={{
+                              backgroundColor: `${category.color}20`,
+                              boxShadow: isCenter ? `0 0 20px ${category.color}40` : 'none'
+                            }}
+                          >
+                            <Icon 
+                              className={`
+                                w-8 h-8 transition-all duration-500
+                                ${isCenter ? 'animate-bounce' : ''}
+                              `}
+                              style={{ color: category.color }}
+                            />
+                          </div>
+                          
+                          {/* Category Label */}
+                          <h3 className={`
+                            text-sm font-semibold text-center leading-tight
+                            ${isCenter ? 'text-foreground' : 'text-muted-foreground'}
+                          `}>
+                            {category.label}
+                          </h3>
+                          
+                          {/* Market Count Badge */}
+                          {isCenter && (
+                            <div 
+                              className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white animate-fade-in"
+                              style={{ backgroundColor: category.color }}
+                            >
+                              {category.count}
+                            </div>
+                          )}
+                        </Card>
                       </div>
-                    </div>
+                    </CarouselItem>
                   );
                 })}
-              </div>
-
-              {/* Rotation indicator */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2">
-                <div className="w-4 h-4 bg-primary rounded-full border-2 border-background"></div>
-              </div>
+              </CarouselContent>
+              
+              {/* Custom Navigation Buttons */}
+              <CarouselPrevious 
+                className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform"
+                style={{ borderColor: selectedCategory?.color }}
+              />
+              <CarouselNext 
+                className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform"
+                style={{ borderColor: selectedCategory?.color }}
+              />
+            </Carousel>
+            
+            {/* Diner Wheel Base */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-4">
+              <div className="w-32 h-8 bg-gradient-to-b from-muted to-muted-foreground/20 rounded-full shadow-lg" />
+              <div className="w-24 h-4 bg-muted-foreground/40 rounded-full mx-auto -mt-2" />
             </div>
           </div>
 
           {/* Selected Category Details */}
           {selectedCategory && (
-            <Card className="p-8 space-y-6">
-              <div className="text-center space-y-4">
-                <div 
-                  className="w-20 h-20 mx-auto rounded-full flex items-center justify-center border-2"
-                  style={{ 
-                    backgroundColor: selectedCategory.color + '20',
-                    borderColor: selectedCategory.color,
-                    boxShadow: `0 0 20px ${selectedCategory.color}40`
-                  }}
-                >
-                  <selectedCategory.icon 
-                    className="w-10 h-10"
-                    style={{ color: selectedCategory.color }}
-                  />
-                </div>
-                
-                <div>
-                  <h2 className="text-3xl font-bold">{selectedCategory.label}</h2>
-                  <p className="text-muted-foreground">Prediction Markets</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 bg-muted/20 rounded-lg">
-                  <div className="text-2xl font-bold">{selectedCategory.count}</div>
-                  <div className="text-sm text-muted-foreground">Active Markets</div>
-                </div>
-                
-                <div className="text-center p-4 bg-muted/20 rounded-lg">
-                  <div className="text-2xl font-bold">
-                    ${(selectedCategory.volume / 1000000).toFixed(1)}M
+            <div className="animate-fade-in">
+              <Card className="max-w-2xl mx-auto p-8 space-y-6 border-2" style={{ borderColor: selectedCategory.color }}>
+                <div className="text-center space-y-4">
+                  <div 
+                    className="w-24 h-24 mx-auto rounded-full flex items-center justify-center border-4 animate-scale-in"
+                    style={{ 
+                      backgroundColor: selectedCategory.color + '15',
+                      borderColor: selectedCategory.color,
+                      boxShadow: `0 0 30px ${selectedCategory.color}30`
+                    }}
+                  >
+                    <selectedCategory.icon 
+                      className="w-12 h-12"
+                      style={{ color: selectedCategory.color }}
+                    />
                   </div>
-                  <div className="text-sm text-muted-foreground">Total Volume</div>
+                  
+                  <div>
+                    <h2 className="text-4xl font-bold">{selectedCategory.label}</h2>
+                    <p className="text-lg text-muted-foreground">Prediction Markets</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="text-center p-4 bg-muted/20 rounded-lg">
-                <div 
-                  className={`text-xl font-bold ${
-                    selectedCategory.trending > 0 ? 'text-up' : 'text-down'
-                  }`}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-6 bg-muted/20 rounded-xl">
+                    <div className="text-3xl font-bold">{selectedCategory.count}</div>
+                    <div className="text-sm text-muted-foreground">Active Markets</div>
+                  </div>
+                  
+                  <div className="text-center p-6 bg-muted/20 rounded-xl">
+                    <div className="text-3xl font-bold">
+                      ${(selectedCategory.volume / 1000000).toFixed(1)}M
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Volume</div>
+                  </div>
+
+                  <div className="text-center p-6 bg-muted/20 rounded-xl">
+                    <div 
+                      className={`text-2xl font-bold ${
+                        selectedCategory.trending > 0 ? 'text-green-500' : 'text-red-500'
+                      }`}
+                    >
+                      {selectedCategory.trending > 0 ? '+' : ''}{selectedCategory.trending.toFixed(1)}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">24h Trend</div>
+                  </div>
+                </div>
+
+                <Button 
+                  className="w-full py-6 text-lg font-semibold hover:scale-105 transition-transform"
+                  onClick={() => navigate(`/markets?category=${selectedCategory.id}`)}
+                  style={{ backgroundColor: selectedCategory.color }}
                 >
-                  {selectedCategory.trending > 0 ? '+' : ''}{selectedCategory.trending.toFixed(1)}%
-                </div>
-                <div className="text-sm text-muted-foreground">24h Trend</div>
-              </div>
-
-              <Button 
-                className="w-full"
-                onClick={() => navigate(`/markets?category=${selectedCategory.id}`)}
-              >
-                Explore {selectedCategory.label} Markets
-              </Button>
-            </Card>
+                  Explore {selectedCategory.label} Markets
+                </Button>
+              </Card>
+            </div>
           )}
-        </div>
 
-        {/* Instructions */}
-        <div className="mt-12 text-center text-muted-foreground">
-          <p>🖱️ Click and drag the wheel to spin • 🎯 Click on categories to select • ⚡ Experience momentum physics</p>
+          {/* Instructions */}
+          <div className="text-center text-muted-foreground space-y-2">
+            <p className="text-lg">🎪 Click arrows or drag to spin the carousel</p>
+            <p>🎯 Click on any category card to select it instantly</p>
+          </div>
         </div>
       </div>
     </div>
