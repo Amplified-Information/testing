@@ -110,6 +110,114 @@ export type Database = {
         }
         Relationships: []
       }
+      event_markets: {
+        Row: {
+          category_id: string
+          change_24h: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string
+          featured_order: number | null
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          is_new: boolean
+          is_trending: boolean
+          liquidity: number
+          market_type: string
+          maximum_bet: number | null
+          minimum_bet: number
+          name: string
+          no_price: number
+          resolution_date: string | null
+          resolution_notes: string | null
+          resolution_status: Database["public"]["Enums"]["resolution_status"]
+          resolved_value: boolean | null
+          sort_order: number
+          subcategory_id: string | null
+          total_shares: number
+          updated_at: string
+          volume: number
+          yes_price: number
+        }
+        Insert: {
+          category_id: string
+          change_24h?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          featured_order?: number | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          is_new?: boolean
+          is_trending?: boolean
+          liquidity?: number
+          market_type?: string
+          maximum_bet?: number | null
+          minimum_bet?: number
+          name: string
+          no_price?: number
+          resolution_date?: string | null
+          resolution_notes?: string | null
+          resolution_status?: Database["public"]["Enums"]["resolution_status"]
+          resolved_value?: boolean | null
+          sort_order?: number
+          subcategory_id?: string | null
+          total_shares?: number
+          updated_at?: string
+          volume?: number
+          yes_price?: number
+        }
+        Update: {
+          category_id?: string
+          change_24h?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          featured_order?: number | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          is_new?: boolean
+          is_trending?: boolean
+          liquidity?: number
+          market_type?: string
+          maximum_bet?: number | null
+          minimum_bet?: number
+          name?: string
+          no_price?: number
+          resolution_date?: string | null
+          resolution_notes?: string | null
+          resolution_status?: Database["public"]["Enums"]["resolution_status"]
+          resolved_value?: boolean | null
+          sort_order?: number
+          subcategory_id?: string | null
+          total_shares?: number
+          updated_at?: string
+          volume?: number
+          yes_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_markets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "market_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_markets_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "market_subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_categories: {
         Row: {
           created_at: string
@@ -1022,7 +1130,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      resolution_status: "open" | "closed" | "resolved" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1149,6 +1257,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      resolution_status: ["open", "closed", "resolved", "cancelled"],
+    },
   },
 } as const
