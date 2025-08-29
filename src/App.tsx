@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { WalletProvider } from "@/contexts/WalletContext";
 import Index from "./pages/Index";
 import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
@@ -16,21 +17,23 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/markets" element={<Markets />} />
-          <Route path="/category-wheel" element={<CategoryWheel />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/market/:id" element={<MarketDetail />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <WalletProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/markets" element={<Markets />} />
+            <Route path="/category-wheel" element={<CategoryWheel />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/market/:id" element={<MarketDetail />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </WalletProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

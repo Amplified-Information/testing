@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import SettingsDialog from "@/components/Settings/SettingsDialog";
 import SignUpDialog from "@/components/Auth/SignUpDialog";
+import WalletButton from "@/components/Wallet/WalletButton";
 import { useTheme } from "@/hooks/useTheme";
 import { toast } from "sonner";
 
@@ -119,6 +120,8 @@ const Header = () => {
           <Badge variant="secondary" className="hidden md:flex">
             Testnet
           </Badge>
+          
+          <WalletButton />
           
           {!user && (
             <Button variant="outline" size="sm" onClick={() => setSignUpOpen(true)}>
