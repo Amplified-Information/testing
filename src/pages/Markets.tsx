@@ -23,7 +23,13 @@ import {
   Stethoscope,
   MapPin,
   ArrowLeft,
-  ChevronRight
+  ChevronRight,
+  Users,
+  Clock,
+  Target,
+  Droplets,
+  Plus,
+  Star
 } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
@@ -33,7 +39,20 @@ const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categories, setCategories] = useState([
-    { id: "all", label: "All Event Markets", icon: Globe, count: 847 }
+    { 
+      id: "all", 
+      label: "All Event Markets", 
+      icon: Globe, 
+      count: 847,
+      volume: 156000000,
+      change24h: 8.2,
+      activeTraders: 24310,
+      avgResolutionTime: 32,
+      successRate: 85,
+      liquidity: 45000000,
+      newMarketsToday: 12,
+      topMarket: 'Most Active Market Across All Categories'
+    }
   ]);
   const [loading, setLoading] = useState(true);
   
@@ -78,11 +97,37 @@ const Markets = () => {
           label: category.name,
           icon: getIconForCategory(category.name),
           count: Math.floor(Math.random() * 200) + 50, // Placeholder count
-          fullData: category // Store the full category data
+          fullData: category, // Store the full category data
+          // Additional placeholder data for enhanced cards
+          volume: Math.floor(Math.random() * 50000000) + 5000000, // $5M-$55M volume
+          change24h: (Math.random() - 0.5) * 30, // -15% to +15% change
+          activeTraders: Math.floor(Math.random() * 15000) + 2000, // 2K-17K traders
+          avgResolutionTime: Math.floor(Math.random() * 60) + 15, // 15-75 days
+          successRate: Math.floor(Math.random() * 30) + 70, // 70-100% accuracy
+          liquidity: Math.floor(Math.random() * 10000000) + 1000000, // $1M-$11M liquidity
+          newMarketsToday: Math.floor(Math.random() * 15) + 1, // 1-15 new markets
+          topMarket: category.name === 'Politics' ? 'US Election 2024 Winner' 
+                   : category.name === 'Sports' ? 'Super Bowl 2025 Winner'
+                   : category.name === 'Crypto' ? 'Bitcoin $100K by EOY'
+                   : category.name === 'Tech & Science' ? 'GPT-5 Release Date'
+                   : `${category.name} Market Leader`
         })) || [];
 
         setCategories([
-          { id: "all", label: "All Event Markets", icon: Globe, count: 847 },
+          { 
+            id: "all", 
+            label: "All Event Markets", 
+            icon: Globe, 
+            count: 847,
+            volume: 156000000, // $156M total volume
+            change24h: 8.2, // +8.2% change
+            activeTraders: 24310, // 24.3K traders
+            avgResolutionTime: 32, // 32 days average
+            successRate: 85, // 85% accuracy
+            liquidity: 45000000, // $45M liquidity
+            newMarketsToday: 12, // 12 new markets
+            topMarket: 'Most Active Market Across All Categories'
+          },
           ...dbCategories
         ]);
       } catch (error) {
@@ -534,21 +579,118 @@ const Markets = () => {
         {/* Categories View */}
         {viewMode === 'categories' && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Categories</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-              {categories.map((category) => (
+            <h2 className="text-xl font-semibold mb-6">Categories</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.filter(cat => cat.id !== 'all').map((category) => (
                 <Card 
                   key={category.id}
-                  className="cursor-pointer transition-all hover:shadow-md hover:scale-105"
+                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 border-2 hover:border-primary/50"
                   onClick={() => handleCategorySelect(category)}
                 >
-                  <CardContent className="p-4 text-center">
-                    <category.icon className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <p className="font-medium text-sm">{category.label}</p>
-                    <p className="text-xs text-muted-foreground">{category.count}</p>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 rounded-full bg-primary/10">
+                          <category.icon className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg">{category.label}</h3>
+                          <p className="text-sm text-muted-foreground">{category.count} active markets</p>
+                        </div>
+                      </div>
+                      <Star className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    {/* Volume and Change */}
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4" />
+                          Total Volume
+                        </div>
+                        <p className="font-bold text-lg">${(category.volume / 1000000).toFixed(1)}M</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <TrendingUp className="h-4 w-4" />
+                          24h Change
+                        </div>
+                        <p className={`font-bold text-lg ${category.change24h > 0 ? 'text-up' : 'text-down'}`}>
+                          {category.change24h > 0 ? '+' : ''}{category.change24h.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Key Metrics Row */}
+                    <div className="grid grid-cols-3 gap-3 py-3 border-t border-b border-border/40">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Users className="h-3 w-3" />
+                          Traders
+                        </div>
+                        <p className="font-semibold">{(category.activeTraders / 1000).toFixed(1)}K</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Droplets className="h-3 w-3" />
+                          Liquidity
+                        </div>
+                        <p className="font-semibold">${(category.liquidity / 1000000).toFixed(1)}M</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Target className="h-3 w-3" />
+                          Accuracy
+                        </div>
+                        <p className="font-semibold">{category.successRate}%</p>
+                      </div>
+                    </div>
+
+                    {/* Activity Metrics */}
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        Avg Resolution: {category.avgResolutionTime}d
+                      </div>
+                      <div className="flex items-center gap-1 text-primary">
+                        <Plus className="h-3 w-3" />
+                        {category.newMarketsToday} new today
+                      </div>
+                    </div>
+
+                    {/* Top Market */}
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                        <Star className="h-3 w-3" />
+                        Most Popular Market
+                      </div>
+                      <p className="text-sm font-medium line-clamp-2">{category.topMarket}</p>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
+            </div>
+            
+            {/* All Markets Card */}
+            <div className="mt-6">
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 border-2 hover:border-primary/50 bg-gradient-to-r from-primary/5 to-accent/5"
+                onClick={() => handleCategorySelect(categories[0])}
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="p-3 rounded-full bg-primary/20">
+                      <Globe className="h-8 w-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl">Browse All Markets</h3>
+                      <p className="text-muted-foreground">Explore {categories[0].count} prediction markets across all categories</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
