@@ -4,79 +4,85 @@ import { Progress } from "@/components/ui/progress";
 import Header from "@/components/Layout/Header";
 import { TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
 
-interface Holding {
+interface PredictionPosition {
   id: string;
-  ticker: string;
-  company_name: string;
-  price: number;
-  buy_price: number;
-  buy_date: string;
-  performance: number;
-  change_percent: number;
-  shares: number;
+  marketQuestion: string;
+  position: 'YES' | 'NO';
+  currentPrice: number;
+  entryPrice: number;
+  entryDate: string;
+  contracts: number;
+  category: string;
+  resolutionDate: string;
+  status: 'active' | 'resolved' | 'closing_soon';
 }
 
-const mockHoldings: Holding[] = [
+const mockPositions: PredictionPosition[] = [
   {
     id: "1",
-    ticker: "AAPL",
-    company_name: "Apple Inc.",
-    price: 185.50,
-    buy_price: 150.00,
-    buy_date: "2024-01-15",
-    performance: 35.50,
-    change_percent: 23.67,
-    shares: 10
+    marketQuestion: "Will Bitcoin reach $100,000 by end of 2024?",
+    position: "YES",
+    currentPrice: 0.72,
+    entryPrice: 0.65,
+    entryDate: "2024-01-15",
+    contracts: 100,
+    category: "Cryptocurrency",
+    resolutionDate: "2024-12-31",
+    status: "active"
   },
   {
-    id: "2", 
-    ticker: "MSFT",
-    company_name: "Microsoft Corporation",
-    price: 420.25,
-    buy_price: 380.00,
-    buy_date: "2024-02-10",
-    performance: 40.25,
-    change_percent: 10.59,
-    shares: 5
+    id: "2",
+    marketQuestion: "Will Democrats win the 2024 Presidential Election?",
+    position: "YES", 
+    currentPrice: 0.58,
+    entryPrice: 0.62,
+    entryDate: "2024-02-10",
+    contracts: 75,
+    category: "Politics",
+    resolutionDate: "2024-11-05",
+    status: "closing_soon"
   },
   {
     id: "3",
-    ticker: "GOOGL", 
-    company_name: "Alphabet Inc.",
-    price: 142.80,
-    buy_price: 160.50,
-    buy_date: "2024-03-05",
-    performance: -17.70,
-    change_percent: -11.03,
-    shares: 8
+    marketQuestion: "Will Tesla stock reach $300 by Q4 2024?",
+    position: "NO",
+    currentPrice: 0.38,
+    entryPrice: 0.45,
+    entryDate: "2024-03-05",
+    contracts: 50,
+    category: "Stock Market",
+    resolutionDate: "2024-12-31",
+    status: "active"
   },
   {
     id: "4",
-    ticker: "TSLA",
-    company_name: "Tesla, Inc.",
-    price: 225.40,
-    buy_price: 200.00,
-    buy_date: "2024-01-20",
-    performance: 25.40,
-    change_percent: 12.70,
-    shares: 15
+    marketQuestion: "Will OpenAI release GPT-5 in 2024?",
+    position: "YES",
+    currentPrice: 0.43,
+    entryPrice: 0.35,
+    entryDate: "2024-01-20",
+    contracts: 120,
+    category: "Technology",
+    resolutionDate: "2024-12-31", 
+    status: "active"
   },
   {
     id: "5",
-    ticker: "NVDA",
-    company_name: "NVIDIA Corporation", 
-    price: 875.30,
-    buy_price: 650.00,
-    buy_date: "2023-12-01",
-    performance: 225.30,
-    change_percent: 34.66,
-    shares: 3
+    marketQuestion: "Will the Fed cut interest rates by 0.5% in 2024?",
+    position: "NO",
+    currentPrice: 0.25,
+    entryPrice: 0.40,
+    entryDate: "2023-12-01",
+    contracts: 200,
+    category: "Finance",
+    resolutionDate: "2024-12-31",
+    status: "active"
   }
 ];
 
 const Portfolio = () => {
-  const totalValue = mockHoldings.reduce((sum, holding) => sum + (holding.price * holding.shares), 0);
-  const totalCost = mockHoldings.reduce((sum, holding) => sum + (holding.buy_price * holding.shares), 0);
+  const totalValue = mockPositions.reduce((sum, position) => sum + (position.currentPrice * position.contracts), 0);
+  const totalCost = mockPositions.reduce((sum, position) => sum + (position.entryPrice * position.contracts), 0);
   const totalGainLoss = totalValue - totalCost;
   const totalGainLossPercent = ((totalGainLoss / totalCost) * 100);
 
@@ -102,7 +108,7 @@ const Portfolio = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">My Portfolio</h1>
-          <p className="text-muted-foreground">Track your investment performance and holdings</p>
+          <p className="text-muted-foreground">Track your event prediction market positions and performance</p>
         </div>
 
         {/* Portfolio Summary */}
@@ -156,40 +162,55 @@ const Portfolio = () => {
           </Card>
         </div>
 
-        {/* Holdings List */}
+        {/* Positions List */}
         <Card>
           <CardHeader>
-            <CardTitle>Holdings</CardTitle>
-            <CardDescription>Your current investment positions</CardDescription>
+            <CardTitle>Positions</CardTitle>
+            <CardDescription>Your current event prediction market positions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockHoldings.map((holding) => {
-                const currentValue = holding.price * holding.shares;
-                const costBasis = holding.buy_price * holding.shares;
+              {mockPositions.map((position) => {
+                const currentValue = position.currentPrice * position.contracts;
+                const costBasis = position.entryPrice * position.contracts;
                 const gainLoss = currentValue - costBasis;
+                const changePercent = ((position.currentPrice - position.entryPrice) / position.entryPrice) * 100;
                 
                 return (
-                  <div key={holding.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
+                  <div key={position.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-lg">{holding.ticker}</h3>
+                            <Badge variant={position.position === 'YES' ? 'default' : 'secondary'} className="text-xs">
+                              {position.position}
+                            </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {holding.shares} shares
+                              {position.contracts} contracts
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {position.category}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">{holding.company_name}</p>
-                          <p className="text-xs text-muted-foreground">Purchased: {formatDate(holding.buy_date)}</p>
+                          <h3 className="font-semibold text-lg mb-1">{position.marketQuestion}</h3>
+                          <div className="flex gap-4 text-xs text-muted-foreground">
+                            <span>Entered: {formatDate(position.entryDate)}</span>
+                            <span>Resolves: {formatDate(position.resolutionDate)}</span>
+                            <Badge 
+                              variant={position.status === 'closing_soon' ? 'destructive' : 'outline'} 
+                              className="text-xs"
+                            >
+                              {position.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                       
                       <div className="text-right">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg font-semibold">{formatCurrency(holding.price)}</span>
-                          <Badge variant={holding.change_percent >= 0 ? "default" : "destructive"} className="text-xs">
-                            {holding.change_percent >= 0 ? '+' : ''}{holding.change_percent.toFixed(2)}%
+                          <span className="text-lg font-semibold">{formatCurrency(position.currentPrice)}</span>
+                          <Badge variant={changePercent >= 0 ? "default" : "destructive"} className="text-xs">
+                            {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -203,11 +224,11 @@ const Portfolio = () => {
                     
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Cost Basis: {formatCurrency(holding.buy_price)} × {holding.shares}</span>
-                        <span>Current: {formatCurrency(holding.price)} × {holding.shares}</span>
+                        <span>Entry: {formatCurrency(position.entryPrice)} × {position.contracts}</span>
+                        <span>Current: {formatCurrency(position.currentPrice)} × {position.contracts}</span>
                       </div>
                       <Progress 
-                        value={holding.change_percent >= 0 ? Math.min(100, Math.abs(holding.change_percent) * 2) : 0}
+                        value={changePercent >= 0 ? Math.min(100, Math.abs(changePercent) * 2) : 0}
                         className="h-2"
                       />
                     </div>
