@@ -102,6 +102,9 @@ const Header = () => {
           <Link to="/portfolio" className="text-sm font-medium hover:text-primary transition-colors">
             Portfolio
           </Link>
+          <Link to="/docs" className="text-sm font-medium hover:text-primary transition-colors">
+            Docs
+          </Link>
         </nav>
 
         {/* Search */}
