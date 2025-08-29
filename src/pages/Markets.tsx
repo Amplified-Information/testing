@@ -504,7 +504,7 @@ const Markets = () => {
               {selectedCategoryData && (
                 <>
                   <button 
-                    onClick={handleBackToCategories}
+                    onClick={handleBackToSubcategories}
                     className="text-foreground font-medium hover:text-primary transition-colors"
                   >
                     {selectedCategoryData.label}
@@ -512,12 +512,9 @@ const Markets = () => {
                   {viewMode === 'markets' && selectedSubcategory !== 'all' && (
                     <>
                       <ChevronRight className="h-4 w-4" />
-                      <button 
-                        onClick={handleBackToSubcategories}
-                        className="text-foreground font-medium hover:text-primary transition-colors"
-                      >
+                      <span className="text-foreground font-medium">
                         {subcategories.find(sub => sub.id === selectedSubcategory)?.name}
-                      </button>
+                      </span>
                     </>
                   )}
                 </>
