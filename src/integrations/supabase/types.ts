@@ -130,6 +130,7 @@ export type Database = {
           minimum_bet: number
           name: string
           no_price: number
+          relevance: string | null
           resolution_date: string | null
           resolution_notes: string | null
           resolution_status: Database["public"]["Enums"]["resolution_status"]
@@ -139,6 +140,7 @@ export type Database = {
           total_shares: number
           updated_at: string
           volume: number
+          why_it_matters: string | null
           yes_price: number
         }
         Insert: {
@@ -160,6 +162,7 @@ export type Database = {
           minimum_bet?: number
           name: string
           no_price?: number
+          relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
           resolution_status?: Database["public"]["Enums"]["resolution_status"]
@@ -169,6 +172,7 @@ export type Database = {
           total_shares?: number
           updated_at?: string
           volume?: number
+          why_it_matters?: string | null
           yes_price?: number
         }
         Update: {
@@ -190,6 +194,7 @@ export type Database = {
           minimum_bet?: number
           name?: string
           no_price?: number
+          relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
           resolution_status?: Database["public"]["Enums"]["resolution_status"]
@@ -199,6 +204,7 @@ export type Database = {
           total_shares?: number
           updated_at?: string
           volume?: number
+          why_it_matters?: string | null
           yes_price?: number
         }
         Relationships: [
