@@ -2,19 +2,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { TrendingUp, DollarSign, Users, BarChart3, ChevronUp, ChevronDown } from "lucide-react";
+import { TrendingUp, DollarSign, Users, BarChart3, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import heroImage from "@/assets/hero-bg.jpg";
+import { useMarketStats } from "@/hooks/useMarketStats";
 
 const HeroSection = () => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const { stats: marketStats, loading, error } = useMarketStats();
   
   const stats = [
-    { label: "Total Volume", value: "$2.4M", icon: DollarSign },
-    { label: "Active Event Prediction Markets", value: "847", icon: BarChart3 },
-    { label: "Traders", value: "12.5K", icon: Users },
-    { label: "24h Volume", value: "$156K", icon: TrendingUp },
+    { label: "Total Volume", value: loading ? "..." : marketStats.totalVolume, icon: DollarSign },
+    { label: "Active Event Prediction Markets", value: loading ? "..." : marketStats.activeMarkets.toString(), icon: BarChart3 },
+    { label: "Traders", value: loading ? "..." : marketStats.totalTraders, icon: Users },
+    { label: "24h Volume", value: loading ? "..." : marketStats.volume24h, icon: TrendingUp },
   ];
 
   return (
