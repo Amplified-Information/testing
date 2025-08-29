@@ -32,7 +32,6 @@ import {
   Star,
   Landmark
 } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,8 +39,6 @@ import { supabase } from "@/integrations/supabase/client";
 const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [categories, setCategories] = useState([
     { 
       id: "all", 
@@ -85,22 +82,6 @@ const Markets = () => {
     };
     return iconMap[name] || Globe;
   };
-
-  // Handle carousel selection
-  useEffect(() => {
-    if (!carouselApi) return;
-
-    const onSelect = () => {
-      setSelectedCategoryIndex(carouselApi.selectedScrollSnap());
-    };
-
-    carouselApi.on("select", onSelect);
-    onSelect();
-
-    return () => {
-      carouselApi?.off("select", onSelect);
-    };
-  }, [carouselApi]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -453,167 +434,20 @@ const Markets = () => {
         {viewMode === 'categories' && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Categories</h2>
-            
-            {/* Category Carousel */}
-            <div className="relative">
-              <Carousel
-                setApi={setCarouselApi}
-                className="w-full max-w-6xl mx-auto"
-                opts={{
-                  align: "center",
-                  loop: true,
-                  skipSnaps: false,
-                  dragFree: true,
-                }}
-              >
-                <CarouselContent className="py-8">
-                  {categories.map((category, index) => {
-                    const Icon = category.icon;
-                    const isCenter = index === selectedCategoryIndex;
-                    const distance = Math.abs(index - selectedCategoryIndex);
-                    const isAdjacent = distance === 1 || (distance === categories.length - 1);
-                    
-                    return (
-                      <CarouselItem 
-                        key={category.id} 
-                        className="basis-1/3 sm:basis-1/4 lg:basis-1/6 flex justify-center px-1"
-                      >
-                        <div 
-                          className={`
-                            relative transition-all duration-500 ease-out cursor-pointer
-                            ${isCenter 
-                              ? 'scale-125 z-20' 
-                              : isAdjacent 
-                                ? 'scale-100 z-10' 
-                                : 'scale-75 z-0 opacity-50'
-                            }
-                          `}
-                          onClick={() => {
-                            carouselApi?.scrollTo(index);
-                            handleCategorySelect(category);
-                          }}
-                        >
-                          {/* Card Shadow/Glow Effect */}
-                          {isCenter && (
-                            <div 
-                              className="absolute inset-0 rounded-2xl blur-xl opacity-30 bg-primary/50"
-                            />
-                          )}
-                          
-                          {/* Category Card */}
-                          <Card 
-                            className={`
-                              relative w-32 h-28 cursor-pointer transition-all duration-500
-                              ${isCenter 
-                                ? 'shadow-2xl ring-2 ring-primary border-primary' 
-                                : 'shadow-md hover:shadow-lg'
-                              }
-                            `}
-                            style={{
-                              transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedCategoryIndex) * 3}deg)`,
-                            }}
-                          >
-                            <CardContent className="p-4 text-center h-full flex flex-col items-center justify-center">
-                              <Icon 
-                                className="h-8 w-8 mx-auto mb-2 text-primary transition-all duration-500"
-                              />
-                              
-                              {/* Category Label */}
-                              <p className="font-medium text-sm">{category.label}</p>
-                              <p className="text-xs text-muted-foreground">{category.count}</p>
-                            </CardContent>
-                            
-                            {/* Market Count Badge */}
-                            {isCenter && (
-                              <div 
-                                className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in"
-                              >
-                                {category.count}
-                              </div>
-                            )}
-                          </Card>
-                        </div>
-                      </CarouselItem>
-                    );
-                  })}
-                </CarouselContent>
-                
-                {/* Custom Navigation Buttons */}
-                <CarouselPrevious 
-                  className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
-                />
-                <CarouselNext 
-                  className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
-                />
-              </Carousel>
-              
-              {/* Diner Wheel Base */}
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-4">
-                <div className="w-32 h-8 bg-gradient-to-b from-muted to-muted-foreground/20 rounded-full shadow-lg" />
-                <div className="w-24 h-4 bg-muted-foreground/40 rounded-full mx-auto -mt-2" />
-              </div>
-            </div>
-
-            {/* Selected Category Details */}
-            {categories[selectedCategoryIndex] && (
-              <div className="mt-12 animate-fade-in">
-                <Card className="max-w-2xl mx-auto p-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-4">
-                      <div 
-                        className="w-16 h-16 rounded-full flex items-center justify-center border-2 border-primary bg-primary/10"
-                      >
-                        {(() => {
-                          const Icon = categories[selectedCategoryIndex].icon;
-                          return <Icon className="w-8 h-8 text-primary" />;
-                        })()}
-                      </div>
-                      <div className="text-left">
-                        <h3 className="text-2xl font-bold">{categories[selectedCategoryIndex].label}</h3>
-                        <p className="text-muted-foreground">Event Prediction Markets</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-4 mt-6">
-                      <div className="text-center p-4 bg-background/50 rounded-lg">
-                        <div className="text-2xl font-bold">{categories[selectedCategoryIndex].count}</div>
-                        <div className="text-xs text-muted-foreground">Markets</div>
-                      </div>
-                      
-                      <div className="text-center p-4 bg-background/50 rounded-lg">
-                        <div className="text-2xl font-bold">
-                          ${(categories[selectedCategoryIndex].volume / 1000000).toFixed(1)}M
-                        </div>
-                        <div className="text-xs text-muted-foreground">Volume</div>
-                      </div>
-
-                      <div className="text-center p-4 bg-background/50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">
-                          {categories[selectedCategoryIndex].activeTraders}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Traders</div>
-                      </div>
-
-                      <div className="text-center p-4 bg-background/50 rounded-lg">
-                        <div 
-                          className={`text-2xl font-bold ${
-                            categories[selectedCategoryIndex].change24h > 0 ? 'text-green-500' : 'text-red-500'
-                          }`}
-                        >
-                          {categories[selectedCategoryIndex].change24h > 0 ? '+' : ''}{categories[selectedCategoryIndex].change24h.toFixed(1)}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">24h</div>
-                      </div>
-                    </div>
-                  </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+              {categories.map((category) => (
+                <Card 
+                  key={category.id}
+                  className="cursor-pointer transition-all hover:shadow-md hover:scale-105"
+                  onClick={() => handleCategorySelect(category)}
+                >
+                  <CardContent className="p-4 text-center">
+                    <category.icon className="h-6 w-6 mx-auto mb-2 text-primary" />
+                    <p className="font-medium text-sm">{category.label}</p>
+                    <p className="text-xs text-muted-foreground">{category.count}</p>
+                  </CardContent>
                 </Card>
-              </div>
-            )}
-
-            {/* Instructions */}
-            <div className="text-center text-muted-foreground space-y-2 mt-8">
-              <p className="text-sm">🎪 Click arrows or drag to browse categories</p>
-              <p className="text-sm">🎯 Click on any category card to explore markets</p>
+              ))}
             </div>
           </div>
         )}
