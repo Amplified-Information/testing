@@ -61,6 +61,7 @@ const Markets = () => {
   const [selectedCategoryData, setSelectedCategoryData] = useState<any>(null);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+  const [allMarkets, setAllMarkets] = useState<any[]>([]);
 
   // Map category names to icons
   const getIconForCategory = (name: string) => {
@@ -138,6 +139,7 @@ const Markets = () => {
     };
 
     fetchCategories();
+    fetchAllMarkets();
   }, []);
 
   const fetchSubcategories = async (categoryId: string) => {
@@ -205,6 +207,77 @@ const Markets = () => {
   const trendingMarkets: any[] = [];
 
   const newMarkets: any[] = [];
+
+  // Fetch all event markets from the database
+  const fetchAllMarkets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('event_markets')
+        .select(`
+          *,
+          market_categories(name),
+          market_subcategories(name)
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedMarkets = data?.map(market => ({
+        id: market.id,
+        question: market.name,
+        category: market.market_categories?.name || 'Unknown',
+        subcategory: market.market_subcategories?.name || 'General',
+        yesPrice: market.yes_price,
+        noPrice: market.no_price,
+        volume: market.volume,
+        endDate: market.end_date,
+        liquidity: market.liquidity,
+        change24h: market.change_24h,
+        description: market.description,
+        relevance: market.relevance,
+        whyItMatters: market.why_it_matters
+      })) || [];
+
+      setAllMarkets(formattedMarkets);
+    } catch (error) {
+      console.error('Error fetching markets:', error);
+      setAllMarkets([]);
+    }
+  };
+
+  // Filter markets based on current view and selection
+  const getFilteredMarkets = (markets: any[] = allMarkets) => {
+    let filtered = markets;
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(market => 
+        market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        market.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        market.subcategory.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by category and subcategory based on current view
+    if (viewMode === 'markets' && selectedCategoryData && selectedCategoryData.id !== 'all') {
+      filtered = filtered.filter(market => 
+        market.category.toLowerCase() === selectedCategoryData.label.toLowerCase()
+      );
+
+      // Further filter by subcategory if not "all"
+      if (selectedSubcategory !== 'all') {
+        const selectedSubcategoryName = subcategories.find(sub => sub.id === selectedSubcategory)?.name;
+        if (selectedSubcategoryName) {
+          filtered = filtered.filter(market => 
+            market.subcategory.toLowerCase() === selectedSubcategoryName.toLowerCase()
+          );
+        }
+      }
+    }
+
+    return filtered;
+  };
 
   const filteredMarkets = (markets: typeof featuredMarkets) => {
     return markets.filter(market => {
@@ -478,8 +551,12 @@ const Markets = () => {
 
         {/* Market Sections - Only show when in markets view or categories view with "all" selected */}
         {(viewMode === 'markets' || (viewMode === 'categories' && selectedCategory === "all")) && (
-          <Tabs defaultValue="featured" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              All
+            </TabsTrigger>
             <TabsTrigger value="featured" className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
               Featured
@@ -493,6 +570,28 @@ const Markets = () => {
               New
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="all" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">All Markets</h3>
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                {getFilteredMarkets().length} Markets
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getFilteredMarkets().map((market) => (
+                <MarketCard key={market.id} {...market} />
+              ))}
+            </div>
+            {getFilteredMarkets().length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-2">No markets found</p>
+                <p className="text-sm text-muted-foreground">
+                  {searchQuery ? "Try adjusting your search terms" : "Check back later for new markets"}
+                </p>
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="featured" className="space-y-6">
             <div className="flex items-center justify-between">
