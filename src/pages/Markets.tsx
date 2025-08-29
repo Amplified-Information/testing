@@ -237,7 +237,8 @@ const Markets = () => {
         change24h: market.change_24h,
         description: market.description,
         relevance: market.relevance,
-        whyItMatters: market.why_it_matters
+        whyItMatters: market.why_it_matters,
+        createdAt: market.created_at
       })) || [];
 
       setAllMarkets(formattedMarkets);
@@ -293,6 +294,16 @@ const Markets = () => {
   const getHighVolumeMarkets = () => {
     const volumeThreshold = 10000; // $10k threshold
     return getFilteredMarkets().filter(market => market.volume >= volumeThreshold);
+  };
+
+  const getNewMarkets = () => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return getFilteredMarkets().filter(market => {
+      // Assuming we have a createdAt field in the market data
+      const createdDate = new Date(market.createdAt || market.created_at);
+      return createdDate >= thirtyDaysAgo;
+    });
   };
 
   const filteredMarkets = (markets: typeof featuredMarkets) => {
@@ -649,14 +660,22 @@ const Markets = () => {
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-semibold">New Markets</h3>
               <Badge variant="secondary" className="bg-accent/10 text-accent-foreground">
-                Fresh
+                {getNewMarkets().length} Markets (30 days)
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMarkets(newMarkets).map((market) => (
+              {getNewMarkets().map((market) => (
                 <MarketCard key={market.id} {...market} />
               ))}
             </div>
+            {getNewMarkets().length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-2">No new markets</p>
+                <p className="text-sm text-muted-foreground">
+                  No markets have been created in the last 30 days
+                </p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="ending-soon" className="space-y-6">
