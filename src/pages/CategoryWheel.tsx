@@ -133,7 +133,7 @@ const CategoryWheel = () => {
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Markets
+                Back to Event Markets
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">Category Carousel</h1>
@@ -259,14 +259,14 @@ const CategoryWheel = () => {
                   
                   <div>
                     <h2 className="text-4xl font-bold">{selectedCategory.label}</h2>
-                    <p className="text-lg text-muted-foreground">Prediction Markets</p>
+                    <p className="text-lg text-muted-foreground">Event Prediction Markets</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center p-6 bg-muted/20 rounded-xl">
                     <div className="text-3xl font-bold">{selectedCategory.count}</div>
-                    <div className="text-sm text-muted-foreground">Active Markets</div>
+                    <div className="text-sm text-muted-foreground">Active Event Markets</div>
                   </div>
                   
                   <div className="text-center p-6 bg-muted/20 rounded-xl">
@@ -292,7 +292,7 @@ const CategoryWheel = () => {
                   className="w-full py-6 text-lg font-semibold hover:scale-105 transition-transform bg-primary text-primary-foreground"
                   onClick={() => navigate(`/markets?category=${selectedCategory.id}`)}
                 >
-                  Explore {selectedCategory.label} Markets
+                  Explore {selectedCategory.label} Event Markets
                 </Button>
               </Card>
             </div>

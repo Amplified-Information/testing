@@ -153,7 +153,7 @@ const SignUpDialog = ({ open, onOpenChange }: SignUpDialogProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Welcome to Hedera Markets</DialogTitle>
+          <DialogTitle>Welcome to Hedera Event Prediction Markets</DialogTitle>
           <DialogDescription>
             Sign in to your account or create a new one to start trading.
           </DialogDescription>

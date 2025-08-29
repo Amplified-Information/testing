@@ -31,7 +31,7 @@ const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categories, setCategories] = useState([
-    { id: "all", label: "All Markets", icon: Globe, count: 847 }
+    { id: "all", label: "All Event Markets", icon: Globe, count: 847 }
   ]);
   const [loading, setLoading] = useState(true);
 
@@ -73,7 +73,7 @@ const Markets = () => {
         })) || [];
 
         setCategories([
-          { id: "all", label: "All Markets", icon: Globe, count: 847 },
+          { id: "all", label: "All Event Markets", icon: Globe, count: 847 },
           ...dbCategories
         ]);
       } catch (error) {

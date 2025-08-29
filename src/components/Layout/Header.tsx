@@ -85,7 +85,7 @@ const Header = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
           <TrendingUp className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Hedera Markets</span>
+          <span className="text-xl font-bold">Hedera Event Prediction Markets</span>
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 ml-3">
             Powered by Hedera Hashgraph
           </Badge>
@@ -94,7 +94,7 @@ const Header = () => {
         {/* Navigation */}
         <nav className="hidden md:flex items-center space-x-6 ml-8">
           <Link to="/markets" className="text-sm font-medium hover:text-primary transition-colors">
-            Markets
+            Event Markets
           </Link>
           <Link to="/category-wheel" className="text-sm font-medium hover:text-primary transition-colors">
             Categories
@@ -112,7 +112,7 @@ const Header = () => {
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search markets..."
+              placeholder="Search event prediction markets..."
               className="pl-8 bg-muted/50"
             />
           </div>

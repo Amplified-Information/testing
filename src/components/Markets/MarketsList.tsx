@@ -85,7 +85,7 @@ const MarketsList = () => {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <Input
-            placeholder="Search markets..."
+            placeholder="Search event prediction markets..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="bg-muted/50"
@@ -163,7 +163,7 @@ const MarketsList = () => {
 
       {filteredMarkets.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No markets found matching your criteria.</p>
+          <p className="text-muted-foreground">No event prediction markets found matching your criteria.</p>
         </div>
       )}
     </div>

@@ -11,7 +11,7 @@ const Index = () => {
         <section className="container py-8">
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-3xl font-bold">Featured Markets</h2>
+              <h2 className="text-3xl font-bold">Featured Event Prediction Markets</h2>
             </div>
             
             <MarketsList />

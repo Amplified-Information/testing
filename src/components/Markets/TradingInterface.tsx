@@ -76,7 +76,7 @@ const TradingInterface = ({ topCandidate }: TradingInterfaceProps) => {
           
           <TabsContent value="sell" className="space-y-4 mt-4">
             <div className="text-center text-muted-foreground">
-              <p>You don't own any shares in this market</p>
+              <p>You don't own any shares in this event prediction market</p>
             </div>
           </TabsContent>
         </Tabs>

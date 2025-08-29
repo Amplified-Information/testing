@@ -12,7 +12,7 @@ const HeroSection = () => {
   
   const stats = [
     { label: "Total Volume", value: "$2.4M", icon: DollarSign },
-    { label: "Active Markets", value: "847", icon: BarChart3 },
+    { label: "Active Event Prediction Markets", value: "847", icon: BarChart3 },
     { label: "Traders", value: "12.5K", icon: Users },
     { label: "24h Volume", value: "$156K", icon: TrendingUp },
   ];
@@ -41,7 +41,7 @@ const HeroSection = () => {
                   </h1>
                   
                      <p className="text-xl text-muted-foreground max-w-lg">
-                      Hedera Markets uses Hedera's lightning-fast transactions, ultra-low fees, and fair ordering that make us the ideal platform for prediction markets, ensuring rapid, cost-effective, and trustworthy outcomes. Hedera's enterprise-grade security and scalability, backed by a council including Google and IBM, provide a reliable platform for seamless market participation.
+                      Hedera Event Prediction Markets uses Hedera's lightning-fast transactions, ultra-low fees, and fair ordering that make us the ideal platform for event prediction markets, ensuring rapid, cost-effective, and trustworthy outcomes. Hedera's enterprise-grade security and scalability, backed by a council including Google and IBM, provide a reliable platform for seamless event prediction participation.
                     </p>
                 </div>
                 
@@ -51,7 +51,7 @@ const HeroSection = () => {
                   </Button>
                   <Button variant="outline" size="xl" asChild>
                     <Link to="/markets">
-                      Explore Markets
+                      Explore Event Prediction Markets
                     </Link>
                   </Button>
                 </div>

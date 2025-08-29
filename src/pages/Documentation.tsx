@@ -13,7 +13,7 @@ const Documentation = () => {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Development Documentation</h1>
             <p className="text-muted-foreground text-lg">
-              Complete technical documentation for the Hedera Prediction Markets platform
+              Complete technical documentation for the Hedera Event Prediction Markets platform
             </p>
           </div>
 
@@ -22,7 +22,7 @@ const Documentation = () => {
             <CardHeader>
               <CardTitle>Architecture Overview</CardTitle>
               <CardDescription>
-                High-level architecture of the prediction markets platform
+                High-level architecture of the event prediction markets platform
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -252,11 +252,11 @@ const Documentation = () => {
                   Client-side routing with nested routes and route protection.
                 </p>
                 <div className="bg-muted p-3 rounded-md text-sm font-mono">
-                  <div>• / - Homepage with hero and featured markets</div>
-                  <div>• /markets - Browse all prediction markets</div>
-                  <div>• /market/:id - Individual market details</div>
+                  <div>• / - Homepage with hero and featured event markets</div>
+                  <div>• /markets - Browse all event prediction markets</div>
+                  <div>• /market/:id - Individual event market details</div>
                   <div>• /portfolio - User holdings and positions</div>
-                  <div>• /category-wheel - Category-based market discovery</div>
+                  <div>• /category-wheel - Category-based event market discovery</div>
                   <div>• /docs - This documentation page</div>
                 </div>
               </div>

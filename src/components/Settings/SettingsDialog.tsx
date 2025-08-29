@@ -37,7 +37,7 @@ const SettingsDialog = ({
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Customize your Hedera Markets experience
+            Customize your Hedera Event Prediction Markets experience
           </DialogDescription>
         </DialogHeader>
         
