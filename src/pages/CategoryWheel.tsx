@@ -146,104 +146,101 @@ const CategoryWheel = () => {
 
       <div className="container mx-auto px-4 py-12">
         <div className="space-y-12">
-          {/* Vertical Carousel Wheel */}
-          <div className="relative flex justify-center">
-            <div className="h-96 w-32">
-              <Carousel
-                setApi={setApi}
-                orientation="vertical"
-                className="w-full h-full"
-                opts={{
-                  align: "center",
-                  loop: true,
-                  skipSnaps: false,
-                  dragFree: true,
-                }}
-              >
-                <CarouselContent className="px-4 h-96">
-                  {categories.map((category, index) => {
-                    const Icon = category.icon;
-                    const isCenter = index === selectedIndex;
-                    const distance = Math.abs(index - selectedIndex);
-                    const isAdjacent = distance === 1 || (distance === categories.length - 1);
-                    
-                    return (
-                      <CarouselItem 
-                        key={category.id} 
-                        className="pt-4 flex justify-center"
+          {/* Carousel Wheel */}
+          <div className="relative">
+            <Carousel
+              setApi={setApi}
+              className="w-full max-w-6xl mx-auto"
+              opts={{
+                align: "center",
+                loop: true,
+                skipSnaps: false,
+                dragFree: true,
+              }}
+            >
+              <CarouselContent className="py-8">
+                {categories.map((category, index) => {
+                  const Icon = category.icon;
+                  const isCenter = index === selectedIndex;
+                  const distance = Math.abs(index - selectedIndex);
+                  const isAdjacent = distance === 1 || (distance === categories.length - 1);
+                  
+                  return (
+                    <CarouselItem 
+                      key={category.id} 
+                      className="basis-1/4 lg:basis-1/6 flex justify-center px-1"
+                    >
+                      <div 
+                        className={`
+                          relative transition-all duration-500 ease-out cursor-pointer
+                          ${isCenter 
+                            ? 'scale-125 z-20' 
+                            : isAdjacent 
+                              ? 'scale-100 z-10' 
+                              : 'scale-75 z-0 opacity-50'
+                          }
+                        `}
+                        onClick={() => api?.scrollTo(index)}
                       >
-                        <div 
+                        {/* Card Shadow/Glow Effect */}
+                        {isCenter && (
+                          <div 
+                            className="absolute inset-0 rounded-2xl blur-xl opacity-30"
+                            style={{ backgroundColor: category.color }}
+                          />
+                        )}
+                        
+                        {/* Category Card */}
+                        <Card 
                           className={`
-                            relative transition-all duration-500 ease-out cursor-pointer
+                            relative w-24 h-20 cursor-pointer transition-all duration-500
                             ${isCenter 
-                              ? 'scale-125 z-20' 
-                              : isAdjacent 
-                                ? 'scale-100 z-10' 
-                                : 'scale-75 z-0 opacity-50'
+                              ? 'shadow-2xl ring-2 ring-primary' 
+                              : 'shadow-md hover:shadow-lg'
                             }
                           `}
-                          onClick={() => api?.scrollTo(index)}
+                          style={{
+                            transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`,
+                          }}
                         >
-                          {/* Card Shadow/Glow Effect */}
+                          <CardContent className="p-2 text-center h-full flex flex-col items-center justify-center">
+                            <Icon 
+                              className="h-5 w-5 mx-auto mb-1 text-primary transition-all duration-500"
+                            />
+                            
+                            {/* Category Label */}
+                            <p className="font-medium text-xs">{category.label}</p>
+                            <p className="text-xs text-muted-foreground">{category.count}</p>
+                          </CardContent>
+                          
+                          {/* Market Count Badge */}
                           {isCenter && (
                             <div 
-                              className="absolute inset-0 rounded-2xl blur-xl opacity-30"
-                              style={{ backgroundColor: category.color }}
-                            />
+                              className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in"
+                            >
+                              {category.count}
+                            </div>
                           )}
-                          
-                          {/* Category Card */}
-                          <Card 
-                            className={`
-                              relative w-24 h-20 cursor-pointer transition-all duration-500
-                              ${isCenter 
-                                ? 'shadow-2xl ring-2 ring-primary' 
-                                : 'shadow-md hover:shadow-lg'
-                              }
-                            `}
-                            style={{
-                              transform: isCenter ? 'rotateX(0deg)' : `rotateX(${(index - selectedIndex) * 5}deg)`,
-                            }}
-                          >
-                            <CardContent className="p-2 text-center h-full flex flex-col items-center justify-center">
-                              <Icon 
-                                className="h-5 w-5 mx-auto mb-1 text-primary transition-all duration-500"
-                              />
-                              
-                              {/* Category Label */}
-                              <p className="font-medium text-xs">{category.label}</p>
-                              <p className="text-xs text-muted-foreground">{category.count}</p>
-                            </CardContent>
-                            
-                            {/* Market Count Badge */}
-                            {isCenter && (
-                              <div 
-                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in"
-                              >
-                                {category.count}
-                              </div>
-                            )}
-                          </Card>
-                        </div>
-                      </CarouselItem>
-                    );
-                  })}
-                </CarouselContent>
-                
-                {/* Custom Navigation Buttons */}
-                <CarouselPrevious 
-                  className="top-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
-                />
-                <CarouselNext 
-                  className="bottom-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
-                />
-              </Carousel>
-            </div>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+              
+              {/* Custom Navigation Buttons */}
+              <CarouselPrevious 
+                className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
+              />
+              <CarouselNext 
+                className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
+              />
+            </Carousel>
             
-            {/* Vertical Wheel Base */}
-            <div className="absolute right-0 top-1/2 transform translate-x-4 -translate-y-1/2">
-              <div className="w-8 h-32 bg-gradient-to-r from-muted to-muted-foreground/20 rounded-full shadow-lg" />
-              <div className="w-4 h-24 bg-muted-foreground/40 rounded-full my-auto -ml-2" />
+            {/* Diner Wheel Base */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-4">
+              <div className="w-32 h-8 bg-gradient-to-b from-muted to-muted-foreground/20 rounded-full shadow-lg" />
+              <div className="w-24 h-4 bg-muted-foreground/40 rounded-full mx-auto -mt-2" />
             </div>
           </div>
 
