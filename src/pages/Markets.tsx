@@ -29,7 +29,8 @@ import {
   Target,
   Droplets,
   Plus,
-  Star
+  Star,
+  Landmark
 } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
@@ -66,7 +67,7 @@ const Markets = () => {
   // Map category names to icons
   const getIconForCategory = (name: string) => {
     const iconMap: { [key: string]: any } = {
-      'Politics': Trophy,
+      'Politics': Landmark,
       'Sports': Activity,
       'Culture': Heart,
       'Crypto': TrendingUp,
