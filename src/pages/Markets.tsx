@@ -238,7 +238,8 @@ const Markets = () => {
         description: market.description,
         relevance: market.relevance,
         whyItMatters: market.why_it_matters,
-        createdAt: market.created_at
+        createdAt: market.created_at,
+        is_featured: market.is_featured
       })) || [];
 
       setAllMarkets(formattedMarkets);
@@ -304,6 +305,10 @@ const Markets = () => {
       const createdDate = new Date(market.createdAt || market.created_at);
       return createdDate >= thirtyDaysAgo;
     });
+  };
+
+  const getFeaturedMarkets = () => {
+    return getFilteredMarkets().filter(market => market.is_featured === true);
   };
 
   const filteredMarkets = (markets: typeof featuredMarkets) => {
@@ -632,14 +637,22 @@ const Markets = () => {
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-semibold">Featured Markets</h3>
               <Badge variant="secondary" className="bg-primary/10 text-primary">
-                High Volume
+                {getFeaturedMarkets().length} Markets
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMarkets(featuredMarkets).map((market) => (
+              {getFeaturedMarkets().map((market) => (
                 <MarketCard key={market.id} {...market} />
               ))}
             </div>
+            {getFeaturedMarkets().length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-2">No featured markets</p>
+                <p className="text-sm text-muted-foreground">
+                  No markets are currently featured in this category
+                </p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="trending" className="space-y-6">
