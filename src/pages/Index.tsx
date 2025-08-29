@@ -1,6 +1,5 @@
 import Header from "@/components/Layout/Header";
 import HeroSection from "@/components/Hero/HeroSection";
-import MarketsList from "@/components/Markets/MarketsList";
 
 const Index = () => {
   return (
@@ -8,15 +7,6 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-        <section className="container py-8">
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold">Featured Event Prediction Markets</h2>
-            </div>
-            
-            <MarketsList />
-          </div>
-        </section>
       </main>
     </div>
   );
