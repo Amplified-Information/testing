@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { 
   Search, 
   Filter, 
@@ -30,9 +29,7 @@ import {
   Target,
   Droplets,
   Plus,
-  Star,
-  X,
-  ChevronDown
+  Star
 } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
@@ -65,7 +62,6 @@ const Markets = () => {
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [allMarkets, setAllMarkets] = useState<any[]>([]);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   // Map category names to icons
   const getIconForCategory = (name: string) => {
@@ -280,34 +276,22 @@ const Markets = () => {
       }
     }
 
-    // Apply active filters
-    if (activeFilters.includes('ending-soon')) {
-      const now = new Date();
-      const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter(market => {
-        const endDate = new Date(market.endDate);
-        return endDate <= oneWeekFromNow && endDate > now;
-      });
-    }
-
-    if (activeFilters.includes('high-volume')) {
-      const volumeThreshold = 10000; // $10k threshold
-      filtered = filtered.filter(market => market.volume >= volumeThreshold);
-    }
-
     return filtered;
   };
 
-  const handleFilterToggle = (filterId: string) => {
-    setActiveFilters(prev => 
-      prev.includes(filterId) 
-        ? prev.filter(f => f !== filterId)
-        : [...prev, filterId]
-    );
+  // Get markets for specific tab filters
+  const getEndingSoonMarkets = () => {
+    const now = new Date();
+    const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return getFilteredMarkets().filter(market => {
+      const endDate = new Date(market.endDate);
+      return endDate <= oneWeekFromNow && endDate > now;
+    });
   };
 
-  const clearFilters = () => {
-    setActiveFilters([]);
+  const getHighVolumeMarkets = () => {
+    const volumeThreshold = 10000; // $10k threshold
+    return getFilteredMarkets().filter(market => market.volume >= volumeThreshold);
   };
 
   const filteredMarkets = (markets: typeof featuredMarkets) => {
@@ -376,76 +360,11 @@ const Markets = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="sm:w-auto">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filters
-                    {activeFilters.length > 0 && (
-                      <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-                        {activeFilters.length}
-                      </Badge>
-                    )}
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuCheckboxItem
-                    checked={activeFilters.includes('ending-soon')}
-                    onCheckedChange={() => handleFilterToggle('ending-soon')}
-                  >
-                    <Clock className="mr-2 h-4 w-4" />
-                    Ending Soon (7 days)
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={activeFilters.includes('high-volume')}
-                    onCheckedChange={() => handleFilterToggle('high-volume')}
-                  >
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    High Volume ($10K+)
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {activeFilters.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  <X className="h-4 w-4" />
-                  Clear
-                </Button>
-              )}
-            </div>
+            <Button variant="outline" className="sm:w-auto">
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
           </div>
-
-          {/* Active Filters Display */}
-          {activeFilters.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-              {activeFilters.map(filter => (
-                <Badge 
-                  key={filter} 
-                  variant="secondary" 
-                  className="flex items-center gap-1"
-                >
-                  {filter === 'ending-soon' && (
-                    <>
-                      <Clock className="h-3 w-3" />
-                      Ending Soon
-                    </>
-                  )}
-                  {filter === 'high-volume' && (
-                    <>
-                      <DollarSign className="h-3 w-3" />
-                      High Volume
-                    </>
-                  )}
-                  <X 
-                    className="h-3 w-3 cursor-pointer hover:text-destructive" 
-                    onClick={() => handleFilterToggle(filter)}
-                  />
-                </Badge>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Navigation */}
@@ -648,7 +567,7 @@ const Markets = () => {
         {/* Market Sections - Only show when in markets view or categories view with "all" selected */}
         {(viewMode === 'markets' || (viewMode === 'categories' && selectedCategory === "all")) && (
           <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
               All
@@ -664,6 +583,14 @@ const Markets = () => {
             <TabsTrigger value="new" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
               New
+            </TabsTrigger>
+            <TabsTrigger value="ending-soon" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Ending Soon
+            </TabsTrigger>
+            <TabsTrigger value="high-volume" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              High Volume
             </TabsTrigger>
           </TabsList>
 
@@ -729,6 +656,50 @@ const Markets = () => {
                 <MarketCard key={market.id} {...market} />
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="ending-soon" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">Ending Soon</h3>
+              <Badge variant="secondary" className="bg-warning/10 text-warning">
+                {getEndingSoonMarkets().length} Markets (7 days)
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getEndingSoonMarkets().map((market) => (
+                <MarketCard key={market.id} {...market} />
+              ))}
+            </div>
+            {getEndingSoonMarkets().length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-2">No markets ending soon</p>
+                <p className="text-sm text-muted-foreground">
+                  All markets have resolution dates more than 7 days away
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="high-volume" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">High Volume Markets</h3>
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                {getHighVolumeMarkets().length} Markets ($10K+)
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getHighVolumeMarkets().map((market) => (
+                <MarketCard key={market.id} {...market} />
+              ))}
+            </div>
+            {getHighVolumeMarkets().length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-2">No high volume markets</p>
+                <p className="text-sm text-muted-foreground">
+                  No markets currently have volume above $10,000
+                </p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
         )}
