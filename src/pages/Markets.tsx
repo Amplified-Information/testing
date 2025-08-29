@@ -21,7 +21,9 @@ import {
   Building2,
   Microscope,
   Stethoscope,
-  MapPin
+  MapPin,
+  ArrowLeft,
+  ChevronRight
 } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
@@ -34,6 +36,12 @@ const Markets = () => {
     { id: "all", label: "All Event Markets", icon: Globe, count: 847 }
   ]);
   const [loading, setLoading] = useState(true);
+  
+  // New state for hierarchical navigation
+  const [viewMode, setViewMode] = useState<'categories' | 'subcategories' | 'markets'>('categories');
+  const [selectedCategoryData, setSelectedCategoryData] = useState<any>(null);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
 
   // Map category names to icons
   const getIconForCategory = (name: string) => {
@@ -69,7 +77,8 @@ const Markets = () => {
           id: category.name.toLowerCase().replace(/\s+/g, '-').replace('&', ''),
           label: category.name,
           icon: getIconForCategory(category.name),
-          count: Math.floor(Math.random() * 200) + 50 // Placeholder count
+          count: Math.floor(Math.random() * 200) + 50, // Placeholder count
+          fullData: category // Store the full category data
         })) || [];
 
         setCategories([
@@ -85,6 +94,66 @@ const Markets = () => {
 
     fetchCategories();
   }, []);
+
+  const fetchSubcategories = async (categoryId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('market_subcategories')
+        .select('*')
+        .eq('category_id', categoryId)
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) throw error;
+
+      const subcategoriesWithAll = [
+        { id: "all", name: "All", description: "All markets in this category", count: Math.floor(Math.random() * 100) + 20 },
+        ...(data?.map(sub => ({
+          id: sub.id,
+          name: sub.name,
+          description: sub.description,
+          count: Math.floor(Math.random() * 50) + 5 // Placeholder count
+        })) || [])
+      ];
+
+      setSubcategories(subcategoriesWithAll);
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+      setSubcategories([{ id: "all", name: "All", description: "All markets in this category", count: 0 }]);
+    }
+  };
+
+  const handleCategorySelect = async (category: any) => {
+    if (category.id === "all") {
+      setSelectedCategory("all");
+      return;
+    }
+
+    setSelectedCategoryData(category);
+    setViewMode('subcategories');
+    setSelectedSubcategory("all");
+    
+    if (category.fullData?.id) {
+      await fetchSubcategories(category.fullData.id);
+    }
+  };
+
+  const handleSubcategorySelect = (subcategory: any) => {
+    setSelectedSubcategory(subcategory.id);
+    setViewMode('markets');
+  };
+
+  const handleBackToCategories = () => {
+    setViewMode('categories');
+    setSelectedCategoryData(null);
+    setSubcategories([]);
+    setSelectedSubcategory("all");
+  };
+
+  const handleBackToSubcategories = () => {
+    setViewMode('subcategories');
+    setSelectedSubcategory("all");
+  };
 
   const featuredMarkets = [
     {
@@ -353,13 +422,29 @@ const Markets = () => {
       const matchesSearch = market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            market.category.toLowerCase().includes(searchQuery.toLowerCase());
       
-      if (selectedCategory === "all") return matchesSearch;
+      // If in categories view or "all" is selected, show all markets that match search
+      if (viewMode === 'categories' || selectedCategory === "all") return matchesSearch;
       
-      // Match by category name directly or by mapped category ID
-      const categoryMatch = market.category.toLowerCase() === selectedCategory ||
-                           market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategory;
+      // If in subcategories view, filter by selected category
+      if (viewMode === 'subcategories') {
+        const categoryMatch = selectedCategoryData && 
+          (market.category.toLowerCase() === selectedCategoryData.label.toLowerCase() ||
+           market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategoryData.id);
+        return matchesSearch && categoryMatch;
+      }
       
-      return matchesSearch && categoryMatch;
+      // If in markets view, filter by category and potentially subcategory
+      if (viewMode === 'markets') {
+        const categoryMatch = selectedCategoryData && 
+          (market.category.toLowerCase() === selectedCategoryData.label.toLowerCase() ||
+           market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategoryData.id);
+        
+        // For now, we'll just filter by category since our mock data doesn't have subcategory info
+        // In a real implementation, you'd also filter by selectedSubcategory
+        return matchesSearch && categoryMatch;
+      }
+      
+      return matchesSearch;
     });
   };
 
@@ -405,30 +490,112 @@ const Markets = () => {
           </div>
         </div>
 
-        {/* Categories */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Categories</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-            {categories.map((category) => (
-              <Card 
-                key={category.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedCategory === category.id ? 'ring-2 ring-primary bg-primary/5' : ''
-                }`}
-                onClick={() => setSelectedCategory(category.id)}
+        {/* Navigation */}
+        {viewMode !== 'categories' && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <button 
+                onClick={handleBackToCategories}
+                className="hover:text-primary transition-colors"
               >
-                <CardContent className="p-4 text-center">
-                  <category.icon className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="font-medium text-sm">{category.label}</p>
-                  <p className="text-xs text-muted-foreground">{category.count}</p>
+                All Markets
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              {selectedCategoryData && (
+                <>
+                  <span className="text-foreground font-medium">{selectedCategoryData.label}</span>
+                  {viewMode === 'markets' && selectedSubcategory !== 'all' && (
+                    <>
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="text-foreground font-medium">
+                        {subcategories.find(sub => sub.id === selectedSubcategory)?.name}
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={viewMode === 'markets' ? handleBackToSubcategories : handleBackToCategories}
+              className="mb-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
+        )}
+
+        {/* Categories View */}
+        {viewMode === 'categories' && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Categories</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+              {categories.map((category) => (
+                <Card 
+                  key={category.id}
+                  className="cursor-pointer transition-all hover:shadow-md hover:scale-105"
+                  onClick={() => handleCategorySelect(category)}
+                >
+                  <CardContent className="p-4 text-center">
+                    <category.icon className="h-6 w-6 mx-auto mb-2 text-primary" />
+                    <p className="font-medium text-sm">{category.label}</p>
+                    <p className="text-xs text-muted-foreground">{category.count}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Subcategories View */}
+        {viewMode === 'subcategories' && selectedCategoryData && (
+          <div className="mb-8">
+            <div className="mb-6">
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <selectedCategoryData.icon className="h-8 w-8 text-primary" />
+                    <h2 className="text-2xl font-bold">{selectedCategoryData.label}</h2>
+                  </div>
+                  <p className="text-muted-foreground mb-3">
+                    {selectedCategoryData.fullData?.description || `Explore prediction markets in ${selectedCategoryData.label}`}
+                  </p>
+                  <div className="flex gap-4">
+                    <Badge variant="secondary">{selectedCategoryData.count} Markets</Badge>
+                    <Badge variant="outline">{subcategories.length - 1} Subcategories</Badge>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Market Sections */}
-        <Tabs defaultValue="featured" className="w-full">
+            <h3 className="text-xl font-semibold mb-4">Choose a Subcategory</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {subcategories.map((subcategory) => (
+                <Card 
+                  key={subcategory.id}
+                  className="cursor-pointer transition-all hover:shadow-md hover:scale-105"
+                  onClick={() => handleSubcategorySelect(subcategory)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold">{subcategory.name}</h4>
+                      {subcategory.id === "all" && (
+                        <Badge variant="default" className="text-xs">All</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">{subcategory.description}</p>
+                    <p className="text-xs text-primary font-medium">{subcategory.count} markets</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Market Sections - Only show when in markets view or categories view with "all" selected */}
+        {(viewMode === 'markets' || (viewMode === 'categories' && selectedCategory === "all")) && (
+          <Tabs defaultValue="featured" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="featured" className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
@@ -486,6 +653,7 @@ const Markets = () => {
             </div>
           </TabsContent>
         </Tabs>
+        )}
 
         {/* Stats Section */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-6">
