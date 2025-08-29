@@ -603,100 +603,103 @@ const Markets = () => {
           <div className="mb-8">
             {/* Enhanced Category Details Card */}
             <div className="mb-6">
-              <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-4 rounded-full bg-primary/20">
-                        <selectedCategoryData.icon className="h-8 w-8 text-primary" />
+              <Card className="border border-primary/30 bg-gradient-to-br from-primary/8 to-accent/8 overflow-hidden animate-fade-in">
+                <CardContent className="p-6">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-primary/20 animate-scale-in">
+                        <selectedCategoryData.icon className="h-7 w-7 text-primary" />
                       </div>
                       <div>
-                        <h2 className="text-3xl font-bold">{selectedCategoryData.label}</h2>
-                        <p className="text-lg text-muted-foreground">Prediction Markets</p>
+                        <h2 className="text-2xl font-bold">{selectedCategoryData.label}</h2>
+                        <p className="text-sm text-muted-foreground">Prediction Markets</p>
                       </div>
                     </div>
-                    <Star className="h-6 w-6 text-primary" />
+                    <Star className="h-5 w-5 text-primary" />
                   </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-6">
-                  {/* Volume and Change Row */}
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="text-center p-4 bg-background/50 rounded-xl border">
-                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
-                        <DollarSign className="h-4 w-4" />
+
+                  {/* Main Stats Grid */}
+                  <div className="grid grid-cols-6 gap-4 mb-6">
+                    {/* Total Volume - Takes 2 columns */}
+                    <div className="col-span-2 p-4 bg-background/70 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <DollarSign className="h-3 w-3" />
                         Total Volume
                       </div>
-                      <p className="text-3xl font-bold">${(selectedCategoryData.volume / 1000000).toFixed(1)}M</p>
+                      <p className="text-2xl font-bold">${(selectedCategoryData.volume / 1000000).toFixed(1)}M</p>
                     </div>
-                    <div className="text-center p-4 bg-background/50 rounded-xl border">
-                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
-                        <TrendingUp className="h-4 w-4" />
+                    
+                    {/* 24h Change - Takes 2 columns */}
+                    <div className="col-span-2 p-4 bg-background/70 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <TrendingUp className="h-3 w-3" />
                         24h Change
                       </div>
-                      <p className={`text-3xl font-bold ${selectedCategoryData.change24h > 0 ? 'text-up' : 'text-down'}`}>
+                      <p className={`text-2xl font-bold ${selectedCategoryData.change24h > 0 ? 'text-up' : 'text-down'}`}>
                         {selectedCategoryData.change24h > 0 ? '+' : ''}{selectedCategoryData.change24h.toFixed(1)}%
                       </p>
                     </div>
-                  </div>
-
-                  {/* Key Metrics Grid */}
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-background/30 rounded-lg">
+                    
+                    {/* Traders - Takes 1 column */}
+                    <div className="col-span-1 p-3 bg-background/50 rounded-lg text-center">
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                         <Users className="h-3 w-3" />
                         Traders
                       </div>
-                      <p className="font-bold text-lg">{(selectedCategoryData.activeTraders / 1000).toFixed(1)}K</p>
+                      <p className="font-bold">{(selectedCategoryData.activeTraders / 1000).toFixed(1)}K</p>
                     </div>
-                    <div className="text-center p-3 bg-background/30 rounded-lg">
+                    
+                    {/* Liquidity - Takes 1 column */}
+                    <div className="col-span-1 p-3 bg-background/50 rounded-lg text-center">
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                         <Droplets className="h-3 w-3" />
                         Liquidity
                       </div>
-                      <p className="font-bold text-lg">${(selectedCategoryData.liquidity / 1000000).toFixed(1)}M</p>
+                      <p className="font-bold">${(selectedCategoryData.liquidity / 1000000).toFixed(1)}M</p>
                     </div>
+                  </div>
+
+                  {/* Secondary Stats Row */}
+                  <div className="grid grid-cols-4 gap-3 mb-6">
                     <div className="text-center p-3 bg-background/30 rounded-lg">
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                         <Target className="h-3 w-3" />
                         Accuracy
                       </div>
-                      <p className="font-bold text-lg">{selectedCategoryData.successRate}%</p>
+                      <p className="font-bold">{selectedCategoryData.successRate}%</p>
                     </div>
                     <div className="text-center p-3 bg-background/30 rounded-lg">
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                         <Clock className="h-3 w-3" />
                         Avg Days
                       </div>
-                      <p className="font-bold text-lg">{selectedCategoryData.avgResolutionTime}d</p>
+                      <p className="font-bold">{selectedCategoryData.avgResolutionTime}</p>
+                    </div>
+                    <div className="text-center p-3 bg-background/30 rounded-lg">
+                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                        <Plus className="h-3 w-3" />
+                        New Today
+                      </div>
+                      <p className="font-bold text-primary">{selectedCategoryData.newMarketsToday}</p>
+                    </div>
+                    <div className="text-center p-3 bg-background/30 rounded-lg">
+                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                        <Star className="h-3 w-3" />
+                        Markets
+                      </div>
+                      <p className="font-bold">{selectedCategoryData.count}</p>
                     </div>
                   </div>
 
-                  {/* Activity and Top Market */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-background/30 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <Plus className="h-4 w-4" />
-                        New Markets Today
-                      </div>
-                      <p className="font-bold text-xl text-primary">{selectedCategoryData.newMarketsToday}</p>
+                  {/* Bottom Info */}
+                  <div className="flex items-center justify-between pt-4 border-t border-border/30">
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Most Popular Market</div>
+                      <p className="text-sm font-medium line-clamp-1">{selectedCategoryData.topMarket}</p>
                     </div>
-                    <div className="p-4 bg-background/30 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <Star className="h-4 w-4" />
-                        Most Popular
-                      </div>
-                      <p className="text-sm font-medium line-clamp-2">{selectedCategoryData.topMarket}</p>
-                    </div>
-                  </div>
-
-                  {/* Bottom Stats */}
-                  <div className="flex justify-between items-center pt-4 border-t border-border/40">
-                    <div className="flex gap-4">
-                      <Badge variant="secondary" className="bg-primary/10 text-primary">
-                        {selectedCategoryData.count} Active Markets
-                      </Badge>
-                      <Badge variant="outline">
+                    <div className="flex gap-2">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
                         {subcategories.length - 1} Subcategories
                       </Badge>
                     </div>
