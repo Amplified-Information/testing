@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Clock, DollarSign } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface MarketHeaderProps {
   question: string;
@@ -15,7 +16,9 @@ const MarketHeader = ({ question, category, volume, endDate, description }: Mark
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-3">
-            <Badge variant="outline">{category}</Badge>
+            <Link to={`/markets?category=${encodeURIComponent(category)}`}>
+              <Badge variant="outline" className="hover:bg-accent cursor-pointer">{category}</Badge>
+            </Link>
             <div className="flex items-center text-sm text-muted-foreground">
               <Clock className="mr-1 h-4 w-4" />
               Ends {new Date(endDate).toLocaleDateString()}
