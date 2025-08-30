@@ -632,25 +632,31 @@ const Markets = () => {
             </div>
 
             <h3 className="text-xl font-semibold mb-4">Choose a Subcategory</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {subcategories.map((subcategory) => (
-                <Card 
-                  key={subcategory.id}
-                  className="cursor-pointer transition-all hover:shadow-md hover:scale-105"
-                  onClick={() => handleSubcategorySelect(subcategory)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold">{subcategory.name}</h4>
-                      {subcategory.id === "all" && (
-                        <Badge variant="default" className="text-xs">All</Badge>
-                      )}
+            <div className="rounded-md border">
+              <div className="divide-y divide-border">
+                {subcategories.map((subcategory) => (
+                  <div 
+                    key={subcategory.id}
+                    className="cursor-pointer transition-colors hover:bg-muted/50 p-4"
+                    onClick={() => handleSubcategorySelect(subcategory)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold">{subcategory.name}</h4>
+                          {subcategory.id === "all" && (
+                            <Badge variant="default" className="text-xs">All</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{subcategory.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-primary">{subcategory.count} markets</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{subcategory.description}</p>
-                    <p className="text-xs text-primary font-medium">{subcategory.count} markets</p>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
