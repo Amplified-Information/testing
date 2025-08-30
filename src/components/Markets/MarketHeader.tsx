@@ -53,7 +53,6 @@ const MarketHeader = ({ question, category, subcategory, volume, endDate, descri
                   </BreadcrumbItem>
                 </>
               )}
-              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>{question}</BreadcrumbPage>
               </BreadcrumbItem>
