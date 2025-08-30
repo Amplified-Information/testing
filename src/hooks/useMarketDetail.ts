@@ -14,6 +14,7 @@ interface MarketDetail {
   name: string;
   description: string;
   category: string;
+  subcategory?: string;
   volume: number;
   end_date: string;
   market_type: string;
@@ -32,12 +33,13 @@ export const useMarketDetail = (marketId: string) => {
         setLoading(true);
         setError(null);
 
-        // Fetch market details with category information
+        // Fetch market details with category and subcategory information
         const { data: marketData, error: marketError } = await supabase
           .from('event_markets')
           .select(`
             *,
-            market_categories(name)
+            market_categories(name),
+            market_subcategories(name)
           `)
           .eq('id', marketId)
           .eq('is_active', true)
@@ -78,6 +80,7 @@ export const useMarketDetail = (marketId: string) => {
           name: marketData.name,
           description: marketData.description || '',
           category: marketData.market_categories?.name || 'Unknown',
+          subcategory: marketData.market_subcategories?.name,
           volume: Number(marketData.volume || 0),
           end_date: marketData.end_date,
           market_type: marketData.market_type,

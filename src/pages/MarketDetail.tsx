@@ -73,6 +73,7 @@ const MarketDetail = () => {
             <MarketHeader 
               question={market.name}
               category={market.category}
+              subcategory={market.subcategory}
               volume={market.volume}
               endDate={market.end_date}
               description={market.description}

@@ -13,12 +13,13 @@ import {
 interface MarketHeaderProps {
   question: string;
   category: string;
+  subcategory?: string;
   volume: number;
   endDate: string;
   description: string;
 }
 
-const MarketHeader = ({ question, category, volume, endDate, description }: MarketHeaderProps) => {
+const MarketHeader = ({ question, category, subcategory, volume, endDate, description }: MarketHeaderProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -42,6 +43,16 @@ const MarketHeader = ({ question, category, volume, endDate, description }: Mark
                   <Link to={`/markets?category=${encodeURIComponent(category)}`}>{category}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
+              {subcategory && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link to={`/markets?category=${encodeURIComponent(category)}&subcategory=${encodeURIComponent(subcategory)}`}>{subcategory}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </>
+              )}
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>{question}</BreadcrumbPage>
