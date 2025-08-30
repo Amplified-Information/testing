@@ -1,6 +1,14 @@
-import { Badge } from "@/components/ui/badge";
 import { Clock, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface MarketHeaderProps {
   question: string;
@@ -15,14 +23,34 @@ const MarketHeader = ({ question, category, volume, endDate, description }: Mark
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-3">
-            <Link to={`/markets?category=${encodeURIComponent(category)}`}>
-              <Badge variant="outline" className="hover:bg-accent cursor-pointer">{category}</Badge>
-            </Link>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Clock className="mr-1 h-4 w-4" />
-              Ends {new Date(endDate).toLocaleDateString()}
-            </div>
+          <Breadcrumb className="mb-3">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/markets">Markets</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={`/markets?category=${encodeURIComponent(category)}`}>{category}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{question}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex items-center text-sm text-muted-foreground mb-2">
+            <Clock className="mr-1 h-4 w-4" />
+            Ends {new Date(endDate).toLocaleDateString()}
           </div>
           <h1 className="text-3xl font-bold mb-2">{question}</h1>
           <p className="text-muted-foreground">{description}</p>
