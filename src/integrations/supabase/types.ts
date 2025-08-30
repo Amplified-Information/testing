@@ -126,12 +126,14 @@ export type Database = {
           is_trending: boolean
           liquidity: number
           market_format: string | null
+          market_structure: string | null
           market_type: string
           maximum_bet: number | null
           minimum_bet: number
           name: string
           no_price: number
           options_count: number | null
+          participants_count: number | null
           relevance: string | null
           resolution_date: string | null
           resolution_notes: string | null
@@ -160,12 +162,14 @@ export type Database = {
           is_trending?: boolean
           liquidity?: number
           market_format?: string | null
+          market_structure?: string | null
           market_type?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name: string
           no_price?: number
           options_count?: number | null
+          participants_count?: number | null
           relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
@@ -194,12 +198,14 @@ export type Database = {
           is_trending?: boolean
           liquidity?: number
           market_format?: string | null
+          market_structure?: string | null
           market_type?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name?: string
           no_price?: number
           options_count?: number | null
+          participants_count?: number | null
           relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
@@ -294,6 +300,10 @@ export type Database = {
       }
       market_options: {
         Row: {
+          candidate_avatar: string | null
+          candidate_metadata: Json | null
+          candidate_name: string | null
+          candidate_party: string | null
           created_at: string
           current_price: number
           id: string
@@ -306,6 +316,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          candidate_avatar?: string | null
+          candidate_metadata?: Json | null
+          candidate_name?: string | null
+          candidate_party?: string | null
           created_at?: string
           current_price?: number
           id?: string
@@ -318,6 +332,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          candidate_avatar?: string | null
+          candidate_metadata?: Json | null
+          candidate_name?: string | null
+          candidate_party?: string | null
           created_at?: string
           current_price?: number
           id?: string
@@ -1222,6 +1240,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_candidate_binary_options: {
+        Args: {
+          p_candidate_avatar?: string
+          p_candidate_metadata?: Json
+          p_candidate_name: string
+          p_candidate_party?: string
+          p_market_id: string
+        }
+        Returns: {
+          no_option_id: string
+          yes_option_id: string
+        }[]
+      }
       create_default_binary_options: {
         Args: Record<PropertyKey, never>
         Returns: undefined

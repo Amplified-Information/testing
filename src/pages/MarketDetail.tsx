@@ -4,15 +4,23 @@ import MarketChart from "@/components/Markets/MarketChart";
 import TradingInterface from "@/components/Markets/TradingInterface";
 import CandidateList from "@/components/Markets/CandidateList";
 import MarketHeader from "@/components/Markets/MarketHeader";
+import MultiChoiceTradingInterface from "@/components/Markets/MultiChoiceTradingInterface";
 import { useMarketDetail } from "@/hooks/useMarketDetail";
+import { useMultiChoiceMarket } from "@/hooks/useMultiChoiceMarket";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const MarketDetail = () => {
   const { id } = useParams();
   const { market, loading, error } = useMarketDetail(id || '');
+  const { 
+    candidateGroups, 
+    binaryCandidates, 
+    isMultiChoice,
+    loading: multiChoiceLoading 
+  } = useMultiChoiceMarket(id || '');
 
-  if (loading) {
+  if (loading || multiChoiceLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -43,7 +51,7 @@ const MarketDetail = () => {
   }
 
   // Transform options to candidates format for existing components
-  const candidates = market.options.map(option => ({
+  const candidates = isMultiChoice ? binaryCandidates : market.options.map(option => ({
     id: option.id,
     name: option.option_name,
     party: option.option_type === 'yes' ? 'Yes' : option.option_type === 'no' ? 'No' : option.option_name,
@@ -79,16 +87,65 @@ const MarketDetail = () => {
               </div>
             )}
             
-            <CandidateList candidates={candidates} />
+            {isMultiChoice ? (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Candidates</h2>
+                <div className="grid gap-4">
+                  {candidateGroups.map((group) => (
+                    <div key={group.candidate.id} className="flex items-center justify-between p-4 rounded-lg border bg-card/50">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={group.candidate.avatar || '/placeholder.svg'} 
+                          alt={group.candidate.name}
+                          className="w-12 h-12 rounded-full"
+                        />
+                        <div>
+                          <h4 className="font-semibold">{group.candidate.name}</h4>
+                          {group.candidate.party && (
+                            <span className="text-sm text-muted-foreground">{group.candidate.party}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">
+                            {Math.round(group.candidate.yesPrice * 100)}%
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {group.candidate.change24h >= 0 ? '+' : ''}{group.candidate.change24h.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            Yes {Math.round(group.candidate.yesPrice * 100)}¢
+                          </button>
+                          <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                            No {Math.round(group.candidate.noPrice * 100)}¢
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <CandidateList candidates={candidates} />
+            )}
           </div>
 
-          {/* Trading sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-8">
-              <TradingInterface 
-                topCandidate={candidates[0]}
-                marketId={market.id}
-              />
+              {isMultiChoice ? (
+                <MultiChoiceTradingInterface 
+                  candidates={candidateGroups.map(g => g.candidate)}
+                  marketId={market.id} 
+                />
+              ) : (
+                <TradingInterface 
+                  topCandidate={candidates[0]}
+                  marketId={market.id}
+                />
+              )}
             </div>
           </div>
         </div>
