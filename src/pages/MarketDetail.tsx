@@ -23,36 +23,6 @@ const MarketDetail = () => {
     loading: multiChoiceLoading 
   } = useMultiChoiceMarket(id || '');
 
-  if (loading || multiChoiceLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="space-y-6">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-96 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error || !market) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <Alert>
-            <AlertDescription>
-              {error || 'Market not found'}
-            </AlertDescription>
-          </Alert>
-        </main>
-      </div>
-    );
-  }
-
   // Determine market type based on market structure and options
   const isTrueBinary = market?.market_structure === 'binary' || 
                       (market?.options && market.options.length === 2 && 
@@ -101,6 +71,37 @@ const MarketDetail = () => {
       } : null
     };
   }, [isTrueBinary, market]);
+
+  // Early returns AFTER all hooks are called
+  if (loading || multiChoiceLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="space-y-6">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-96 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error || !market) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <Alert>
+            <AlertDescription>
+              {error || 'Market not found'}
+            </AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
