@@ -43,7 +43,7 @@ const HeroSection = () => {
                   </h1>
                   
                      <p className="text-xl text-muted-foreground max-w-lg">
-                      Hedera Event Prediction Markets uses Hedera's lightning-fast transactions, ultra-low fees, and fair ordering that make us the ideal platform for event prediction markets, ensuring rapid, cost-effective, and trustworthy outcomes. Hedera's enterprise-grade security and scalability, backed by a council including Google and IBM, provide a reliable platform for seamless event prediction participation.
+                      Trade on real-world events using Hedera Hashgraph. A decentralized prediction protocol for the next generation of Web3 users.
                     </p>
                 </div>
                 
