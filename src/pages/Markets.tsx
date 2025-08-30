@@ -246,11 +246,19 @@ const Markets = () => {
 
       if (error) throw error;
 
+      // Ensure we have markets data before calculating counts
+      if (!allMarkets.length) {
+        console.warn('No markets data available for count calculation');
+      }
+
       // Calculate real counts for subcategories
       const subcategoriesWithCounts = data?.map(sub => {
-        const subcategoryMarkets = allMarkets.filter(market => 
-          market.subcategory.toLowerCase() === sub.name.toLowerCase()
-        );
+        const subcategoryMarkets = allMarkets.filter(market => {
+          // More robust filtering with null checks
+          const marketSubcategory = market.subcategory?.toLowerCase().trim() || '';
+          const subName = sub.name?.toLowerCase().trim() || '';
+          return marketSubcategory === subName;
+        });
         
         return {
           id: sub.id,
@@ -260,10 +268,12 @@ const Markets = () => {
         };
       }) || [];
 
-      // Calculate total for "All" option
-      const categoryMarkets = allMarkets.filter(market => 
-        market.category.toLowerCase() === selectedCategoryData?.label.toLowerCase()
-      );
+      // Calculate total for "All" option - markets in this category
+      const categoryMarkets = allMarkets.filter(market => {
+        const marketCategory = market.category?.toLowerCase().trim() || '';
+        const selectedCategory = selectedCategoryData?.label?.toLowerCase().trim() || '';
+        return marketCategory === selectedCategory;
+      });
 
       const subcategoriesWithAll = [
         { 
