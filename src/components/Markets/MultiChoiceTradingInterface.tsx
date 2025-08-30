@@ -148,7 +148,7 @@ const MultiChoiceTradingInterface = ({ candidates }: MultiChoiceTradingInterface
           </Tabs>
 
           <Button className="w-full mt-4 bg-primary hover:bg-primary/90">
-            Sign up to trade
+            Connect Wallet to Trade
           </Button>
         </div>
       </CardContent>
