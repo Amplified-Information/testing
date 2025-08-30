@@ -1,10 +1,13 @@
 import { useParams } from "react-router-dom";
+import { useMemo } from "react";
 import Header from "@/components/Layout/Header";
 import MarketChart from "@/components/Markets/MarketChart";
 import TradingInterface from "@/components/Markets/TradingInterface";
 import CandidateList from "@/components/Markets/CandidateList";
 import MarketHeader from "@/components/Markets/MarketHeader";
 import MultiChoiceTradingInterface from "@/components/Markets/MultiChoiceTradingInterface";
+import BinaryMarketInterface from "@/components/Markets/BinaryMarketInterface";
+import BinaryTradingInterface from "@/components/Markets/BinaryTradingInterface";
 import { useMarketDetail } from "@/hooks/useMarketDetail";
 import { useMultiChoiceMarket } from "@/hooks/useMultiChoiceMarket";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -50,17 +53,54 @@ const MarketDetail = () => {
     );
   }
 
-  // Transform options to candidates format for existing components
-  const candidates = isMultiChoice ? binaryCandidates : market.options.map(option => ({
-    id: option.id,
-    name: option.option_name,
-    party: option.option_type === 'yes' ? 'Yes' : option.option_type === 'no' ? 'No' : option.option_name,
-    percentage: Math.round(option.current_price * 100),
-    yesPrice: Math.round(option.current_price * 100),
-    noPrice: Math.round((1 - option.current_price) * 100),
-    change24h: 0, // TODO: Calculate from price history
-    avatar: "/lovable-uploads/40f8cf08-e4b9-4a6e-81f6-677ca39c5d26.png"
-  }));
+  // Determine market type based on market structure and options
+  const isTrueBinary = market?.market_structure === 'binary' || 
+                      (market?.options && market.options.length === 2 && 
+                       market.options.every(opt => ['yes', 'no'].includes(opt.option_type?.toLowerCase() || '')));
+
+  // Transform options for different market types
+  const candidates = useMemo(() => {
+    if (!market?.options) return [];
+    
+    if (isTrueBinary) {
+      // For true binary markets, don't transform into candidates
+      return [];
+    } else if (isMultiChoice) {
+      // For multi-candidate markets, use binaryCandidates from hook
+      return binaryCandidates;
+    } else {
+      // Fallback transformation
+      return market.options.map(option => ({
+        id: option.id,
+        name: option.option_name,
+        party: option.option_type === 'yes' ? 'Yes' : option.option_type === 'no' ? 'No' : option.option_name,
+        percentage: Math.round(option.current_price * 100),
+        yesPrice: Math.round(option.current_price * 100),
+        noPrice: Math.round((1 - option.current_price) * 100),
+        change24h: 0, // TODO: Calculate from price history
+        avatar: "/lovable-uploads/40f8cf08-e4b9-4a6e-81f6-677ca39c5d26.png"
+      }));
+    }
+  }, [market, isMultiChoice, binaryCandidates, isTrueBinary]);
+
+  // Get binary options for true binary markets
+  const binaryOptions = useMemo(() => {
+    if (!isTrueBinary || !market?.options) return { yesOption: null, noOption: null };
+    
+    const yesOption = market.options.find(opt => opt.option_type?.toLowerCase() === 'yes');
+    const noOption = market.options.find(opt => opt.option_type?.toLowerCase() === 'no');
+    
+    return { 
+      yesOption: yesOption ? {
+        ...yesOption,
+        option_type: 'yes' as const
+      } : null, 
+      noOption: noOption ? {
+        ...noOption,
+        option_type: 'no' as const
+      } : null
+    };
+  }, [isTrueBinary, market]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,7 +128,12 @@ const MarketDetail = () => {
               </div>
             )}
             
-            {isMultiChoice ? (
+            {isTrueBinary && binaryOptions.yesOption && binaryOptions.noOption ? (
+              <BinaryMarketInterface 
+                yesOption={binaryOptions.yesOption}
+                noOption={binaryOptions.noOption}
+              />
+            ) : isMultiChoice ? (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Candidates</h2>
                 <div className="grid gap-4">
@@ -136,7 +181,13 @@ const MarketDetail = () => {
 
           <div className="lg:col-span-1">
             <div className="sticky top-8">
-              {isMultiChoice ? (
+              {isTrueBinary && binaryOptions.yesOption && binaryOptions.noOption ? (
+                <BinaryTradingInterface 
+                  yesOption={binaryOptions.yesOption}
+                  noOption={binaryOptions.noOption}
+                  marketId={market.id} 
+                />
+              ) : isMultiChoice ? (
                 <MultiChoiceTradingInterface 
                   candidates={candidateGroups.map(g => g.candidate)}
                   marketId={market.id} 

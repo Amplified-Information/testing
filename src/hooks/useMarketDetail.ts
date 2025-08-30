@@ -6,6 +6,7 @@ interface MarketOption {
   option_name: string;
   option_type: string;
   current_price: number;
+  total_shares: number;
   sort_order: number;
 }
 
@@ -18,6 +19,7 @@ interface MarketDetail {
   volume: number;
   end_date: string;
   market_type: string;
+  market_structure?: string;
   options: MarketOption[];
   chartData: any[];
 }
@@ -84,6 +86,7 @@ export const useMarketDetail = (marketId: string) => {
           volume: Number(marketData.volume || 0),
           end_date: marketData.end_date,
           market_type: marketData.market_type,
+          market_structure: marketData.market_structure,
           options: optionsData || [],
           chartData
         };
