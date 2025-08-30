@@ -141,10 +141,16 @@ const MarketDetail = () => {
                   marketId={market.id} 
                 />
               ) : (
-                <TradingInterface 
-                  topCandidate={candidates[0]}
-                  marketId={market.id}
-                />
+                candidates[0] ? (
+                  <TradingInterface 
+                    topCandidate={candidates[0]}
+                    marketId={market.id}
+                  />
+                ) : (
+                  <div className="p-4 text-center text-muted-foreground">
+                    No candidate data available
+                  </div>
+                )
               )}
             </div>
           </div>

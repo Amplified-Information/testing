@@ -119,7 +119,7 @@ export const useMultiChoiceMarket = (marketId: string) => {
 
   // Get traditional binary candidates (for backwards compatibility)
   const binaryCandidates = useMemo(() => {
-    if (!market || market.market_structure !== 'binary') return [];
+    if (!market) return [];
     
     return candidateGroups.map(group => ({
       id: group.candidate.id,
