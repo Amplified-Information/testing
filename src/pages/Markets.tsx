@@ -39,22 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [categories, setCategories] = useState([
-    { 
-      id: "all", 
-      label: "All Event Markets", 
-      icon: Globe, 
-      count: 847,
-      volume: 156000000,
-      change24h: 8.2,
-      activeTraders: 24310,
-      avgResolutionTime: 32,
-      successRate: 85,
-      liquidity: 45000000,
-      newMarketsToday: 12,
-      topMarket: 'Most Active Market Across All Categories'
-    }
-  ]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // New state for hierarchical navigation
@@ -84,63 +69,124 @@ const Markets = () => {
   };
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        // First fetch all markets
+        const { data: marketsData, error: marketsError } = await supabase
+          .from('event_markets')
+          .select(`
+            *,
+            market_categories(name),
+            market_subcategories(name)
+          `)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (marketsError) throw marketsError;
+
+        const formattedMarkets = marketsData?.map(market => ({
+          id: market.id,
+          question: market.name,
+          category: market.market_categories?.name || 'Unknown',
+          subcategory: market.market_subcategories?.name || 'General',
+          yesPrice: market.yes_price,
+          noPrice: market.no_price,
+          volume: market.volume,
+          endDate: market.end_date,
+          liquidity: market.liquidity,
+          change24h: market.change_24h,
+          description: market.description,
+          relevance: market.relevance,
+          whyItMatters: market.why_it_matters,
+          createdAt: market.created_at,
+          is_featured: market.is_featured,
+          is_trending: market.is_trending
+        })) || [];
+
+        setAllMarkets(formattedMarkets);
+
+        // Now fetch categories and calculate real stats
+        const { data: categoriesData, error: categoriesError } = await supabase
           .from('market_categories')
           .select('*')
           .eq('is_active', true)
           .order('sort_order', { ascending: true });
 
-        if (error) throw error;
+        if (categoriesError) throw categoriesError;
 
-        const dbCategories = data?.map(category => ({
-          id: category.name.toLowerCase().replace(/\s+/g, '-').replace('&', ''),
-          label: category.name,
-          icon: getIconForCategory(category.name),
-          count: Math.floor(Math.random() * 200) + 50, // Placeholder count
-          fullData: category, // Store the full category data
-          // Additional placeholder data for enhanced cards
-          volume: Math.floor(Math.random() * 50000000) + 5000000, // $5M-$55M volume
-          change24h: (Math.random() - 0.5) * 30, // -15% to +15% change
-          activeTraders: Math.floor(Math.random() * 15000) + 2000, // 2K-17K traders
-          avgResolutionTime: Math.floor(Math.random() * 60) + 15, // 15-75 days
-          successRate: Math.floor(Math.random() * 30) + 70, // 70-100% accuracy
-          liquidity: Math.floor(Math.random() * 10000000) + 1000000, // $1M-$11M liquidity
-          newMarketsToday: Math.floor(Math.random() * 15) + 1, // 1-15 new markets
-          topMarket: category.name === 'Politics' ? 'US Election 2024 Winner' 
-                   : category.name === 'Sports' ? 'Super Bowl 2025 Winner'
-                   : category.name === 'Crypto' ? 'Bitcoin $100K by EOY'
-                   : category.name === 'Tech & Science' ? 'GPT-5 Release Date'
-                   : `${category.name} Market Leader`
-        })) || [];
+        // Calculate real stats for each category
+        const dbCategories = categoriesData?.map(category => {
+          const categoryMarkets = formattedMarkets.filter(m => 
+            m.category.toLowerCase() === category.name.toLowerCase()
+          );
+          
+          const totalVolume = categoryMarkets.reduce((sum, m) => sum + (m.volume || 0), 0);
+          const totalLiquidity = categoryMarkets.reduce((sum, m) => sum + (m.liquidity || 0), 0);
+          const avgChange = categoryMarkets.length > 0 
+            ? categoryMarkets.reduce((sum, m) => sum + (m.change24h || 0), 0) / categoryMarkets.length 
+            : 0;
+
+          return {
+            id: category.name.toLowerCase().replace(/\s+/g, '-').replace('&', ''),
+            label: category.name,
+            icon: getIconForCategory(category.name),
+            count: categoryMarkets.length,
+            fullData: category,
+            volume: totalVolume,
+            change24h: avgChange,
+            activeTraders: Math.floor(categoryMarkets.length * 150 + Math.random() * 1000), // Estimate based on markets
+            avgResolutionTime: Math.floor(Math.random() * 60) + 15, // Still estimated
+            successRate: Math.floor(Math.random() * 20) + 80, // Still estimated
+            liquidity: totalLiquidity,
+            newMarketsToday: categoryMarkets.filter(m => {
+              const createdDate = new Date(m.createdAt);
+              const today = new Date();
+              return createdDate.toDateString() === today.toDateString();
+            }).length,
+            topMarket: categoryMarkets.length > 0 
+              ? categoryMarkets.sort((a, b) => (b.volume || 0) - (a.volume || 0))[0].question
+              : `No ${category.name} markets yet`
+          };
+        }) || [];
+
+        // Calculate totals for "All" category
+        const totalStats = {
+          count: formattedMarkets.length,
+          volume: formattedMarkets.reduce((sum, m) => sum + (m.volume || 0), 0),
+          change24h: formattedMarkets.length > 0 
+            ? formattedMarkets.reduce((sum, m) => sum + (m.change24h || 0), 0) / formattedMarkets.length 
+            : 0,
+          liquidity: formattedMarkets.reduce((sum, m) => sum + (m.liquidity || 0), 0),
+          activeTraders: formattedMarkets.length * 100, // Estimate
+          avgResolutionTime: 32, // Still estimated
+          successRate: 85, // Still estimated
+          newMarketsToday: formattedMarkets.filter(m => {
+            const createdDate = new Date(m.createdAt);
+            const today = new Date();
+            return createdDate.toDateString() === today.toDateString();
+          }).length,
+          topMarket: formattedMarkets.length > 0 
+            ? formattedMarkets.sort((a, b) => (b.volume || 0) - (a.volume || 0))[0].question
+            : 'No markets available'
+        };
 
         setCategories([
           { 
             id: "all", 
             label: "All Event Markets", 
-            icon: Globe, 
-            count: 847,
-            volume: 156000000, // $156M total volume
-            change24h: 8.2, // +8.2% change
-            activeTraders: 24310, // 24.3K traders
-            avgResolutionTime: 32, // 32 days average
-            successRate: 85, // 85% accuracy
-            liquidity: 45000000, // $45M liquidity
-            newMarketsToday: 12, // 12 new markets
-            topMarket: 'Most Active Market Across All Categories'
+            icon: Globe,
+            ...totalStats
           },
           ...dbCategories
         ]);
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategories();
-    fetchAllMarkets();
+    fetchData();
   }, []);
 
   const fetchSubcategories = async (categoryId: string) => {
@@ -154,14 +200,33 @@ const Markets = () => {
 
       if (error) throw error;
 
-      const subcategoriesWithAll = [
-        { id: "all", name: "All", description: "All markets in this category", count: Math.floor(Math.random() * 100) + 20 },
-        ...(data?.map(sub => ({
+      // Calculate real counts for subcategories
+      const subcategoriesWithCounts = data?.map(sub => {
+        const subcategoryMarkets = allMarkets.filter(market => 
+          market.subcategory.toLowerCase() === sub.name.toLowerCase()
+        );
+        
+        return {
           id: sub.id,
           name: sub.name,
           description: sub.description,
-          count: Math.floor(Math.random() * 50) + 5 // Placeholder count
-        })) || [])
+          count: subcategoryMarkets.length
+        };
+      }) || [];
+
+      // Calculate total for "All" option
+      const categoryMarkets = allMarkets.filter(market => 
+        market.category.toLowerCase() === selectedCategoryData?.label.toLowerCase()
+      );
+
+      const subcategoriesWithAll = [
+        { 
+          id: "all", 
+          name: "All", 
+          description: "All markets in this category", 
+          count: categoryMarkets.length 
+        },
+        ...subcategoriesWithCounts
       ];
 
       setSubcategories(subcategoriesWithAll);
@@ -203,52 +268,25 @@ const Markets = () => {
     setSelectedSubcategory("all");
   };
 
-  const featuredMarkets: any[] = [];
-
-  const trendingMarkets: any[] = [];
-
-  const newMarkets: any[] = [];
-
-  // Fetch all event markets from the database
-  const fetchAllMarkets = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('event_markets')
-        .select(`
-          *,
-          market_categories(name),
-          market_subcategories(name)
-        `)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedMarkets = data?.map(market => ({
-        id: market.id,
-        question: market.name,
-        category: market.market_categories?.name || 'Unknown',
-        subcategory: market.market_subcategories?.name || 'General',
-        yesPrice: market.yes_price,
-        noPrice: market.no_price,
-        volume: market.volume,
-        endDate: market.end_date,
-        liquidity: market.liquidity,
-        change24h: market.change_24h,
-        description: market.description,
-        relevance: market.relevance,
-        whyItMatters: market.why_it_matters,
-        createdAt: market.created_at,
-        is_featured: market.is_featured,
-        is_trending: market.is_trending
-      })) || [];
-
-      setAllMarkets(formattedMarkets);
-    } catch (error) {
-      console.error('Error fetching markets:', error);
-      setAllMarkets([]);
-    }
+  // Calculate real stats for overall platform
+  const calculatePlatformStats = () => {
+    const totalMarkets = allMarkets.length;
+    const totalVolume = allMarkets.reduce((sum, m) => sum + (m.volume || 0), 0);
+    const totalLiquidity = allMarkets.reduce((sum, m) => sum + (m.liquidity || 0), 0);
+    const activeTraders = Math.floor(totalMarkets * 50); // Estimated based on markets
+    
+    // Calculate average resolution time (placeholder since we don't have actual resolution data)
+    const avgResolutionDays = 15; // Estimated
+    
+    return {
+      totalMarkets,
+      totalVolume: totalVolume > 1000 ? `$${(totalVolume / 1000).toFixed(0)}K` : `$${totalVolume.toFixed(0)}`,
+      activeTraders: activeTraders > 1000 ? `${(activeTraders / 1000).toFixed(1)}K` : activeTraders.toString(),
+      avgResolution: `${avgResolutionDays} days`
+    };
   };
+
+  const platformStats = calculatePlatformStats();
 
   // Filter markets based on current view and selection
   const getFilteredMarkets = (markets: any[] = allMarkets) => {
@@ -316,7 +354,7 @@ const Markets = () => {
     return getFilteredMarkets().filter(market => market.is_trending === true);
   };
 
-  const filteredMarkets = (markets: typeof featuredMarkets) => {
+  const filteredMarkets = (markets: any[]) => {
     return markets.filter(market => {
       const matchesSearch = market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            market.category.toLowerCase().includes(searchQuery.toLowerCase());
@@ -338,8 +376,6 @@ const Markets = () => {
           (market.category.toLowerCase() === selectedCategoryData.label.toLowerCase() ||
            market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategoryData.id);
         
-        // For now, we'll just filter by category since our mock data doesn't have subcategory info
-        // In a real implementation, you'd also filter by selectedSubcategory
         return matchesSearch && categoryMatch;
       }
       
@@ -760,8 +796,8 @@ const Markets = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-2xl font-bold">847</p>
-              <p className="text-xs text-muted-foreground">+12% from last week</p>
+              <p className="text-2xl font-bold">{platformStats.totalMarkets}</p>
+              <p className="text-xs text-muted-foreground">Real count</p>
             </CardContent>
           </Card>
           
@@ -773,8 +809,8 @@ const Markets = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-2xl font-bold">$156K</p>
-              <p className="text-xs text-up">+8.2% from yesterday</p>
+              <p className="text-2xl font-bold">{platformStats.totalVolume}</p>
+              <p className="text-xs text-up">All markets combined</p>
             </CardContent>
           </Card>
 
@@ -786,8 +822,8 @@ const Markets = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-2xl font-bold">2,431</p>
-              <p className="text-xs text-up">+15% this month</p>
+              <p className="text-2xl font-bold">{platformStats.activeTraders}</p>
+              <p className="text-xs text-up">Estimated based on markets</p>
             </CardContent>
           </Card>
 
@@ -799,8 +835,8 @@ const Markets = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-2xl font-bold">2.3 days</p>
-              <p className="text-xs text-muted-foreground">Median time</p>
+              <p className="text-2xl font-bold">{platformStats.avgResolution}</p>
+              <p className="text-xs text-muted-foreground">Estimated time</p>
             </CardContent>
           </Card>
         </div>
