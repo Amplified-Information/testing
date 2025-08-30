@@ -47,7 +47,9 @@ const MarketHeader = ({ question, category, subcategory, volume, endDate, descri
                 <>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>{subcategory}</BreadcrumbPage>
+                    <BreadcrumbLink asChild>
+                      <Link to={`/markets?category=${encodeURIComponent(category)}&subcategory=${encodeURIComponent(subcategory)}`}>{subcategory}</Link>
+                    </BreadcrumbLink>
                   </BreadcrumbItem>
                 </>
               )}
