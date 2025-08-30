@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ import MarketCard from "@/components/Markets/MarketCard";
 import { supabase } from "@/integrations/supabase/client";
 
 const Markets = () => {
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categories, setCategories] = useState([]);
@@ -188,6 +190,45 @@ const Markets = () => {
 
     fetchData();
   }, []);
+
+  // Handle URL parameters on mount and when they change
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const subcategoryParam = searchParams.get('subcategory');
+    
+    if (categoryParam && categories.length > 0) {
+      const category = categories.find(cat => 
+        cat.label.toLowerCase() === categoryParam.toLowerCase()
+      );
+      
+      if (category && category.id !== 'all') {
+        setSelectedCategoryData(category);
+        setViewMode('subcategories');
+        
+        // Fetch subcategories for this category
+        if (category.fullData?.id) {
+          fetchSubcategories(category.fullData.id).then(() => {
+            // If subcategory is also specified, navigate to markets view
+            if (subcategoryParam) {
+              setViewMode('markets');
+              // Find and set the subcategory after subcategories are loaded
+              setTimeout(() => {
+                setSubcategories(prev => {
+                  const subcategory = prev.find(sub => 
+                    sub.name.toLowerCase() === subcategoryParam.toLowerCase()
+                  );
+                  if (subcategory) {
+                    setSelectedSubcategory(subcategory.id);
+                  }
+                  return prev;
+                });
+              }, 100);
+            }
+          });
+        }
+      }
+    }
+  }, [searchParams, categories]);
 
   const fetchSubcategories = async (categoryId: string) => {
     try {
