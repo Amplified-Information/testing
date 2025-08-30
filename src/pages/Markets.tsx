@@ -44,6 +44,11 @@ const Markets = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  // Search-specific state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  
   // New state for hierarchical navigation
   const [viewMode, setViewMode] = useState<'categories' | 'subcategories' | 'markets'>('categories');
   const [selectedCategoryData, setSelectedCategoryData] = useState<any>(null);
@@ -309,6 +314,72 @@ const Markets = () => {
     setSelectedSubcategory("all");
   };
 
+  // Database search function
+  const performDatabaseSearch = async (query: string) => {
+    if (!query.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const { data: marketsData, error } = await supabase
+        .from('event_markets')
+        .select(`
+          *,
+          market_categories(name),
+          market_subcategories(name)
+        `)
+        .eq('is_active', true)
+        .or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedResults = marketsData?.map(market => ({
+        id: market.id,
+        question: market.name,
+        category: market.market_categories?.name || 'Unknown',
+        subcategory: market.market_subcategories?.name || 'General',
+        yesPrice: market.yes_price,
+        noPrice: market.no_price,
+        volume: market.volume,
+        endDate: market.end_date,
+        liquidity: market.liquidity,
+        change24h: market.change_24h,
+        description: market.description,
+        relevance: market.relevance,
+        whyItMatters: market.why_it_matters,
+        createdAt: market.created_at,
+        is_featured: market.is_featured,
+        is_trending: market.is_trending
+      })) || [];
+
+      setSearchResults(formattedResults);
+      setHasSearched(true);
+    } catch (error) {
+      console.error('Database search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle search on Enter key
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      performDatabaseSearch(searchQuery);
+    }
+  };
+
+  // Clear search results
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setHasSearched(false);
+  };
+
+  // Get display markets - use search results if searched, otherwise filtered markets
+  const getDisplayMarkets = () => {
+    return hasSearched ? searchResults : getFilteredMarkets();
+  };
+
   // Calculate real stats for overall platform
   const calculatePlatformStats = () => {
     const totalMarkets = allMarkets.length;
@@ -366,7 +437,7 @@ const Markets = () => {
   const getEndingSoonMarkets = () => {
     const now = new Date();
     const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return getFilteredMarkets().filter(market => {
+    return getDisplayMarkets().filter(market => {
       const endDate = new Date(market.endDate);
       return endDate <= oneWeekFromNow && endDate > now;
     });
@@ -374,13 +445,13 @@ const Markets = () => {
 
   const getHighVolumeMarkets = () => {
     const volumeThreshold = 10000; // $10k threshold
-    return getFilteredMarkets().filter(market => market.volume >= volumeThreshold);
+    return getDisplayMarkets().filter(market => market.volume >= volumeThreshold);
   };
 
   const getNewMarkets = () => {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    return getFilteredMarkets().filter(market => {
+    return getDisplayMarkets().filter(market => {
       // Assuming we have a createdAt field in the market data
       const createdDate = new Date(market.createdAt || market.created_at);
       return createdDate >= thirtyDaysAgo;
@@ -388,11 +459,11 @@ const Markets = () => {
   };
 
   const getFeaturedMarkets = () => {
-    return getFilteredMarkets().filter(market => market.is_featured === true);
+    return getDisplayMarkets().filter(market => market.is_featured === true);
   };
 
   const getTrendingMarkets = () => {
-    return getFilteredMarkets().filter(market => market.is_trending === true);
+    return getDisplayMarkets().filter(market => market.is_trending === true);
   };
 
   const filteredMarkets = (markets: any[]) => {
@@ -453,17 +524,51 @@ const Markets = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search markets..."
+                placeholder="Search markets... (Press Enter to search database)"
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
               />
+              {(isSearching || hasSearched) && (
+                <div className="absolute right-3 top-3 flex items-center gap-2">
+                  {isSearching && (
+                    <div className="w-4 h-4 border-2 border-muted-foreground/20 border-t-primary rounded-full animate-spin" />
+                  )}
+                  {hasSearched && !isSearching && (
+                    <Button
+                      variant="ghost" 
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-destructive/10"
+                      onClick={clearSearch}
+                    >
+                      ×
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
             <Button variant="outline" className="sm:w-auto">
               <Filter className="mr-2 h-4 w-4" />
               Filters
             </Button>
           </div>
+          
+          {/* Search Results Indicator */}
+          {hasSearched && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Search className="h-4 w-4" />
+              Search results for "{searchQuery}" - {searchResults.length} markets found
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-primary"
+                onClick={clearSearch}
+              >
+                Clear search
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -695,15 +800,15 @@ const Markets = () => {
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-semibold">All Markets</h3>
               <Badge variant="secondary" className="bg-primary/10 text-primary">
-                {getFilteredMarkets().length} Markets
+                {getDisplayMarkets().length} Markets
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getFilteredMarkets().map((market) => (
+              {getDisplayMarkets().map((market) => (
                 <MarketCard key={market.id} {...market} />
               ))}
             </div>
-            {getFilteredMarkets().length === 0 && (
+            {getDisplayMarkets().length === 0 && (
               <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets found</p>
                 <p className="text-sm text-muted-foreground">
