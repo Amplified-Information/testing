@@ -1,0 +1,125 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface MarketOption {
+  id: string;
+  option_name: string;
+  option_type: string;
+  current_price: number;
+  sort_order: number;
+}
+
+interface MarketDetail {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  volume: number;
+  end_date: string;
+  market_type: string;
+  options: MarketOption[];
+  chartData: any[];
+}
+
+export const useMarketDetail = (marketId: string) => {
+  const [market, setMarket] = useState<MarketDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMarketDetail = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch market details with category information
+        const { data: marketData, error: marketError } = await supabase
+          .from('event_markets')
+          .select(`
+            *,
+            market_categories(name)
+          `)
+          .eq('id', marketId)
+          .eq('is_active', true)
+          .single();
+
+        if (marketError) {
+          throw new Error(`Market not found: ${marketError.message}`);
+        }
+
+        // Fetch market options
+        const { data: optionsData, error: optionsError } = await supabase
+          .from('market_options')
+          .select('*')
+          .eq('market_id', marketId)
+          .eq('is_active', true)
+          .order('sort_order');
+
+        if (optionsError) {
+          throw new Error(`Failed to fetch options: ${optionsError.message}`);
+        }
+
+        // Fetch price history for chart
+        const { data: priceHistory, error: priceHistoryError } = await supabase
+          .from('market_price_history')
+          .select('*')
+          .eq('market_id', marketId)
+          .order('timestamp');
+
+        if (priceHistoryError) {
+          console.warn('Failed to fetch price history:', priceHistoryError);
+        }
+
+        // Transform price history into chart format
+        const chartData = priceHistory ? transformPriceHistoryToChart(priceHistory, optionsData || []) : [];
+
+        const transformedMarket: MarketDetail = {
+          id: marketData.id,
+          name: marketData.name,
+          description: marketData.description || '',
+          category: marketData.market_categories?.name || 'Unknown',
+          volume: Number(marketData.volume || 0),
+          end_date: marketData.end_date,
+          market_type: marketData.market_type,
+          options: optionsData || [],
+          chartData
+        };
+
+        setMarket(transformedMarket);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (marketId) {
+      fetchMarketDetail();
+    }
+  }, [marketId]);
+
+  return { market, loading, error };
+};
+
+const transformPriceHistoryToChart = (priceHistory: any[], options: MarketOption[]) => {
+  // Group price history by timestamp
+  const groupedByDate = priceHistory.reduce((acc, record) => {
+    const date = new Date(record.timestamp).toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = {};
+    }
+    
+    const option = options.find(opt => opt.id === record.option_id);
+    if (option) {
+      acc[date][option.option_name] = Number(record.price) * 100; // Convert to percentage
+    }
+    
+    return acc;
+  }, {});
+
+  // Convert to array format expected by chart
+  return Object.entries(groupedByDate).map(([date, prices]) => ({
+    date,
+    ...(prices as Record<string, number>)
+  }));
+};
