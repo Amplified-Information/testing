@@ -12,7 +12,7 @@ const Header = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
           <TrendingUp className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Hedera Event Prediction Markets</span>
+          <span className="text-xl font-bold">HashyMarket</span>
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 ml-3">
             Powered by Hedera Hashgraph
           </Badge>
