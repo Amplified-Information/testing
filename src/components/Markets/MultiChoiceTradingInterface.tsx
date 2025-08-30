@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
+import { useWallet } from "@/contexts/WalletContext";
 import type { MultiChoiceCandidate } from "@/types/market";
 
 interface MultiChoiceTradingInterfaceProps {
@@ -14,6 +15,7 @@ interface MultiChoiceTradingInterfaceProps {
 }
 
 const MultiChoiceTradingInterface = ({ candidates }: MultiChoiceTradingInterfaceProps) => {
+  const { wallet, connect, isLoading } = useWallet();
   const [selectedCandidate, setSelectedCandidate] = useState<MultiChoiceCandidate | null>(
     candidates[0] || null
   );
@@ -147,8 +149,12 @@ const MultiChoiceTradingInterface = ({ candidates }: MultiChoiceTradingInterface
             </TabsContent>
           </Tabs>
 
-          <Button className="w-full mt-4 bg-primary hover:bg-primary/90">
-            Connect Wallet to Trade
+          <Button 
+            className="w-full mt-4 bg-primary hover:bg-primary/90"
+            onClick={connect}
+            disabled={isLoading || wallet.isConnected}
+          >
+            {isLoading ? 'Connecting...' : wallet.isConnected ? 'Wallet Connected' : 'Connect Wallet to Trade'}
           </Button>
         </div>
       </CardContent>
