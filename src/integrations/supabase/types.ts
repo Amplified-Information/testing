@@ -125,11 +125,13 @@ export type Database = {
           is_new: boolean
           is_trending: boolean
           liquidity: number
+          market_format: string | null
           market_type: string
           maximum_bet: number | null
           minimum_bet: number
           name: string
           no_price: number
+          options_count: number | null
           relevance: string | null
           resolution_date: string | null
           resolution_notes: string | null
@@ -157,11 +159,13 @@ export type Database = {
           is_new?: boolean
           is_trending?: boolean
           liquidity?: number
+          market_format?: string | null
           market_type?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name: string
           no_price?: number
+          options_count?: number | null
           relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
@@ -189,11 +193,13 @@ export type Database = {
           is_new?: boolean
           is_trending?: boolean
           liquidity?: number
+          market_format?: string | null
           market_type?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name?: string
           no_price?: number
+          options_count?: number | null
           relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
@@ -282,6 +288,98 @@ export type Database = {
             columns: ["stock_id"]
             isOneToOne: false
             referencedRelation: "nasdaq_stocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_options: {
+        Row: {
+          created_at: string
+          current_price: number
+          id: string
+          is_active: boolean
+          market_id: string
+          option_name: string
+          option_type: string
+          sort_order: number | null
+          total_shares: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_price?: number
+          id?: string
+          is_active?: boolean
+          market_id: string
+          option_name: string
+          option_type: string
+          sort_order?: number | null
+          total_shares?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_price?: number
+          id?: string
+          is_active?: boolean
+          market_id?: string
+          option_name?: string
+          option_type?: string
+          sort_order?: number | null
+          total_shares?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_options_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_price_history: {
+        Row: {
+          created_at: string
+          id: string
+          market_id: string
+          option_id: string
+          price: number
+          timestamp: string
+          volume: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          market_id: string
+          option_id: string
+          price: number
+          timestamp?: string
+          volume?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          market_id?: string
+          option_id?: string
+          price?: number
+          timestamp?: string
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_price_history_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_price_history_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "market_options"
             referencedColumns: ["id"]
           },
         ]
@@ -1124,6 +1222,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_default_binary_options: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_processing_state: {
         Args: { process_name_param: string }
         Returns: {
