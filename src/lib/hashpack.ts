@@ -26,12 +26,18 @@ export class HashPackConnector {
 
   async initialize(): Promise<void> {
     try {
-      // Generate a mock pairing string for demonstration
-      this.state.pairingString = `hashpack://pair?metadata=${btoa(JSON.stringify({
+      // Generate a unique topic for this session
+      this.state.topic = `hashymarket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create pairing string
+      const metadata = {
         name: "HashyMarket",
         description: "Decentralized prediction markets on Hedera Hashgraph",
+        icons: [window.location.origin + "/favicon.ico"],
         url: window.location.origin
-      }))}&network=testnet`;
+      };
+      
+      this.state.pairingString = `hashpack://pair?metadata=${btoa(JSON.stringify(metadata))}&network=testnet&topic=${this.state.topic}`;
       
       console.log('HashPack connector initialized');
     } catch (error) {
@@ -45,31 +51,52 @@ export class HashPackConnector {
 
   async connect(): Promise<void> {
     try {
-      // Check if HashPack extension is installed
+      // Check if HashPack extension is available
       if (typeof window !== 'undefined' && (window as any).hashconnect) {
-        // Real HashPack connection would go here
-        console.log('HashPack extension detected');
-      } else {
-        // Show instructions to install HashPack
-        console.log('HashPack extension not detected. Please install HashPack wallet.');
+        console.log('HashPack extension detected, connecting...');
         
-        // For demo purposes, simulate a connection
-        setTimeout(() => {
-          this.state = {
-            ...this.state,
-            isConnected: true,
-            accountIds: ['0.0.1234567'], // Mock account ID
-            topic: 'demo-topic'
-          };
+        // Use HashPack extension API
+        const hashconnect = (window as any).hashconnect;
+        
+        try {
+          // Request connection from HashPack
+          const response = await hashconnect.connect(this.state.topic, {
+            name: "HashyMarket",
+            description: "Decentralized prediction markets on Hedera Hashgraph",
+            url: window.location.origin,
+            icons: [window.location.origin + "/favicon.ico"]
+          });
           
-          if (this.eventCallbacks.onConnect) {
-            this.eventCallbacks.onConnect(this.state);
+          console.log('HashPack connection response:', response);
+          
+          if (response && response.accountIds && response.accountIds.length > 0) {
+            this.state = {
+              ...this.state,
+              isConnected: true,
+              accountIds: response.accountIds
+            };
+            
+            if (this.eventCallbacks.onConnect) {
+              this.eventCallbacks.onConnect(this.state);
+            }
+          } else {
+            throw new Error('No accounts returned from HashPack');
           }
-        }, 2000);
+        } catch (connectionError) {
+          console.error('HashPack connection failed:', connectionError);
+          throw new Error('Failed to connect to HashPack wallet. Please make sure HashPack is unlocked and try again.');
+        }
         
-        return;
+      } else {
+        console.log('HashPack extension not detected');
+        
+        // Show error with installation instructions
+        const error = new Error('HashPack wallet extension not found. Please install HashPack browser extension from hashpack.app');
+        if (this.eventCallbacks.onError) {
+          this.eventCallbacks.onError(error);
+        }
+        throw error;
       }
-      
     } catch (error) {
       console.error('Failed to connect to HashPack:', error);
       if (this.eventCallbacks.onError) {

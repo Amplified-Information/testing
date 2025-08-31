@@ -50,10 +50,27 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
 
   const handleConnect = async (walletId: string) => {
     try {
+      if (walletId === 'hashpack') {
+        // Check if HashPack extension is available
+        if (typeof window === 'undefined' || !(window as any).hashconnect) {
+          toast({
+            title: "HashPack Not Found",
+            description: "Please install the HashPack browser extension first",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       await connect();
       onOpenChange(false);
     } catch (error) {
       console.error(`Failed to connect to ${walletId}:`, error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to connect wallet",
+        variant: "destructive",
+      });
     }
   };
 
@@ -121,13 +138,72 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
 
           {/* Wallet Options */}
           <div className="space-y-3">
-            {walletOptions.map((wallet) => (
+            {/* HashPack - Special handling for extension detection */}
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-md ring-2 ring-primary/20`}
+              onClick={() => handleConnect('hashpack')}
+            >
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🟣</span>
+                    <div>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        HashPack
+                        <Badge variant="secondary" className="text-xs">
+                          Recommended
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        The most popular Hedera wallet
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Extension Status Indicator */}
+                    {typeof window !== 'undefined' && (window as any).hashconnect ? (
+                      <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                        Installed
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-300">
+                        Not Installed
+                      </Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open('https://hashpack.app/', '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {typeof window !== 'undefined' && !(window as any).hashconnect ? (
+                  <div className="mb-3 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-200">
+                    Please install HashPack extension first, then refresh this page.
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap gap-1">
+                  {['Mobile & Desktop', 'DeFi Integration', 'NFT Support'].map((feature) => (
+                    <Badge key={feature} variant="outline" className="text-xs">
+                      {feature}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Other wallet options */}
+            {walletOptions.filter(w => w.id !== 'hashpack').map((wallet) => (
               <Card
                 key={wallet.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  wallet.isRecommended ? 'ring-2 ring-primary/20' : ''
-                }`}
-                onClick={() => handleConnect(wallet.id)}
+                className="opacity-60 cursor-not-allowed"
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -136,11 +212,9 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                       <div>
                         <CardTitle className="text-base flex items-center gap-2">
                           {wallet.name}
-                          {wallet.isRecommended && (
-                            <Badge variant="secondary" className="text-xs">
-                              Recommended
-                            </Badge>
-                          )}
+                          <Badge variant="outline" className="text-xs">
+                            Coming Soon
+                          </Badge>
                         </CardTitle>
                         <CardDescription className="text-xs">
                           {wallet.description}
@@ -203,14 +277,6 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
               </div>
             </CardContent>
           </Card>
-
-          <Button
-            className="w-full"
-            disabled={isLoading}
-            onClick={() => handleConnect('default')}
-          >
-            {isLoading ? 'Connecting...' : 'Connect Wallet'}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
