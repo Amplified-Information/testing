@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, Shield, Zap, Globe, ExternalLink, Copy, Check } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "@/hooks/use-toast";
+import { hashPackConnector } from "@/lib/hashpack";
 
 interface WalletConnectionModalProps {
   open: boolean;
@@ -15,8 +16,50 @@ interface WalletConnectionModalProps {
 const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProps) => {
   const { connect, isLoading } = useWallet();
   const [copiedProjectId, setCopiedProjectId] = useState(false);
+  const [isSandboxed, setIsSandboxed] = useState(false);
+  const [hasHashPack, setHasHashPack] = useState(false);
   
   const projectId = "wc:8a5226d8e9fdc4de86cc";
+
+  // Detect sandbox environment and HashPack availability
+  useEffect(() => {
+    const detectEnvironment = () => {
+      // Use the same sandbox detection logic as HashPackConnector
+      try {
+        const inIframe = window !== window.top;
+        const isLovableSandbox = window.location.hostname.includes('lovable') || 
+                                window.location.hostname.includes('sandbox');
+        const hasSandboxAttribute = document.querySelector('iframe[sandbox]') !== null;
+        
+        setIsSandboxed(inIframe || isLovableSandbox || hasSandboxAttribute);
+        
+        // Check for HashPack (only if not in sandbox)
+        if (!inIframe && !isLovableSandbox && !hasSandboxAttribute) {
+          const hashpackLocations = [
+            'hashpack', 'HashPack', 'hashconnect', 'hashConnect', 
+            'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
+          ];
+          
+          const found = hashpackLocations.some(location => {
+            try {
+              return !!(window as any)[location];
+            } catch (error) {
+              return false;
+            }
+          });
+          
+          setHasHashPack(found);
+        } else {
+          setHasHashPack(false);
+        }
+      } catch (error) {
+        setIsSandboxed(true);
+        setHasHashPack(false);
+      }
+    };
+
+    detectEnvironment();
+  }, []);
 
   const walletOptions = [
     {
@@ -51,11 +94,16 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
   const handleConnect = async (walletId: string) => {
     try {
       if (walletId === 'hashpack') {
-        // Check if HashPack extension is available
-        const hasHashPackExtension = typeof window !== 'undefined' && 
-          ((window as any).hashpack || (window as any).HashPack);
+        if (isSandboxed) {
+          toast({
+            title: "Sandbox Environment Detected",
+            description: "Please open this app in a new browser tab to connect HashPack wallet",
+            variant: "default",
+          });
+          return;
+        }
         
-        if (!hasHashPackExtension) {
+        if (!hasHashPack) {
           toast({
             title: "HashPack Not Found",
             description: "Please install the HashPack browser extension first",
@@ -164,27 +212,19 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Extension Status Indicator */}
-                    {(() => {
-                      // Check multiple possible HashPack locations
-                      const hasHashPack = typeof window !== 'undefined' && (
-                        (window as any).hashpack || 
-                        (window as any).HashPack || 
-                        (window as any).hashconnect || 
-                        (window as any).hashConnect ||
-                        (window as any).hedera ||
-                        (window as any).Hedera
-                      );
-                      
-                      return hasHashPack ? (
-                        <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                          Detected
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-300">
-                          Not Detected
-                        </Badge>
-                      );
-                    })()}
+                    {isSandboxed ? (
+                      <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300">
+                        Sandbox Mode
+                      </Badge>
+                    ) : hasHashPack ? (
+                      <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                        Detected
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-300">
+                        Not Detected
+                      </Badge>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -199,22 +239,15 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                {(() => {
-                  const hasHashPack = typeof window !== 'undefined' && (
-                    (window as any).hashpack || 
-                    (window as any).HashPack || 
-                    (window as any).hashconnect || 
-                    (window as any).hashConnect ||
-                    (window as any).hedera ||
-                    (window as any).Hedera
-                  );
-                  
-                  return !hasHashPack ? (
-                    <div className="mb-3 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-200">
-                      Please install HashPack extension first, then refresh this page.
-                    </div>
-                  ) : null;
-                })()}
+                {isSandboxed ? (
+                  <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded text-xs text-blue-800 dark:text-blue-200">
+                    💡 Running in preview mode. Open this app in a new browser tab to connect HashPack wallet.
+                  </div>
+                ) : !hasHashPack ? (
+                  <div className="mb-3 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-200">
+                    Please install HashPack extension first, then refresh this page.
+                  </div>
+                ) : null}
                 <div className="flex flex-wrap gap-1">
                   {['Mobile & Desktop', 'DeFi Integration', 'NFT Support'].map((feature) => (
                     <Badge key={feature} variant="outline" className="text-xs">
