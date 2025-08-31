@@ -26,10 +26,16 @@ export class HashPackConnector {
 
   async initialize(): Promise<void> {
     try {
+      // Debug what's available in window object
+      console.log('Window hashpack object:', (window as any).hashpack);
+      console.log('Window hashconnect object:', (window as any).hashconnect);
+      console.log('Window HashPack object:', (window as any).HashPack);
+      console.log('Available wallet objects:', Object.keys((window as any)).filter(key => key.toLowerCase().includes('hash') || key.toLowerCase().includes('wallet')));
+      
       // Generate a unique topic for this session
       this.state.topic = `hashymarket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Create pairing string
+      // Create pairing string for mobile connections
       const metadata = {
         name: "HashyMarket",
         description: "Decentralized prediction markets on Hedera Hashgraph",
@@ -39,7 +45,7 @@ export class HashPackConnector {
       
       this.state.pairingString = `hashpack://pair?metadata=${btoa(JSON.stringify(metadata))}&network=testnet&topic=${this.state.topic}`;
       
-      console.log('HashPack connector initialized');
+      console.log('HashPack connector initialized successfully');
     } catch (error) {
       console.error('Failed to initialize HashConnect:', error);
       if (this.eventCallbacks.onError) {
@@ -51,37 +57,51 @@ export class HashPackConnector {
 
   async connect(): Promise<void> {
     try {
-      // Check if HashPack extension is available
-      if (typeof window !== 'undefined' && (window as any).hashconnect) {
-        console.log('HashPack extension detected, connecting...');
-        
-        // Use HashPack extension API
-        const hashconnect = (window as any).hashconnect;
+      // Check for various HashPack extension objects
+      const hashpackExtension = (window as any).hashpack || (window as any).HashPack;
+      
+      console.log('HashPack extension available:', !!hashpackExtension);
+      console.log('HashPack extension object:', hashpackExtension);
+      
+      if (hashpackExtension) {
+        console.log('HashPack extension detected, attempting connection...');
         
         try {
-          // Request connection from HashPack
-          const response = await hashconnect.connect(this.state.topic, {
-            name: "HashyMarket",
-            description: "Decentralized prediction markets on Hedera Hashgraph",
-            url: window.location.origin,
-            icons: [window.location.origin + "/favicon.ico"]
-          });
+          // Try to connect using the HashPack extension
+          let response;
+          
+          if (hashpackExtension.connect) {
+            response = await hashpackExtension.connect();
+          } else if (hashpackExtension.requestAccount) {
+            response = await hashpackExtension.requestAccount();
+          } else {
+            throw new Error('HashPack extension found but no known connection method available');
+          }
           
           console.log('HashPack connection response:', response);
           
-          if (response && response.accountIds && response.accountIds.length > 0) {
+          if (response && response.accountId) {
+            // Handle single account response
+            this.state = {
+              ...this.state,
+              isConnected: true,
+              accountIds: [response.accountId]
+            };
+          } else if (response && response.accountIds && response.accountIds.length > 0) {
+            // Handle multiple accounts response
             this.state = {
               ...this.state,
               isConnected: true,
               accountIds: response.accountIds
             };
-            
-            if (this.eventCallbacks.onConnect) {
-              this.eventCallbacks.onConnect(this.state);
-            }
           } else {
-            throw new Error('No accounts returned from HashPack');
+            throw new Error('No accounts returned from HashPack extension');
           }
+          
+          if (this.eventCallbacks.onConnect) {
+            this.eventCallbacks.onConnect(this.state);
+          }
+          
         } catch (connectionError) {
           console.error('HashPack connection failed:', connectionError);
           throw new Error('Failed to connect to HashPack wallet. Please make sure HashPack is unlocked and try again.');

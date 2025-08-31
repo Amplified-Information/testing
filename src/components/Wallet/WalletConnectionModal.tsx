@@ -52,7 +52,10 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
     try {
       if (walletId === 'hashpack') {
         // Check if HashPack extension is available
-        if (typeof window === 'undefined' || !(window as any).hashconnect) {
+        const hasHashPackExtension = typeof window !== 'undefined' && 
+          ((window as any).hashpack || (window as any).HashPack);
+        
+        if (!hasHashPackExtension) {
           toast({
             title: "HashPack Not Found",
             description: "Please install the HashPack browser extension first",
@@ -161,7 +164,7 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Extension Status Indicator */}
-                    {typeof window !== 'undefined' && (window as any).hashconnect ? (
+                    {typeof window !== 'undefined' && ((window as any).hashpack || (window as any).HashPack) ? (
                       <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
                         Installed
                       </Badge>
@@ -184,7 +187,7 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                {typeof window !== 'undefined' && !(window as any).hashconnect ? (
+                {typeof window !== 'undefined' && !((window as any).hashpack || (window as any).HashPack) ? (
                   <div className="mb-3 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-200">
                     Please install HashPack extension first, then refresh this page.
                   </div>
