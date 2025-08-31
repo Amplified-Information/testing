@@ -4,8 +4,17 @@ import { Search, TrendingUp, Hexagon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import WalletButton from "@/components/Wallet/WalletButton";
+import { useWallet } from "@/contexts/WalletContext";
 
 const Header = () => {
+  const { wallet } = useWallet();
+  
+  const handlePortfolioClick = (e: React.MouseEvent) => {
+    if (!wallet.isConnected) {
+      e.preventDefault();
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
@@ -27,7 +36,15 @@ const Header = () => {
           <Link to="/category-wheel" className="text-sm font-medium hover:text-primary transition-colors">
             Categories
           </Link>
-          <Link to="/portfolio" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link 
+            to="/portfolio" 
+            onClick={handlePortfolioClick}
+            className={`text-sm font-medium transition-colors ${
+              wallet.isConnected 
+                ? 'hover:text-primary' 
+                : 'text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
+          >
             Portfolio
           </Link>
           <Link to="/docs" className="text-sm font-medium hover:text-primary transition-colors">
