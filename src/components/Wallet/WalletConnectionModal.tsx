@@ -164,15 +164,27 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Extension Status Indicator */}
-                    {typeof window !== 'undefined' && ((window as any).hashpack || (window as any).HashPack) ? (
-                      <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                        Installed
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-300">
-                        Not Installed
-                      </Badge>
-                    )}
+                    {(() => {
+                      // Check multiple possible HashPack locations
+                      const hasHashPack = typeof window !== 'undefined' && (
+                        (window as any).hashpack || 
+                        (window as any).HashPack || 
+                        (window as any).hashconnect || 
+                        (window as any).hashConnect ||
+                        (window as any).hedera ||
+                        (window as any).Hedera
+                      );
+                      
+                      return hasHashPack ? (
+                        <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                          Detected
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-300">
+                          Not Detected
+                        </Badge>
+                      );
+                    })()}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -187,11 +199,22 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                {typeof window !== 'undefined' && !((window as any).hashpack || (window as any).HashPack) ? (
-                  <div className="mb-3 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-200">
-                    Please install HashPack extension first, then refresh this page.
-                  </div>
-                ) : null}
+                {(() => {
+                  const hasHashPack = typeof window !== 'undefined' && (
+                    (window as any).hashpack || 
+                    (window as any).HashPack || 
+                    (window as any).hashconnect || 
+                    (window as any).hashConnect ||
+                    (window as any).hedera ||
+                    (window as any).Hedera
+                  );
+                  
+                  return !hasHashPack ? (
+                    <div className="mb-3 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-200">
+                      Please install HashPack extension first, then refresh this page.
+                    </div>
+                  ) : null;
+                })()}
                 <div className="flex flex-wrap gap-1">
                   {['Mobile & Desktop', 'DeFi Integration', 'NFT Support'].map((feature) => (
                     <Badge key={feature} variant="outline" className="text-xs">

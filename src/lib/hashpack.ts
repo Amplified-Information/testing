@@ -26,11 +26,42 @@ export class HashPackConnector {
 
   async initialize(): Promise<void> {
     try {
-      // Debug what's available in window object
-      console.log('Window hashpack object:', (window as any).hashpack);
-      console.log('Window hashconnect object:', (window as any).hashconnect);
-      console.log('Window HashPack object:', (window as any).HashPack);
-      console.log('Available wallet objects:', Object.keys((window as any)).filter(key => key.toLowerCase().includes('hash') || key.toLowerCase().includes('wallet')));
+      // Comprehensive debugging of window object
+      console.log('=== HashPack Detection Debug ===');
+      console.log('window.hashpack:', (window as any).hashpack);
+      console.log('window.HashPack:', (window as any).HashPack);
+      console.log('window.hashconnect:', (window as any).hashconnect);
+      console.log('window.hashConnect:', (window as any).hashConnect);
+      
+      // Check all possible HashPack-related properties
+      const allWindowKeys = Object.keys(window as any);
+      const hashRelatedKeys = allWindowKeys.filter(key => 
+        key.toLowerCase().includes('hash') || 
+        key.toLowerCase().includes('pack') || 
+        key.toLowerCase().includes('hedera') ||
+        key.toLowerCase().includes('wallet')
+      );
+      console.log('All hash/pack/hedera/wallet related keys:', hashRelatedKeys);
+      
+      // Check if any events are fired by the extension
+      window.addEventListener('hashpack-loaded', () => {
+        console.log('HashPack loaded event fired');
+      });
+      
+      // Check document ready state
+      console.log('Document ready state:', document.readyState);
+      
+      // Check for extension specific indicators
+      const extensionIndicators = [
+        'hashpack', 'HashPack', 'hashconnect', 'hashConnect',
+        'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
+      ];
+      
+      extensionIndicators.forEach(indicator => {
+        if ((window as any)[indicator]) {
+          console.log(`Found ${indicator}:`, (window as any)[indicator]);
+        }
+      });
       
       // Generate a unique topic for this session
       this.state.topic = `hashymarket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -46,6 +77,7 @@ export class HashPackConnector {
       this.state.pairingString = `hashpack://pair?metadata=${btoa(JSON.stringify(metadata))}&network=testnet&topic=${this.state.topic}`;
       
       console.log('HashPack connector initialized successfully');
+      console.log('=== End HashPack Detection Debug ===');
     } catch (error) {
       console.error('Failed to initialize HashConnect:', error);
       if (this.eventCallbacks.onError) {
@@ -57,8 +89,32 @@ export class HashPackConnector {
 
   async connect(): Promise<void> {
     try {
-      // Check for various HashPack extension objects
-      const hashpackExtension = (window as any).hashpack || (window as any).HashPack;
+      console.log('=== HashPack Connection Attempt ===');
+      
+      // Wait a moment for extension to load if needed
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Check multiple possible locations for HashPack
+      const possibleLocations = [
+        (window as any).hashpack,
+        (window as any).HashPack,
+        (window as any).hashconnect,
+        (window as any).hashConnect,
+        (window as any).hedera,
+        (window as any).Hedera
+      ];
+      
+      console.log('Checking possible HashPack locations:', possibleLocations.map(loc => !!loc));
+      
+      // Try to find any available extension
+      let hashpackExtension = null;
+      for (const location of possibleLocations) {
+        if (location && typeof location === 'object') {
+          console.log('Found potential HashPack extension:', location);
+          hashpackExtension = location;
+          break;
+        }
+      }
       
       console.log('HashPack extension available:', !!hashpackExtension);
       console.log('HashPack extension object:', hashpackExtension);
