@@ -244,8 +244,27 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                     💡 Running in preview mode. Open this app in a new browser tab to connect HashPack wallet.
                   </div>
                 ) : !hasHashPack ? (
-                  <div className="mb-3 p-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-200">
-                    Please install HashPack extension first, then refresh this page.
+                  <div className="mb-3 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded text-sm">
+                    <div className="text-orange-800 dark:text-orange-200 mb-2">
+                      <strong>HashPack Extension Not Found</strong>
+                    </div>
+                    <div className="text-orange-700 dark:text-orange-300 mb-3 text-xs">
+                      1. Install HashPack from <a href="https://hashpack.app" target="_blank" rel="noopener noreferrer" className="underline font-medium">hashpack.app</a><br/>
+                      2. Enable the extension in your browser<br/>
+                      3. Refresh this page<br/>
+                      4. Make sure HashPack is unlocked
+                    </div>
+                    <Button
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.reload();
+                      }}
+                      className="text-xs h-7"
+                    >
+                      🔄 Refresh Page
+                    </Button>
                   </div>
                 ) : null}
                 <div className="flex flex-wrap gap-1">
