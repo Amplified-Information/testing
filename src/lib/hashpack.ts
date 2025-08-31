@@ -26,42 +26,15 @@ export class HashPackConnector {
 
   async initialize(): Promise<void> {
     try {
-      // Comprehensive debugging of window object
       console.log('=== HashPack Detection Debug ===');
-      console.log('window.hashpack:', (window as any).hashpack);
-      console.log('window.HashPack:', (window as any).HashPack);
-      console.log('window.hashconnect:', (window as any).hashconnect);
-      console.log('window.hashConnect:', (window as any).hashConnect);
-      
-      // Check all possible HashPack-related properties
-      const allWindowKeys = Object.keys(window as any);
-      const hashRelatedKeys = allWindowKeys.filter(key => 
-        key.toLowerCase().includes('hash') || 
-        key.toLowerCase().includes('pack') || 
-        key.toLowerCase().includes('hedera') ||
-        key.toLowerCase().includes('wallet')
-      );
-      console.log('All hash/pack/hedera/wallet related keys:', hashRelatedKeys);
-      
-      // Check if any events are fired by the extension
-      window.addEventListener('hashpack-loaded', () => {
-        console.log('HashPack loaded event fired');
-      });
-      
-      // Check document ready state
+      console.log('Initialize called at:', new Date().toISOString());
       console.log('Document ready state:', document.readyState);
       
-      // Check for extension specific indicators
-      const extensionIndicators = [
-        'hashpack', 'HashPack', 'hashconnect', 'hashConnect',
-        'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
-      ];
+      // Wait for DOM to be ready and extensions to load
+      await this.waitForExtensions();
       
-      extensionIndicators.forEach(indicator => {
-        if ((window as any)[indicator]) {
-          console.log(`Found ${indicator}:`, (window as any)[indicator]);
-        }
-      });
+      // Comprehensive debugging after waiting
+      this.debugWindowObject();
       
       // Generate a unique topic for this session
       this.state.topic = `hashymarket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -85,6 +58,92 @@ export class HashPackConnector {
       }
       throw error;
     }
+  }
+
+  private async waitForExtensions(): Promise<void> {
+    console.log('Waiting for extensions to load...');
+    
+    // Check multiple times with increasing delays
+    const maxAttempts = 10;
+    const delays = [100, 200, 500, 1000, 2000];
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      console.log(`Extension check attempt ${attempt + 1}/${maxAttempts}`);
+      
+      const found = this.checkForHashPack();
+      if (found) {
+        console.log('HashPack found on attempt:', attempt + 1);
+        return;
+      }
+      
+      const delay = delays[Math.min(attempt, delays.length - 1)];
+      console.log(`No HashPack found, waiting ${delay}ms before next check...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    console.log('HashPack not found after all attempts');
+  }
+
+  private checkForHashPack(): boolean {
+    const possibleLocations = [
+      'hashpack', 'HashPack', 'hashconnect', 'hashConnect',
+      'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
+    ];
+    
+    for (const location of possibleLocations) {
+      if ((window as any)[location]) {
+        console.log(`HashPack found at window.${location}:`, (window as any)[location]);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private debugWindowObject(): void {
+    console.log('=== Detailed Window Object Debug ===');
+    
+    // Check specific HashPack locations
+    console.log('window.hashpack:', (window as any).hashpack);
+    console.log('window.HashPack:', (window as any).HashPack);
+    console.log('window.hashconnect:', (window as any).hashconnect);
+    console.log('window.hashConnect:', (window as any).hashConnect);
+    
+    // Get ALL window properties and filter for relevant ones
+    const allWindowKeys = Object.getOwnPropertyNames(window);
+    console.log('Total window properties:', allWindowKeys.length);
+    
+    const relevantKeys = allWindowKeys.filter(key => 
+      key.toLowerCase().includes('hash') || 
+      key.toLowerCase().includes('pack') || 
+      key.toLowerCase().includes('hedera') ||
+      key.toLowerCase().includes('wallet') ||
+      key.toLowerCase().includes('web3') ||
+      key.toLowerCase().includes('ethereum')
+    );
+    
+    console.log('Relevant keys found:', relevantKeys);
+    
+    // Log the actual values of relevant keys
+    relevantKeys.forEach(key => {
+      const value = (window as any)[key];
+      console.log(`window.${key}:`, typeof value, value);
+    });
+    
+    // Check for common extension patterns
+    console.log('Checking for extension patterns...');
+    if ((window as any).chrome) {
+      console.log('Chrome extension API available:', !!(window as any).chrome);
+    }
+    
+    // Check for any objects with HashPack-like methods
+    allWindowKeys.forEach(key => {
+      const obj = (window as any)[key];
+      if (obj && typeof obj === 'object' && (obj.connect || obj.requestAccount || obj.enable)) {
+        console.log(`Found object with wallet-like methods at window.${key}:`, obj);
+      }
+    });
+    
+    console.log('=== End Detailed Window Object Debug ===');
   }
 
   async connect(): Promise<void> {
