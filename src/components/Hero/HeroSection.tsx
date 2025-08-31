@@ -5,24 +5,34 @@ import { TrendingUp, DollarSign, Users, BarChart3, Loader2 } from "lucide-react"
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-bg.jpg";
 import { useMarketStats } from "@/hooks/useMarketStats";
-
 const HeroSection = () => {
-  const { stats: marketStats, loading, error } = useMarketStats();
-  
-  const stats = [
-    { label: "Total Volume", value: loading ? "..." : marketStats.totalVolume, icon: DollarSign },
-    { label: "Active Event Prediction Markets", value: loading ? "..." : marketStats.activeMarkets.toString(), icon: BarChart3 },
-    { label: "Traders", value: loading ? "..." : marketStats.totalTraders, icon: Users },
-    { label: "24h Volume", value: loading ? "..." : marketStats.volume24h, icon: TrendingUp },
-  ];
-
-  return (
-    <div className="relative overflow-hidden">
+  const {
+    stats: marketStats,
+    loading,
+    error
+  } = useMarketStats();
+  const stats = [{
+    label: "Total Volume",
+    value: loading ? "..." : marketStats.totalVolume,
+    icon: DollarSign
+  }, {
+    label: "Active Event Prediction Markets",
+    value: loading ? "..." : marketStats.activeMarkets.toString(),
+    icon: BarChart3
+  }, {
+    label: "Traders",
+    value: loading ? "..." : marketStats.totalTraders,
+    icon: Users
+  }, {
+    label: "24h Volume",
+    value: loading ? "..." : marketStats.volume24h,
+    icon: TrendingUp
+  }];
+  return <div className="relative overflow-hidden">
       {/* Background */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      />
+      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10" style={{
+      backgroundImage: `url(${heroImage})`
+    }} />
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
       
       <div className="relative container py-16 lg:py-24">
@@ -57,7 +67,7 @@ const HeroSection = () => {
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                <span>Not Yet Live on Hedera Testnet</span>
+                <span>Live on Hedera Testnet</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-up rounded-full" />
@@ -68,8 +78,7 @@ const HeroSection = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 gap-4">
-            {stats.map((stat, index) => (
-              <Card key={index} className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50">
+            {stats.map((stat, index) => <Card key={index} className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -83,13 +92,10 @@ const HeroSection = () => {
                     <stat.icon className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
                   </div>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default HeroSection;
