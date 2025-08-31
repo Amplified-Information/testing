@@ -100,50 +100,65 @@ export class HashPackConnector {
   }
 
   private debugWindowObject(): void {
-    console.log('=== Detailed Window Object Debug ===');
+    console.log('=== Safe HashPack Detection Debug ===');
     
-    // Check specific HashPack locations
-    console.log('window.hashpack:', (window as any).hashpack);
-    console.log('window.HashPack:', (window as any).HashPack);
-    console.log('window.hashconnect:', (window as any).hashconnect);
-    console.log('window.hashConnect:', (window as any).hashConnect);
+    // Detect if running in sandboxed environment
+    const isSandboxed = this.detectSandboxEnvironment();
+    console.log('Running in sandboxed environment:', isSandboxed);
     
-    // Get ALL window properties and filter for relevant ones
-    const allWindowKeys = Object.getOwnPropertyNames(window);
-    console.log('Total window properties:', allWindowKeys.length);
+    // Check specific HashPack locations safely
+    const hashpackLocations = [
+      'hashpack', 'HashPack', 'hashconnect', 'hashConnect', 
+      'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
+    ];
     
-    const relevantKeys = allWindowKeys.filter(key => 
-      key.toLowerCase().includes('hash') || 
-      key.toLowerCase().includes('pack') || 
-      key.toLowerCase().includes('hedera') ||
-      key.toLowerCase().includes('wallet') ||
-      key.toLowerCase().includes('web3') ||
-      key.toLowerCase().includes('ethereum')
-    );
-    
-    console.log('Relevant keys found:', relevantKeys);
-    
-    // Log the actual values of relevant keys
-    relevantKeys.forEach(key => {
-      const value = (window as any)[key];
-      console.log(`window.${key}:`, typeof value, value);
-    });
-    
-    // Check for common extension patterns
-    console.log('Checking for extension patterns...');
-    if ((window as any).chrome) {
-      console.log('Chrome extension API available:', !!(window as any).chrome);
-    }
-    
-    // Check for any objects with HashPack-like methods
-    allWindowKeys.forEach(key => {
-      const obj = (window as any)[key];
-      if (obj && typeof obj === 'object' && (obj.connect || obj.requestAccount || obj.enable)) {
-        console.log(`Found object with wallet-like methods at window.${key}:`, obj);
+    hashpackLocations.forEach(location => {
+      try {
+        const value = (window as any)[location];
+        console.log(`window.${location}:`, typeof value, !!value);
+        
+        if (value && typeof value === 'object') {
+          console.log(`  - Has connect method:`, typeof value.connect === 'function');
+          console.log(`  - Has requestAccount method:`, typeof value.requestAccount === 'function');
+          console.log(`  - Has enable method:`, typeof value.enable === 'function');
+        }
+      } catch (error) {
+        console.log(`window.${location}: Access blocked (SecurityError)`);
       }
     });
     
-    console.log('=== End Detailed Window Object Debug ===');
+    // Check for browser extension API
+    try {
+      console.log('Chrome extension API available:', !!(window as any).chrome);
+    } catch (error) {
+      console.log('Chrome extension API: Access blocked');
+    }
+    
+    if (isSandboxed) {
+      console.log('⚠️  Running in sandboxed environment - HashPack extension may not be accessible');
+      console.log('💡 To test HashPack connection, try opening this app in a new browser tab');
+    }
+    
+    console.log('=== End Safe HashPack Detection Debug ===');
+  }
+
+  private detectSandboxEnvironment(): boolean {
+    try {
+      // Check if running in iframe
+      const inIframe = window !== window.top;
+      
+      // Check for Lovable/sandbox-specific indicators
+      const isLovableSandbox = window.location.hostname.includes('lovable') || 
+                               window.location.hostname.includes('sandbox');
+      
+      // Check for other sandbox indicators
+      const hasSandboxAttribute = document.querySelector('iframe[sandbox]') !== null;
+      
+      return inIframe || isLovableSandbox || hasSandboxAttribute;
+    } catch (error) {
+      // If we can't access window.top, we're definitely in a sandboxed iframe
+      return true;
+    }
   }
 
   async connect(): Promise<void> {
