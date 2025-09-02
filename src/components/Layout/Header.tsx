@@ -33,6 +33,9 @@ const Header = () => {
           <Link to="/markets" className="text-sm font-medium hover:text-primary transition-colors">
             Event Markets
           </Link>
+          <Link to="/create-market" className="text-sm font-medium hover:text-primary transition-colors">
+            Create Market
+          </Link>
           <Link to="/category-wheel" className="text-sm font-medium hover:text-primary transition-colors">
             Categories
           </Link>
