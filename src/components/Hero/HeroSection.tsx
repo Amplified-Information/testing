@@ -5,7 +5,13 @@ import { TrendingUp, DollarSign, Users, BarChart3, Loader2 } from "lucide-react"
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-bg.jpg";
 import { useMarketStats } from "@/hooks/useMarketStats";
+import { useWallet } from "@/contexts/WalletContext";
+import WalletConnectionModal from "@/components/Wallet/WalletConnectionModal";
+import { useState } from "react";
 const HeroSection = () => {
+  const { wallet } = useWallet();
+  const [showConnectionModal, setShowConnectionModal] = useState(false);
+  
   const {
     stats: marketStats,
     loading,
@@ -53,7 +59,11 @@ const HeroSection = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="trading" size="xl">
+              <Button 
+                variant="trading" 
+                size="xl" 
+                onClick={() => setShowConnectionModal(true)}
+              >
                 Start Trading
               </Button>
               <Button variant="outline" size="xl" asChild>
@@ -96,6 +106,11 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
+      
+      <WalletConnectionModal 
+        open={showConnectionModal} 
+        onOpenChange={setShowConnectionModal} 
+      />
     </div>;
 };
 export default HeroSection;
