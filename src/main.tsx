@@ -2,6 +2,11 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Polyfill for HashConnect library
+if (typeof global === 'undefined') {
+  (window as any).global = window;
+}
+
 console.log('Main.tsx loading...');
 
 try {
