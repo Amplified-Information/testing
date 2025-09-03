@@ -85,17 +85,43 @@ export class HashPackConnector {
   }
 
   private checkForHashPack(): boolean {
-    const possibleLocations = [
-      'hashpack', 'HashPack', 'hashconnect', 'hashConnect',
-      'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
-    ];
+    console.log('🔍 Checking for HashPack extension...');
     
-    for (const location of possibleLocations) {
-      if ((window as any)[location]) {
-        console.log(`HashPack found at window.${location}:`, (window as any)[location]);
+    // Check if HashPack extension is installed (most reliable method)
+    try {
+      if ((window as any).hashpack) {
+        console.log('✅ HashPack found at window.hashpack');
         return true;
       }
+      
+      // Check for HashConnect integration
+      if ((window as any).hashconnect) {
+        console.log('✅ HashConnect found at window.hashconnect');
+        return true;
+      }
+
+      // Check all possible locations as fallback
+      const possibleLocations = [
+        'HashPack', 'hashConnect', 'hedera', 'Hedera', 
+        'hederaWallet', 'HederaWallet'
+      ];
+      
+      for (const location of possibleLocations) {
+        if ((window as any)[location]) {
+          console.log(`✅ HashPack found at window.${location}`);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.log('❌ Error checking for HashPack:', error);
     }
+    
+    console.log('❌ HashPack extension not found');
+    console.log('💡 Make sure HashPack extension is:');
+    console.log('   1. Installed from https://hashpack.app');
+    console.log('   2. Enabled in browser extensions');
+    console.log('   3. Page has been refreshed after installation');
+    
     return false;
   }
 
@@ -163,95 +189,127 @@ export class HashPackConnector {
 
   async connect(): Promise<void> {
     try {
-      console.log('=== HashPack Connection Attempt ===');
+      console.log('🚀 Starting HashPack Connection...');
       
-      // Wait a moment for extension to load if needed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Force a fresh check for HashPack
+      const hasExtension = this.checkForHashPack();
       
-      // Check multiple possible locations for HashPack
-      const possibleLocations = [
-        (window as any).hashpack,
-        (window as any).HashPack,
-        (window as any).hashconnect,
-        (window as any).hashConnect,
-        (window as any).hedera,
-        (window as any).Hedera
-      ];
+      if (!hasExtension) {
+        const installMessage = `
+HashPack extension not found! Please:
+
+1. Install HashPack extension from: https://hashpack.app
+2. Enable the extension in your browser
+3. Refresh this page after installation
+4. Make sure HashPack is unlocked
+
+If you just installed HashPack, please refresh this page and try again.
+        `;
+        console.error(installMessage);
+        throw new Error('HashPack extension not found. Please install from hashpack.app and refresh the page.');
+      }
+
+      // Try HashPack connection
+      let hashpackExtension = (window as any).hashpack || (window as any).hashconnect;
       
-      console.log('Checking possible HashPack locations:', possibleLocations.map(loc => !!loc));
-      
-      // Try to find any available extension
-      let hashpackExtension = null;
-      for (const location of possibleLocations) {
-        if (location && typeof location === 'object') {
-          console.log('Found potential HashPack extension:', location);
-          hashpackExtension = location;
-          break;
+      if (!hashpackExtension) {
+        // Fallback check
+        const fallbackLocations = [
+          (window as any).HashPack,
+          (window as any).hashConnect,
+          (window as any).hedera,
+          (window as any).Hedera
+        ];
+        
+        for (const location of fallbackLocations) {
+          if (location && typeof location === 'object') {
+            hashpackExtension = location;
+            break;
+          }
         }
       }
-      
-      console.log('HashPack extension available:', !!hashpackExtension);
-      console.log('HashPack extension object:', hashpackExtension);
-      
-      if (hashpackExtension) {
-        console.log('HashPack extension detected, attempting connection...');
-        
-        try {
-          // Try to connect using the HashPack extension
-          let response;
-          
-          if (hashpackExtension.connect) {
-            response = await hashpackExtension.connect();
-          } else if (hashpackExtension.requestAccount) {
-            response = await hashpackExtension.requestAccount();
-          } else {
-            throw new Error('HashPack extension found but no known connection method available');
-          }
-          
-          console.log('HashPack connection response:', response);
-          
-          if (response && response.accountId) {
-            // Handle single account response
-            this.state = {
-              ...this.state,
-              isConnected: true,
-              accountIds: [response.accountId]
-            };
-          } else if (response && response.accountIds && response.accountIds.length > 0) {
-            // Handle multiple accounts response
-            this.state = {
-              ...this.state,
-              isConnected: true,
-              accountIds: response.accountIds
-            };
-          } else {
-            throw new Error('No accounts returned from HashPack extension');
-          }
-          
-          if (this.eventCallbacks.onConnect) {
-            this.eventCallbacks.onConnect(this.state);
-          }
-          
-        } catch (connectionError) {
-          console.error('HashPack connection failed:', connectionError);
-          throw new Error('Failed to connect to HashPack wallet. Please make sure HashPack is unlocked and try again.');
-        }
-        
-      } else {
-        console.log('HashPack extension not detected');
-        
-        // Show error with installation instructions
-        const error = new Error('HashPack wallet extension not found. Please install HashPack browser extension from hashpack.app');
-        if (this.eventCallbacks.onError) {
-          this.eventCallbacks.onError(error);
-        }
-        throw error;
+
+      if (!hashpackExtension) {
+        throw new Error('HashPack extension object not accessible. Please refresh the page and try again.');
       }
+
+      console.log('🔗 Attempting to connect with HashPack...');
+      
+      try {
+        let response;
+        
+        // Try different connection methods
+        if (typeof hashpackExtension.connect === 'function') {
+          console.log('Using hashpackExtension.connect()');
+          response = await hashpackExtension.connect();
+        } else if (typeof hashpackExtension.requestAccount === 'function') {
+          console.log('Using hashpackExtension.requestAccount()');
+          response = await hashpackExtension.requestAccount();
+        } else if (typeof hashpackExtension.enable === 'function') {
+          console.log('Using hashpackExtension.enable()');
+          response = await hashpackExtension.enable();
+        } else {
+          console.error('Available methods:', Object.keys(hashpackExtension));
+          throw new Error('No compatible connection method found in HashPack extension');
+        }
+        
+        console.log('📝 HashPack response:', response);
+        
+        // Handle different response formats
+        let accountIds = [];
+        
+        if (response && response.accountId) {
+          accountIds = [response.accountId];
+        } else if (response && response.accountIds) {
+          accountIds = response.accountIds;
+        } else if (response && Array.isArray(response)) {
+          accountIds = response;
+        } else if (typeof response === 'string') {
+          accountIds = [response];
+        }
+        
+        if (accountIds.length === 0) {
+          throw new Error('No account IDs returned from HashPack. Please make sure your wallet is unlocked.');
+        }
+        
+        // Update state
+        this.state = {
+          ...this.state,
+          isConnected: true,
+          accountIds: accountIds
+        };
+        
+        console.log('✅ HashPack connected successfully!', this.state);
+        
+        if (this.eventCallbacks.onConnect) {
+          this.eventCallbacks.onConnect(this.state);
+        }
+        
+      } catch (connectionError) {
+        console.error('💥 HashPack connection error:', connectionError);
+        
+        let errorMessage = 'Failed to connect to HashPack wallet.';
+        
+        if (connectionError instanceof Error) {
+          if (connectionError.message.includes('User rejected')) {
+            errorMessage = 'Connection was cancelled by user.';
+          } else if (connectionError.message.includes('unlock')) {
+            errorMessage = 'Please unlock your HashPack wallet and try again.';
+          } else {
+            errorMessage = `HashPack error: ${connectionError.message}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
     } catch (error) {
-      console.error('Failed to connect to HashPack:', error);
+      console.error('🚨 HashPack connection failed:', error);
+      
       if (this.eventCallbacks.onError) {
         this.eventCallbacks.onError(error as Error);
       }
+      
       throw error;
     }
   }
