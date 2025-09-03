@@ -46,7 +46,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     try {
       console.log('Starting HashConnect initialization...');
       
-      // Initialize HashConnect with proper metadata
       const hashConnect = new HashConnect(true);
       console.log('HashConnect instance created');
       
@@ -67,9 +66,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       setClient(hederaClient);
       console.log('Hedera client initialized for', network);
       
-      // Listen for pairing with HashPack - exactly like user's example
+      // Listen for pairing with HashPack
       hashConnect.pairingEvent.once(async (pairingData) => {
-        console.log('Pairing event received:', pairingData);
+        console.log('✅ Pairing event received:', pairingData);
         const accountId = pairingData.accountIds[0];
         
         setWallet({
@@ -80,7 +79,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         });
         
         if (accountId) {
-          // Fallback to Mirror Node for balance (simpler and more reliable)
+          // Use Mirror Node for balance (compatible with current version)
           await fetchBalanceFromMirrorNode(accountId);
         }
         
@@ -90,11 +89,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         });
         
         setIsLoading(false);
-      });
-      
-      // Add error handling for connection failures
-      hashConnect.connectionStatusChangeEvent.on((connectionStatus) => {
-        console.log('Connection status changed:', connectionStatus);
       });
       
       console.log('HashConnect initialized successfully');
@@ -127,48 +121,69 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   };
 
   const connect = async () => {
-    console.log('Connect button clicked');
     setIsLoading(true);
-    
-    // Set up a timeout to handle unresponsive connections
+
+    // Timeout handler
     const connectionTimeout = setTimeout(() => {
-      console.log('Connection timeout - no response from HashPack');
       toast({
-        title: 'Connection Timeout',
-        description: 'HashPack wallet did not respond. Please make sure HashPack is installed and try again.',
-        variant: 'destructive',
+        title: "Connection Timeout",
+        description:
+          "HashPack wallet did not respond. Please make sure HashPack is installed and try again.",
+        variant: "destructive",
       });
       setIsLoading(false);
-    }, 10000); // 10 second timeout
-    
+    }, 10000);
+
     try {
-      if (walletConnector) {
-        console.log('Attempting to connect to HashPack extension...');
-        
-        // Set up one-time success handler to clear timeout
-        const handleSuccess = (pairingData: any) => {
-          clearTimeout(connectionTimeout);
-          console.log('Extension connection successful!');
-        };
-        
-        walletConnector.pairingEvent.once(handleSuccess);
-        
-        // Use the correct method for HashConnect v2
-        walletConnector.connectToLocalWallet();
-        console.log('connectToLocalWallet() called - waiting for HashPack response...');
-        
-      } else {
-        clearTimeout(connectionTimeout);
-        console.error('HashConnect not initialized');
-        throw new Error('HashConnect not initialized');
+      if (!walletConnector) {
+        throw new Error("HashConnect not initialized");
       }
+
+      // Listen for pairing
+      walletConnector.pairingEvent.once((pairingData: any) => {
+        clearTimeout(connectionTimeout);
+        console.log("✅ Pairing event received:", pairingData);
+
+        setWallet({
+          isConnected: true,
+          accountId: pairingData.accountIds[0] || null,
+          publicKey: null, // Will be set after balance fetch
+          balance: null,
+        });
+
+        // Fetch balance after successful pairing
+        if (pairingData.accountIds[0]) {
+          fetchBalanceFromMirrorNode(pairingData.accountIds[0]);
+        }
+
+        toast({
+          title: 'HashPack Connected',
+          description: `Connected to account ${pairingData.accountIds[0]}`,
+        });
+
+        setIsLoading(false);
+      });
+
+      // Try local wallet (desktop extension)
+      console.log("Attempting local wallet connection...");
+      walletConnector.connectToLocalWallet();
+
+      // Fallback after short wait (for sandbox / mobile)
+      setTimeout(() => {
+        // Check if still loading and no connection established
+        if (isLoading && !wallet.isConnected) {
+          console.log("No extension response, trying alternative connection...");
+          // Note: openPairingModal might not exist in v0.2.9, so we'll just log for now
+          console.log("Consider updating HashConnect for QR modal support");
+        }
+      }, 3000);
     } catch (error) {
       clearTimeout(connectionTimeout);
-      console.error('Failed to connect wallet:', error);
+      console.error("❌ Wallet connection failed:", error);
       toast({
-        title: 'Connection Failed',
-        description: 'Failed to connect to HashPack. Please make sure the HashPack extension is installed.',
-        variant: 'destructive',
+        title: "Connection Error",
+        description: (error as Error).message,
+        variant: "destructive",
       });
       setIsLoading(false);
     }
