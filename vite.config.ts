@@ -18,14 +18,12 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      buffer: 'buffer',
-      process: 'process/browser',
     },
   },
   define: {
-    global: 'globalThis',
+    global: "globalThis", // <-- Fixes `global is not defined`
   },
   optimizeDeps: {
-    include: ['buffer', 'process'],
+    include: ["buffer", "process"],
   },
 }));
