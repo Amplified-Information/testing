@@ -44,22 +44,32 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
 
   const initializeHashConnect = async () => {
     try {
+      console.log('Starting HashConnect initialization...');
+      
       // Initialize HashConnect with proper metadata
       const hashConnect = new HashConnect(true);
+      console.log('HashConnect instance created');
+      
       const metadata = {
         name: "Lovable DApp",
         description: "Prediction Markets on Hedera",
         icon: ""
       };
+      
+      console.log('Initializing with metadata:', metadata);
       await hashConnect.init(metadata, network);
+      console.log('HashConnect init completed');
+      
       setWalletConnector(hashConnect);
       
       // Initialize Hedera client
       const hederaClient = Client.forName(network);
       setClient(hederaClient);
+      console.log('Hedera client initialized for', network);
       
       // Listen for pairing with HashPack - exactly like user's example
       hashConnect.pairingEvent.once(async (pairingData) => {
+        console.log('Pairing event received:', pairingData);
         const accountId = pairingData.accountIds[0];
         
         setWallet({
@@ -80,6 +90,11 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         });
         
         setIsLoading(false);
+      });
+      
+      // Add error handling for connection failures
+      hashConnect.connectionStatusChangeEvent.on((connectionStatus) => {
+        console.log('Connection status changed:', connectionStatus);
       });
       
       console.log('HashConnect initialized successfully');
@@ -112,20 +127,53 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   };
 
   const connect = async () => {
+    console.log('Connect button clicked');
     setIsLoading(true);
+    
+    // Set up a timeout to handle unresponsive connections
+    const connectionTimeout = setTimeout(() => {
+      console.log('Connection timeout - no response from HashPack');
+      toast({
+        title: 'Connection Timeout',
+        description: 'HashPack wallet did not respond. Please make sure HashPack is installed and try again.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+    }, 10000); // 10 second timeout
+    
     try {
       if (walletConnector) {
+        console.log('Attempting to connect to local wallet...');
+        
+        // Set up one-time success handler to clear timeout
+        const handleSuccess = (pairingData: any) => {
+          clearTimeout(connectionTimeout);
+          console.log('Connection successful!');
+        };
+        
+        walletConnector.pairingEvent.once(handleSuccess);
+        
         // Use the same method as the user's example
         walletConnector.connectToLocalWallet();
-        // The pairing event will handle the rest
+        console.log('connectToLocalWallet() called - waiting for HashPack response...');
+        
+        // Also try the alternative connection method
+        if (typeof (walletConnector as any).openRequestModal === 'function') {
+          console.log('Opening connection modal...');
+          (walletConnector as any).openRequestModal();
+        }
+        
       } else {
+        clearTimeout(connectionTimeout);
+        console.error('HashConnect not initialized');
         throw new Error('HashConnect not initialized');
       }
     } catch (error) {
+      clearTimeout(connectionTimeout);
       console.error('Failed to connect wallet:', error);
       toast({
         title: 'Connection Failed',
-        description: 'Failed to connect to HashPack. Please try again.',
+        description: 'Failed to connect to HashPack. Please make sure the HashPack extension is installed.',
         variant: 'destructive',
       });
       setIsLoading(false);
