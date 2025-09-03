@@ -23,37 +23,40 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
   // Detect sandbox environment and HashPack availability
   useEffect(() => {
     const detectEnvironment = () => {
-      // Use the same sandbox detection logic as HashPackConnector
       try {
-        const inIframe = window !== window.top;
-        const isLovableSandbox = window.location.hostname.includes('lovable') || 
-                                window.location.hostname.includes('sandbox');
-        const hasSandboxAttribute = document.querySelector('iframe[sandbox]') !== null;
+        // Only block in actual restrictive sandbox environments
+        const inRestrictiveIframe = window !== window.top && 
+          document.querySelector('iframe[sandbox]') !== null;
         
-        setIsSandboxed(inIframe || isLovableSandbox || hasSandboxAttribute);
+        // Allow connections on Lovable production apps
+        const isLovableProduction = window.location.hostname.includes('lovable.app');
+        const isLocalDevelopment = window.location.hostname === 'localhost' || 
+                                   window.location.hostname === '127.0.0.1';
         
-        // Check for HashPack (only if not in sandbox)
-        if (!inIframe && !isLovableSandbox && !hasSandboxAttribute) {
-          const hashpackLocations = [
-            'hashpack', 'HashPack', 'hashconnect', 'hashConnect', 
-            'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
-          ];
-          
-          const found = hashpackLocations.some(location => {
-            try {
-              return !!(window as any)[location];
-            } catch (error) {
-              return false;
-            }
-          });
-          
-          setHasHashPack(found);
-        } else {
-          setHasHashPack(false);
-        }
+        // Only set sandboxed if in actual restrictive environment
+        setIsSandboxed(inRestrictiveIframe && !isLovableProduction && !isLocalDevelopment);
+        
+        // Try to detect HashPack extension
+        const hashpackLocations = [
+          'hashpack', 'HashPack', 'hashconnect', 'hashConnect', 
+          'hedera', 'Hedera', 'hederaWallet', 'HederaWallet'
+        ];
+        
+        const found = hashpackLocations.some(location => {
+          try {
+            return !!(window as any)[location];
+          } catch (error) {
+            return false;
+          }
+        });
+        
+        // Always allow HashPack connection attempts (let HashConnect handle detection)
+        setHasHashPack(true);
       } catch (error) {
-        setIsSandboxed(true);
-        setHasHashPack(false);
+        console.warn('Environment detection error:', error);
+        // Default to allowing connections
+        setIsSandboxed(false);
+        setHasHashPack(true);
       }
     };
 
