@@ -53,7 +53,7 @@ export const PortfolioHoldings = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={holding.position === 'YES' ? 'default' : 'secondary'} className={holding.position === 'YES' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                    <Badge variant={holding.position === 'YES' ? 'default' : 'secondary'} className={holding.position === 'YES' ? 'bg-primary/20 text-primary' : 'bg-red-100 text-red-800'}>
                       {holding.position}
                     </Badge>
                   </TableCell>
@@ -66,7 +66,7 @@ export const PortfolioHoldings = ({
                   <TableCell className="text-right font-mono">
                     <div className="flex items-center justify-end gap-1">
                       ${holding.currentPrice.toFixed(3)}
-                      {holding.change24h !== 0 && <div className={`flex items-center ${holding.change24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {holding.change24h !== 0 && <div className={`flex items-center ${holding.change24h >= 0 ? 'text-primary' : 'text-red-600'}`}>
                           {holding.change24h >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                           <span className="text-xs ml-1">
                             {Math.abs(holding.change24h).toFixed(1)}%
@@ -78,7 +78,7 @@ export const PortfolioHoldings = ({
                     {formatCurrency(holding.marketValue)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className={`font-mono ${holding.unrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`font-mono ${holding.unrealizedPnL >= 0 ? 'text-primary' : 'text-red-600'}`}>
                       {formatCurrency(holding.unrealizedPnL)}
                       <div className="text-xs">
                         {formatPercent(holding.unrealizedPnLPercent)}

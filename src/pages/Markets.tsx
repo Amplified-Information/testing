@@ -787,7 +787,7 @@ const Markets = () => {
                             <div className="text-center p-4 md:p-6 bg-muted/20 rounded-xl">
                               <div 
                                 className={`text-xl md:text-2xl font-bold ${
-                                  selectedCategory.trending > 0 ? 'text-green-500' : 'text-red-500'
+                                  selectedCategory.trending > 0 ? 'text-primary' : 'text-red-500'
                                 }`}
                               >
                                 {selectedCategory.trending > 0 ? '+' : ''}{selectedCategory.trending.toFixed(1)}%

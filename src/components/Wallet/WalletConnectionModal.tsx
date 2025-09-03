@@ -345,7 +345,7 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
                       className="h-6 w-6 p-0"
                     >
                       {copiedProjectId ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-3 w-3 text-primary" />
                       ) : (
                         <Copy className="h-3 w-3" />
                       )}

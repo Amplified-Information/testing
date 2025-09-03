@@ -62,7 +62,7 @@ const WalletButton = () => {
               {wallet.accountId ? formatAccountId(wallet.accountId) : 'Connected'}
             </span>
             {copied ? (
-              <Copy className="w-3 h-3 text-green-600" />
+              <Copy className="w-3 h-3 text-primary" />
             ) : (
               <Copy className="w-3 h-3" />
             )}
