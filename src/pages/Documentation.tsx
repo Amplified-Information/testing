@@ -256,7 +256,7 @@ const Documentation = () => {
                   <div>• /markets - Browse all event prediction markets</div>
                   <div>• /market/:id - Individual event market details</div>
                   <div>• /portfolio - User holdings and positions</div>
-                  <div>• /category-wheel - Category-based event market discovery</div>
+                  
                   <div>• /docs - This documentation page</div>
                 </div>
               </div>

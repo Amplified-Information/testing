@@ -8,7 +8,7 @@ import { WalletProvider } from "@/contexts/WalletContext";
 import Index from "./pages/Index";
 import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
-import CategoryWheel from "./pages/CategoryWheel";
+
 import Portfolio from "./pages/Portfolio";
 import Documentation from "./pages/Documentation";
 import CreateMarket from "./pages/CreateMarket";
@@ -29,7 +29,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/markets" element={<Markets />} />
               <Route path="/create-market" element={<CreateMarket />} />
-              <Route path="/category-wheel" element={<CategoryWheel />} />
+              
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/docs" element={<Documentation />} />
               <Route path="/dev-notes" element={<DevelopmentNotes />} />
