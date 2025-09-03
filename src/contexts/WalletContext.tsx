@@ -143,25 +143,19 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     
     try {
       if (walletConnector) {
-        console.log('Attempting to connect to local wallet...');
+        console.log('Opening HashPack pairing modal for QR code connection...');
         
         // Set up one-time success handler to clear timeout
         const handleSuccess = (pairingData: any) => {
           clearTimeout(connectionTimeout);
-          console.log('Connection successful!');
+          console.log('QR code pairing successful!');
         };
         
         walletConnector.pairingEvent.once(handleSuccess);
         
-        // Use the same method as the user's example
-        walletConnector.connectToLocalWallet();
-        console.log('connectToLocalWallet() called - waiting for HashPack response...');
-        
-        // Also try the alternative connection method
-        if (typeof (walletConnector as any).openRequestModal === 'function') {
-          console.log('Opening connection modal...');
-          (walletConnector as any).openRequestModal();
-        }
+        // Use QR code modal for mobile app pairing
+        (walletConnector as any).openPairingModal();
+        console.log('QR code modal opened - scan with HashPack mobile app...');
         
       } else {
         clearTimeout(connectionTimeout);
