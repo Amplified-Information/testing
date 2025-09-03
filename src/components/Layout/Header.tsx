@@ -36,9 +36,6 @@ const Header = () => {
           <Link to="/create-market" className="text-sm font-medium hover:text-primary transition-colors">
             Create Market
           </Link>
-          <Link to="/category-wheel" className="text-sm font-medium hover:text-primary transition-colors">
-            Categories
-          </Link>
           <Link 
             to="/portfolio" 
             onClick={handlePortfolioClick}

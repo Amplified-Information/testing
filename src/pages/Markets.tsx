@@ -560,14 +560,6 @@ const Markets = () => {
                 Discover and trade on prediction markets across various categories
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => window.open('/category-wheel', '_blank')}
-              className="hidden md:flex items-center gap-2"
-            >
-              <Zap className="w-4 h-4" />
-              Try Wheel Demo
-            </Button>
           </div>
 
           {/* Search and Filters */}
