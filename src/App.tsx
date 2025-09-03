@@ -12,6 +12,7 @@ import CategoryWheel from "./pages/CategoryWheel";
 import Portfolio from "./pages/Portfolio";
 import Documentation from "./pages/Documentation";
 import CreateMarket from "./pages/CreateMarket";
+import DevelopmentNotes from "./pages/DevelopmentNotes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/category-wheel" element={<CategoryWheel />} />
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/docs" element={<Documentation />} />
+              <Route path="/dev-notes" element={<DevelopmentNotes />} />
               <Route path="/market/:id" element={<MarketDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
