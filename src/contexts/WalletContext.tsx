@@ -26,6 +26,8 @@ interface WalletProviderProps {
 }
 
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
+  console.log('WalletProvider rendering...');
+  
   const [wallet, setWallet] = useState<WalletState>({
     isConnected: false,
     accountId: null,
@@ -39,19 +41,25 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [network] = useState<"testnet" | "mainnet" | "previewnet">("testnet");
 
   useEffect(() => {
+    console.log('WalletProvider useEffect running...');
     initializeHashConnect();
   }, []);
 
   const initializeHashConnect = async () => {
+    console.log('Initializing HashConnect...');
     try {
       // Initialize HashConnect with proper metadata
       const hashConnect = new HashConnect(true);
+      console.log('HashConnect instance created');
+      
       const metadata = {
         name: "Lovable DApp",
         description: "Prediction Markets on Hedera",
         icon: ""
       };
       await hashConnect.init(metadata, network);
+      console.log('HashConnect initialized');
+      
       setWalletConnector(hashConnect);
       
       // Initialize Hedera client
