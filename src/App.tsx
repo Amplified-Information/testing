@@ -15,7 +15,13 @@ import CreateMarket from "./pages/CreateMarket";
 import DevelopmentNotes from "./pages/DevelopmentNotes";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
