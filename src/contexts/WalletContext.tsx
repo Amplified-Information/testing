@@ -143,19 +143,19 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     
     try {
       if (walletConnector) {
-        console.log('Opening HashPack pairing modal for QR code connection...');
+        console.log('Attempting to connect to HashPack extension...');
         
         // Set up one-time success handler to clear timeout
         const handleSuccess = (pairingData: any) => {
           clearTimeout(connectionTimeout);
-          console.log('QR code pairing successful!');
+          console.log('Extension connection successful!');
         };
         
         walletConnector.pairingEvent.once(handleSuccess);
         
-        // Use QR code modal for mobile app pairing
-        (walletConnector as any).openPairingModal();
-        console.log('QR code modal opened - scan with HashPack mobile app...');
+        // Use the correct method for HashConnect v2
+        walletConnector.connectToLocalWallet();
+        console.log('connectToLocalWallet() called - waiting for HashPack response...');
         
       } else {
         clearTimeout(connectionTimeout);
