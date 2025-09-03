@@ -1,7 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { AccountBalanceQuery, Client } from '@hashgraph/sdk';
-import { HashConnect } from 'hashconnect';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { 
+  DAppConnector,
+  HederaSessionEvent,
+  HederaJsonRpcMethod,
+  HederaChainId,
+} from "@hashgraph/hedera-wallet-connect";
+import { AccountBalanceQuery, Client, LedgerId } from "@hashgraph/sdk";
+import { toast } from "@/hooks/use-toast";
 
 interface WalletState {
   isConnected: boolean;
@@ -15,8 +26,7 @@ interface WalletContextType {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   isLoading: boolean;
-  walletConnector: HashConnect | null;
-  pairingString: string | null;
+  walletConnector: DAppConnector | null;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -25,7 +35,7 @@ interface WalletProviderProps {
   children: ReactNode;
 }
 
-export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
+export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [wallet, setWallet] = useState<WalletState>({
     isConnected: false,
     accountId: null,
@@ -33,225 +43,147 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     publicKey: null,
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [walletConnector, setWalletConnector] = useState<HashConnect | null>(null);
-  const [client, setClient] = useState<Client | null>(null);
-  const [pairingString, setPairingString] = useState<string | null>(null);
-  const [network] = useState<"testnet" | "mainnet" | "previewnet">("testnet");
+  const [walletConnector, setWalletConnector] = useState<DAppConnector | null>(null);
 
   useEffect(() => {
-    initializeHashConnect();
+    const init = async () => {
+      try {
+        const metadata = {
+          name: "Lovable DApp",
+          description: "Prediction Markets on Hedera",
+          url: window.location.origin,
+          icons: [""],
+        };
+
+        const connector = new DAppConnector(
+          metadata,
+          LedgerId.TESTNET,
+          "", // WalletConnect Project ID - can be empty for basic usage
+          Object.values(HederaJsonRpcMethod),
+          [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
+          [HederaChainId.Testnet]
+        );
+
+        await connector.init({ logger: "error" });
+        setWalletConnector(connector);
+      } catch (error) {
+        console.error("Failed to initialize DAppConnector:", error);
+        toast({
+          title: "Initialization Failed",
+          description: "Failed to initialize wallet connector",
+          variant: "destructive",
+        });
+      }
+    };
+
+    init();
   }, []);
 
-  const initializeHashConnect = async () => {
-    try {
-      console.log('Starting HashConnect initialization...');
-      
-      const hashConnect = new HashConnect(true);
-      console.log('HashConnect instance created');
-      
-      const metadata = {
-        name: "Lovable DApp",
-        description: "Prediction Markets on Hedera",
-        icon: ""
-      };
-      
-      console.log('Initializing with metadata:', metadata);
-      await hashConnect.init(metadata, network);
-      console.log('HashConnect init completed');
-      
-      setWalletConnector(hashConnect);
-      
-      // Initialize Hedera client
-      const hederaClient = Client.forName(network);
-      setClient(hederaClient);
-      console.log('Hedera client initialized for', network);
-      
-      // Listen for pairing with HashPack
-      hashConnect.pairingEvent.once(async (pairingData) => {
-        console.log('✅ Pairing event received:', pairingData);
-        const accountId = pairingData.accountIds[0];
-        
-        setWallet({
-          isConnected: true,
-          accountId: accountId || null,
-          balance: null,
-          publicKey: null,
-        });
-        
-        if (accountId) {
-          // Use Mirror Node for balance (compatible with current version)
-          await fetchBalanceFromMirrorNode(accountId);
-        }
-        
-        toast({
-          title: 'HashPack Connected',
-          description: `Connected to account ${accountId}`,
-        });
-        
-        setIsLoading(false);
-      });
-      
-      console.log('HashConnect initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize HashConnect:', error);
-      toast({
-        title: 'Initialization Failed',
-        description: 'Failed to initialize HashConnect',
-        variant: 'destructive',
-      });
-      setIsLoading(false);
-    }
-  };
-
-  const fetchBalanceFromMirrorNode = async (accountId: string) => {
-    try {
-      const response = await fetch(
-        `https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}`
-      );
-      const data = await response.json();
-      const balance = data.balance?.balance ? (data.balance.balance / 100000000).toString() : '0';
-      
-      setWallet(prev => ({ 
-        ...prev, 
-        balance: `${balance} ℏ` 
-      }));
-    } catch (error) {
-      console.error('Failed to fetch balance from Mirror Node:', error);
-    }
-  };
-
   const connect = async () => {
+    if (!walletConnector) return;
+
     setIsLoading(true);
-
-    // Timeout handler
-    const connectionTimeout = setTimeout(() => {
-      toast({
-        title: "Connection Timeout",
-        description:
-          "HashPack wallet did not respond. Please make sure HashPack is installed and try again.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }, 10000);
-
     try {
-      if (!walletConnector) {
-        throw new Error("HashConnect not initialized");
+      // Opens QR modal (mobile) or connects extension (desktop HashPack/Blade)
+      await walletConnector.openModal();
+
+      // Get session after successful connection
+      const session = walletConnector.walletConnectClient?.session?.getAll()[0];
+      if (!session) {
+        throw new Error("No session established");
       }
 
-      // Listen for pairing
-      walletConnector.pairingEvent.once((pairingData: any) => {
-        clearTimeout(connectionTimeout);
-        console.log("✅ Pairing event received:", pairingData);
+      const accountId = session.namespaces?.hedera?.accounts?.[0]?.split(":")[2];
+      if (!accountId) {
+        throw new Error("No account ID found in session");
+      }
+
+      // Fetch balance using Mirror Node (simpler approach for now)
+      try {
+        const response = await fetch(
+          `https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}`
+        );
+        const data = await response.json();
+        const balanceInHbars = data.balance?.balance ? (data.balance.balance / 100000000) : 0;
 
         setWallet({
           isConnected: true,
-          accountId: pairingData.accountIds[0] || null,
-          publicKey: null, // Will be set after balance fetch
-          balance: null,
+          accountId,
+          publicKey: null, // Can be extracted from session if needed
+          balance: `${balanceInHbars.toFixed(2)} ℏ`,
         });
-
-        // Fetch balance after successful pairing
-        if (pairingData.accountIds[0]) {
-          fetchBalanceFromMirrorNode(pairingData.accountIds[0]);
-        }
 
         toast({
-          title: 'HashPack Connected',
-          description: `Connected to account ${pairingData.accountIds[0]}`,
+          title: "Wallet Connected",
+          description: `Connected to ${accountId}`,
+        });
+      } catch (balanceError) {
+        // Set wallet as connected even if balance fetch fails
+        setWallet({
+          isConnected: true,
+          accountId,
+          publicKey: null,
+          balance: "0 ℏ",
         });
 
-        setIsLoading(false);
-      });
-
-      // Try local wallet (desktop extension)
-      console.log("Attempting local wallet connection...");
-      walletConnector.connectToLocalWallet();
-
-      // Fallback after short wait (for sandbox / mobile)
-      setTimeout(() => {
-        // Check if still loading and no connection established
-        if (isLoading && !wallet.isConnected) {
-          console.log("No extension response, trying alternative connection...");
-          // Note: openPairingModal might not exist in v0.2.9, so we'll just log for now
-          console.log("Consider updating HashConnect for QR modal support");
-        }
-      }, 3000);
-    } catch (error) {
-      clearTimeout(connectionTimeout);
-      console.error("❌ Wallet connection failed:", error);
-      toast({
-        title: "Connection Error",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
-  };
-
-  const disconnect = async () => {
-    setIsLoading(true);
-    try {
-      if (walletConnector) {
-        // HashConnect disconnect requires the topic parameter
-        try {
-          walletConnector.disconnect((walletConnector as any).hcData?.topic || "");
-        } catch (e) {
-          console.log('Disconnect completed');
-        }
+        toast({
+          title: "Wallet Connected",
+          description: `Connected to ${accountId} (balance unavailable)`,
+        });
       }
-      
-      // Reset wallet state
-      setWallet({
-        isConnected: false,
-        accountId: null,
-        balance: null,
-        publicKey: null,
-      });
-      setPairingString(null);
-      
+    } catch (error: any) {
+      console.error("❌ Wallet connect failed:", error);
       toast({
-        title: 'Wallet Disconnected',
-        description: 'Your HashPack wallet has been disconnected',
-      });
-    } catch (error) {
-      console.error('Failed to disconnect wallet:', error);
-      // Reset state anyway
-      setWallet({
-        isConnected: false,
-        accountId: null,
-        balance: null,
-        publicKey: null,
-      });
-      toast({
-        title: 'Disconnected',
-        description: 'Wallet has been disconnected',
+        title: "Connection Error", 
+        description: error.message || "Failed to connect wallet",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const disconnect = async () => {
+    try {
+      if (walletConnector?.walletConnectClient?.session) {
+        const sessions = walletConnector.walletConnectClient.session.getAll();
+        for (const session of sessions) {
+          await walletConnector.walletConnectClient.session.delete(
+            session.topic,
+            { code: 6000, message: "User disconnected" }
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error disconnecting:", error);
+    }
+    
+    setWallet({
+      isConnected: false,
+      accountId: null,
+      balance: null,
+      publicKey: null,
+    });
+    
+    toast({
+      title: "Wallet Disconnected",
+      description: "Your wallet has been disconnected",
+    });
+  };
+
   return (
     <WalletContext.Provider
-      value={{
-        wallet,
-        connect,
-        disconnect,
-        isLoading,
-        walletConnector,
-        pairingString,
-      }}
+      value={{ wallet, connect, disconnect, isLoading, walletConnector }}
     >
       {children}
     </WalletContext.Provider>
   );
 };
 
-export const useWallet = () => {
+export const useWallet = (): WalletContextType => {
   const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
+  if (!context) {
+    throw new Error("useWallet must be used within a WalletProvider");
   }
   return context;
 };
