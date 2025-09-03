@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, Shield, Zap, Globe, ExternalLink, Copy, Check } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "@/hooks/use-toast";
-import { hashPackConnector } from "@/lib/hashpack";
 
 interface WalletConnectionModalProps {
   open: boolean;
