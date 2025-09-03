@@ -49,7 +49,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const init = async () => {
       try {
         const metadata = {
-          name: "Hashy Markets",
+          name: "Lovable DApp",
           description: "Prediction Markets on Hedera",
           url: window.location.origin,
           icons: [""],
