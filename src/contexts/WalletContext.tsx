@@ -12,15 +12,13 @@ import {
   HederaJsonRpcMethod,
   HederaChainId,
 } from "@hashgraph/hedera-wallet-connect";
-import { AccountBalanceQuery, Client, LedgerId } from "@hashgraph/sdk";
+import { LedgerId } from "@hashgraph/sdk";
 import { toast } from "@/hooks/use-toast";
 import { useDebugger } from "@/hooks/useDebugger";
-import { apiClient } from "@/utils/apiClient";
 
 interface WalletState {
   isConnected: boolean;
   accountId: string | null;
-  balance: string | null;
   publicKey: string | null;
 }
 
@@ -38,54 +36,41 @@ interface WalletProviderProps {
   children: ReactNode;
 }
 
-const WALLET_STORAGE_KEY = 'hashy_wallet_session';
-
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const debug = useDebugger('WalletProvider');
   
-  const [wallet, setWallet] = useState<WalletState>(() => {
-    // Try to restore wallet state from localStorage
-    try {
-      const stored = localStorage.getItem(WALLET_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        debug.log('Restored wallet state from storage', parsed);
-        return { ...parsed, isConnected: false }; // Always start disconnected
-      }
-    } catch (error) {
-      debug.error('Failed to restore wallet state', error);
-    }
-    return {
-      isConnected: false,
-      accountId: null,
-      balance: null,
-      publicKey: null,
-    };
+  const [wallet, setWallet] = useState<WalletState>({
+    isConnected: false,
+    accountId: null,
+    publicKey: null,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [walletConnector, setWalletConnector] = useState<DAppConnector | null>(null);
 
-  // Save wallet state to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(wallet));
-    } catch (error) {
-      debug.error('Failed to save wallet state', error);
-    }
-  }, [wallet, debug]);
-
-  // Session restoration and event handling
+  // Proper Hedera event handling
   const handleSessionEvents = useCallback((connector: DAppConnector) => {
-    // Handle account changes
+    // Handle account changes using proper WalletConnect events
     connector.walletConnectClient?.on('session_update', (event) => {
       debug.log('Session updated', event);
       try {
         const session = connector.walletConnectClient?.session?.getAll()[0];
         if (session) {
-          const accountId = session.namespaces?.hedera?.accounts?.[0]?.split(":")[2];
-          if (accountId && accountId !== wallet.accountId) {
-            debug.log('Account changed', { from: wallet.accountId, to: accountId });
-            setWallet(prev => ({ ...prev, accountId }));
+          const accounts = session.namespaces?.hedera?.accounts || [];
+          const newAccountId = accounts[0]?.split(":")[2] || null;
+          if (newAccountId !== wallet.accountId) {
+            debug.log('Account changed', { from: wallet.accountId, to: newAccountId });
+            setWallet(prev => ({ 
+              ...prev, 
+              accountId: newAccountId,
+              isConnected: !!newAccountId 
+            }));
+            
+            if (newAccountId) {
+              toast({
+                title: "Account Changed",
+                description: `Switched to ${newAccountId}`,
+              });
+            }
           }
         }
       } catch (error) {
@@ -99,7 +84,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       setWallet({
         isConnected: false,
         accountId: null,
-        balance: null,
         publicKey: null,
       });
     });
@@ -130,14 +114,30 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         handleSessionEvents(connector);
         setWalletConnector(connector);
         
-        // Try to restore existing session
+        // Proper session restoration using connector session
         const sessions = connector.walletConnectClient?.session?.getAll() || [];
-        if (sessions.length > 0 && wallet.accountId) {
+        if (sessions.length > 0) {
           debug.log('Found existing session, attempting to restore');
           try {
-            await updateBalance(wallet.accountId);
-            setWallet(prev => ({ ...prev, isConnected: true }));
-            debug.log('Session restored successfully');
+            const session = sessions[0];
+            const accounts = session.namespaces?.hedera?.accounts || [];
+            
+            if (accounts.length > 0) {
+              const accountId = accounts[0].split(":")[2];
+              const publicKey = null; // Will be fetched via API if needed
+              
+              setWallet({
+                isConnected: true,
+                accountId,
+                publicKey,
+              });
+              
+              debug.log('Session restored successfully', { accountId });
+              toast({
+                title: "Wallet Reconnected",
+                description: `Connected to ${accountId}`,
+              });
+            }
           } catch (error) {
             debug.error('Failed to restore session', error);
           }
@@ -155,24 +155,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     };
 
     init();
-  }, [debug, handleSessionEvents, wallet.accountId]);
-
-  const updateBalance = useCallback(async (accountId: string) => {
-    try {
-      debug.log('Updating balance for account', accountId);
-      const data = await apiClient.getHederaAccountBalance(accountId);
-      const balanceInHbars = data.balance?.balance ? (data.balance.balance / 100000000) : 0;
-      const formattedBalance = `${balanceInHbars.toFixed(2)} ℏ`;
-      
-      setWallet(prev => ({ ...prev, balance: formattedBalance }));
-      debug.log('Balance updated successfully', formattedBalance);
-      return formattedBalance;
-    } catch (error) {
-      debug.error('Failed to update balance', error);
-      setWallet(prev => ({ ...prev, balance: "0 ℏ" }));
-      return "0 ℏ";
-    }
-  }, [debug]);
+  }, [debug, handleSessionEvents]);
 
   const connect = async () => {
     if (!walletConnector) {
@@ -200,33 +183,45 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
       const accountId = session.namespaces?.hedera?.accounts?.[0]?.split(":")[2];
       if (!accountId) {
-        throw new Error("No account ID found in session");
+        throw new Error("No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account.");
       }
 
-      debug.log('Wallet connected successfully', accountId);
+      // Validate that this is a testnet account
+      const publicKey = null; // Can be fetched via API if needed
+
+      debug.log('Wallet connected successfully', { accountId, publicKey });
 
       // Update wallet state
       setWallet({
         isConnected: true,
         accountId,
-        publicKey: null,
-        balance: "0 ℏ",
+        publicKey,
       });
-
-      // Fetch balance in the background
-      const balance = await updateBalance(accountId);
 
       toast({
         title: "Wallet Connected",
         description: `Connected to ${accountId}`,
       });
 
-      debug.log('Connection process completed', { accountId, balance });
+      debug.log('Connection process completed', { accountId, publicKey });
     } catch (error: any) {
       debug.error("Wallet connect failed", error);
+      
+      let errorMessage = "Failed to connect wallet. Please try again.";
+      
+      // Enhanced error handling for common testnet issues
+      if (error.message?.includes("No Testnet accounts found") || 
+          error.message?.includes("no appropriate accounts")) {
+        errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account. Visit the Hedera Testnet Portal to create an account if needed.";
+      } else if (error.message?.includes("User rejected")) {
+        errorMessage = "Connection was cancelled. Please try again and approve the connection in your wallet.";
+      } else if (error.message?.includes("timeout")) {
+        errorMessage = "Connection timeout. Please check your network connection and try again.";
+      }
+      
       toast({
         title: "Connection Error", 
-        description: error.message || "Failed to connect wallet. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -256,16 +251,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setWallet({
       isConnected: false,
       accountId: null,
-      balance: null,
       publicKey: null,
     });
-    
-    // Clear stored session
-    try {
-      localStorage.removeItem(WALLET_STORAGE_KEY);
-    } catch (error) {
-      debug.error('Failed to clear stored session', error);
-    }
     
     toast({
       title: "Wallet Disconnected",

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, Shield, Globe, Loader2 } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "@/hooks/use-toast";
+import NetworkStatus from "./NetworkStatus";
 
 interface WalletConnectionModalProps {
   open: boolean;
@@ -43,6 +44,23 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Network Status */}
+          <NetworkStatus />
+
+          {/* Testnet Requirements */}
+          <Card className="border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/20">
+            <CardContent className="p-4">
+              <div className="text-sm">
+                <p className="font-medium text-orange-800 dark:text-orange-200 mb-2">⚠️ Testnet Required</p>
+                <div className="space-y-1 text-orange-600 dark:text-orange-300">
+                  <p>• Your wallet must be set to <strong>Hedera Testnet</strong></p>
+                  <p>• You need at least one testnet account</p>
+                  <p>• Get testnet HBAR from the <a href="https://portal.hedera.com/faucet" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">Hedera Faucet</a></p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Network Info */}
           <Card className="bg-muted/50">
             <CardContent className="p-4">
@@ -121,12 +139,18 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
           <Card className="bg-muted/30">
             <CardContent className="p-4">
               <div className="text-sm">
-                <p className="font-medium mb-2">How it works:</p>
+                <p className="font-medium mb-2">How to connect:</p>
                 <div className="space-y-1 text-muted-foreground">
-                  <p>1. Click "Connect Wallet" above</p>
-                  <p>2. Choose your wallet from the options</p>
-                  <p>3. Approve the connection in your wallet</p>
-                  <p>4. Start trading on Hedera testnet!</p>
+                  <p>1. Ensure your wallet is set to <strong>Hedera Testnet</strong></p>
+                  <p>2. Click "Connect Wallet" above</p>
+                  <p>3. Choose your wallet from the options</p>
+                  <p>4. Approve the connection in your wallet</p>
+                  <p>5. Start trading on Hedera testnet!</p>
+                </div>
+                <div className="mt-3 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Troubleshooting:</strong> If you see "No appropriate accounts", switch your wallet to Testnet and ensure you have a testnet account.
+                  </p>
                 </div>
               </div>
             </CardContent>

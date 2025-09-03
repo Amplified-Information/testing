@@ -78,16 +78,18 @@ class ApiClient {
   }
 
   async getHederaAccountBalance(accountId: string): Promise<any> {
+    const mirrorNodeUrl = import.meta.env.VITE_MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com/api/v1';
     return this.fetchWithRetry(
-      `https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}`,
+      `${mirrorNodeUrl}/accounts/${accountId}`,
       {},
       { maxRetries: 2, baseDelay: 500 }
     );
   }
 
   async getHederaAccountInfo(accountId: string): Promise<any> {
+    const mirrorNodeUrl = import.meta.env.VITE_MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com/api/v1';
     return this.fetchWithRetry(
-      `https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}`,
+      `${mirrorNodeUrl}/accounts/${accountId}`,
       {},
       { maxRetries: 2, baseDelay: 500 }
     );

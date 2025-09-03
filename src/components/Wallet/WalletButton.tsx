@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import WalletConnectionModal from "./WalletConnectionModal";
 import { toast } from "@/hooks/use-toast";
+import { useHederaBalance } from "@/hooks/useHederaBalance";
 
 const WalletButton = () => {
   const { wallet, disconnect, isLoading } = useWallet();
+  const { balance } = useHederaBalance();
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -15,12 +17,12 @@ const WalletButton = () => {
     return `${accountId.slice(0, 6)}...${accountId.slice(-4)}`;
   };
 
-  const formatBalance = (balance: string | null) => {
-    if (!balance) return null;
-    const numBalance = parseFloat(balance);
-    if (numBalance === 0) return '0 HBAR';
-    if (numBalance < 1) return `${numBalance.toFixed(4)} HBAR`;
-    return `${numBalance.toFixed(2)} HBAR`;
+  const formatBalance = (balance: any) => {
+    if (!balance?.balance?.balance) return null;
+    const numBalance = balance.balance.balance / 100000000; // Convert from tinybars to HBAR
+    if (numBalance === 0) return '0 ℏ';
+    if (numBalance < 1) return `${numBalance.toFixed(4)} ℏ`;
+    return `${numBalance.toFixed(2)} ℏ`;
   };
 
   const copyAccountId = async () => {
@@ -68,9 +70,9 @@ const WalletButton = () => {
             )}
           </Badge>
           
-          {wallet.balance && (
+          {balance && (
             <Badge variant="secondary" className="text-xs">
-              {formatBalance(wallet.balance)}
+              {formatBalance(balance)}
             </Badge>
           )}
 

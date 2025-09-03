@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { hederaService } from '@/lib/hedera';
 import { useWallet } from '@/contexts/WalletContext';
 import { apiClient } from '@/utils/apiClient';
 import { useDebugger } from './useDebugger';
