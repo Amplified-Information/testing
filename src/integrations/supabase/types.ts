@@ -18,11 +18,15 @@ export type Database = {
         Row: {
           category_id: string
           change_24h: number
+          collateral_type: string | null
           created_at: string
           created_by: string | null
           description: string | null
           end_date: string
           featured_order: number | null
+          governance_status:
+            | Database["public"]["Enums"]["governance_status"]
+            | null
           id: string
           is_active: boolean
           is_featured: boolean
@@ -36,13 +40,18 @@ export type Database = {
           minimum_bet: number
           name: string
           no_price: number
+          no_token_id: string | null
           options_count: number | null
+          oracle_config: Json | null
+          oracle_type: Database["public"]["Enums"]["oracle_type"] | null
           participants_count: number | null
+          proposal_id: string | null
           relevance: string | null
           resolution_date: string | null
           resolution_notes: string | null
           resolution_status: Database["public"]["Enums"]["resolution_status"]
           resolved_value: boolean | null
+          smart_contract_address: string | null
           sort_order: number
           subcategory_id: string | null
           total_shares: number
@@ -50,15 +59,20 @@ export type Database = {
           volume: number
           why_it_matters: string | null
           yes_price: number
+          yes_token_id: string | null
         }
         Insert: {
           category_id: string
           change_24h?: number
+          collateral_type?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           end_date: string
           featured_order?: number | null
+          governance_status?:
+            | Database["public"]["Enums"]["governance_status"]
+            | null
           id?: string
           is_active?: boolean
           is_featured?: boolean
@@ -72,13 +86,18 @@ export type Database = {
           minimum_bet?: number
           name: string
           no_price?: number
+          no_token_id?: string | null
           options_count?: number | null
+          oracle_config?: Json | null
+          oracle_type?: Database["public"]["Enums"]["oracle_type"] | null
           participants_count?: number | null
+          proposal_id?: string | null
           relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
           resolution_status?: Database["public"]["Enums"]["resolution_status"]
           resolved_value?: boolean | null
+          smart_contract_address?: string | null
           sort_order?: number
           subcategory_id?: string | null
           total_shares?: number
@@ -86,15 +105,20 @@ export type Database = {
           volume?: number
           why_it_matters?: string | null
           yes_price?: number
+          yes_token_id?: string | null
         }
         Update: {
           category_id?: string
           change_24h?: number
+          collateral_type?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           end_date?: string
           featured_order?: number | null
+          governance_status?:
+            | Database["public"]["Enums"]["governance_status"]
+            | null
           id?: string
           is_active?: boolean
           is_featured?: boolean
@@ -108,13 +132,18 @@ export type Database = {
           minimum_bet?: number
           name?: string
           no_price?: number
+          no_token_id?: string | null
           options_count?: number | null
+          oracle_config?: Json | null
+          oracle_type?: Database["public"]["Enums"]["oracle_type"] | null
           participants_count?: number | null
+          proposal_id?: string | null
           relevance?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
           resolution_status?: Database["public"]["Enums"]["resolution_status"]
           resolved_value?: boolean | null
+          smart_contract_address?: string | null
           sort_order?: number
           subcategory_id?: string | null
           total_shares?: number
@@ -122,6 +151,7 @@ export type Database = {
           volume?: number
           why_it_matters?: string | null
           yes_price?: number
+          yes_token_id?: string | null
         }
         Relationships: [
           {
@@ -132,6 +162,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "event_markets_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "market_proposals"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "event_markets_subcategory_id_fkey"
             columns: ["subcategory_id"]
             isOneToOne: false
@@ -139,6 +176,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      governance_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       market_categories: {
         Row: {
@@ -169,6 +236,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      market_deployment_queue: {
+        Row: {
+          created_at: string
+          deployed_at: string | null
+          deployment_attempts: number
+          deployment_error: string | null
+          deployment_status: string
+          id: string
+          max_attempts: number
+          no_token_id: string | null
+          priority: number
+          proposal_id: string
+          scheduled_for: string | null
+          smart_contract_address: string | null
+          updated_at: string
+          yes_token_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          deployed_at?: string | null
+          deployment_attempts?: number
+          deployment_error?: string | null
+          deployment_status?: string
+          id?: string
+          max_attempts?: number
+          no_token_id?: string | null
+          priority?: number
+          proposal_id: string
+          scheduled_for?: string | null
+          smart_contract_address?: string | null
+          updated_at?: string
+          yes_token_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          deployed_at?: string | null
+          deployment_attempts?: number
+          deployment_error?: string | null
+          deployment_status?: string
+          id?: string
+          max_attempts?: number
+          no_token_id?: string | null
+          priority?: number
+          proposal_id?: string
+          scheduled_for?: string | null
+          smart_contract_address?: string | null
+          updated_at?: string
+          yes_token_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_deployment_queue_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "market_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       market_options: {
         Row: {
@@ -274,6 +400,129 @@ export type Database = {
           },
         ]
       }
+      market_proposals: {
+        Row: {
+          collateral_type: string | null
+          cooldown_until: string | null
+          created_at: string
+          deployed_market_id: string | null
+          deployment_tx_hash: string | null
+          description: string
+          election_end_date: string | null
+          election_start_date: string | null
+          election_votes_abstain: number
+          election_votes_against: number
+          election_votes_for: number
+          election_voting_power_abstain: number
+          election_voting_power_against: number
+          election_voting_power_for: number
+          failure_reason: string | null
+          governance_status: Database["public"]["Enums"]["governance_status"]
+          hcs_message_id: string | null
+          hcs_topic_id: string | null
+          id: string
+          initial_liquidity: number | null
+          market_description: string | null
+          market_outcomes: Json | null
+          market_title: string | null
+          oracle_config: Json | null
+          oracle_type: Database["public"]["Enums"]["oracle_type"] | null
+          proposal_type: Database["public"]["Enums"]["proposal_type"]
+          proposal_votes_abstain: number
+          proposal_votes_against: number
+          proposal_votes_for: number
+          proposal_voting_power_abstain: number
+          proposal_voting_power_against: number
+          proposal_voting_power_for: number
+          proposer_id: string
+          resolution_date: string | null
+          title: string
+          updated_at: string
+          voting_end_date: string | null
+          voting_start_date: string | null
+        }
+        Insert: {
+          collateral_type?: string | null
+          cooldown_until?: string | null
+          created_at?: string
+          deployed_market_id?: string | null
+          deployment_tx_hash?: string | null
+          description: string
+          election_end_date?: string | null
+          election_start_date?: string | null
+          election_votes_abstain?: number
+          election_votes_against?: number
+          election_votes_for?: number
+          election_voting_power_abstain?: number
+          election_voting_power_against?: number
+          election_voting_power_for?: number
+          failure_reason?: string | null
+          governance_status?: Database["public"]["Enums"]["governance_status"]
+          hcs_message_id?: string | null
+          hcs_topic_id?: string | null
+          id?: string
+          initial_liquidity?: number | null
+          market_description?: string | null
+          market_outcomes?: Json | null
+          market_title?: string | null
+          oracle_config?: Json | null
+          oracle_type?: Database["public"]["Enums"]["oracle_type"] | null
+          proposal_type?: Database["public"]["Enums"]["proposal_type"]
+          proposal_votes_abstain?: number
+          proposal_votes_against?: number
+          proposal_votes_for?: number
+          proposal_voting_power_abstain?: number
+          proposal_voting_power_against?: number
+          proposal_voting_power_for?: number
+          proposer_id: string
+          resolution_date?: string | null
+          title: string
+          updated_at?: string
+          voting_end_date?: string | null
+          voting_start_date?: string | null
+        }
+        Update: {
+          collateral_type?: string | null
+          cooldown_until?: string | null
+          created_at?: string
+          deployed_market_id?: string | null
+          deployment_tx_hash?: string | null
+          description?: string
+          election_end_date?: string | null
+          election_start_date?: string | null
+          election_votes_abstain?: number
+          election_votes_against?: number
+          election_votes_for?: number
+          election_voting_power_abstain?: number
+          election_voting_power_against?: number
+          election_voting_power_for?: number
+          failure_reason?: string | null
+          governance_status?: Database["public"]["Enums"]["governance_status"]
+          hcs_message_id?: string | null
+          hcs_topic_id?: string | null
+          id?: string
+          initial_liquidity?: number | null
+          market_description?: string | null
+          market_outcomes?: Json | null
+          market_title?: string | null
+          oracle_config?: Json | null
+          oracle_type?: Database["public"]["Enums"]["oracle_type"] | null
+          proposal_type?: Database["public"]["Enums"]["proposal_type"]
+          proposal_votes_abstain?: number
+          proposal_votes_against?: number
+          proposal_votes_for?: number
+          proposal_voting_power_abstain?: number
+          proposal_voting_power_against?: number
+          proposal_voting_power_for?: number
+          proposer_id?: string
+          resolution_date?: string | null
+          title?: string
+          updated_at?: string
+          voting_end_date?: string | null
+          voting_start_date?: string | null
+        }
+        Relationships: []
+      }
       market_subcategories: {
         Row: {
           category_id: string
@@ -375,6 +624,50 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_votes: {
+        Row: {
+          created_at: string
+          hcs_message_id: string | null
+          id: string
+          is_proposal_phase: boolean
+          proposal_id: string
+          vote_choice: Database["public"]["Enums"]["vote_choice"]
+          voter_id: string
+          voting_power: number
+          wallet_signature: string
+        }
+        Insert: {
+          created_at?: string
+          hcs_message_id?: string | null
+          id?: string
+          is_proposal_phase?: boolean
+          proposal_id: string
+          vote_choice: Database["public"]["Enums"]["vote_choice"]
+          voter_id: string
+          voting_power: number
+          wallet_signature: string
+        }
+        Update: {
+          created_at?: string
+          hcs_message_id?: string | null
+          id?: string
+          is_proposal_phase?: boolean
+          proposal_id?: string
+          vote_choice?: Database["public"]["Enums"]["vote_choice"]
+          voter_id?: string
+          voting_power?: number
+          wallet_signature?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_votes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "market_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       secrets: {
         Row: {
           created_at: string
@@ -398,6 +691,116 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      staking_positions: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          stake_duration: number
+          stake_end_date: string
+          stake_start_date: string
+          staked_amount: number
+          updated_at: string
+          user_id: string
+          voting_power_multiplier: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          stake_duration: number
+          stake_end_date: string
+          stake_start_date?: string
+          staked_amount: number
+          updated_at?: string
+          user_id: string
+          voting_power_multiplier?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          stake_duration?: number
+          stake_end_date?: string
+          stake_start_date?: string
+          staked_amount?: number
+          updated_at?: string
+          user_id?: string
+          voting_power_multiplier?: number
+        }
+        Relationships: []
+      }
+      user_token_balances: {
+        Row: {
+          created_at: string
+          id: string
+          last_updated: string
+          staked_balance: number
+          token_balance: number
+          total_voting_power: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          staked_balance?: number
+          token_balance?: number
+          total_voting_power?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          staked_balance?: number
+          token_balance?: number
+          total_voting_power?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      voting_power_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          proposal_id: string | null
+          snapshot_date: string
+          staked_balance: number
+          token_balance: number
+          total_voting_power: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proposal_id?: string | null
+          snapshot_date: string
+          staked_balance: number
+          token_balance: number
+          total_voting_power: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proposal_id?: string | null
+          snapshot_date?: string
+          staked_balance?: number
+          token_balance?: number
+          total_voting_power?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voting_power_snapshots_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "market_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -433,7 +836,22 @@ export type Database = {
       }
     }
     Enums: {
+      governance_status:
+        | "draft"
+        | "proposal"
+        | "voting"
+        | "election"
+        | "approved"
+        | "rejected"
+        | "deployed"
+      oracle_type: "chainlink" | "supra" | "api_endpoint" | "manual"
+      proposal_type:
+        | "market_creation"
+        | "market_amendment"
+        | "liquidity_incentive"
+        | "governance_parameter"
       resolution_status: "open" | "closed" | "resolved" | "cancelled"
+      vote_choice: "yes" | "no" | "abstain"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -561,7 +979,24 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      governance_status: [
+        "draft",
+        "proposal",
+        "voting",
+        "election",
+        "approved",
+        "rejected",
+        "deployed",
+      ],
+      oracle_type: ["chainlink", "supra", "api_endpoint", "manual"],
+      proposal_type: [
+        "market_creation",
+        "market_amendment",
+        "liquidity_incentive",
+        "governance_parameter",
+      ],
       resolution_status: ["open", "closed", "resolved", "cancelled"],
+      vote_choice: ["yes", "no", "abstain"],
     },
   },
 } as const
