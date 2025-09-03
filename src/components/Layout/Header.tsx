@@ -1,19 +1,26 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, TrendingUp, Hexagon } from "lucide-react";
+import { Search, TrendingUp, Hexagon, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import WalletButton from "@/components/Wallet/WalletButton";
 import { useWallet } from "@/contexts/WalletContext";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 const Header = () => {
   const { wallet } = useWallet();
+  const isMobile = useIsMobile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handlePortfolioClick = (e: React.MouseEvent) => {
     if (!wallet.isConnected) {
       e.preventDefault();
     }
   };
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -56,7 +63,7 @@ const Header = () => {
         </nav>
 
         {/* Search */}
-        <div className="flex-1 max-w-md mx-8">
+        <div className="flex-1 max-w-md mx-8 hidden md:block">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -64,6 +71,75 @@ const Header = () => {
               className="pl-8 bg-muted/50"
             />
           </div>
+        </div>
+
+        {/* Mobile Menu */}
+        <div className="md:hidden">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <nav className="flex flex-col space-y-4 mt-8">
+                <Link 
+                  to="/markets" 
+                  className="text-lg font-medium hover:text-primary transition-colors py-2"
+                  onClick={closeMobileMenu}
+                >
+                  Event Markets
+                </Link>
+                <Link 
+                  to="/create-market" 
+                  className="text-lg font-medium hover:text-primary transition-colors py-2"
+                  onClick={closeMobileMenu}
+                >
+                  Create Market
+                </Link>
+                <Link 
+                  to="/portfolio" 
+                  onClick={(e) => {
+                    handlePortfolioClick(e);
+                    if (wallet.isConnected) closeMobileMenu();
+                  }}
+                  className={`text-lg font-medium transition-colors py-2 ${
+                    wallet.isConnected 
+                      ? 'hover:text-primary' 
+                      : 'text-muted-foreground cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  Portfolio
+                </Link>
+                <Link 
+                  to="/docs" 
+                  className="text-lg font-medium hover:text-primary transition-colors py-2"
+                  onClick={closeMobileMenu}
+                >
+                  Docs
+                </Link>
+                <Link 
+                  to="/dev-notes" 
+                  className="text-lg font-medium hover:text-primary transition-colors py-2"
+                  onClick={closeMobileMenu}
+                >
+                  Dev Notes
+                </Link>
+                
+                {/* Mobile Search */}
+                <div className="pt-6 border-t">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search markets..."
+                      className="pl-8 bg-muted/50"
+                    />
+                  </div>
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
 
         {/* Actions */}
