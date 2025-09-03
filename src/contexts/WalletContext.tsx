@@ -58,7 +58,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const connector = new DAppConnector(
           metadata,
           LedgerId.TESTNET,
-          "", // WalletConnect Project ID - can be empty for basic usage
+          import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
           Object.values(HederaJsonRpcMethod),
           [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
           [HederaChainId.Testnet]
@@ -98,7 +98,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("No account ID found in session");
       }
 
-      // Fetch balance using Mirror Node (simpler approach for now)
+      // Fetch balance using Mirror Node
       try {
         const response = await fetch(
           `https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}`
@@ -109,7 +109,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         setWallet({
           isConnected: true,
           accountId,
-          publicKey: null, // Can be extracted from session if needed
+          publicKey: null,
           balance: `${balanceInHbars.toFixed(2)} ℏ`,
         });
 
