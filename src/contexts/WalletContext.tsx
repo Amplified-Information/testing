@@ -183,10 +183,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // Cleanup function - properly remove event listeners and clean up connections
     return () => {
       debug.log('Cleaning up wallet connector');
+      
+      const connector = connectorRef.current;
+      
+      // Run targeted cleanup to remove specific event listeners
       cleanupEventListeners();
       
       // Clean up any active sessions on unmount
-      const connector = connectorRef.current;
       if (connector?.walletConnectClient?.session) {
         try {
           const sessions = connector.walletConnectClient.session.getAll();
