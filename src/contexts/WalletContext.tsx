@@ -219,6 +219,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, []); // Only run once on mount
 
   const connect = async () => {
+    // Skip wallet operations during visual editing to prevent crashes
+    if (window.parent !== window || document.querySelector('[data-visual-editor]')) {
+      debug.log('Visual editing detected, skipping wallet connection');
+      return;
+    }
+
     if (!walletConnector) {
       debug.error('Wallet connector not initialized');
       toast({
@@ -239,47 +245,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         description: "Choose your preferred wallet from the options.",
       });
       
-      // Create shorter timeout and modal close detection
-      const modalPromise = walletConnector.openModal();
-      const quickTimeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("MODAL_TIMEOUT")), 5000); // 5 second timeout for better UX
-      });
+      // Simplified connection without complex modal detection
+      await walletConnector.openModal();
       
-      // Add modal state polling to detect close
-      const modalClosePromise = new Promise((resolve) => {
-        const checkModalClosed = () => {
-          // Check if modal is no longer visible (WalletConnect modal detection)
-          const modalElements = document.querySelectorAll('[data-testid="wcm-modal"], .wcm-modal, [id*="walletconnect"]');
-          const isModalVisible = Array.from(modalElements).some(el => {
-            const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-          });
-          
-          if (!isModalVisible && modalElements.length === 0) {
-            debug.log('Modal appears to be closed - resolving');
-            resolve('MODAL_CLOSED');
-          }
-        };
-        
-        // Poll for modal state every 500ms
-        const pollInterval = setInterval(() => {
-          checkModalClosed();
-        }, 500);
-        
-        // Clean up after 5 seconds
-        setTimeout(() => {
-          clearInterval(pollInterval);
-          resolve('POLL_TIMEOUT');
-        }, 5000);
-      });
-      
-      // Race between modal opening, timeout, and close detection
-      const result = await Promise.race([modalPromise, quickTimeoutPromise, modalClosePromise]);
-      
-      // Wait briefly for session to be established (polling approach)
+      // Wait briefly for session to be established (simplified polling)
       let session = null;
       let attempts = 0;
-      const maxAttempts = 10; // 2 seconds total wait time
+      const maxAttempts = 15; // 3 seconds total wait time
       
       while (attempts < maxAttempts && !session) {
         await new Promise(resolve => setTimeout(resolve, 200)); // Wait 200ms
@@ -290,7 +262,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       // If no session after polling, user likely cancelled
       if (!session) {
         debug.log('No session found after polling - user likely cancelled');
-        // Don't throw error for cancellation, just return silently
         return;
       }
 
@@ -299,15 +270,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account.");
       }
 
-      // Detect wallet type after successful connection
-      const isHashPackInstalled = !!(window as any).hashpack;
-      const walletType = isHashPackInstalled ? 'HashPack' : 'wallet';
-      
       // Auto-fetch public key after successful connection
       debug.log('Fetching public key for account:', accountId);
       const publicKey = await fetchPublicKey(accountId);
 
-      debug.log('Wallet connected successfully', { accountId, publicKey: !!publicKey, walletType });
+      debug.log('Wallet connected successfully', { accountId, publicKey: !!publicKey });
 
       // Update wallet state with public key
       setWallet({
@@ -318,29 +285,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Wallet Connected",
-        description: `Connected to ${accountId} via ${walletType}${publicKey ? ' with public key' : ''}`,
+        description: `Connected to ${accountId}${publicKey ? ' with public key' : ''}`,
       });
 
       debug.log('Connection process completed', { accountId, publicKey: !!publicKey });
     } catch (error: any) {
       debug.error("Wallet connect failed", error);
       
-      // Handle timeout/cancellation separately from connection errors
-      if (error.message === "MODAL_TIMEOUT") {
-        debug.log('Modal timeout - user likely took too long or cancelled');
-        return; // Don't show error for timeout
-      }
-      
       let errorMessage = "Failed to connect wallet. Please try again.";
       
-      // Context-aware error handling (only after we attempted connection)
+      // Context-aware error handling
       if (error.message?.includes("No Testnet accounts found") || 
           error.message?.includes("no appropriate accounts")) {
-        errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account. Visit the Hedera Testnet Portal to create an account if needed.";
+        errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account.";
       } else if (error.message?.includes("User rejected")) {
         errorMessage = "Connection was cancelled. Please try again and approve the connection in your wallet.";
-      } else if (error.message?.includes("Connection timeout")) {
-        errorMessage = "Connection timeout. Please try again and ensure you approve the connection promptly.";
       }
       
       toast({

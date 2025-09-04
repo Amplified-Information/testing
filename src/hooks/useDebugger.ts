@@ -76,6 +76,10 @@ export const useDebugger = (component: string) => {
   const componentRef = useRef(component);
 
   useEffect(() => {
+    // Skip logging during visual editing to reduce interference
+    if (window.parent !== window || document.querySelector('[data-visual-editor]')) {
+      return;
+    }
     appDebugger.log('info', `Component mounted: ${componentRef.current}`);
     return () => {
       appDebugger.log('info', `Component unmounted: ${componentRef.current}`);
@@ -83,8 +87,16 @@ export const useDebugger = (component: string) => {
   }, []);
 
   return {
-    debug: (message: string, data?: any) => appDebugger.log('debug', `[${componentRef.current}] ${message}`, data),
-    log: (message: string, data?: any) => appDebugger.log('info', `[${componentRef.current}] ${message}`, data),
+    debug: (message: string, data?: any) => {
+      if (window.parent === window && !document.querySelector('[data-visual-editor]')) {
+        appDebugger.log('debug', `[${componentRef.current}] ${message}`, data);
+      }
+    },
+    log: (message: string, data?: any) => {
+      if (window.parent === window && !document.querySelector('[data-visual-editor]')) {
+        appDebugger.log('info', `[${componentRef.current}] ${message}`, data);
+      }
+    },
     warn: (message: string, data?: any) => appDebugger.log('warn', `[${componentRef.current}] ${message}`, data),
     error: (message: string, data?: any) => appDebugger.log('error', `[${componentRef.current}] ${message}`, data),
   };
