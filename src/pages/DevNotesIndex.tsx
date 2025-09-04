@@ -13,7 +13,7 @@ const DevNotesIndex = () => {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Development Notes</h1>
             <p className="text-muted-foreground text-lg">
-              Technical documentation and development progress for Hashy Markets
+              Technical documentation and development progress for HashyMarket
             </p>
           </div>
 
@@ -131,7 +131,7 @@ const DevNotesIndex = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm">
-                Hashy Markets is a decentralized event prediction market platform built on Hedera Hashgraph. 
+                HashyMarket is a decentralized event prediction market platform built on Hedera Hashgraph. 
                 The platform enables users to create and participate in prediction markets for various events, 
                 leveraging blockchain technology for transparency and decentralization.
               </p>
