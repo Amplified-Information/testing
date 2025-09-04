@@ -12,7 +12,6 @@ interface Candidate {
   noPrice: number;
   change24h: number;
   avatar: string;
-  outcome?: "Yes" | "No";
 }
 interface CandidateListProps {
   candidates: Candidate[];
@@ -50,18 +49,14 @@ const CandidateList = ({
                 </div>
               </div>
 
-               <div className="flex gap-2">
-                 {(!candidate.outcome || candidate.outcome === "Yes") && (
-                   <Button variant="yes" size="sm" className="min-w-[80px]">
-                     Yes {candidate.yesPrice}¢
-                   </Button>
-                 )}
-                 {(!candidate.outcome || candidate.outcome === "No") && (
-                   <Button variant="no" size="sm" className="min-w-[80px]">
-                     No {candidate.noPrice}¢
-                   </Button>
-                 )}
-               </div>
+              <div className="flex gap-2">
+                <Button variant="yes" size="sm" className="min-w-[80px]">
+                  Yes {candidate.yesPrice}¢
+                </Button>
+                <Button variant="no" size="sm" className="min-w-[80px]">
+                  No {candidate.noPrice}¢
+                </Button>
+              </div>
             </div>
           </div>)}
       </CardContent>
