@@ -3,14 +3,12 @@ import { useWallet } from "@/contexts/WalletContext";
 import { Wallet, Loader2, Copy, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import WalletConnectionModal from "./WalletConnectionModal";
 import { toast } from "@/hooks/use-toast";
 import { useHederaBalance } from "@/hooks/useHederaBalance";
 
 const WalletButton = () => {
-  const { wallet, disconnect, isLoading } = useWallet();
+  const { wallet, connect, disconnect, isLoading } = useWallet();
   const { balance } = useHederaBalance();
-  const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const formatAccountId = (accountId: string) => {
@@ -99,23 +97,29 @@ const WalletButton = () => {
     );
   }
 
+  const handleConnect = async () => {
+    try {
+      await connect();
+    } catch (error: any) {
+      console.error("Connection failed:", error);
+      toast({
+        title: "Connection Failed",
+        description: error.message || "Failed to connect wallet",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <>
-      <Button
-        onClick={() => setShowConnectionModal(true)}
-        disabled={isLoading}
-        className="bg-primary hover:bg-primary-glow"
-      >
-        {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-        <Wallet className="w-4 h-4 mr-2" />
-        Connect Wallet
-      </Button>
-      
-      <WalletConnectionModal 
-        open={showConnectionModal} 
-        onOpenChange={setShowConnectionModal} 
-      />
-    </>
+    <Button
+      onClick={handleConnect}
+      disabled={isLoading}
+      className="bg-primary hover:bg-primary-glow"
+    >
+      {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      <Wallet className="w-4 h-4 mr-2" />
+      Connect Wallet
+    </Button>
   );
 };
 
