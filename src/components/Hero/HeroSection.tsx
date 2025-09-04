@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, DollarSign, Users, BarChart3, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroImage from "@/assets/hero-bg.jpg";
 import { useMarketStats } from "@/hooks/useMarketStats";
 import { useWallet } from "@/contexts/WalletContext";
 import WalletConnectionModal from "@/components/Wallet/WalletConnectionModal";
@@ -36,9 +35,6 @@ const HeroSection = () => {
   }];
   return <div className="relative overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10" style={{
-      backgroundImage: `url(${heroImage})`
-    }} />
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
       
       <div className="relative container py-16 lg:py-24">

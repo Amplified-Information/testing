@@ -1,12 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
-import abstractGeometric from "@/assets/backgrounds/abstract-geometric.jpg";
-import digitalCircuit from "@/assets/backgrounds/digital-circuit.jpg";
-import flowingWaves from "@/assets/backgrounds/flowing-waves.jpg";
-import nightSky from "@/assets/backgrounds/night-sky.jpg";
 
 type Theme = "default" | "ocean" | "sunset";
-type BackgroundTexture = "none" | "carbon" | "abstract" | "circuit" | "waves" | "nightsky";
+type BackgroundTexture = "none" | "carbon";
 
 interface ThemeContextType {
   theme: Theme;
@@ -43,11 +39,7 @@ const themeColors = {
 
 const backgroundTextures = {
   none: "none",
-  carbon: `url(${carbonFiber})`,
-  abstract: `url(${abstractGeometric})`,
-  circuit: `url(${digitalCircuit})`,
-  waves: `url(${flowingWaves})`,
-  nightsky: `url(${nightSky})`
+  carbon: `url(${carbonFiber})`
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -102,21 +94,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       body.style.backgroundAttachment = "";
     } else {
       body.style.backgroundImage = texture;
-      
-      // Different settings for textures vs background images
-      if (backgroundTexture === 'abstract' || backgroundTexture === 'circuit' || backgroundTexture === 'waves' || backgroundTexture === 'nightsky') {
-        // Full background images
-        body.style.backgroundRepeat = "no-repeat";
-        body.style.backgroundSize = "cover";
-        body.style.backgroundPosition = "center";
-        body.style.backgroundAttachment = "fixed";
-      } else {
-        // Repeating textures
-        body.style.backgroundRepeat = "repeat";
-        body.style.backgroundSize = "200px 200px";
-        body.style.backgroundPosition = "center";
-        body.style.backgroundAttachment = "fixed";
-      }
+      body.style.backgroundRepeat = "repeat";
+      body.style.backgroundSize = "200px 200px";
+      body.style.backgroundPosition = "center";
+      body.style.backgroundAttachment = "fixed";
     }
 
     // Store in localStorage

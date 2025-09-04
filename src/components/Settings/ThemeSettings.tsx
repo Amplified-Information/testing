@@ -2,10 +2,6 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
-import abstractGeometric from "@/assets/backgrounds/abstract-geometric.jpg";
-import digitalCircuit from "@/assets/backgrounds/digital-circuit.jpg";
-import flowingWaves from "@/assets/backgrounds/flowing-waves.jpg";
-import nightSky from "@/assets/backgrounds/night-sky.jpg";
 
 const themes = [
   {
@@ -40,30 +36,6 @@ const backgroundTextures = [
     value: "carbon",
     description: "Woven carbon texture",
     preview: carbonFiber
-  },
-  {
-    name: "Abstract Geometric",
-    value: "abstract",
-    description: "Modern geometric background",
-    preview: abstractGeometric
-  },
-  {
-    name: "Digital Circuit",
-    value: "circuit", 
-    description: "Tech circuit board design",
-    preview: digitalCircuit
-  },
-  {
-    name: "Flowing Waves",
-    value: "waves",
-    description: "Smooth ocean wave patterns",
-    preview: flowingWaves
-  },
-  {
-    name: "Night Sky",
-    value: "nightsky",
-    description: "Starry night sky background",
-    preview: nightSky
   }
 ];
 
@@ -142,12 +114,8 @@ const ThemeSettings = ({ currentTheme, onThemeChange, currentTexture, onTextureC
                   className="w-8 h-8 rounded mt-1 border-2 border-border bg-muted"
                   style={{
                     backgroundImage: texture.preview ? `url(${texture.preview})` : 'none',
-                    backgroundSize: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' || texture.value === 'nightsky'
-                      ? 'cover' 
-                      : '16px 16px',
-                    backgroundRepeat: texture.value === 'abstract' || texture.value === 'circuit' || texture.value === 'waves' || texture.value === 'nightsky'
-                      ? 'no-repeat' 
-                      : 'repeat',
+                    backgroundSize: '16px 16px',
+                    backgroundRepeat: 'repeat',
                     backgroundPosition: 'center'
                   }}
                 />
