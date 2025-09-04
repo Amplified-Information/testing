@@ -6,64 +6,38 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
-import { 
-  Search, 
-  Filter, 
-  TrendingUp, 
-  Calendar, 
-  DollarSign,
-  Trophy,
-  Zap,
-  Globe,
-  Briefcase,
-  Gamepad2,
-  Activity,
-  Heart,
-  TreePine,
-  Building2,
-  Microscope,
-  Stethoscope,
-  MapPin,
-  ArrowLeft,
-  ChevronRight,
-  Users,
-  Clock,
-  Target,
-  Droplets,
-  Plus,
-  Star,
-  Landmark
-} from "lucide-react";
+import { Search, Filter, TrendingUp, Calendar, DollarSign, Trophy, Zap, Globe, Briefcase, Gamepad2, Activity, Heart, TreePine, Building2, Microscope, Stethoscope, MapPin, ArrowLeft, ChevronRight, Users, Clock, Target, Droplets, Plus, Star, Landmark } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
 import { supabase } from "@/integrations/supabase/client";
-
 const Markets = () => {
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Search-specific state
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  
+
   // New state for hierarchical navigation
   const [viewMode, setViewMode] = useState<'categories' | 'subcategories' | 'markets'>('categories');
   const [selectedCategoryData, setSelectedCategoryData] = useState<any>(null);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [allMarkets, setAllMarkets] = useState<any[]>([]);
-  
+
   // Carousel state
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [api, setApi] = useState<CarouselApi>();
 
   // Map category names to icons
   const getIconForCategory = (name: string) => {
-    const iconMap: { [key: string]: any } = {
+    const iconMap: {
+      [key: string]: any;
+    } = {
       'Politics': Landmark,
       'Sports': Activity,
       'Culture': Heart,
@@ -79,9 +53,10 @@ const Markets = () => {
     };
     return iconMap[name] || Globe;
   };
-
   const getColorForCategory = (name: string) => {
-    const colorMap: { [key: string]: string } = {
+    const colorMap: {
+      [key: string]: string;
+    } = {
       'Politics': 'hsl(0 84% 60%)',
       'Sports': 'hsl(200 80% 70%)',
       'Culture': 'hsl(330 76% 45%)',
@@ -97,23 +72,21 @@ const Markets = () => {
     };
     return colorMap[name] || 'hsl(200 80% 70%)';
   };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         // First fetch all markets
-        const { data: marketsData, error: marketsError } = await supabase
-          .from('event_markets')
-          .select(`
+        const {
+          data: marketsData,
+          error: marketsError
+        } = await supabase.from('event_markets').select(`
             *,
             market_categories(name),
             market_subcategories(name)
-          `)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
-
+          `).eq('is_active', true).order('created_at', {
+          ascending: false
+        });
         if (marketsError) throw marketsError;
-
         const formattedMarkets = marketsData?.map(market => ({
           id: market.id,
           question: market.name,
@@ -132,30 +105,23 @@ const Markets = () => {
           is_featured: market.is_featured,
           is_trending: market.is_trending
         })) || [];
-
         setAllMarkets(formattedMarkets);
 
         // Now fetch categories and calculate real stats
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('market_categories')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true });
-
+        const {
+          data: categoriesData,
+          error: categoriesError
+        } = await supabase.from('market_categories').select('*').eq('is_active', true).order('sort_order', {
+          ascending: true
+        });
         if (categoriesError) throw categoriesError;
 
         // Calculate real stats for each category
         const dbCategories = categoriesData?.map(category => {
-          const categoryMarkets = formattedMarkets.filter(m => 
-            m.category.toLowerCase() === category.name.toLowerCase()
-          );
-          
+          const categoryMarkets = formattedMarkets.filter(m => m.category.toLowerCase() === category.name.toLowerCase());
           const totalVolume = categoryMarkets.reduce((sum, m) => sum + (m.volume || 0), 0);
           const totalLiquidity = categoryMarkets.reduce((sum, m) => sum + (m.liquidity || 0), 0);
-          const avgChange = categoryMarkets.length > 0 
-            ? categoryMarkets.reduce((sum, m) => sum + (m.change24h || 0), 0) / categoryMarkets.length 
-            : 0;
-
+          const avgChange = categoryMarkets.length > 0 ? categoryMarkets.reduce((sum, m) => sum + (m.change24h || 0), 0) / categoryMarkets.length : 0;
           return {
             id: category.name.toLowerCase().replace(/\s+/g, '-').replace('&', ''),
             label: category.name,
@@ -166,18 +132,19 @@ const Markets = () => {
             volume: totalVolume,
             change24h: avgChange,
             trending: (Math.random() - 0.5) * 20,
-            activeTraders: Math.floor(categoryMarkets.length * 150 + Math.random() * 1000), // Estimate based on markets
-            avgResolutionTime: Math.floor(Math.random() * 60) + 15, // Still estimated
-            successRate: Math.floor(Math.random() * 20) + 80, // Still estimated
+            activeTraders: Math.floor(categoryMarkets.length * 150 + Math.random() * 1000),
+            // Estimate based on markets
+            avgResolutionTime: Math.floor(Math.random() * 60) + 15,
+            // Still estimated
+            successRate: Math.floor(Math.random() * 20) + 80,
+            // Still estimated
             liquidity: totalLiquidity,
             newMarketsToday: categoryMarkets.filter(m => {
               const createdDate = new Date(m.createdAt);
               const today = new Date();
               return createdDate.toDateString() === today.toDateString();
             }).length,
-            topMarket: categoryMarkets.length > 0 
-              ? categoryMarkets.sort((a, b) => (b.volume || 0) - (a.volume || 0))[0].question
-              : `No ${category.name} markets yet`
+            topMarket: categoryMarkets.length > 0 ? categoryMarkets.sort((a, b) => (b.volume || 0) - (a.volume || 0))[0].question : `No ${category.name} markets yet`
           };
         }) || [];
 
@@ -185,53 +152,44 @@ const Markets = () => {
         const totalStats = {
           count: formattedMarkets.length,
           volume: formattedMarkets.reduce((sum, m) => sum + (m.volume || 0), 0),
-          change24h: formattedMarkets.length > 0 
-            ? formattedMarkets.reduce((sum, m) => sum + (m.change24h || 0), 0) / formattedMarkets.length 
-            : 0,
+          change24h: formattedMarkets.length > 0 ? formattedMarkets.reduce((sum, m) => sum + (m.change24h || 0), 0) / formattedMarkets.length : 0,
           liquidity: formattedMarkets.reduce((sum, m) => sum + (m.liquidity || 0), 0),
-          activeTraders: formattedMarkets.length * 100, // Estimate
-          avgResolutionTime: 32, // Still estimated
-          successRate: 85, // Still estimated
+          activeTraders: formattedMarkets.length * 100,
+          // Estimate
+          avgResolutionTime: 32,
+          // Still estimated
+          successRate: 85,
+          // Still estimated
           newMarketsToday: formattedMarkets.filter(m => {
             const createdDate = new Date(m.createdAt);
             const today = new Date();
             return createdDate.toDateString() === today.toDateString();
           }).length,
-          topMarket: formattedMarkets.length > 0 
-            ? formattedMarkets.sort((a, b) => (b.volume || 0) - (a.volume || 0))[0].question
-            : 'No markets available'
+          topMarket: formattedMarkets.length > 0 ? formattedMarkets.sort((a, b) => (b.volume || 0) - (a.volume || 0))[0].question : 'No markets available'
         };
-
-        setCategories([
-          { 
-            id: "all", 
-            label: "All Event Markets", 
-            icon: Globe,
-            ...totalStats
-          },
-          ...dbCategories
-        ]);
+        setCategories([{
+          id: "all",
+          label: "All Event Markets",
+          icon: Globe,
+          ...totalStats
+        }, ...dbCategories]);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
   // Carousel effect
   useEffect(() => {
     if (!api) return;
-
     const onSelect = () => {
       setSelectedIndex(api.selectedScrollSnap());
     };
-
     api.on("select", onSelect);
     onSelect();
-
     return () => {
       api?.off("select", onSelect);
     };
@@ -241,16 +199,12 @@ const Markets = () => {
   useEffect(() => {
     const categoryParam = searchParams.get('category');
     const subcategoryParam = searchParams.get('subcategory');
-    
     if (categoryParam && categories.length > 0) {
-      const category = categories.find(cat => 
-        cat.label.toLowerCase() === categoryParam.toLowerCase()
-      );
-      
+      const category = categories.find(cat => cat.label.toLowerCase() === categoryParam.toLowerCase());
       if (category && category.id !== 'all') {
         setSelectedCategoryData(category);
         setViewMode('subcategories');
-        
+
         // Fetch subcategories for this category
         if (category.fullData?.id) {
           fetchSubcategories(category.fullData.id).then(() => {
@@ -260,9 +214,7 @@ const Markets = () => {
               // Find and set the subcategory after subcategories are loaded
               setTimeout(() => {
                 setSubcategories(prev => {
-                  const subcategory = prev.find(sub => 
-                    sub.name.toLowerCase() === subcategoryParam.toLowerCase()
-                  );
+                  const subcategory = prev.find(sub => sub.name.toLowerCase() === subcategoryParam.toLowerCase());
                   if (subcategory) {
                     setSelectedSubcategory(subcategory.id);
                   }
@@ -275,16 +227,14 @@ const Markets = () => {
       }
     }
   }, [searchParams, categories]);
-
   const fetchSubcategories = async (categoryId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('market_subcategories')
-        .select('*')
-        .eq('category_id', categoryId)
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-
+      const {
+        data,
+        error
+      } = await supabase.from('market_subcategories').select('*').eq('category_id', categoryId).eq('is_active', true).order('sort_order', {
+        ascending: true
+      });
       if (error) throw error;
 
       // Ensure we have markets data before calculating counts
@@ -300,7 +250,6 @@ const Markets = () => {
           const subName = sub.name?.toLowerCase().trim() || '';
           return marketSubcategory === subName;
         });
-        
         return {
           id: sub.id,
           name: sub.name,
@@ -315,51 +264,45 @@ const Markets = () => {
         const selectedCategory = selectedCategoryData?.label?.toLowerCase().trim() || '';
         return marketCategory === selectedCategory;
       });
-
-      const subcategoriesWithAll = [
-        { 
-          id: "all", 
-          name: "All", 
-          description: "All markets in this category", 
-          count: categoryMarkets.length 
-        },
-        ...subcategoriesWithCounts
-      ];
-
+      const subcategoriesWithAll = [{
+        id: "all",
+        name: "All",
+        description: "All markets in this category",
+        count: categoryMarkets.length
+      }, ...subcategoriesWithCounts];
       setSubcategories(subcategoriesWithAll);
     } catch (error) {
       console.error('Error fetching subcategories:', error);
-      setSubcategories([{ id: "all", name: "All", description: "All markets in this category", count: 0 }]);
+      setSubcategories([{
+        id: "all",
+        name: "All",
+        description: "All markets in this category",
+        count: 0
+      }]);
     }
   };
-
   const handleCategorySelect = async (category: any) => {
     if (category.id === "all") {
       setSelectedCategory("all");
       return;
     }
-
     setSelectedCategoryData(category);
     setViewMode('subcategories');
     setSelectedSubcategory("all");
-    
     if (category.fullData?.id) {
       await fetchSubcategories(category.fullData.id);
     }
   };
-
   const handleSubcategorySelect = (subcategory: any) => {
     setSelectedSubcategory(subcategory.id);
     setViewMode('markets');
   };
-
   const handleBackToCategories = () => {
     setViewMode('categories');
     setSelectedCategoryData(null);
     setSubcategories([]);
     setSelectedSubcategory("all");
   };
-
   const handleBackToSubcategories = () => {
     setViewMode('subcategories');
     setSelectedSubcategory("all");
@@ -368,22 +311,19 @@ const Markets = () => {
   // Database search function
   const performDatabaseSearch = async (query: string) => {
     if (!query.trim()) return;
-    
     setIsSearching(true);
     try {
-      const { data: marketsData, error } = await supabase
-        .from('event_markets')
-        .select(`
+      const {
+        data: marketsData,
+        error
+      } = await supabase.from('event_markets').select(`
           *,
           market_categories(name),
           market_subcategories(name)
-        `)
-        .eq('is_active', true)
-        .or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`)
-        .order('created_at', { ascending: false });
-
+        `).eq('is_active', true).or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
-
       const formattedResults = marketsData?.map(market => ({
         id: market.id,
         question: market.name,
@@ -402,7 +342,6 @@ const Markets = () => {
         is_featured: market.is_featured,
         is_trending: market.is_trending
       })) || [];
-
       setSearchResults(formattedResults);
       setHasSearched(true);
     } catch (error) {
@@ -437,10 +376,10 @@ const Markets = () => {
     const totalVolume = allMarkets.reduce((sum, m) => sum + (m.volume || 0), 0);
     const totalLiquidity = allMarkets.reduce((sum, m) => sum + (m.liquidity || 0), 0);
     const activeTraders = Math.floor(totalMarkets * 50); // Estimated based on markets
-    
+
     // Calculate average resolution time (placeholder since we don't have actual resolution data)
     const avgResolutionDays = 15; // Estimated
-    
+
     return {
       totalMarkets,
       totalVolume: totalVolume > 1000 ? `$${(totalVolume / 1000).toFixed(0)}K` : `$${totalVolume.toFixed(0)}`,
@@ -448,7 +387,6 @@ const Markets = () => {
       avgResolution: `${avgResolutionDays} days`
     };
   };
-
   const platformStats = calculatePlatformStats();
 
   // Filter markets based on current view and selection
@@ -457,30 +395,21 @@ const Markets = () => {
 
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(market => 
-        market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        market.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        market.subcategory.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.filter(market => market.question.toLowerCase().includes(searchQuery.toLowerCase()) || market.category.toLowerCase().includes(searchQuery.toLowerCase()) || market.subcategory.toLowerCase().includes(searchQuery.toLowerCase()));
     }
 
     // Filter by category and subcategory based on current view
     if (viewMode === 'markets' && selectedCategoryData && selectedCategoryData.id !== 'all') {
-      filtered = filtered.filter(market => 
-        market.category.toLowerCase() === selectedCategoryData.label.toLowerCase()
-      );
+      filtered = filtered.filter(market => market.category.toLowerCase() === selectedCategoryData.label.toLowerCase());
 
       // Further filter by subcategory if not "all"
       if (selectedSubcategory !== 'all') {
         const selectedSubcategoryName = subcategories.find(sub => sub.id === selectedSubcategory)?.name;
         if (selectedSubcategoryName) {
-          filtered = filtered.filter(market => 
-            market.subcategory.toLowerCase() === selectedSubcategoryName.toLowerCase()
-          );
+          filtered = filtered.filter(market => market.subcategory.toLowerCase() === selectedSubcategoryName.toLowerCase());
         }
       }
     }
-
     return filtered;
   };
 
@@ -493,12 +422,10 @@ const Markets = () => {
       return endDate <= oneWeekFromNow && endDate > now;
     });
   };
-
   const getHighVolumeMarkets = () => {
     const volumeThreshold = 10000; // $10k threshold
     return getDisplayMarkets().filter(market => market.volume >= volumeThreshold);
   };
-
   const getNewMarkets = () => {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -508,46 +435,34 @@ const Markets = () => {
       return createdDate >= thirtyDaysAgo;
     });
   };
-
   const getFeaturedMarkets = () => {
     return getDisplayMarkets().filter(market => market.is_featured === true);
   };
-
   const getTrendingMarkets = () => {
     return getDisplayMarkets().filter(market => market.is_trending === true);
   };
-
   const filteredMarkets = (markets: any[]) => {
     return markets.filter(market => {
-      const matchesSearch = market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           market.category.toLowerCase().includes(searchQuery.toLowerCase());
-      
+      const matchesSearch = market.question.toLowerCase().includes(searchQuery.toLowerCase()) || market.category.toLowerCase().includes(searchQuery.toLowerCase());
+
       // If in categories view or "all" is selected, show all markets that match search
       if (viewMode === 'categories' || selectedCategory === "all") return matchesSearch;
-      
+
       // If in subcategories view, filter by selected category
       if (viewMode === 'subcategories') {
-        const categoryMatch = selectedCategoryData && 
-          (market.category.toLowerCase() === selectedCategoryData.label.toLowerCase() ||
-           market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategoryData.id);
+        const categoryMatch = selectedCategoryData && (market.category.toLowerCase() === selectedCategoryData.label.toLowerCase() || market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategoryData.id);
         return matchesSearch && categoryMatch;
       }
-      
+
       // If in markets view, filter by category and potentially subcategory
       if (viewMode === 'markets') {
-        const categoryMatch = selectedCategoryData && 
-          (market.category.toLowerCase() === selectedCategoryData.label.toLowerCase() ||
-           market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategoryData.id);
-        
+        const categoryMatch = selectedCategoryData && (market.category.toLowerCase() === selectedCategoryData.label.toLowerCase() || market.category.toLowerCase().replace(/\s+/g, '-').replace('&', '') === selectedCategoryData.id);
         return matchesSearch && categoryMatch;
       }
-      
       return matchesSearch;
     });
   };
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <Header />
       
       <main className="container py-8">
@@ -566,30 +481,13 @@ const Markets = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search markets... (Press Enter to search database)"
-                className="pl-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-              />
-              {(isSearching || hasSearched) && (
-                <div className="absolute right-3 top-3 flex items-center gap-2">
-                  {isSearching && (
-                    <div className="w-4 h-4 border-2 border-muted-foreground/20 border-t-primary rounded-full animate-spin" />
-                  )}
-                  {hasSearched && !isSearching && (
-                    <Button
-                      variant="ghost" 
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-destructive/10"
-                      onClick={clearSearch}
-                    >
+              <Input placeholder="Search markets... (Press Enter to search database)" className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={handleSearchKeyDown} />
+              {(isSearching || hasSearched) && <div className="absolute right-3 top-3 flex items-center gap-2">
+                  {isSearching && <div className="w-4 h-4 border-2 border-muted-foreground/20 border-t-primary rounded-full animate-spin" />}
+                  {hasSearched && !isSearching && <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-destructive/10" onClick={clearSearch}>
                       ×
-                    </Button>
-                  )}
-                </div>
-              )}
+                    </Button>}
+                </div>}
             </div>
             <Button variant="outline" className="sm:w-auto">
               <Filter className="mr-2 h-4 w-4" />
@@ -598,121 +496,73 @@ const Markets = () => {
           </div>
           
           {/* Search Results Indicator */}
-          {hasSearched && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          {hasSearched && <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Search className="h-4 w-4" />
               Search results for "{searchQuery}" - {searchResults.length} markets found
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-primary"
-                onClick={clearSearch}
-              >
+              <Button variant="link" size="sm" className="h-auto p-0 text-primary" onClick={clearSearch}>
                 Clear search
               </Button>
-            </div>
-          )}
+            </div>}
         </div>
 
         {/* Navigation */}
-        {viewMode !== 'categories' && (
-          <div className="mb-6">
+        {viewMode !== 'categories' && <div className="mb-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <button 
-                onClick={handleBackToCategories}
-                className="hover:text-primary transition-colors"
-              >
+              <button onClick={handleBackToCategories} className="hover:text-primary transition-colors">
                 All Markets
               </button>
               <ChevronRight className="h-4 w-4" />
-              {selectedCategoryData && (
-                <>
-                  <button 
-                    onClick={handleBackToSubcategories}
-                    className="text-foreground font-medium hover:text-primary transition-colors"
-                  >
+              {selectedCategoryData && <>
+                  <button onClick={handleBackToSubcategories} className="text-foreground font-medium hover:text-primary transition-colors">
                     {selectedCategoryData.label}
                   </button>
-                  {viewMode === 'markets' && selectedSubcategory !== 'all' && (
-                    <>
+                  {viewMode === 'markets' && selectedSubcategory !== 'all' && <>
                       <ChevronRight className="h-4 w-4" />
                       <span className="text-foreground font-medium">
                         {subcategories.find(sub => sub.id === selectedSubcategory)?.name}
                       </span>
-                    </>
-                  )}
-                </>
-              )}
+                    </>}
+                </>}
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Categories View with Carousel */}
-        {viewMode === 'categories' && (
-          <div className="mb-8 space-y-8">
+        {viewMode === 'categories' && <div className="mb-8 space-y-8">
             <h2 className="text-xl font-semibold">Categories</h2>
             
             {/* Carousel Wheel */}
             <div className="relative">
-              <Carousel
-                setApi={setApi}
-                className="w-full max-w-6xl mx-auto"
-                opts={{
-                  align: "center",
-                  loop: true,
-                  skipSnaps: false,
-                  dragFree: true,
-                }}
-              >
+              <Carousel setApi={setApi} className="w-full max-w-6xl mx-auto" opts={{
+            align: "center",
+            loop: true,
+            skipSnaps: false,
+            dragFree: true
+          }}>
                 <CarouselContent className="py-8">
                   {categories.filter(cat => cat.id !== 'all').map((category, index) => {
-                    const Icon = category.icon;
-                    const isCenter = index === selectedIndex;
-                    const distance = Math.abs(index - selectedIndex);
-                    const isAdjacent = distance === 1 || (distance === categories.filter(cat => cat.id !== 'all').length - 1);
-                    
-                    return (
-                      <CarouselItem 
-                        key={category.id} 
-                        className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6 flex justify-center px-1"
-                      >
-                        <div 
-                          className={`
+                const Icon = category.icon;
+                const isCenter = index === selectedIndex;
+                const distance = Math.abs(index - selectedIndex);
+                const isAdjacent = distance === 1 || distance === categories.filter(cat => cat.id !== 'all').length - 1;
+                return <CarouselItem key={category.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6 flex justify-center px-1">
+                        <div className={`
                             relative transition-all duration-500 ease-out cursor-pointer
-                            ${isCenter 
-                              ? 'scale-125 z-20' 
-                              : isAdjacent 
-                                ? 'scale-100 z-10' 
-                                : 'scale-75 z-0 opacity-50'
-                            }
-                          `}
-                          onClick={() => api?.scrollTo(index)}
-                        >
+                            ${isCenter ? 'scale-125 z-20' : isAdjacent ? 'scale-100 z-10' : 'scale-75 z-0 opacity-50'}
+                          `} onClick={() => api?.scrollTo(index)}>
                           {/* Card Shadow/Glow Effect */}
-                          {isCenter && (
-                            <div 
-                              className="absolute inset-0 rounded-2xl blur-xl opacity-30"
-                              style={{ backgroundColor: category.color }}
-                            />
-                          )}
+                          {isCenter && <div className="absolute inset-0 rounded-2xl blur-xl opacity-30" style={{
+                      backgroundColor: category.color
+                    }} />}
                           
                           {/* Category Card */}
-                          <Card 
-                            className={`
+                          <Card className={`
                               relative w-20 h-16 md:w-24 md:h-20 cursor-pointer transition-all duration-500
-                              ${isCenter 
-                                ? 'shadow-2xl ring-2 ring-primary' 
-                                : 'shadow-md hover:shadow-lg'
-                              }
-                            `}
-                            style={{
-                              transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`,
-                            }}
-                          >
+                              ${isCenter ? 'shadow-2xl ring-2 ring-primary' : 'shadow-md hover:shadow-lg'}
+                            `} style={{
+                      transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`
+                    }}>
                             <CardContent className="p-2 text-center h-full flex flex-col items-center justify-center">
-                              <Icon 
-                                className="h-4 w-4 md:h-5 md:w-5 mx-auto mb-1 text-primary transition-all duration-500"
-                              />
+                              <Icon className="h-4 w-4 md:h-5 md:w-5 mx-auto mb-1 text-primary transition-all duration-500" />
                               
                               {/* Category Label */}
                               <p className="font-medium text-xs leading-tight line-clamp-1">{category.label}</p>
@@ -720,27 +570,18 @@ const Markets = () => {
                             </CardContent>
                             
                             {/* Market Count Badge */}
-                            {isCenter && (
-                              <div 
-                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in"
-                              >
+                            {isCenter && <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in">
                                 <span className="text-xs">{category.count}</span>
-                              </div>
-                            )}
+                              </div>}
                           </Card>
                         </div>
-                      </CarouselItem>
-                    );
-                  })}
+                      </CarouselItem>;
+              })}
                 </CarouselContent>
                 
                 {/* Custom Navigation Buttons */}
-                <CarouselPrevious 
-                  className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
-                />
-                <CarouselNext 
-                  className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary"
-                />
+                <CarouselPrevious className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary" />
+                <CarouselNext className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary" />
               </Carousel>
               
               {/* Diner Wheel Base */}
@@ -751,18 +592,14 @@ const Markets = () => {
             </div>
 
             {/* Selected Category Details */}
-            {categories.filter(cat => cat.id !== 'all')[selectedIndex] && (
-              <div className="animate-fade-in">
+            {categories.filter(cat => cat.id !== 'all')[selectedIndex] && <div className="animate-fade-in">
                 <Card className="max-w-2xl mx-auto p-6 md:p-8 space-y-6 border-2 border-primary">
                   <div className="text-center space-y-4">
                     {(() => {
-                      const selectedCategory = categories.filter(cat => cat.id !== 'all')[selectedIndex];
-                      const SelectedIcon = selectedCategory.icon;
-                      return (
-                        <>
-                          <div 
-                            className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full flex items-center justify-center border-4 border-primary bg-primary/5 animate-scale-in"
-                          >
+                const selectedCategory = categories.filter(cat => cat.id !== 'all')[selectedIndex];
+                const SelectedIcon = selectedCategory.icon;
+                return <>
+                          <div className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full flex items-center justify-center border-4 border-primary bg-primary/5 animate-scale-in">
                             <SelectedIcon className="w-10 h-10 md:w-12 md:h-12 text-primary" />
                           </div>
                           
@@ -785,40 +622,29 @@ const Markets = () => {
                             </div>
 
                             <div className="text-center p-4 md:p-6 bg-muted/20 rounded-xl">
-                              <div 
-                                className={`text-xl md:text-2xl font-bold ${
-                                  selectedCategory.trending > 0 ? 'text-primary' : 'text-red-500'
-                                }`}
-                              >
+                              <div className={`text-xl md:text-2xl font-bold ${selectedCategory.trending > 0 ? 'text-primary' : 'text-red-500'}`}>
                                 {selectedCategory.trending > 0 ? '+' : ''}{selectedCategory.trending.toFixed(1)}%
                               </div>
                               <div className="text-sm text-muted-foreground">24h Trend</div>
                             </div>
                           </div>
 
-                          <Button 
-                            className="w-full py-6 text-base md:text-lg font-semibold hover:scale-105 transition-transform bg-primary text-primary-foreground"
-                            onClick={() => handleCategorySelect(selectedCategory)}
-                          >
+                          <Button onClick={() => handleCategorySelect(selectedCategory)} className="w-full py-6 text-base md:text-lg font-semibold hover:scale-105 transition-transform bg-primary text-slate-600">
                             Explore {selectedCategory.label} Event Markets
                           </Button>
-                        </>
-                      );
-                    })()}
+                        </>;
+              })()}
                   </div>
                 </Card>
-              </div>
-            )}
+              </div>}
 
             {/* Instructions */}
             <div className="text-center text-muted-foreground space-y-2 px-2">
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Subcategories View */}
-        {viewMode === 'subcategories' && selectedCategoryData && (
-          <div className="mb-8">
+        {viewMode === 'subcategories' && selectedCategoryData && <div className="mb-8">
             {/* Enhanced Category Details Card */}
             <div className="mb-6">
               <Card className="border border-primary/30 bg-gradient-to-br from-primary/8 to-accent/8 overflow-hidden animate-fade-in">
@@ -929,19 +755,12 @@ const Markets = () => {
             <h3 className="text-xl font-semibold mb-4">Choose a Subcategory</h3>
             <div className="rounded-md border">
               <div className="divide-y divide-border">
-                {subcategories.map((subcategory) => (
-                  <div 
-                    key={subcategory.id}
-                    className="cursor-pointer transition-colors hover:bg-muted/50 p-4"
-                    onClick={() => handleSubcategorySelect(subcategory)}
-                  >
+                {subcategories.map(subcategory => <div key={subcategory.id} className="cursor-pointer transition-colors hover:bg-muted/50 p-4" onClick={() => handleSubcategorySelect(subcategory)}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-semibold">{subcategory.name}</h4>
-                          {subcategory.id === "all" && (
-                            <Badge variant="default" className="text-xs">All</Badge>
-                          )}
+                          {subcategory.id === "all" && <Badge variant="default" className="text-xs">All</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground">{subcategory.description}</p>
                       </div>
@@ -949,16 +768,13 @@ const Markets = () => {
                         <p className="text-sm font-medium text-primary">{subcategory.count} markets</p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  </div>)}
               </div>
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Market Sections - Only show when in markets view or categories view with "all" selected */}
-        {(viewMode === 'markets' || (viewMode === 'categories' && selectedCategory === "all")) && (
-          <Tabs defaultValue="all" className="w-full">
+        {(viewMode === 'markets' || viewMode === 'categories' && selectedCategory === "all") && <Tabs defaultValue="all" className="w-full">
           <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
@@ -994,18 +810,14 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getDisplayMarkets().map((market) => (
-                <MarketCard key={market.id} {...market} />
-              ))}
+              {getDisplayMarkets().map(market => <MarketCard key={market.id} {...market} />)}
             </div>
-            {getDisplayMarkets().length === 0 && (
-              <div className="text-center py-12">
+            {getDisplayMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets found</p>
                 <p className="text-sm text-muted-foreground">
                   {searchQuery ? "Try adjusting your search terms" : "Check back later for new markets"}
                 </p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           <TabsContent value="featured" className="space-y-6">
@@ -1016,18 +828,14 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getFeaturedMarkets().map((market) => (
-                <MarketCard key={market.id} {...market} />
-              ))}
+              {getFeaturedMarkets().map(market => <MarketCard key={market.id} {...market} />)}
             </div>
-            {getFeaturedMarkets().length === 0 && (
-              <div className="text-center py-12">
+            {getFeaturedMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No featured markets</p>
                 <p className="text-sm text-muted-foreground">
                   No markets are currently featured in this category
                 </p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           <TabsContent value="trending" className="space-y-6">
@@ -1038,18 +846,14 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getTrendingMarkets().map((market) => (
-                <MarketCard key={market.id} {...market} />
-              ))}
+              {getTrendingMarkets().map(market => <MarketCard key={market.id} {...market} />)}
             </div>
-            {getTrendingMarkets().length === 0 && (
-              <div className="text-center py-12">
+            {getTrendingMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No trending markets</p>
                 <p className="text-sm text-muted-foreground">
                   No markets are currently trending in this category
                 </p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           <TabsContent value="new" className="space-y-6">
@@ -1060,18 +864,14 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getNewMarkets().map((market) => (
-                <MarketCard key={market.id} {...market} />
-              ))}
+              {getNewMarkets().map(market => <MarketCard key={market.id} {...market} />)}
             </div>
-            {getNewMarkets().length === 0 && (
-              <div className="text-center py-12">
+            {getNewMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No new markets</p>
                 <p className="text-sm text-muted-foreground">
                   No markets have been created in the last 30 days
                 </p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           <TabsContent value="ending-soon" className="space-y-6">
@@ -1082,18 +882,14 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getEndingSoonMarkets().map((market) => (
-                <MarketCard key={market.id} {...market} />
-              ))}
+              {getEndingSoonMarkets().map(market => <MarketCard key={market.id} {...market} />)}
             </div>
-            {getEndingSoonMarkets().length === 0 && (
-              <div className="text-center py-12">
+            {getEndingSoonMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets ending soon</p>
                 <p className="text-sm text-muted-foreground">
                   All markets have resolution dates more than 7 days away
                 </p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           <TabsContent value="high-volume" className="space-y-6">
@@ -1104,21 +900,16 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getHighVolumeMarkets().map((market) => (
-                <MarketCard key={market.id} {...market} />
-              ))}
+              {getHighVolumeMarkets().map(market => <MarketCard key={market.id} {...market} />)}
             </div>
-            {getHighVolumeMarkets().length === 0 && (
-              <div className="text-center py-12">
+            {getHighVolumeMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No high volume markets</p>
                 <p className="text-sm text-muted-foreground">
                   No markets currently have volume above $10,000
                 </p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
-        </Tabs>
-        )}
+        </Tabs>}
 
         {/* Stats Section */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -1175,8 +966,6 @@ const Markets = () => {
           </Card>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Markets;
