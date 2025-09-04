@@ -135,6 +135,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         );
 
         await connector.init({ logger: "error" });
+        
         handleSessionEvents(connector);
         setWalletConnector(connector);
         
@@ -226,14 +227,29 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     debug.log('Initiating wallet connection');
     
+    // Inform user about desktop HashPack flow
+    toast({
+      title: "Connecting...",
+      description: "If using HashPack extension, please approve the connection in the extension popup.",
+    });
+    
     try {
       // Opens QR modal (mobile) or connects extension (desktop HashPack/Blade)
       await walletConnector.openModal();
 
-      // Get session after successful connection
-      const session = walletConnector.walletConnectClient?.session?.getAll()[0];
+      // Wait for session establishment with polling for HashPack extension
+      let session = null;
+      let attempts = 0;
+      const maxAttempts = 30; // 3 seconds total
+      
+      while (!session && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        session = walletConnector.walletConnectClient?.session?.getAll()[0];
+        attempts++;
+      }
+      
       if (!session) {
-        throw new Error("No session established");
+        throw new Error("No session established - HashPack extension may be locked or WalletConnect disabled. Please ensure HashPack is unlocked, on Testnet, and has WalletConnect v2 enabled in settings.");
       }
 
       const accountId = session.namespaces?.hedera?.accounts?.[0]?.split(":")[2];
@@ -264,8 +280,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       let errorMessage = "Failed to connect wallet. Please try again.";
       
-      // Enhanced error handling for common testnet issues
-      if (error.message?.includes("No Testnet accounts found") || 
+      // Enhanced error handling for HashPack extension issues
+      if (error.message?.includes("No session established")) {
+        errorMessage = "HashPack connection failed. Please check: 1) HashPack extension is installed & unlocked, 2) Set to Testnet network, 3) WalletConnect v2 enabled in HashPack settings → DApp Connections.";
+      } else if (error.message?.includes("No Testnet accounts found") || 
           error.message?.includes("no appropriate accounts")) {
         errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account. Visit the Hedera Testnet Portal to create an account if needed.";
       } else if (error.message?.includes("User rejected")) {
