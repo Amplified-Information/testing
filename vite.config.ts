@@ -9,10 +9,6 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     https: {},
-    headers: {
-      // CSP headers for WalletConnect cross-origin communication
-      'Content-Security-Policy': "frame-ancestors 'self' https://*.walletconnect.com https://*.walletconnect.org; connect-src 'self' https://*.walletconnect.com https://*.walletconnect.org https://testnet.mirrornode.hedera.com wss://*.walletconnect.com wss://*.walletconnect.org",
-    },
   },
   plugins: [
     react(),

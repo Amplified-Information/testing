@@ -83,57 +83,21 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-export const WalletErrorBoundary = ({ children }: { children: ReactNode }) => {
-  return (
-    <ErrorBoundary
-      onError={(error) => {
-        console.error('Wallet Error:', error);
-        
-        // Enhanced logging for wallet-specific errors
-        if (error.name === 'DataCloneError') {
-          console.error('DataCloneError detected - likely postMessage serialization issue');
-        } else if (error.message?.includes('WalletConnect')) {
-          console.error('WalletConnect specific error:', error.message);
-        }
-      }}
-      fallback={
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <AlertTriangle className="h-6 w-6 text-destructive" />
-              </div>
-              <CardTitle>Wallet Connection Error</CardTitle>
-              <CardDescription>
-                A wallet communication error occurred. This is often related to browser security settings.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Common solutions:</p>
-                    <ul className="text-xs space-y-1 ml-4">
-                      <li>• Refresh the page and try again</li>
-                      <li>• Disable ad blockers temporarily</li>
-                      <li>• Try a different browser (Chrome/Firefox)</li>
-                      <li>• Clear browser cache and cookies</li>
-                    </ul>
-                  </div>
-                </AlertDescription>
-              </Alert>
-              <div className="flex flex-col gap-2">
-                <Button onClick={() => window.location.reload()} className="w-full">
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Refresh & Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      }
-    >
-      {children}
-    </ErrorBoundary>
-  );
-};
+export const WalletErrorBoundary = ({ children }: { children: ReactNode }) => (
+  <ErrorBoundary
+    onError={(error) => {
+      console.error('Wallet Error:', error);
+      // Log wallet-specific errors
+    }}
+    fallback={
+      <Alert variant="destructive" className="m-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          Wallet connection failed. Please refresh the page and try again.
+        </AlertDescription>
+      </Alert>
+    }
+  >
+    {children}
+  </ErrorBoundary>
+);

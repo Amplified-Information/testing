@@ -218,7 +218,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []); // Only run once on mount
 
-  const connect = async (retryCount = 0) => {
+  const connect = async () => {
     if (!walletConnector) {
       debug.error('Wallet connector not initialized');
       toast({
@@ -230,191 +230,68 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsLoading(true);
-    debug.log('Initiating wallet connection', { attempt: retryCount + 1 });
+    debug.log('Initiating wallet connection');
     
     try {
-      // Show connection progress message
+      // Show generic connection message
       toast({
         title: "Opening wallet selection...",
         description: "Choose your preferred wallet from the options.",
       });
       
-      // Enhanced modal handling with better error detection
-      const connectWithRetry = async () => {
-        let lastError = null;
+      // Create shorter timeout and modal close detection
+      const modalPromise = walletConnector.openModal();
+      const quickTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("MODAL_TIMEOUT")), 5000); // 5 second timeout for better UX
+      });
+      
+      // Add modal state polling to detect close
+      const modalClosePromise = new Promise((resolve) => {
+        const checkModalClosed = () => {
+          // Check if modal is no longer visible (WalletConnect modal detection)
+          const modalElements = document.querySelectorAll('[data-testid="wcm-modal"], .wcm-modal, [id*="walletconnect"]');
+          const isModalVisible = Array.from(modalElements).some(el => {
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+          });
+          
+          if (!isModalVisible && modalElements.length === 0) {
+            debug.log('Modal appears to be closed - resolving');
+            resolve('MODAL_CLOSED');
+          }
+        };
         
-        try {
-          // Serialize any potential URL objects to prevent DataCloneError
-          const safeMetadata = {
-            name: "Hashy Markets",
-            description: "Prediction Markets on Hedera",
-            url: window.location.origin.toString(), // Ensure string serialization
-            icons: [""],
-          };
-          
-          // Check for existing WalletConnect issues before opening modal
-          const existingModals = document.querySelectorAll('[data-testid="wcm-modal"], .wcm-modal, [id*="walletconnect"]');
-          if (existingModals.length > 0) {
-            debug.log('Cleaning up existing modals');
-            existingModals.forEach(modal => {
-              try {
-                modal.remove();
-              } catch (e) {
-                debug.log('Could not remove modal element', e);
-              }
-            });
-          }
-          
-          // Enhanced postMessage error handling wrapper
-          const originalPostMessage = window.postMessage;
-          const postMessageErrors: any[] = [];
-          
-          window.postMessage = function(message: any, targetOrigin: string, transfer?: Transferable[]) {
-            try {
-              // Serialize objects to prevent DataCloneError
-              const serializedMessage = typeof message === 'object' ? 
-                JSON.parse(JSON.stringify(message, (key, value) => {
-                  // Convert URL objects to strings
-                  if (value && typeof value === 'object' && value.constructor === URL) {
-                    return value.toString();
-                  }
-                  return value;
-                })) : message;
-              
-              return originalPostMessage.call(this, serializedMessage, targetOrigin, transfer);
-            } catch (error) {
-              debug.error('postMessage serialization error:', error);
-              postMessageErrors.push(error);
-              // Try with original message as fallback
-              return originalPostMessage.call(this, message, targetOrigin, transfer);
-            }
-          };
-          
-          // Attempt to open modal with enhanced error handling
-          const modalPromise = walletConnector.openModal();
-          
-          // Shorter timeout for better UX
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
-              reject(new Error("MODAL_TIMEOUT"));
-            }, 8000); // 8 second timeout
-          });
-          
-          // Enhanced modal state detection
-          const modalStatePromise = new Promise((resolve, reject) => {
-            let isResolved = false;
-            let pollCount = 0;
-            const maxPolls = 40; // 8 seconds of polling
-            
-            const checkModalState = () => {
-              if (isResolved) return;
-              pollCount++;
-              
-              // Check for postMessage errors
-              if (postMessageErrors.length > 0) {
-                isResolved = true;
-                const error = postMessageErrors[0];
-                if (error.name === 'DataCloneError') {
-                  reject(new Error('DATA_CLONE_ERROR: Failed to serialize wallet communication data'));
-                } else {
-                  reject(error);
-                }
-                return;
-              }
-              
-              // Check modal visibility
-              const modalElements = document.querySelectorAll('[data-testid="wcm-modal"], .wcm-modal, [id*="walletconnect"]');
-              const hasVisibleModal = Array.from(modalElements).some(el => {
-                const style = window.getComputedStyle(el);
-                return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-              });
-              
-              // If modal disappeared quickly, likely an error
-              if (modalElements.length === 0 && pollCount > 2) {
-                isResolved = true;
-                debug.log('Modal disappeared quickly - likely connection issue');
-                resolve('MODAL_CLOSED_EARLY');
-                return;
-              }
-              
-              // Continue polling
-              if (pollCount < maxPolls) {
-                setTimeout(checkModalState, 200);
-              } else {
-                isResolved = true;
-                resolve('POLL_TIMEOUT');
-              }
-            };
-            
-            // Start polling after brief delay
-            setTimeout(checkModalState, 500);
-          });
-          
-          // Race conditions with better handling
-          const result = await Promise.race([
-            modalPromise,
-            timeoutPromise,
-            modalStatePromise
-          ]).finally(() => {
-            // Restore original postMessage
-            window.postMessage = originalPostMessage;
-          });
-          
-          // Handle different result types
-          if (result === 'MODAL_CLOSED_EARLY') {
-            throw new Error('MODAL_CLOSED_EARLY');
-          }
-          
-          return result;
-          
-        } catch (error: any) {
-          lastError = error;
-          
-          // Handle specific error types
-          if (error.message?.includes('DATA_CLONE_ERROR')) {
-            debug.error('DataCloneError detected - postMessage serialization failed');
-            throw new Error('SERIALIZATION_ERROR');
-          } else if (error.message === 'MODAL_CLOSED_EARLY') {
-            debug.log('Modal closed early - possible browser/extension interference');
-            throw new Error('MODAL_INTERFERENCE');
-          }
-          
-          throw error;
-        }
-      };
+        // Poll for modal state every 500ms
+        const pollInterval = setInterval(() => {
+          checkModalClosed();
+        }, 500);
+        
+        // Clean up after 5 seconds
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          resolve('POLL_TIMEOUT');
+        }, 5000);
+      });
       
-      // Attempt connection with retry logic
-      await connectWithRetry();
+      // Race between modal opening, timeout, and close detection
+      const result = await Promise.race([modalPromise, quickTimeoutPromise, modalClosePromise]);
       
-      // Enhanced session polling with exponential backoff
+      // Wait briefly for session to be established (polling approach)
       let session = null;
       let attempts = 0;
-      const maxAttempts = 15; // 3+ seconds total wait time
+      const maxAttempts = 10; // 2 seconds total wait time
       
       while (attempts < maxAttempts && !session) {
-        const delay = Math.min(200 + (attempts * 50), 500); // Exponential backoff up to 500ms
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        try {
-          session = walletConnector.walletConnectClient?.session?.getAll()[0];
-        } catch (error) {
-          debug.error('Error getting session:', error);
-        }
-        
+        await new Promise(resolve => setTimeout(resolve, 200)); // Wait 200ms
+        session = walletConnector.walletConnectClient?.session?.getAll()[0];
         attempts++;
       }
       
-      // Enhanced session validation
+      // If no session after polling, user likely cancelled
       if (!session) {
-        debug.log('No session found after enhanced polling - connection may have failed');
-        
-        // Check if it was a user cancellation vs technical error
-        const hasRecentErrors = document.querySelector('.wcm-error, [data-testid="wcm-error"]');
-        if (hasRecentErrors) {
-          throw new Error('TECHNICAL_ERROR');
-        }
-        
-        return; // Likely user cancellation
+        debug.log('No session found after polling - user likely cancelled');
+        // Don't throw error for cancellation, just return silently
+        return;
       }
 
       const accountId = getAccountIdFromSession(session);
@@ -426,18 +303,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const isHashPackInstalled = !!(window as any).hashpack;
       const walletType = isHashPackInstalled ? 'HashPack' : 'wallet';
       
-      // Auto-fetch public key with retry
+      // Auto-fetch public key after successful connection
       debug.log('Fetching public key for account:', accountId);
-      let publicKey = null;
-      try {
-        publicKey = await fetchPublicKey(accountId);
-      } catch (pkError) {
-        debug.error('Failed to fetch public key, continuing without it:', pkError);
-      }
+      const publicKey = await fetchPublicKey(accountId);
 
       debug.log('Wallet connected successfully', { accountId, publicKey: !!publicKey, walletType });
 
-      // Update wallet state
+      // Update wallet state with public key
       setWallet({
         isConnected: true,
         accountId,
@@ -449,50 +321,33 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         description: `Connected to ${accountId} via ${walletType}${publicKey ? ' with public key' : ''}`,
       });
 
-      debug.log('Connection process completed successfully');
-      
+      debug.log('Connection process completed', { accountId, publicKey: !!publicKey });
     } catch (error: any) {
       debug.error("Wallet connect failed", error);
       
-      // Enhanced error handling with retry logic
-      if ((error.message === "MODAL_TIMEOUT" || 
-           error.message === "SERIALIZATION_ERROR" ||
-           error.message === "MODAL_INTERFERENCE" ||
-           error.message === "TECHNICAL_ERROR") && retryCount < 2) {
-        
-        debug.log(`Connection failed, retrying... (${retryCount + 1}/3)`);
-        
-        // Brief delay before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Recursive retry
-        return connect(retryCount + 1);
-      }
-      
-      // Final error handling after retries exhausted
-      let errorMessage = "Failed to connect wallet. Please try again.";
-      let shouldShowError = true;
-      
+      // Handle timeout/cancellation separately from connection errors
       if (error.message === "MODAL_TIMEOUT") {
-        errorMessage = "Connection timed out. Please ensure your wallet is unlocked and try again.";
-      } else if (error.message === "SERIALIZATION_ERROR") {
-        errorMessage = "Browser compatibility issue detected. Please try refreshing the page or using a different browser.";
-      } else if (error.message === "MODAL_INTERFERENCE") {
-        errorMessage = "Connection interference detected. Please disable ad blockers or browser extensions and try again.";
-      } else if (error.message?.includes("No Testnet accounts found") || 
-                 error.message?.includes("no appropriate accounts")) {
-        errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account.";
-      } else if (error.message?.includes("User rejected")) {
-        shouldShowError = false; // User intentionally cancelled
+        debug.log('Modal timeout - user likely took too long or cancelled');
+        return; // Don't show error for timeout
       }
       
-      if (shouldShowError) {
-        toast({
-          title: "Connection Error", 
-          description: errorMessage,
-          variant: "destructive",
-        });
+      let errorMessage = "Failed to connect wallet. Please try again.";
+      
+      // Context-aware error handling (only after we attempted connection)
+      if (error.message?.includes("No Testnet accounts found") || 
+          error.message?.includes("no appropriate accounts")) {
+        errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account. Visit the Hedera Testnet Portal to create an account if needed.";
+      } else if (error.message?.includes("User rejected")) {
+        errorMessage = "Connection was cancelled. Please try again and approve the connection in your wallet.";
+      } else if (error.message?.includes("Connection timeout")) {
+        errorMessage = "Connection timeout. Please try again and ensure you approve the connection promptly.";
       }
+      
+      toast({
+        title: "Connection Error", 
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

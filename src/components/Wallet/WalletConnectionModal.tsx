@@ -44,7 +44,8 @@ const WalletConnectionModal = ({ open, onOpenChange }: WalletConnectionModalProp
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Network Status - Removed during connection to prevent interference */}
+          {/* Network Status */}
+          <NetworkStatus />
 
           {/* Testnet Requirements */}
           <Card className="border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/20">
