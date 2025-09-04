@@ -17,6 +17,34 @@ import { LedgerId } from "@hashgraph/sdk";
 import { toast } from "@/hooks/use-toast";
 import { useDebugger } from "@/hooks/useDebugger";
 
+// Helper function to extract account ID from session
+function getAccountIdFromSession(session: any): string | null {
+  if (!session) return null;
+  const accounts = session.namespaces?.hedera?.accounts ?? [];
+  return accounts[0]?.split(":")[2] ?? null;
+}
+
+// Mirror Node API interface
+interface MirrorAccountResponse {
+  key?: {
+    key?: string;
+  };
+}
+
+// Fetch public key from Hedera Mirror Node
+async function fetchPublicKey(accountId: string): Promise<string | null> {
+  try {
+    const url = `${import.meta.env.VITE_MIRROR_NODE_URL}/accounts/${accountId}`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data: MirrorAccountResponse = await response.json();
+    return data.key?.key ?? null;
+  } catch (error) {
+    console.error('Failed to fetch public key from Mirror Node:', error);
+    return null;
+  }
+}
+
 interface WalletState {
   isConnected: boolean;
   accountId: string | null;
@@ -58,25 +86,22 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     debug.log('Session updated', event);
     try {
       const session = connectorRef.current?.walletConnectClient?.session?.getAll()[0];
-      if (session) {
-        const accounts = session.namespaces?.hedera?.accounts || [];
-        const newAccountId = accounts[0]?.split(":")[2] || null;
-        const currentAccountId = walletRef.current.accountId;
+      const newAccountId = getAccountIdFromSession(session);
+      const currentAccountId = walletRef.current.accountId;
+      
+      if (newAccountId !== currentAccountId) {
+        debug.log('Account changed', { from: currentAccountId, to: newAccountId });
+        setWallet(prev => ({ 
+          ...prev, 
+          accountId: newAccountId,
+          isConnected: !!newAccountId 
+        }));
         
-        if (newAccountId !== currentAccountId) {
-          debug.log('Account changed', { from: currentAccountId, to: newAccountId });
-          setWallet(prev => ({ 
-            ...prev, 
-            accountId: newAccountId,
-            isConnected: !!newAccountId 
-          }));
-          
-          if (newAccountId) {
-            toast({
-              title: "Account Changed",
-              description: `Switched to ${newAccountId}`,
-            });
-          }
+        if (newAccountId) {
+          toast({
+            title: "Account Changed",
+            description: `Switched to ${newAccountId}`,
+          });
         }
       }
     } catch (error) {
@@ -145,11 +170,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           debug.log('Found existing session, attempting to restore');
           try {
             const session = sessions[0];
-            const accounts = session.namespaces?.hedera?.accounts || [];
+            const accountId = getAccountIdFromSession(session);
             
-            if (accounts.length > 0) {
-              const accountId = accounts[0].split(":")[2];
-              const publicKey = null; // Will be fetched via API if needed
+            if (accountId) {
+              // Auto-fetch public key for restored session
+              const publicKey = await fetchPublicKey(accountId);
               
               setWallet({
                 isConnected: true,
@@ -157,7 +182,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 publicKey,
               });
               
-              debug.log('Session restored successfully', { accountId });
+              debug.log('Session restored successfully', { accountId, publicKey: !!publicKey });
               toast({
                 title: "Wallet Reconnected",
                 description: `Connected to ${accountId}`,
@@ -181,32 +206,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     init();
     
-    // Cleanup function - properly remove event listeners and clean up connections
+    // Cleanup function - only remove event listeners (preserve session persistence)
     return () => {
       debug.log('Cleaning up wallet connector');
       
-      const connector = connectorRef.current;
-      
-      // Use targeted cleanup to remove specific event listeners  
+      // Only remove event listeners, don't delete sessions for persistence
       cleanupEventListeners();
-      
-      // Clean up any active sessions on unmount
-      if (connector?.walletConnectClient?.session) {
-        try {
-          const sessions = connector.walletConnectClient.session.getAll();
-          sessions.forEach(session => {
-            debug.log('Cleaning up session on unmount', session.topic);
-            connector.walletConnectClient?.session.delete(
-              session.topic,
-              { code: 6000, message: "Component unmounted" }
-            ).catch(error => {
-              debug.error('Error cleaning up session on unmount', error);
-            });
-          });
-        } catch (error) {
-          debug.error('Error during session cleanup on unmount', error);
-        }
-      }
       
       // Clear refs
       connectorRef.current = null;
@@ -239,33 +244,34 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           description: "Approve the connection in your HashPack extension popup.",
         });
       } else {
-        // For mobile or web app users
+        // Enhanced UX for users without extension
         toast({
-          title: "Connecting...",
-          description: "Scan the QR code with your HashPack mobile app or approve in the web app.",
+          title: "No HashPack Extension Found",
+          description: "We'll open the HashPack web app or show a QR code for mobile connection.",
         });
       }
       
       // Always use openModal - it should detect and handle HashPack extension properly
       await walletConnector.openModal();
 
-      // Check for session immediately after modal (like the example)
+      // Check for session immediately after modal
       const session = walletConnector.walletConnectClient?.session?.getAll()[0];
       if (!session) {
         throw new Error("No session established - Please approve the connection in HashPack.");
       }
 
-      const accountId = session.namespaces?.hedera?.accounts?.[0]?.split(":")[2];
+      const accountId = getAccountIdFromSession(session);
       if (!accountId) {
         throw new Error("No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account.");
       }
 
-      // Validate that this is a testnet account
-      const publicKey = null; // Can be fetched via API if needed
+      // Auto-fetch public key after successful connection
+      debug.log('Fetching public key for account:', accountId);
+      const publicKey = await fetchPublicKey(accountId);
 
-      debug.log('Wallet connected successfully', { accountId, publicKey, isHashPackInstalled });
+      debug.log('Wallet connected successfully', { accountId, publicKey: !!publicKey, isHashPackInstalled });
 
-      // Update wallet state
+      // Update wallet state with public key
       setWallet({
         isConnected: true,
         accountId,
@@ -274,10 +280,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Wallet Connected",
-        description: `Connected to ${accountId}`,
+        description: `Connected to ${accountId}${publicKey ? ' with public key' : ''}`,
       });
 
-      debug.log('Connection process completed', { accountId, publicKey });
+      debug.log('Connection process completed', { accountId, publicKey: !!publicKey });
     } catch (error: any) {
       debug.error("Wallet connect failed", error);
       

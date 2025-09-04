@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
 interface DebugLog {
   timestamp: number;
-  level: 'info' | 'warn' | 'error';
+  level: LogLevel;
   message: string;
   data?: any;
 }
@@ -10,8 +12,23 @@ interface DebugLog {
 class AppDebugger {
   private logs: DebugLog[] = [];
   private maxLogs = 100;
+  private logLevel: LogLevel;
 
-  log(level: 'info' | 'warn' | 'error', message: string, data?: any) {
+  constructor() {
+    // Environment-based log filtering
+    const mode = import.meta.env.MODE;
+    this.logLevel = mode === 'development' ? 'debug' : 'warn';
+  }
+
+  private shouldLog(level: LogLevel): boolean {
+    const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
+    const currentIndex = levels.indexOf(this.logLevel);
+    const messageIndex = levels.indexOf(level);
+    return messageIndex >= currentIndex;
+  }
+
+  log(level: LogLevel, message: string, data?: any) {
+    if (!this.shouldLog(level)) return;
     const log: DebugLog = {
       timestamp: Date.now(),
       level,
@@ -66,6 +83,7 @@ export const useDebugger = (component: string) => {
   }, []);
 
   return {
+    debug: (message: string, data?: any) => appDebugger.log('debug', `[${componentRef.current}] ${message}`, data),
     log: (message: string, data?: any) => appDebugger.log('info', `[${componentRef.current}] ${message}`, data),
     warn: (message: string, data?: any) => appDebugger.log('warn', `[${componentRef.current}] ${message}`, data),
     error: (message: string, data?: any) => appDebugger.log('error', `[${componentRef.current}] ${message}`, data),
