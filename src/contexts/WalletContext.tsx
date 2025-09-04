@@ -187,7 +187,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       const connector = connectorRef.current;
       
-      // Run targeted cleanup to remove specific event listeners
+      // Use targeted cleanup to remove specific event listeners  
       cleanupEventListeners();
       
       // Clean up any active sessions on unmount
