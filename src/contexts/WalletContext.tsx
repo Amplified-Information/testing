@@ -232,32 +232,38 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     debug.log('Initiating wallet connection');
     
-    // Detect HashPack extension
-    const isHashPackInstalled = !!(window as any).hashpack;
-    debug.log('HashPack extension detected:', isHashPackInstalled);
-    
     try {
-      if (isHashPackInstalled) {
-        // For HashPack extension users
-        toast({
-          title: "Connecting...",
-          description: "Approve the connection in your HashPack extension popup.",
-        });
-      } else {
-        // Enhanced UX for users without extension
-        toast({
-          title: "No HashPack Extension Found",
-          description: "We'll open the HashPack web app or show a QR code for mobile connection.",
-        });
+      // Show generic connection message
+      toast({
+        title: "Opening wallet selection...",
+        description: "Choose your preferred wallet from the options.",
+      });
+      
+      // Create timeout promise to handle modal cancellation
+      const modalPromise = walletConnector.openModal();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("MODAL_TIMEOUT")), 30000); // 30 second timeout
+      });
+      
+      // Race between modal opening and timeout
+      await Promise.race([modalPromise, timeoutPromise]);
+      
+      // Wait briefly for session to be established (polling approach)
+      let session = null;
+      let attempts = 0;
+      const maxAttempts = 10; // 2 seconds total wait time
+      
+      while (attempts < maxAttempts && !session) {
+        await new Promise(resolve => setTimeout(resolve, 200)); // Wait 200ms
+        session = walletConnector.walletConnectClient?.session?.getAll()[0];
+        attempts++;
       }
       
-      // Always use openModal - it should detect and handle HashPack extension properly
-      await walletConnector.openModal();
-
-      // Check for session immediately after modal
-      const session = walletConnector.walletConnectClient?.session?.getAll()[0];
+      // If no session after polling, user likely cancelled
       if (!session) {
-        throw new Error("No session established - Please approve the connection in HashPack.");
+        debug.log('No session found after polling - user likely cancelled');
+        // Don't throw error for cancellation, just return silently
+        return;
       }
 
       const accountId = getAccountIdFromSession(session);
@@ -265,11 +271,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account.");
       }
 
+      // Detect wallet type after successful connection
+      const isHashPackInstalled = !!(window as any).hashpack;
+      const walletType = isHashPackInstalled ? 'HashPack' : 'wallet';
+      
       // Auto-fetch public key after successful connection
       debug.log('Fetching public key for account:', accountId);
       const publicKey = await fetchPublicKey(accountId);
 
-      debug.log('Wallet connected successfully', { accountId, publicKey: !!publicKey, isHashPackInstalled });
+      debug.log('Wallet connected successfully', { accountId, publicKey: !!publicKey, walletType });
 
       // Update wallet state with public key
       setWallet({
@@ -280,29 +290,29 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Wallet Connected",
-        description: `Connected to ${accountId}${publicKey ? ' with public key' : ''}`,
+        description: `Connected to ${accountId} via ${walletType}${publicKey ? ' with public key' : ''}`,
       });
 
       debug.log('Connection process completed', { accountId, publicKey: !!publicKey });
     } catch (error: any) {
       debug.error("Wallet connect failed", error);
       
+      // Handle timeout/cancellation separately from connection errors
+      if (error.message === "MODAL_TIMEOUT") {
+        debug.log('Modal timeout - user likely took too long or cancelled');
+        return; // Don't show error for timeout
+      }
+      
       let errorMessage = "Failed to connect wallet. Please try again.";
       
-      // Enhanced error handling for HashPack extension issues
-      if (error.message?.includes("No session established")) {
-        if (isHashPackInstalled) {
-          errorMessage = "HashPack extension connection failed. Please check: 1) HashPack extension is unlocked, 2) Set to Testnet network, 3) WalletConnect v2 enabled in HashPack settings → DApp Connections.";
-        } else {
-          errorMessage = "Connection failed. Please ensure you approved the connection in the HashPack web app tab.";
-        }
-      } else if (error.message?.includes("Connection timeout")) {
-        errorMessage = "Connection timeout. Please try again and ensure you approve the connection promptly.";
-      } else if (error.message?.includes("No Testnet accounts found") || 
+      // Context-aware error handling (only after we attempted connection)
+      if (error.message?.includes("No Testnet accounts found") || 
           error.message?.includes("no appropriate accounts")) {
         errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account. Visit the Hedera Testnet Portal to create an account if needed.";
       } else if (error.message?.includes("User rejected")) {
         errorMessage = "Connection was cancelled. Please try again and approve the connection in your wallet.";
+      } else if (error.message?.includes("Connection timeout")) {
+        errorMessage = "Connection timeout. Please try again and ensure you approve the connection promptly.";
       }
       
       toast({
