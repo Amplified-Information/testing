@@ -231,10 +231,39 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const client = connector.walletConnectClient;
     if (!client) return;
 
+    // Remove existing listeners
     client.off("session_update", sessionUpdateHandler.current);
     client.off("session_delete", sessionDeleteHandler.current);
+    
+    // Add event listeners - only use supported events
     client.on("session_update", sessionUpdateHandler.current);
     client.on("session_delete", sessionDeleteHandler.current);
+    
+    debug.log('Session event listeners attached');
+  }, [debug]);
+
+  // Enhanced session cleanup
+  const cleanupOrphanedSessions = useCallback(async () => {
+    const connector = connectorRef.current;
+    if (!connector?.walletConnectClient?.session) return;
+
+    try {
+      const sessions = connector.walletConnectClient.session.getAll();
+      debug.log(`Found ${sessions.length} existing sessions, cleaning up...`);
+      
+      for (const session of sessions) {
+        try {
+          await connector.walletConnectClient.session.delete(session.topic, {
+            code: 6000,
+            message: "Cleaning up for fresh connection",
+          });
+        } catch (error) {
+          debug.error('Failed to delete session', error);
+        }
+      }
+    } catch (error) {
+      debug.error('Failed to cleanup sessions', error);
+    }
   }, [debug]);
 
   // Cleanup function to remove event listeners
@@ -349,39 +378,82 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     debug.log('Initiating wallet connection');
     
     try {
-      // Show generic connection message
+      // Clean up any orphaned sessions first
+      await cleanupOrphanedSessions();
+
+      // Enhanced user feedback for HashPack flow
       toast({
         title: "Opening wallet selection...",
-        description: "Choose your preferred wallet from the options.",
+        description: "Choose your preferred wallet. HashPack will open in a new tab.",
       });
       
-      // Prefer modal lifecycle events if supported, fallback to observer
+      // Open the modal and wait for user interaction
       const modalPromise = walletConnector.openModal();
-      const observerPromise = new Promise((resolve) => {
-        const observer = new MutationObserver(() => {
+      
+      // Monitor modal closure more reliably
+      const modalObserver = new Promise<void>((resolve) => {
+        const checkModal = () => {
           const modal = document.querySelector("[data-testid='wcm-modal'], .wcm-modal, [id*='walletconnect']");
           if (!modal) {
-            observer.disconnect();
-            resolve("MODAL_CLOSED");
+            resolve();
+            return;
           }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
+          requestAnimationFrame(checkModal);
+        };
+        // Start checking after a small delay
+        setTimeout(checkModal, 100);
       });
 
-      await Promise.race([modalPromise, observerPromise]);
+      // Wait for modal interaction
+      await Promise.race([modalPromise, modalObserver]);
       
-      // Poll for session establishment
+      // Update user feedback - HashPack specific
+      toast({
+        title: "Connecting to HashPack...",
+        description: "Please approve the connection in your HashPack extension or the opened tab.",
+      });
+
+      // Enhanced polling with exponential backoff
       let session = null;
-      for (let i = 0; i < 10; i++) {
-        await new Promise((r) => setTimeout(r, 200));
+      let attempt = 0;
+      const maxAttempts = 60; // 60 attempts over ~60 seconds
+      
+      while (attempt < maxAttempts && !session) {
+        // Exponential backoff: start with 500ms, max 3s
+        const delay = Math.min(500 * Math.pow(1.1, attempt), 3000);
+        await new Promise(r => setTimeout(r, delay));
+        
         session = walletConnector.walletConnectClient?.session?.getAll()[0];
-        if (session) break;
+        
+        if (session) {
+          debug.log(`Session found on attempt ${attempt + 1}`, session);
+          break;
+        }
+        
+        // Provide progress feedback every 10 attempts (roughly every 10-15 seconds)
+        if (attempt % 10 === 9) {
+          const remainingTime = Math.ceil((maxAttempts - attempt) / 2);
+          toast({
+            title: "Still connecting...",
+            description: `Please complete the approval in HashPack. Timeout in ~${remainingTime}s`,
+          });
+        }
+        
+        attempt++;
       }
-      if (!session) return;
+
+      if (!session) {
+        throw new Error("Connection timeout - please try again and ensure you approve the connection in HashPack");
+      }
 
       const accountId = getAccountIdFromSession(session);
-      if (!accountId) throw new Error("No Testnet accounts found.");
+      if (!accountId) {
+        throw new Error("No Testnet accounts found in your wallet");
+      }
 
+      debug.log('Connection successful, fetching public key', { accountId });
+      
+      // Final connection steps
       const walletType = (window as any).hashpack ? "HashPack" : "WalletConnect";
       const publicKey = await fetchPublicKey(accountId);
 
@@ -390,16 +462,29 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       // Save wallet to database if user is authenticated
       await saveConnectedWallet(accountId, publicKey);
       
-      toast({ title: "Wallet Connected", description: `Connected to ${accountId} via ${walletType}` });
+      toast({ 
+        title: "Wallet Connected Successfully!", 
+        description: `Connected to ${accountId} via ${walletType}` 
+      });
+      
     } catch (error: any) {
       debug.error("Wallet connect failed", error);
+      
       let errorMessage = "Failed to connect wallet.";
-      if (error.message?.includes("No Testnet accounts")) {
-        errorMessage = "No Testnet accounts found. Ensure your wallet has one.";
+      if (error.message?.includes("timeout")) {
+        errorMessage = "Connection timed out. Please ensure you approve the connection in HashPack and try again.";
+      } else if (error.message?.includes("No Testnet accounts")) {
+        errorMessage = "No Testnet accounts found. Please ensure your wallet is configured for Hedera Testnet.";
       } else if (error.message?.includes("User rejected")) {
-        errorMessage = "Connection cancelled. Please approve in your wallet.";
+        errorMessage = "Connection cancelled. Please approve the connection in your wallet to continue.";
       }
-      toast({ title: "Connection Error", description: errorMessage, variant: "destructive" });
+      
+      toast({ 
+        title: "Connection Failed", 
+        description: errorMessage, 
+        variant: "destructive" 
+      });
+      
     } finally {
       setIsLoading(false);
     }
