@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
 
 const themes = [
   {
@@ -30,12 +29,6 @@ const backgroundTextures = [
     value: "none",
     description: "Clean solid background",
     preview: null
-  },
-  {
-    name: "Carbon Fiber",
-    value: "carbon",
-    description: "Woven carbon texture",
-    preview: carbonFiber
   }
 ];
 

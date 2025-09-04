@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import carbonFiber from "@/assets/textures/carbon-fiber.jpg";
 
 type Theme = "default" | "ocean" | "sunset";
-type BackgroundTexture = "none" | "carbon";
+type BackgroundTexture = "none";
 
 interface ThemeContextType {
   theme: Theme;
@@ -38,8 +37,7 @@ const themeColors = {
 };
 
 const backgroundTextures = {
-  none: "none",
-  carbon: `url(${carbonFiber})`
+  none: "none"
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
