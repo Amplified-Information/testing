@@ -207,6 +207,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hedera_wallets: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          last_connected_at: string
+          public_key: string | null
+          updated_at: string
+          user_id: string | null
+          wallet_name: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          last_connected_at?: string
+          public_key?: string | null
+          updated_at?: string
+          user_id?: string | null
+          wallet_name?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          last_connected_at?: string
+          public_key?: string | null
+          updated_at?: string
+          user_id?: string | null
+          wallet_name?: string | null
+        }
+        Relationships: []
+      }
       market_categories: {
         Row: {
           created_at: string
@@ -833,6 +869,14 @@ export type Database = {
           process_name: string
           total_items: number
         }[]
+      }
+      is_wallet_owner: {
+        Args: { wallet_user_id: string }
+        Returns: boolean
+      }
+      set_primary_wallet: {
+        Args: { wallet_id: string }
+        Returns: boolean
       }
     }
     Enums: {
