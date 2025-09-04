@@ -6,14 +6,14 @@ const themes = [
   {
     name: "Default",
     value: "default",
-    primary: "hsl(142 76% 36%)",
-    description: "Green-focused trading theme"
+    primary: "hsl(200 80% 70%)",
+    description: "Light blue trading theme"
   },
   {
     name: "Ocean",
     value: "ocean", 
-    primary: "hsl(200 95% 40%)",
-    description: "Cool blue ocean theme"
+    primary: "hsl(200 80% 70%)",
+    description: "Light blue ocean theme"
   },
   {
     name: "Sunset",

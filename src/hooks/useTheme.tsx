@@ -14,18 +14,18 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const themeColors = {
   default: {
-    primary: "142 76% 36%",
-    primaryGlow: "142 76% 45%",
-    ring: "142 76% 36%",
-    up: "142 76% 36%",
-    yes: "142 76% 36%",
+    primary: "200 80% 70%",
+    primaryGlow: "200 80% 80%",
+    ring: "200 80% 70%",
+    up: "200 80% 70%",
+    yes: "200 80% 70%",
   },
   ocean: {
-    primary: "200 95% 40%",
-    primaryGlow: "200 95% 50%", 
-    ring: "200 95% 40%",
-    up: "200 95% 40%",
-    yes: "200 95% 40%",
+    primary: "200 80% 70%",
+    primaryGlow: "200 80% 80%", 
+    ring: "200 80% 70%",
+    up: "200 80% 70%",
+    yes: "200 80% 70%",
   },
   sunset: {
     primary: "25 95% 53%",

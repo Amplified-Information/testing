@@ -83,7 +83,7 @@ const Markets = () => {
   const getColorForCategory = (name: string) => {
     const colorMap: { [key: string]: string } = {
       'Politics': 'hsl(0 84% 60%)',
-      'Sports': 'hsl(142 76% 36%)',
+      'Sports': 'hsl(200 80% 70%)',
       'Culture': 'hsl(330 76% 45%)',
       'Crypto': 'hsl(45 84% 60%)',
       'Climate': 'hsl(120 60% 45%)',
@@ -95,7 +95,7 @@ const Markets = () => {
       'Health': 'hsl(300 76% 45%)',
       'World': 'hsl(20 84% 60%)'
     };
-    return colorMap[name] || 'hsl(142 76% 36%)';
+    return colorMap[name] || 'hsl(200 80% 70%)';
   };
 
   useEffect(() => {
