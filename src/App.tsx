@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "@/hooks/useTheme";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { ErrorBoundary, WalletErrorBoundary } from "@/components/ErrorBoundary";
 // Import pages directly for now to fix dynamic import issues
@@ -42,31 +41,29 @@ const queryClient = new QueryClient({
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <WalletErrorBoundary>
-          <WalletProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <ErrorBoundary>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/markets" element={<Markets />} />
-                    <Route path="/create-market" element={<CreateMarket />} />
-                    <Route path="/portfolio" element={<Portfolio />} />
-                    <Route path="/docs" element={<Documentation />} />
-                    <Route path="/dev-notes" element={<DevelopmentNotes />} />
-                    <Route path="/market/:id" element={<MarketDetail />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </ErrorBoundary>
-            </TooltipProvider>
-          </WalletProvider>
-        </WalletErrorBoundary>
-      </ThemeProvider>
+      <WalletErrorBoundary>
+        <WalletProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <ErrorBoundary>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/markets" element={<Markets />} />
+                  <Route path="/create-market" element={<CreateMarket />} />
+                  <Route path="/portfolio" element={<Portfolio />} />
+                  <Route path="/docs" element={<Documentation />} />
+                  <Route path="/dev-notes" element={<DevelopmentNotes />} />
+                  <Route path="/market/:id" element={<MarketDetail />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </ErrorBoundary>
+          </TooltipProvider>
+        </WalletProvider>
+      </WalletErrorBoundary>
     </QueryClientProvider>
   </ErrorBoundary>
 );
