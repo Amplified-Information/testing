@@ -812,8 +812,6 @@ const Markets = () => {
 
             {/* Instructions */}
             <div className="text-center text-muted-foreground space-y-2 px-2">
-              <p className="text-lg">🎪 Click arrows or drag to spin the carousel</p>
-              <p className="text-base">🎯 Click on any category card to select it instantly</p>
             </div>
           </div>
         )}
