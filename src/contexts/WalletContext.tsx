@@ -249,29 +249,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       // Always use openModal - it should detect and handle HashPack extension properly
       await walletConnector.openModal();
 
-      // Wait for session establishment with polling
-      let session = null;
-      let attempts = 0;
-      const maxAttempts = 150; // 15 seconds total (100ms intervals)
-      
-      debug.log('Waiting for session approval...');
-      while (!session && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        session = walletConnector.walletConnectClient?.session?.getAll()[0];
-        attempts++;
-        
-        // Log progress every 5 seconds for debugging
-        if (attempts % 50 === 0) {
-          debug.log(`Still waiting for session approval... (${attempts/10}s elapsed)`);
-        }
-      }
-      
+      // Check for session immediately after modal (like the example)
+      const session = walletConnector.walletConnectClient?.session?.getAll()[0];
       if (!session) {
-        if (isHashPackInstalled) {
-          throw new Error("No session established - HashPack extension may be locked or WalletConnect disabled. Please ensure HashPack is unlocked, on Testnet, and has WalletConnect v2 enabled in settings.");
-        } else {
-          throw new Error("Connection timeout - Please ensure you approved the connection in the HashPack app. If the tab closed, try again and keep it open until approval is complete.");
-        }
+        throw new Error("No session established - Please approve the connection in HashPack.");
       }
 
       const accountId = session.namespaces?.hedera?.accounts?.[0]?.split(":")[2];
