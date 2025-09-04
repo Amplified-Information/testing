@@ -50,50 +50,66 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
   // Use ref to access current wallet state without causing re-renders
   const walletRef = useRef(wallet);
+  const connectorRef = useRef<DAppConnector | null>(null);
   walletRef.current = wallet;
+
+  // Stable event handler functions - stored in refs to avoid recreating
+  const sessionUpdateHandler = useRef((event: any) => {
+    debug.log('Session updated', event);
+    try {
+      const session = connectorRef.current?.walletConnectClient?.session?.getAll()[0];
+      if (session) {
+        const accounts = session.namespaces?.hedera?.accounts || [];
+        const newAccountId = accounts[0]?.split(":")[2] || null;
+        const currentAccountId = walletRef.current.accountId;
+        
+        if (newAccountId !== currentAccountId) {
+          debug.log('Account changed', { from: currentAccountId, to: newAccountId });
+          setWallet(prev => ({ 
+            ...prev, 
+            accountId: newAccountId,
+            isConnected: !!newAccountId 
+          }));
+          
+          if (newAccountId) {
+            toast({
+              title: "Account Changed",
+              description: `Switched to ${newAccountId}`,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      debug.error('Failed to handle session update', error);
+    }
+  });
+
+  const sessionDeleteHandler = useRef(() => {
+    debug.log('Session deleted - disconnecting wallet');
+    setWallet({
+      isConnected: false,
+      accountId: null,
+      publicKey: null,
+    });
+  });
 
   // Stable event handler - no dependencies to prevent infinite loops
   const handleSessionEvents = useCallback((connector: DAppConnector) => {
-    // Handle account changes using proper WalletConnect events
-    connector.walletConnectClient?.on('session_update', (event) => {
-      debug.log('Session updated', event);
-      try {
-        const session = connector.walletConnectClient?.session?.getAll()[0];
-        if (session) {
-          const accounts = session.namespaces?.hedera?.accounts || [];
-          const newAccountId = accounts[0]?.split(":")[2] || null;
-          const currentAccountId = walletRef.current.accountId;
-          
-          if (newAccountId !== currentAccountId) {
-            debug.log('Account changed', { from: currentAccountId, to: newAccountId });
-            setWallet(prev => ({ 
-              ...prev, 
-              accountId: newAccountId,
-              isConnected: !!newAccountId 
-            }));
-            
-            if (newAccountId) {
-              toast({
-                title: "Account Changed",
-                description: `Switched to ${newAccountId}`,
-              });
-            }
-          }
-        }
-      } catch (error) {
-        debug.error('Failed to handle session update', error);
-      }
-    });
+    connectorRef.current = connector;
+    
+    // Add event listeners
+    connector.walletConnectClient?.on('session_update', sessionUpdateHandler.current);
+    connector.walletConnectClient?.on('session_delete', sessionDeleteHandler.current);
+  }, [debug]);
 
-    // Handle disconnection
-    connector.walletConnectClient?.on('session_delete', () => {
-      debug.log('Session deleted - disconnecting wallet');
-      setWallet({
-        isConnected: false,
-        accountId: null,
-        publicKey: null,
-      });
-    });
+  // Cleanup function to remove event listeners
+  const cleanupEventListeners = useCallback(() => {
+    const connector = connectorRef.current;
+    if (connector?.walletConnectClient) {
+      debug.log('Removing event listeners');
+      connector.walletConnectClient.off('session_update', sessionUpdateHandler.current);
+      connector.walletConnectClient.off('session_delete', sessionDeleteHandler.current);
+    }
   }, [debug]);
 
   // Initialize DAppConnector only once on mount
@@ -164,9 +180,32 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     init();
     
-    // Cleanup function
+    // Cleanup function - properly remove event listeners and clean up connections
     return () => {
       debug.log('Cleaning up wallet connector');
+      cleanupEventListeners();
+      
+      // Clean up any active sessions on unmount
+      const connector = connectorRef.current;
+      if (connector?.walletConnectClient?.session) {
+        try {
+          const sessions = connector.walletConnectClient.session.getAll();
+          sessions.forEach(session => {
+            debug.log('Cleaning up session on unmount', session.topic);
+            connector.walletConnectClient?.session.delete(
+              session.topic,
+              { code: 6000, message: "Component unmounted" }
+            ).catch(error => {
+              debug.error('Error cleaning up session on unmount', error);
+            });
+          });
+        } catch (error) {
+          debug.error('Error during session cleanup on unmount', error);
+        }
+      }
+      
+      // Clear refs
+      connectorRef.current = null;
     };
   }, []); // Only run once on mount
 
