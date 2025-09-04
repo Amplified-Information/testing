@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { 
   DAppConnector,
@@ -47,7 +48,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [walletConnector, setWalletConnector] = useState<DAppConnector | null>(null);
 
-  // Proper Hedera event handling
+  // Use ref to access current wallet state without causing re-renders
+  const walletRef = useRef(wallet);
+  walletRef.current = wallet;
+
+  // Stable event handler - no dependencies to prevent infinite loops
   const handleSessionEvents = useCallback((connector: DAppConnector) => {
     // Handle account changes using proper WalletConnect events
     connector.walletConnectClient?.on('session_update', (event) => {
@@ -57,8 +62,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         if (session) {
           const accounts = session.namespaces?.hedera?.accounts || [];
           const newAccountId = accounts[0]?.split(":")[2] || null;
-          if (newAccountId !== wallet.accountId) {
-            debug.log('Account changed', { from: wallet.accountId, to: newAccountId });
+          const currentAccountId = walletRef.current.accountId;
+          
+          if (newAccountId !== currentAccountId) {
+            debug.log('Account changed', { from: currentAccountId, to: newAccountId });
             setWallet(prev => ({ 
               ...prev, 
               accountId: newAccountId,
@@ -87,8 +94,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         publicKey: null,
       });
     });
-  }, [debug, wallet.accountId]);
+  }, [debug]);
 
+  // Initialize DAppConnector only once on mount
   useEffect(() => {
     const init = async () => {
       try {
@@ -155,7 +163,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     };
 
     init();
-  }, [debug, handleSessionEvents]);
+    
+    // Cleanup function
+    return () => {
+      debug.log('Cleaning up wallet connector');
+    };
+  }, []); // Only run once on mount
 
   const connect = async () => {
     if (!walletConnector) {
