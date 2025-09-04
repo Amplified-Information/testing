@@ -2,7 +2,7 @@ import Header from "@/components/Layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { FileText, Code2, BookOpen, ExternalLink, Shield } from "lucide-react";
+import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet } from "lucide-react";
 
 const DevNotesIndex = () => {
   return (
@@ -155,6 +155,44 @@ const DevNotesIndex = () => {
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                   >
                     View Security Analysis <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Wallet Connection Troubleshooting */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-primary" />
+                      Wallet Connection Troubleshooting
+                    </CardTitle>
+                    <CardDescription>
+                      Comprehensive guide to resolve WalletConnect errors and DataCloneError issues
+                    </CardDescription>
+                  </div>
+                  <Badge variant="destructive">Action Required</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Detailed analysis of the "no internet access" WalletConnect error, including root cause
+                    investigation and a three-phase implementation plan to resolve DataCloneError and postMessage issues.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="text-red-600 border-red-600">DataCloneError</Badge>
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">postMessage</Badge>
+                    <Badge variant="outline" className="text-blue-600 border-blue-600">WalletConnect</Badge>
+                    <Badge variant="outline">Browser Compatibility</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/wallet-connection" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    View Wallet Connection Guide <ExternalLink className="h-4 w-4" />
                   </Link>
                 </div>
               </CardContent>

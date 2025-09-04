@@ -15,6 +15,7 @@ import CreateMarket from "./pages/CreateMarket";
 import DevelopmentNotes from "./pages/DevelopmentNotes";
 import DevNotesIndex from "./pages/DevNotesIndex";
 import SecurityNotes from "./pages/SecurityNotes";
+import WalletConnectionNotes from "./pages/WalletConnectionNotes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -59,6 +60,7 @@ const App = () => (
                   <Route path="/dev-notes/technical-docs" element={<Documentation />} />
                   <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
                   <Route path="/dev-notes/security" element={<SecurityNotes />} />
+                  <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
                   <Route path="/market/:id" element={<MarketDetail />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
