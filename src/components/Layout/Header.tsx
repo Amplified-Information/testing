@@ -54,9 +54,6 @@ const Header = () => {
           >
             Portfolio
           </Link>
-          <Link to="/docs" className="text-sm font-medium hover:text-primary transition-colors">
-            Docs
-          </Link>
           <Link to="/dev-notes" className="text-sm font-medium hover:text-primary transition-colors">
             Dev Notes
           </Link>
@@ -111,13 +108,6 @@ const Header = () => {
                   }`}
                 >
                   Portfolio
-                </Link>
-                <Link 
-                  to="/docs" 
-                  className="text-lg font-medium hover:text-primary transition-colors py-2"
-                  onClick={closeMobileMenu}
-                >
-                  Docs
                 </Link>
                 <Link 
                   to="/dev-notes" 
