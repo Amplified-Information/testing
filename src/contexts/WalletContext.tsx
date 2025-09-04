@@ -6,6 +6,7 @@ import React, {
   ReactNode,
   useCallback,
   useRef,
+  useMemo,
 } from "react";
 import { 
   DAppConnector,
@@ -26,21 +27,23 @@ function getAccountIdFromSession(session: any): string | null {
 
 // Mirror Node API interface
 interface MirrorAccountResponse {
-  key?: {
-    key?: string;
-  };
+  key?: Record<string, unknown>;
 }
 
-// Fetch public key from Hedera Mirror Node
+// Fetch public key (handles different key structures)
 async function fetchPublicKey(accountId: string): Promise<string | null> {
   try {
     const url = `${import.meta.env.VITE_MIRROR_NODE_URL}/accounts/${accountId}`;
     const response = await fetch(url);
     if (!response.ok) return null;
     const data: MirrorAccountResponse = await response.json();
-    return data.key?.key ?? null;
+
+    // Different formats: { key: { key } }, { key: { thresholdKey: {...} } }, etc.
+    if (typeof data.key?.key === "string") return data.key.key;
+    if (typeof data.key === "string") return data.key;
+    return null;
   } catch (error) {
-    console.error('Failed to fetch public key from Mirror Node:', error);
+    console.error("Failed to fetch public key from Mirror Node:", error);
     return null;
   }
 }
@@ -118,13 +121,16 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     });
   });
 
-  // Stable event handler - no dependencies to prevent infinite loops
+  // Attach event listeners safely
   const handleSessionEvents = useCallback((connector: DAppConnector) => {
     connectorRef.current = connector;
-    
-    // Add event listeners
-    connector.walletConnectClient?.on('session_update', sessionUpdateHandler.current);
-    connector.walletConnectClient?.on('session_delete', sessionDeleteHandler.current);
+    const client = connector.walletConnectClient;
+    if (!client) return;
+
+    client.off("session_update", sessionUpdateHandler.current);
+    client.off("session_delete", sessionDeleteHandler.current);
+    client.on("session_update", sessionUpdateHandler.current);
+    client.on("session_delete", sessionDeleteHandler.current);
   }, [debug]);
 
   // Cleanup function to remove event listeners
@@ -150,9 +156,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           icons: [""],
         };
 
+        const targetLedger = import.meta.env.VITE_HEDERA_LEDGER === "mainnet" ? LedgerId.MAINNET : LedgerId.TESTNET;
+
         const connector = new DAppConnector(
           metadata,
-          LedgerId.TESTNET,
+          targetLedger,
           import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
           Object.values(HederaJsonRpcMethod),
           [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
@@ -216,7 +224,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       // Clear refs
       connectorRef.current = null;
     };
-  }, []); // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const connect = async () => {
     if (!walletConnector) {
@@ -239,160 +248,77 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         description: "Choose your preferred wallet from the options.",
       });
       
-      // Create shorter timeout and modal close detection
+      // Prefer modal lifecycle events if supported, fallback to observer
       const modalPromise = walletConnector.openModal();
-      const quickTimeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("MODAL_TIMEOUT")), 5000); // 5 second timeout for better UX
-      });
-      
-      // Add modal state polling to detect close
-      const modalClosePromise = new Promise((resolve) => {
-        const checkModalClosed = () => {
-          // Check if modal is no longer visible (WalletConnect modal detection)
-          const modalElements = document.querySelectorAll('[data-testid="wcm-modal"], .wcm-modal, [id*="walletconnect"]');
-          const isModalVisible = Array.from(modalElements).some(el => {
-            const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-          });
-          
-          if (!isModalVisible && modalElements.length === 0) {
-            debug.log('Modal appears to be closed - resolving');
-            resolve('MODAL_CLOSED');
+      const observerPromise = new Promise((resolve) => {
+        const observer = new MutationObserver(() => {
+          const modal = document.querySelector("[data-testid='wcm-modal'], .wcm-modal, [id*='walletconnect']");
+          if (!modal) {
+            observer.disconnect();
+            resolve("MODAL_CLOSED");
           }
-        };
-        
-        // Poll for modal state every 500ms
-        const pollInterval = setInterval(() => {
-          checkModalClosed();
-        }, 500);
-        
-        // Clean up after 5 seconds
-        setTimeout(() => {
-          clearInterval(pollInterval);
-          resolve('POLL_TIMEOUT');
-        }, 5000);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
       });
+
+      await Promise.race([modalPromise, observerPromise]);
       
-      // Race between modal opening, timeout, and close detection
-      const result = await Promise.race([modalPromise, quickTimeoutPromise, modalClosePromise]);
-      
-      // Wait briefly for session to be established (polling approach)
+      // Poll for session establishment
       let session = null;
-      let attempts = 0;
-      const maxAttempts = 10; // 2 seconds total wait time
-      
-      while (attempts < maxAttempts && !session) {
-        await new Promise(resolve => setTimeout(resolve, 200)); // Wait 200ms
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 200));
         session = walletConnector.walletConnectClient?.session?.getAll()[0];
-        attempts++;
+        if (session) break;
       }
-      
-      // If no session after polling, user likely cancelled
-      if (!session) {
-        debug.log('No session found after polling - user likely cancelled');
-        // Don't throw error for cancellation, just return silently
-        return;
-      }
+      if (!session) return;
 
       const accountId = getAccountIdFromSession(session);
-      if (!accountId) {
-        throw new Error("No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account.");
-      }
+      if (!accountId) throw new Error("No Testnet accounts found.");
 
-      // Detect wallet type after successful connection
-      const isHashPackInstalled = !!(window as any).hashpack;
-      const walletType = isHashPackInstalled ? 'HashPack' : 'wallet';
-      
-      // Auto-fetch public key after successful connection
-      debug.log('Fetching public key for account:', accountId);
+      const walletType = (window as any).hashpack ? "HashPack" : "WalletConnect";
       const publicKey = await fetchPublicKey(accountId);
 
-      debug.log('Wallet connected successfully', { accountId, publicKey: !!publicKey, walletType });
-
-      // Update wallet state with public key
-      setWallet({
-        isConnected: true,
-        accountId,
-        publicKey,
-      });
-
-      toast({
-        title: "Wallet Connected",
-        description: `Connected to ${accountId} via ${walletType}${publicKey ? ' with public key' : ''}`,
-      });
-
-      debug.log('Connection process completed', { accountId, publicKey: !!publicKey });
+      setWallet({ isConnected: true, accountId, publicKey });
+      toast({ title: "Wallet Connected", description: `Connected to ${accountId} via ${walletType}` });
     } catch (error: any) {
       debug.error("Wallet connect failed", error);
-      
-      // Handle timeout/cancellation separately from connection errors
-      if (error.message === "MODAL_TIMEOUT") {
-        debug.log('Modal timeout - user likely took too long or cancelled');
-        return; // Don't show error for timeout
-      }
-      
-      let errorMessage = "Failed to connect wallet. Please try again.";
-      
-      // Context-aware error handling (only after we attempted connection)
-      if (error.message?.includes("No Testnet accounts found") || 
-          error.message?.includes("no appropriate accounts")) {
-        errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account. Visit the Hedera Testnet Portal to create an account if needed.";
+      let errorMessage = "Failed to connect wallet.";
+      if (error.message?.includes("No Testnet accounts")) {
+        errorMessage = "No Testnet accounts found. Ensure your wallet has one.";
       } else if (error.message?.includes("User rejected")) {
-        errorMessage = "Connection was cancelled. Please try again and approve the connection in your wallet.";
-      } else if (error.message?.includes("Connection timeout")) {
-        errorMessage = "Connection timeout. Please try again and ensure you approve the connection promptly.";
+        errorMessage = "Connection cancelled. Please approve in your wallet.";
       }
-      
-      toast({
-        title: "Connection Error", 
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Connection Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
   const disconnect = async () => {
-    debug.log('Disconnecting wallet');
-    
     try {
       if (walletConnector?.walletConnectClient?.session) {
         const sessions = walletConnector.walletConnectClient.session.getAll();
         for (const session of sessions) {
-          debug.log('Deleting session', session.topic);
-          await walletConnector.walletConnectClient.session.delete(
-            session.topic,
-            { code: 6000, message: "User disconnected" }
-          );
+          await walletConnector.walletConnectClient.session.delete(session.topic, {
+            code: 6000,
+            message: "User disconnected",
+          });
         }
       }
+      setWallet({ isConnected: false, accountId: null, publicKey: null });
+      toast({ title: "Wallet Disconnected", description: "Your wallet has been disconnected" });
     } catch (error) {
-      debug.error("Error disconnecting sessions", error);
+      debug.error("Error disconnecting", error);
+      toast({ title: "Disconnect Error", description: "Could not fully disconnect.", variant: "destructive" });
     }
-    
-    // Clear wallet state
-    setWallet({
-      isConnected: false,
-      accountId: null,
-      publicKey: null,
-    });
-    
-    toast({
-      title: "Wallet Disconnected",
-      description: "Your wallet has been disconnected",
-    });
-    
-    debug.log('Wallet disconnected successfully');
   };
 
-  return (
-    <WalletContext.Provider
-      value={{ wallet, connect, disconnect, isLoading, walletConnector }}
-    >
-      {children}
-    </WalletContext.Provider>
+  const contextValue = useMemo(
+    () => ({ wallet, connect, disconnect, isLoading, walletConnector }),
+    [wallet, connect, disconnect, isLoading, walletConnector]
   );
+
+  return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>;
 };
 
 export const useWallet = (): WalletContextType => {
