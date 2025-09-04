@@ -239,14 +239,42 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         description: "Choose your preferred wallet from the options.",
       });
       
-      // Create timeout promise to handle modal cancellation
+      // Create shorter timeout and modal close detection
       const modalPromise = walletConnector.openModal();
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("MODAL_TIMEOUT")), 30000); // 30 second timeout
+      const quickTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("MODAL_TIMEOUT")), 5000); // 5 second timeout for better UX
       });
       
-      // Race between modal opening and timeout
-      await Promise.race([modalPromise, timeoutPromise]);
+      // Add modal state polling to detect close
+      const modalClosePromise = new Promise((resolve) => {
+        const checkModalClosed = () => {
+          // Check if modal is no longer visible (WalletConnect modal detection)
+          const modalElements = document.querySelectorAll('[data-testid="wcm-modal"], .wcm-modal, [id*="walletconnect"]');
+          const isModalVisible = Array.from(modalElements).some(el => {
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+          });
+          
+          if (!isModalVisible && modalElements.length === 0) {
+            debug.log('Modal appears to be closed - resolving');
+            resolve('MODAL_CLOSED');
+          }
+        };
+        
+        // Poll for modal state every 500ms
+        const pollInterval = setInterval(() => {
+          checkModalClosed();
+        }, 500);
+        
+        // Clean up after 5 seconds
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          resolve('POLL_TIMEOUT');
+        }, 5000);
+      });
+      
+      // Race between modal opening, timeout, and close detection
+      const result = await Promise.race([modalPromise, quickTimeoutPromise, modalClosePromise]);
       
       // Wait briefly for session to be established (polling approach)
       let session = null;
