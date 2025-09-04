@@ -7,9 +7,13 @@ import { useMarketStats } from "@/hooks/useMarketStats";
 import { useWallet } from "@/contexts/WalletContext";
 import { useToast } from "@/hooks/use-toast";
 const HeroSection = () => {
-  const { wallet, connect } = useWallet();
-  const { toast } = useToast();
-  
+  const {
+    wallet,
+    connect
+  } = useWallet();
+  const {
+    toast
+  } = useToast();
   const {
     stats: marketStats,
     loading,
@@ -54,21 +58,17 @@ const HeroSection = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                variant="trading" 
-                size="xl" 
-                onClick={async () => {
-                  try {
-                    await connect();
-                  } catch (error) {
-                    toast({
-                      title: "Connection Failed",
-                      description: "Failed to connect wallet. Please try again.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-              >
+              <Button variant="trading" size="xl" onClick={async () => {
+              try {
+                await connect();
+              } catch (error) {
+                toast({
+                  title: "Connection Failed",
+                  description: "Failed to connect wallet. Please try again.",
+                  variant: "destructive"
+                });
+              }
+            }} className="text-slate-600">
                 Start Trading
               </Button>
               <Button variant="outline" size="xl" asChild>
