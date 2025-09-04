@@ -5,8 +5,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User } from "@supabase/supabase-js";
 import ProfileSettings from "./ProfileSettings";
+import { WalletManagement } from "@/components/Wallet/WalletManagement";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -31,11 +33,25 @@ const SettingsDialog = ({
         
         {user ? (
           <div className="mt-6 overflow-y-auto max-h-[60vh]">
-            <ProfileSettings user={user} />
+            <Tabs defaultValue="profile" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="wallets">Wallets</TabsTrigger>
+              </TabsList>
+              <TabsContent value="profile" className="mt-6">
+                <ProfileSettings user={user} />
+              </TabsContent>
+              <TabsContent value="wallets" className="mt-6">
+                <WalletManagement />
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
           <div className="mt-6 text-center text-muted-foreground">
-            Connect your wallet to access profile settings.
+            <p className="mb-4">Sign in to access your settings and manage your wallets.</p>
+            <div className="space-y-4">
+              <WalletManagement />
+            </div>
           </div>
         )}
       </DialogContent>
