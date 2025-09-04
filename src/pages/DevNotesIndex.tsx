@@ -198,6 +198,45 @@ const DevNotesIndex = () => {
               </CardContent>
             </Card>
 
+            {/* Wallet Storage Implementation */}
+            <Card className="hover:shadow-lg transition-shadow border-green-200 bg-green-50/50">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-green-800">
+                      <Wallet className="h-5 w-5 text-green-600" />
+                      Wallet Storage Implementation
+                    </CardTitle>
+                    <CardDescription className="text-green-700">
+                      Complete implementation guide for persistent wallet storage with Supabase integration
+                    </CardDescription>
+                  </div>
+                  <Badge variant="default" className="bg-green-600">Implemented ✅</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-green-700">
+                    Comprehensive documentation of the wallet storage system including user experience flows, 
+                    technical architecture, database schema, and implementation details. Features persistent 
+                    wallet connections, auto-restoration, and full wallet management interface.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="text-green-600 border-green-600">Database Schema</Badge>
+                    <Badge variant="outline" className="text-blue-600 border-blue-600">React Hooks</Badge>
+                    <Badge variant="outline" className="text-purple-600 border-purple-600">User Experience</Badge>
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">Auto-Restore</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/wallet-storage" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-green-700 hover:underline"
+                  >
+                    View Wallet Storage Implementation <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
 
           {/* Project Overview */}
