@@ -227,11 +227,22 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     debug.log('Initiating wallet connection');
     
-    // Inform user about desktop HashPack flow
-    toast({
-      title: "Connecting...",
-      description: "If using HashPack extension, please approve the connection in the extension popup.",
-    });
+    // Detect HashPack extension
+    const isHashPackInstalled = !!(window as any).hashpack;
+    debug.log('HashPack extension detected:', isHashPackInstalled);
+    
+    // Inform user about the connection flow based on extension presence
+    if (isHashPackInstalled) {
+      toast({
+        title: "Connecting...",
+        description: "Approve the connection in your HashPack extension popup.",
+      });
+    } else {
+      toast({
+        title: "Connecting...",
+        description: "Approve the connection in the HashPack tab that opened. Do not close it until approval is complete.",
+      });
+    }
     
     try {
       // Opens QR modal (mobile) or connects extension (desktop HashPack/Blade)
@@ -240,16 +251,26 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       // Wait for session establishment with polling for HashPack extension
       let session = null;
       let attempts = 0;
-      const maxAttempts = 30; // 3 seconds total
+      const maxAttempts = 150; // 15 seconds total (100ms intervals)
       
+      debug.log('Waiting for session approval...');
       while (!session && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 100));
         session = walletConnector.walletConnectClient?.session?.getAll()[0];
         attempts++;
+        
+        // Log progress every 5 seconds for debugging
+        if (attempts % 50 === 0) {
+          debug.log(`Still waiting for session approval... (${attempts/10}s elapsed)`);
+        }
       }
       
       if (!session) {
-        throw new Error("No session established - HashPack extension may be locked or WalletConnect disabled. Please ensure HashPack is unlocked, on Testnet, and has WalletConnect v2 enabled in settings.");
+        if (isHashPackInstalled) {
+          throw new Error("No session established - HashPack extension may be locked or WalletConnect disabled. Please ensure HashPack is unlocked, on Testnet, and has WalletConnect v2 enabled in settings.");
+        } else {
+          throw new Error("Connection timeout - Please ensure you approved the connection in the HashPack web app tab. If the tab closed, try again and don't close it until approval is complete.");
+        }
       }
 
       const accountId = session.namespaces?.hedera?.accounts?.[0]?.split(":")[2];
@@ -260,7 +281,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       // Validate that this is a testnet account
       const publicKey = null; // Can be fetched via API if needed
 
-      debug.log('Wallet connected successfully', { accountId, publicKey });
+      debug.log('Wallet connected successfully', { accountId, publicKey, isHashPackInstalled });
 
       // Update wallet state
       setWallet({
@@ -282,14 +303,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       // Enhanced error handling for HashPack extension issues
       if (error.message?.includes("No session established")) {
-        errorMessage = "HashPack connection failed. Please check: 1) HashPack extension is installed & unlocked, 2) Set to Testnet network, 3) WalletConnect v2 enabled in HashPack settings → DApp Connections.";
+        if (isHashPackInstalled) {
+          errorMessage = "HashPack extension connection failed. Please check: 1) HashPack extension is unlocked, 2) Set to Testnet network, 3) WalletConnect v2 enabled in HashPack settings → DApp Connections.";
+        } else {
+          errorMessage = "Connection failed. Please ensure you approved the connection in the HashPack web app tab.";
+        }
+      } else if (error.message?.includes("Connection timeout")) {
+        errorMessage = "Connection timeout. Please try again and ensure you approve the connection promptly.";
       } else if (error.message?.includes("No Testnet accounts found") || 
           error.message?.includes("no appropriate accounts")) {
         errorMessage = "No Testnet accounts found. Please ensure your wallet is connected to Hedera Testnet and has at least one testnet account. Visit the Hedera Testnet Portal to create an account if needed.";
       } else if (error.message?.includes("User rejected")) {
         errorMessage = "Connection was cancelled. Please try again and approve the connection in your wallet.";
-      } else if (error.message?.includes("timeout")) {
-        errorMessage = "Connection timeout. Please check your network connection and try again.";
       }
       
       toast({
