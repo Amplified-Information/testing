@@ -20,7 +20,21 @@ class AppDebugger {
     this.logLevel = mode === 'development' ? 'debug' : 'warn';
   }
 
+  private isVisualEditing(): boolean {
+    // Detect if we're in visual editing mode
+    return typeof window !== 'undefined' && (
+      window.location.hostname.includes('lovable.app') ||
+      window.parent !== window ||
+      document.querySelector('[data-visual-editor]') !== null
+    );
+  }
+
   private shouldLog(level: LogLevel): boolean {
+    // During visual editing, only allow error logs
+    if (this.isVisualEditing() && level !== 'error') {
+      return false;
+    }
+
     const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
     const currentIndex = levels.indexOf(this.logLevel);
     const messageIndex = levels.indexOf(level);
