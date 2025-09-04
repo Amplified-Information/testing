@@ -5,11 +5,10 @@ import { TrendingUp, DollarSign, Users, BarChart3, Loader2 } from "lucide-react"
 import { Link } from "react-router-dom";
 import { useMarketStats } from "@/hooks/useMarketStats";
 import { useWallet } from "@/contexts/WalletContext";
-import WalletConnectionModal from "@/components/Wallet/WalletConnectionModal";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 const HeroSection = () => {
-  const { wallet } = useWallet();
-  const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const { wallet, connect } = useWallet();
+  const { toast } = useToast();
   
   const {
     stats: marketStats,
@@ -58,7 +57,17 @@ const HeroSection = () => {
               <Button 
                 variant="trading" 
                 size="xl" 
-                onClick={() => setShowConnectionModal(true)}
+                onClick={async () => {
+                  try {
+                    await connect();
+                  } catch (error) {
+                    toast({
+                      title: "Connection Failed",
+                      description: "Failed to connect wallet. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
               >
                 Start Trading
               </Button>
@@ -102,11 +111,6 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
-      
-      <WalletConnectionModal 
-        open={showConnectionModal} 
-        onOpenChange={setShowConnectionModal} 
-      />
     </div>;
 };
 export default HeroSection;
