@@ -231,24 +231,25 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const isHashPackInstalled = !!(window as any).hashpack;
     debug.log('HashPack extension detected:', isHashPackInstalled);
     
-    // Inform user about the connection flow based on extension presence
-    if (isHashPackInstalled) {
-      toast({
-        title: "Connecting...",
-        description: "Approve the connection in your HashPack extension popup.",
-      });
-    } else {
-      toast({
-        title: "Connecting...",
-        description: "Approve the connection in the HashPack tab that opened. Do not close it until approval is complete.",
-      });
-    }
-    
     try {
-      // Opens QR modal (mobile) or connects extension (desktop HashPack/Blade)
+      if (isHashPackInstalled) {
+        // For HashPack extension users
+        toast({
+          title: "Connecting...",
+          description: "Approve the connection in your HashPack extension popup.",
+        });
+      } else {
+        // For mobile or web app users
+        toast({
+          title: "Connecting...",
+          description: "Scan the QR code with your HashPack mobile app or approve in the web app.",
+        });
+      }
+      
+      // Always use openModal - it should detect and handle HashPack extension properly
       await walletConnector.openModal();
 
-      // Wait for session establishment with polling for HashPack extension
+      // Wait for session establishment with polling
       let session = null;
       let attempts = 0;
       const maxAttempts = 150; // 15 seconds total (100ms intervals)
@@ -269,7 +270,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         if (isHashPackInstalled) {
           throw new Error("No session established - HashPack extension may be locked or WalletConnect disabled. Please ensure HashPack is unlocked, on Testnet, and has WalletConnect v2 enabled in settings.");
         } else {
-          throw new Error("Connection timeout - Please ensure you approved the connection in the HashPack web app tab. If the tab closed, try again and don't close it until approval is complete.");
+          throw new Error("Connection timeout - Please ensure you approved the connection in the HashPack app. If the tab closed, try again and keep it open until approval is complete.");
         }
       }
 
