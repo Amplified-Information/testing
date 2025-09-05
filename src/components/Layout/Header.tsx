@@ -4,6 +4,7 @@ import { Search, TrendingUp, Hexagon, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import WalletButton from "@/components/Wallet/WalletButton";
+import ModeToggle from "@/components/Layout/ModeToggle";
 import { useWallet } from "@/contexts/WalletContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -127,6 +128,11 @@ const Header = () => {
                     />
                   </div>
                 </div>
+                
+                {/* Mobile Mode Toggle */}
+                <div className="pt-4 border-t">
+                  <ModeToggle />
+                </div>
               </nav>
             </SheetContent>
           </Sheet>
@@ -138,7 +144,15 @@ const Header = () => {
             Testnet
           </Badge>
           
-          <WalletButton />
+          <div className="hidden md:flex items-center gap-3">
+            <ModeToggle />
+            <WalletButton />
+          </div>
+          
+          {/* Mobile Wallet Button */}
+          <div className="md:hidden">
+            <WalletButton />
+          </div>
         </div>
       </div>
     </header>

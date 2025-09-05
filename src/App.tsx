@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WalletProvider } from "@/contexts/WalletContext";
+import { ModeProvider } from "@/contexts/ModeContext";
 import { ErrorBoundary, WalletErrorBoundary } from "@/components/ErrorBoundary";
 // Import pages directly for now to fix dynamic import issues
 import Index from "./pages/Index";
@@ -47,32 +48,34 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <WalletErrorBoundary>
-        <WalletProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <ErrorBoundary>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/markets" element={<Markets />} />
-                  <Route path="/create-market" element={<CreateMarket />} />
-                  <Route path="/portfolio" element={<Portfolio />} />
-                  <Route path="/dev-notes" element={<DevNotesIndex />} />
-                  <Route path="/dev-notes/technical-docs" element={<Documentation />} />
-                  <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
-                  <Route path="/dev-notes/security" element={<SecurityNotes />} />
-                  <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
-                  <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
-                  <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
-                  <Route path="/market/:id" element={<MarketDetail />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </ErrorBoundary>
-          </TooltipProvider>
-        </WalletProvider>
+        <ModeProvider>
+          <WalletProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <ErrorBoundary>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/markets" element={<Markets />} />
+                    <Route path="/create-market" element={<CreateMarket />} />
+                    <Route path="/portfolio" element={<Portfolio />} />
+                    <Route path="/dev-notes" element={<DevNotesIndex />} />
+                    <Route path="/dev-notes/technical-docs" element={<Documentation />} />
+                    <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
+                    <Route path="/dev-notes/security" element={<SecurityNotes />} />
+                    <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
+                    <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
+                    <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
+                    <Route path="/market/:id" element={<MarketDetail />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </ErrorBoundary>
+            </TooltipProvider>
+          </WalletProvider>
+        </ModeProvider>
       </WalletErrorBoundary>
     </QueryClientProvider>
   </ErrorBoundary>

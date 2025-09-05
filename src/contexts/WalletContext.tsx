@@ -19,10 +19,14 @@ import { toast } from "@/hooks/use-toast";
 import { useDebugger, appDebugger } from "@/hooks/useDebugger";
 import { supabase } from "@/integrations/supabase/client";
 import { useSaveWallet, usePrimaryWallet } from "@/hooks/useHederaWallets";
+import { useMode } from "@/contexts/ModeContext";
 
-// Enhanced Visual Edits detection function 
-function isVisualEditing(): boolean {
+// Enhanced Visual Edits detection function with mode override
+function isVisualEditing(forceEditMode?: boolean): boolean {
   if (typeof window === 'undefined') return false;
+  
+  // If edit mode is explicitly forced, return true
+  if (forceEditMode) return true;
   
   return (
     // Lovable domains
@@ -92,6 +96,7 @@ interface WalletProviderProps {
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const debug = useDebugger('WalletProvider');
+  const { isEditMode } = useMode();
   
   const [wallet, setWallet] = useState<WalletState>({
     isConnected: false,
@@ -298,13 +303,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize DAppConnector only once on mount
   useEffect(() => {
-    // Enhanced Visual Edits detection with multiple checks
-    const isVisualMode = isVisualEditing();
+    // Enhanced Visual Edits detection with mode override
+    const isVisualMode = isVisualEditing(isEditMode);
     const isSandbox = window.location.hostname.includes('sandbox.lovable.dev');
     const isLovableDomain = window.location.hostname.includes('lovable.app');
     
-    if (isVisualMode || isSandbox || isLovableDomain) {
-      debug.log('Visual Edits/Sandbox mode detected - skipping WalletConnect initialization', {
+    // In edit mode, always skip WalletConnect initialization
+    if (isEditMode || isVisualMode || (isSandbox && !isEditMode === false)) {
+      debug.log('Edit/Visual mode detected - skipping WalletConnect initialization', {
+        isEditMode,
         isVisualMode,
         isSandbox, 
         isLovableDomain,
@@ -410,23 +417,22 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       connectorRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isEditMode]); // Re-run when mode changes
 
   const connect = async () => {
-    // Enhanced prevention of connection attempts in Visual Edits/Sandbox mode
-    const isVisualMode = isVisualEditing();
-    const isSandbox = window.location.hostname.includes('sandbox.lovable.dev');
+    // Enhanced prevention of connection attempts in Edit mode
+    const isVisualMode = isVisualEditing(isEditMode);
     
-    if (isVisualMode || isSandbox) {
-      debug.log('Visual Edits/Sandbox mode - wallet connection disabled', {
+    if (isEditMode || isVisualMode) {
+      debug.log('Edit mode - wallet connection disabled', {
+        isEditMode,
         isVisualMode,
-        isSandbox,
         hostname: window.location.hostname
       });
       
       toast({
-        title: "Demo Mode",
-        description: "Wallet connection is disabled in preview/demo mode.",
+        title: "Edit Mode Active",
+        description: "Switch to Demo Mode to enable wallet connection.",
         variant: "default",
       });
       return;
