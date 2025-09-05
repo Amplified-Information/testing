@@ -59,11 +59,15 @@ const CLOBArchitecture = () => {
 
   // CLOB Infrastructure & Foundation
   const foundationComponents = [
-    { name: 'HCS Topics Setup', status: 'planned', description: 'Orders, batches, and oracle consensus topics' },
-    { name: 'Message Schema (TypeScript)', status: 'planned', description: 'EIP-712 style order and batch interfaces' },
-    { name: 'Settlement Smart Contract', status: 'planned', description: 'Hedera EVM contract with HTS integration' },
-    { name: 'Basic Relayer Service', status: 'planned', description: 'Edge function for order publication to HCS' },
-    { name: 'Database Schema Extensions', status: 'planned', description: 'CLOB markets, orders, batches tables' }
+    { name: 'Database Schema Extensions', status: 'completed', description: '7 CLOB tables with RLS policies and triggers' },
+    { name: 'TypeScript Message Schemas', status: 'completed', description: 'Complete CLOB interfaces and types' },
+    { name: 'HCS Service Integration', status: 'completed', description: 'Hedera Consensus Service wrapper class' },
+    { name: 'CLOB Core Service', status: 'completed', description: 'Order book logic and trade processing' },
+    { name: 'Order Relayer Edge Function', status: 'completed', description: 'Supabase function for HCS publishing' },
+    { name: 'React Hooks & Components', status: 'completed', description: 'Trading interface and order book UI' },
+    { name: 'MarketDetail Integration', status: 'completed', description: 'CLOB tab added to market pages' },
+    { name: 'HCS Topics Setup', status: 'pending', description: 'Hedera operator credentials needed' },
+    { name: 'Settlement Smart Contract', status: 'planned', description: 'Hedera EVM contract with HTS integration' }
   ];
 
   const coreEngineComponents = [

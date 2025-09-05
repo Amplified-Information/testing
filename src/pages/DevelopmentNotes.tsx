@@ -121,12 +121,33 @@ const DevelopmentNotes = () => {
     },
     {
       phase: 'Phase 5: CLOB Implementation',
-      progress: 0,
+      progress: calculateProgress([
+        { status: 'completed' },
+        { status: 'completed' },
+        { status: 'completed' },
+        { status: 'completed' },
+        { status: 'completed' },
+        { status: 'completed' },
+        { status: 'completed' },
+        { status: 'completed' },
+        { status: 'pending' },
+        { status: 'pending' },
+        { status: 'pending' },
+        { status: 'pending' }
+      ]),
       components: [
-        { name: 'HCS Topics & Infrastructure', status: 'pending', description: 'Orders, batches, oracle topics setup' },
+        { name: 'Database Schema', status: 'completed', description: '7 CLOB tables with RLS policies' },
+        { name: 'TypeScript Interfaces', status: 'completed', description: 'Complete CLOB type definitions' },
+        { name: 'HCS Service Integration', status: 'completed', description: 'Hedera Consensus Service wrapper' },
+        { name: 'CLOB Core Service', status: 'completed', description: 'Order book and trading logic' },
+        { name: 'Order Relayer Edge Function', status: 'completed', description: 'Supabase edge function for HCS publishing' },
+        { name: 'React Hooks & State Management', status: 'completed', description: 'useCLOB hooks for data fetching' },
+        { name: 'UI Components', status: 'completed', description: 'Order book, trading interface, order history' },
+        { name: 'MarketDetail Integration', status: 'completed', description: 'CLOB tab added to market pages' },
+        { name: 'HCS Topics Setup', status: 'pending', description: 'Hedera operator credentials needed' },
         { name: 'Settlement Smart Contracts', status: 'pending', description: 'Hedera EVM contracts with HTS integration' },
-        { name: 'Order Matching Engine', status: 'pending', description: 'Deterministic sequencer with fraud proofs' },
-        { name: 'Trading Interface', status: 'pending', description: 'Advanced order book UI and real-time updates' }
+        { name: 'Sequencer Service', status: 'pending', description: 'Deterministic batch processing' },
+        { name: 'Fraud Proof System', status: 'pending', description: 'Optimistic dispute resolution' }
       ],
       description: 'Central Limit Order Book with off-chain matching and on-chain settlement.'
     }
