@@ -831,26 +831,44 @@ const Markets = () => {
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
               All
+              <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary text-xs">
+                {getDisplayMarkets().length}
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="featured" className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
               Featured
+              <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary text-xs">
+                {getFeaturedMarkets().length}
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="trending" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Trending
+              <Badge variant="secondary" className="ml-1 bg-up/10 text-up text-xs">
+                {getTrendingMarkets().length}
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="new" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
               New
+              <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary text-xs">
+                {getNewMarkets().length}
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="ending-soon" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Ending Soon
+              <Badge variant="secondary" className="ml-1 bg-destructive/10 text-destructive text-xs">
+                {getEndingSoonMarkets().length}
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="high-volume" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               High Volume
+              <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary text-xs">
+                {getHighVolumeMarkets().length}
+              </Badge>
             </TabsTrigger>
           </TabsList>
 
