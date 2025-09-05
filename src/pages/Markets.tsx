@@ -696,9 +696,9 @@ const Markets = () => {
           </div>}
 
         {/* Subcategories View */}
-        {viewMode === 'subcategories' && selectedCategoryData && <div className="mb-8">
+        {viewMode === 'subcategories' && selectedCategoryData && <div className="mb-6">
             {/* Enhanced Category Details Card */}
-            <div className="mb-6">
+            <div className="mb-4">
               <Card className="border border-primary/30 bg-gradient-to-br from-primary/8 to-accent/8 overflow-hidden animate-fade-in">
                 <CardContent className="p-6">
                   {/* Header */}
