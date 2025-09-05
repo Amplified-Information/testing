@@ -87,7 +87,8 @@ export class CLOBService {
    */
   async getOrderBook(marketId: string): Promise<OrderBook> {
     try {
-      this.log('Fetching order book', { marketId });
+      // Only log errors or when orders are found, not every fetch
+      // this.log('Fetching order book', { marketId });
 
       // Get active orders for the market
       const { data: ordersData, error } = await supabase

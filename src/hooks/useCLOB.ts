@@ -8,15 +8,28 @@ import { toast } from 'sonner';
 export const useCLOBOrderBook = (marketId: string) => {
   const debug = useDebugger('useCLOBOrderBook');
 
+  // Intelligent polling configuration
+  const isDevelopment = import.meta.env.MODE === 'development';
+  const isDocumentVisible = typeof document !== 'undefined' ? !document.hidden : true;
+  
+  // Use slower polling in development, faster in production when visible
+  const getRefetchInterval = () => {
+    if (!isDocumentVisible) return false; // Pause when tab not visible
+    return isDevelopment ? 10000 : 5000; // 10s in dev, 5s in prod
+  };
+
   return useQuery({
     queryKey: ['clob-orderbook', marketId],
     queryFn: async () => {
-      debug.log('Fetching CLOB order book', { marketId });
+      // Reduced verbosity - only log in development
+      if (isDevelopment) {
+        debug.debug('Fetching CLOB order book', { marketId });
+      }
       return clobService.getOrderBook(marketId);
     },
     enabled: !!marketId,
-    refetchInterval: 2000, // Update every 2 seconds for real-time-ish data
-    staleTime: 1000,
+    refetchInterval: getRefetchInterval(),
+    staleTime: 5000,
   });
 };
 
