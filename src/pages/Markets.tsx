@@ -629,7 +629,7 @@ const Markets = () => {
                             </div>
                           </div>
 
-                          <Button onClick={() => handleCategorySelect(selectedCategory)} className="w-full py-6 text-base md:text-lg font-semibold hover:scale-105 transition-transform bg-primary text-slate-600">
+                          <Button onClick={() => handleCategorySelect(selectedCategory)} className="w-full py-6 text-base md:text-lg font-semibold hover:scale-105 transition-transform bg-primary text-slate-50">
                             Explore {selectedCategory.label} Event Markets
                           </Button>
                         </>;
