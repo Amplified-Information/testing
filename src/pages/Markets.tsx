@@ -465,68 +465,9 @@ const Markets = () => {
   return <div className="min-h-screen">
       <Header />
       
-      <main className="container py-8">
-        {/* Header Section */}
-        <div className="space-y-6 mb-12">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              
-            </div>
-          </div>
-
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search markets... (Press Enter to search database)" className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={handleSearchKeyDown} />
-              {(isSearching || hasSearched) && <div className="absolute right-3 top-3 flex items-center gap-2">
-                  {isSearching && <div className="w-4 h-4 border-2 border-muted-foreground/20 border-t-primary rounded-full animate-spin" />}
-                  {hasSearched && !isSearching && <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-destructive/10" onClick={clearSearch}>
-                      ×
-                    </Button>}
-                </div>}
-            </div>
-            <Button variant="outline" className="sm:w-auto">
-              <Filter className="mr-2 h-4 w-4" />
-              Filters
-            </Button>
-          </div>
-          
-          {/* Search Results Indicator */}
-          {hasSearched && <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Search className="h-4 w-4" />
-              Search results for "{searchQuery}" - {searchResults.length} markets found
-              <Button variant="link" size="sm" className="h-auto p-0 text-primary" onClick={clearSearch}>
-                Clear search
-              </Button>
-            </div>}
-        </div>
-
-        {/* Navigation */}
-        {viewMode !== 'categories' && <div className="mb-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <button onClick={handleBackToCategories} className="hover:text-primary transition-colors">
-                All Markets
-              </button>
-              <ChevronRight className="h-4 w-4" />
-              {selectedCategoryData && <>
-                  <button onClick={handleBackToSubcategories} className="text-foreground font-medium hover:text-primary transition-colors">
-                    {selectedCategoryData.label}
-                  </button>
-                  {viewMode === 'markets' && selectedSubcategory !== 'all' && <>
-                      <ChevronRight className="h-4 w-4" />
-                      <span className="text-foreground font-medium">
-                        {subcategories.find(sub => sub.id === selectedSubcategory)?.name}
-                      </span>
-                    </>}
-                </>}
-            </div>
-          </div>}
-
-        {/* Categories View with Carousel */}
-        {viewMode === 'categories' && <div className="mb-8 space-y-8">
-            
-            
+      {/* Categories View with Carousel - Moved to top */}
+      {viewMode === 'categories' && <div className="container py-8">
+          <div className="mb-8 space-y-8">
             {/* Carousel Wheel */}
             <div className="relative">
               <Carousel setApi={setApi} className="w-full max-w-6xl mx-auto" opts={{
@@ -637,6 +578,65 @@ const Markets = () => {
 
             {/* Instructions */}
             <div className="text-center text-muted-foreground space-y-2 px-2">
+            </div>
+          </div>
+        </div>}
+      
+      <main className="container py-8">
+        {/* Header Section */}
+        <div className="space-y-6 mb-12">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              
+            </div>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search markets... (Press Enter to search database)" className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={handleSearchKeyDown} />
+              {(isSearching || hasSearched) && <div className="absolute right-3 top-3 flex items-center gap-2">
+                  {isSearching && <div className="w-4 h-4 border-2 border-muted-foreground/20 border-t-primary rounded-full animate-spin" />}
+                  {hasSearched && !isSearching && <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-destructive/10" onClick={clearSearch}>
+                      ×
+                    </Button>}
+                </div>}
+            </div>
+            <Button variant="outline" className="sm:w-auto">
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+          
+          {/* Search Results Indicator */}
+          {hasSearched && <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Search className="h-4 w-4" />
+              Search results for "{searchQuery}" - {searchResults.length} markets found
+              <Button variant="link" size="sm" className="h-auto p-0 text-primary" onClick={clearSearch}>
+                Clear search
+              </Button>
+            </div>}
+        </div>
+
+        {/* Navigation */}
+        {viewMode !== 'categories' && <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <button onClick={handleBackToCategories} className="hover:text-primary transition-colors">
+                All Markets
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              {selectedCategoryData && <>
+                  <button onClick={handleBackToSubcategories} className="text-foreground font-medium hover:text-primary transition-colors">
+                    {selectedCategoryData.label}
+                  </button>
+                  {viewMode === 'markets' && selectedSubcategory !== 'all' && <>
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="text-foreground font-medium">
+                        {subcategories.find(sub => sub.id === selectedSubcategory)?.name}
+                      </span>
+                    </>}
+                </>}
             </div>
           </div>}
 
