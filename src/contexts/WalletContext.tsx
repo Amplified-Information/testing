@@ -20,12 +20,23 @@ import { useDebugger, appDebugger } from "@/hooks/useDebugger";
 import { supabase } from "@/integrations/supabase/client";
 import { useSaveWallet, usePrimaryWallet } from "@/hooks/useHederaWallets";
 
-// Visual Edits detection function (extracted from debugger)
+// Enhanced Visual Edits detection function 
 function isVisualEditing(): boolean {
-  return typeof window !== 'undefined' && (
+  if (typeof window === 'undefined') return false;
+  
+  return (
+    // Lovable domains
     window.location.hostname.includes('lovable.app') ||
+    window.location.hostname.includes('sandbox.lovable.dev') ||
+    // Iframe detection  
     window.parent !== window ||
-    document.querySelector('[data-visual-editor]') !== null
+    // Visual editor markers
+    document.querySelector('[data-visual-editor]') !== null ||
+    document.querySelector('[data-lov-hovered]') !== null ||
+    // URL patterns that indicate sandbox environment
+    !!window.location.hostname.match(/^[a-f0-9-]+\.sandbox\.lovable\.dev$/) ||
+    // Check for Lovable-specific globals
+    (window as any).__LOVABLE_VISUAL_EDITS__ === true
   );
 }
 
@@ -287,9 +298,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize DAppConnector only once on mount
   useEffect(() => {
-    // Skip WalletConnect initialization in Visual Edits mode
-    if (isVisualEditing()) {
-      debug.log('Visual Edits mode detected - skipping WalletConnect initialization');
+    // Enhanced Visual Edits detection with multiple checks
+    const isVisualMode = isVisualEditing();
+    const isSandbox = window.location.hostname.includes('sandbox.lovable.dev');
+    const isLovableDomain = window.location.hostname.includes('lovable.app');
+    
+    if (isVisualMode || isSandbox || isLovableDomain) {
+      debug.log('Visual Edits/Sandbox mode detected - skipping WalletConnect initialization', {
+        isVisualMode,
+        isSandbox, 
+        isLovableDomain,
+        hostname: window.location.hostname
+      });
+      
       // Provide mock wallet state for Visual Edits compatibility
       setWallet({
         isConnected: false,
@@ -392,12 +413,20 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const connect = async () => {
-    // Prevent connection attempts in Visual Edits mode
-    if (isVisualEditing()) {
-      debug.log('Visual Edits mode - wallet connection disabled');
+    // Enhanced prevention of connection attempts in Visual Edits/Sandbox mode
+    const isVisualMode = isVisualEditing();
+    const isSandbox = window.location.hostname.includes('sandbox.lovable.dev');
+    
+    if (isVisualMode || isSandbox) {
+      debug.log('Visual Edits/Sandbox mode - wallet connection disabled', {
+        isVisualMode,
+        isSandbox,
+        hostname: window.location.hostname
+      });
+      
       toast({
-        title: "Visual Edits Mode",
-        description: "Wallet connection is disabled in Visual Edits mode.",
+        title: "Demo Mode",
+        description: "Wallet connection is disabled in preview/demo mode.",
         variant: "default",
       });
       return;
