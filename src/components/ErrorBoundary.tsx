@@ -28,28 +28,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
-    // Handle WalletConnect and WebSocket errors in Visual Edits/Sandbox mode
-    const isSandboxEnv = window.location.hostname.includes('sandbox.lovable.dev') || 
-                         window.location.hostname.includes('lovable.app');
-    
-    if (error.name === 'DataCloneError' && error.message.includes('postMessage')) {
-      console.warn('WalletConnect postMessage error - likely Visual Edits conflict');
-      this.setState({ hasError: false, error: null, errorInfo: null });
-      return;
-    }
-    
-    // Handle WebSocket connection failures in sandbox environments
-    if (isSandboxEnv && (
-      error.message?.includes('WebSocket') ||
-      error.message?.includes('Failed to fetch') ||
-      error.message?.includes('NetworkError')
-    )) {
-      console.warn('Network error in sandbox environment - suppressing', error.message);
-      this.setState({ hasError: false, error: null, errorInfo: null });
-      return;
-    }
-    
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
   }

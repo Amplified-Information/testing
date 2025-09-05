@@ -125,7 +125,7 @@ const MarketCard = ({
             <Button variant="yes" size="sm" onClick={e => {
           e.stopPropagation();
           // Handle buy yes action
-        }} className="w-full text-slate-50">
+        }} className="w-full text-slate-600">
               Buy YES
             </Button>
             <Button variant="no" size="sm" className="w-full" onClick={e => {

@@ -16,33 +16,9 @@ import {
 } from "@hashgraph/hedera-wallet-connect";
 import { LedgerId } from "@hashgraph/sdk";
 import { toast } from "@/hooks/use-toast";
-import { useDebugger, appDebugger } from "@/hooks/useDebugger";
+import { useDebugger } from "@/hooks/useDebugger";
 import { supabase } from "@/integrations/supabase/client";
 import { useSaveWallet, usePrimaryWallet } from "@/hooks/useHederaWallets";
-import { useMode } from "@/contexts/ModeContext";
-
-// Enhanced Visual Edits detection function with mode override
-function isVisualEditing(forceEditMode?: boolean): boolean {
-  if (typeof window === 'undefined') return false;
-  
-  // If edit mode is explicitly forced, return true
-  if (forceEditMode) return true;
-  
-  return (
-    // Lovable domains
-    window.location.hostname.includes('lovable.app') ||
-    window.location.hostname.includes('sandbox.lovable.dev') ||
-    // Iframe detection  
-    window.parent !== window ||
-    // Visual editor markers
-    document.querySelector('[data-visual-editor]') !== null ||
-    document.querySelector('[data-lov-hovered]') !== null ||
-    // URL patterns that indicate sandbox environment
-    !!window.location.hostname.match(/^[a-f0-9-]+\.sandbox\.lovable\.dev$/) ||
-    // Check for Lovable-specific globals
-    (window as any).__LOVABLE_VISUAL_EDITS__ === true
-  );
-}
 
 // Helper function to extract account ID from session
 function getAccountIdFromSession(session: any): string | null {
@@ -96,7 +72,6 @@ interface WalletProviderProps {
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const debug = useDebugger('WalletProvider');
-  const { isEditMode } = useMode();
   
   const [wallet, setWallet] = useState<WalletState>({
     isConnected: false,
@@ -303,30 +278,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize DAppConnector only once on mount
   useEffect(() => {
-    // Enhanced Visual Edits detection with mode override
-    const isVisualMode = isVisualEditing(isEditMode);
-    const isSandbox = window.location.hostname.includes('sandbox.lovable.dev');
-    const isLovableDomain = window.location.hostname.includes('lovable.app');
-    
-    // In edit mode, always skip WalletConnect initialization
-    if (isEditMode || isVisualMode || (isSandbox && !isEditMode === false)) {
-      debug.log('Edit/Visual mode detected - skipping WalletConnect initialization', {
-        isEditMode,
-        isVisualMode,
-        isSandbox, 
-        isLovableDomain,
-        hostname: window.location.hostname
-      });
-      
-      // Provide mock wallet state for Visual Edits compatibility
-      setWallet({
-        isConnected: false,
-        accountId: null,
-        publicKey: null,
-      });
-      return;
-    }
-
     const init = async () => {
       try {
         debug.log('Initializing wallet connector');
@@ -389,13 +340,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         debug.log('Wallet connector initialized successfully');
       } catch (error) {
         debug.error("Failed to initialize DAppConnector", error);
-        
-        // Check if it's a Visual Edits related error
-        if (error instanceof Error && error.message.includes('postMessage')) {
-          debug.warn('WalletConnect postMessage error detected - may be Visual Edits related');
-          return;
-        }
-        
         toast({
           title: "Initialization Failed",
           description: "Failed to initialize wallet connector. Please refresh the page.",
@@ -417,27 +361,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       connectorRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode]); // Re-run when mode changes
+  }, []);
 
   const connect = async () => {
-    // Enhanced prevention of connection attempts in Edit mode
-    const isVisualMode = isVisualEditing(isEditMode);
-    
-    if (isEditMode || isVisualMode) {
-      debug.log('Edit mode - wallet connection disabled', {
-        isEditMode,
-        isVisualMode,
-        hostname: window.location.hostname
-      });
-      
-      toast({
-        title: "Edit Mode Active",
-        description: "Switch to Demo Mode to enable wallet connection.",
-        variant: "default",
-      });
-      return;
-    }
-
     if (!walletConnector) {
       debug.error('Wallet connector not initialized');
       toast({
