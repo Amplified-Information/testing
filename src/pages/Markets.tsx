@@ -619,6 +619,61 @@ const Markets = () => {
             </div>}
         </div>
 
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">Total Markets</h4>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">{platformStats.totalMarkets}</p>
+              <p className="text-xs text-muted-foreground">Real count</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">24h Volume</h4>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">{platformStats.totalVolume}</p>
+              <p className="text-xs text-up">All markets combined</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">Active Traders</h4>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">{platformStats.activeTraders}</p>
+              <p className="text-xs text-up">Estimated based on markets</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">Avg Resolution</h4>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold">{platformStats.avgResolution}</p>
+              <p className="text-xs text-muted-foreground">Estimated time</p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Navigation */}
         {viewMode !== 'categories' && <div className="mb-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
@@ -907,61 +962,6 @@ const Markets = () => {
               </div>}
           </TabsContent>
         </Tabs>}
-
-        {/* Stats Section */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-muted-foreground">Total Markets</h4>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-2xl font-bold">{platformStats.totalMarkets}</p>
-              <p className="text-xs text-muted-foreground">Real count</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-muted-foreground">24h Volume</h4>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-2xl font-bold">{platformStats.totalVolume}</p>
-              <p className="text-xs text-up">All markets combined</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-muted-foreground">Active Traders</h4>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-2xl font-bold">{platformStats.activeTraders}</p>
-              <p className="text-xs text-up">Estimated based on markets</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-muted-foreground">Avg Resolution</h4>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-2xl font-bold">{platformStats.avgResolution}</p>
-              <p className="text-xs text-muted-foreground">Estimated time</p>
-            </CardContent>
-          </Card>
-        </div>
       </main>
     </div>;
 };
