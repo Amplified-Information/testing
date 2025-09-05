@@ -60,23 +60,23 @@ const HeroSection = () => {
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button variant="trading" size="xl" onClick={async () => {
-                if (wallet) {
-                  // Already connected, navigate directly to markets
+              if (wallet) {
+                // Already connected, navigate directly to markets
+                navigate('/markets');
+              } else {
+                // Not connected, connect first then navigate
+                try {
+                  await connect();
                   navigate('/markets');
-                } else {
-                  // Not connected, connect first then navigate
-                  try {
-                    await connect();
-                    navigate('/markets');
-                  } catch (error) {
-                    toast({
-                      title: "Connection Failed",
-                      description: "Failed to connect wallet. Please try again.",
-                      variant: "destructive"
-                    });
-                  }
+                } catch (error) {
+                  toast({
+                    title: "Connection Failed",
+                    description: "Failed to connect wallet. Please try again.",
+                    variant: "destructive"
+                  });
                 }
-              }} className="text-slate-600">
+              }
+            }} className="text-slate-50">
                 Start Trading
               </Button>
               <Button variant="outline" size="xl" asChild>
