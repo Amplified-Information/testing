@@ -8,13 +8,19 @@ import MarketHeader from "@/components/Markets/MarketHeader";
 import MultiChoiceTradingInterface from "@/components/Markets/MultiChoiceTradingInterface";
 import BinaryMarketInterface from "@/components/Markets/BinaryMarketInterface";
 import BinaryTradingInterface from "@/components/Markets/BinaryTradingInterface";
+import CLOBTradingInterface from "@/components/CLOB/CLOBTradingInterface";
+import OrderBookDisplay from "@/components/CLOB/OrderBookDisplay";
+import OrderHistoryTable from "@/components/CLOB/OrderHistoryTable";
 import { useMarketDetail } from "@/hooks/useMarketDetail";
 import { useMultiChoiceMarket } from "@/hooks/useMultiChoiceMarket";
+import { useWallet } from "@/contexts/WalletContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MarketDetail = () => {
   const { id } = useParams();
+  const { wallet } = useWallet();
   const { market, loading, error } = useMarketDetail(id || '');
   const { 
     candidateGroups, 
@@ -181,29 +187,52 @@ const MarketDetail = () => {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              {isTrueBinary && binaryOptions.yesOption && binaryOptions.noOption ? (
-                <BinaryTradingInterface 
-                  yesOption={binaryOptions.yesOption}
-                  noOption={binaryOptions.noOption}
-                  marketId={market.id} 
+            <div className="sticky top-8 space-y-6">
+              {/* CLOB Trading Interface */}
+              <Tabs defaultValue="clob" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="clob">CLOB Trading</TabsTrigger>
+                  <TabsTrigger value="traditional">Traditional</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="clob" className="space-y-4">
+                  <CLOBTradingInterface marketId={market.id} />
+                  <OrderBookDisplay marketId={market.id} />
+                </TabsContent>
+                
+                <TabsContent value="traditional">
+                  {isTrueBinary && binaryOptions.yesOption && binaryOptions.noOption ? (
+                    <BinaryTradingInterface 
+                      yesOption={binaryOptions.yesOption}
+                      noOption={binaryOptions.noOption}
+                      marketId={market.id} 
+                    />
+                  ) : isMultiChoice ? (
+                    <MultiChoiceTradingInterface 
+                      candidates={candidateGroups.map(g => g.candidate)}
+                      marketId={market.id} 
+                    />
+                  ) : (
+                    candidates[0] ? (
+                      <TradingInterface 
+                        topCandidate={candidates[0]}
+                        marketId={market.id}
+                      />
+                    ) : (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No candidate data available
+                      </div>
+                    )
+                  )}
+                </TabsContent>
+              </Tabs>
+              
+              {/* Order History for connected wallet */}
+              {wallet.accountId && (
+                <OrderHistoryTable 
+                  marketId={market.id}
+                  accountId={wallet.accountId}
                 />
-              ) : isMultiChoice ? (
-                <MultiChoiceTradingInterface 
-                  candidates={candidateGroups.map(g => g.candidate)}
-                  marketId={market.id} 
-                />
-              ) : (
-                candidates[0] ? (
-                  <TradingInterface 
-                    topCandidate={candidates[0]}
-                    marketId={market.id}
-                  />
-                ) : (
-                  <div className="p-4 text-center text-muted-foreground">
-                    No candidate data available
-                  </div>
-                )
               )}
             </div>
           </div>

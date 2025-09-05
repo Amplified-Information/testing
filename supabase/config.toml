@@ -1,1 +1,4 @@
 project_id = "bfenuvdwsgzglhhjbrql"
+
+[functions.clob-relayer]
+verify_jwt = false

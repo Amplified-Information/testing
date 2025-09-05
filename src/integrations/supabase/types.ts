@@ -14,6 +14,249 @@ export type Database = {
   }
   public: {
     Tables: {
+      clob_batches: {
+        Row: {
+          batch_id: number
+          book_snapshot_root: string
+          cancels_count: number | null
+          created_at: string | null
+          hcs_batch_message_id: string | null
+          id: string
+          input_order_root: string
+          market_id: string | null
+          sequencer_signature: string
+          settlement_status: string | null
+          settlement_tx_hash: string | null
+          trades_count: number | null
+          updated_at: string | null
+          window_end: number
+          window_start: number
+        }
+        Insert: {
+          batch_id: number
+          book_snapshot_root: string
+          cancels_count?: number | null
+          created_at?: string | null
+          hcs_batch_message_id?: string | null
+          id?: string
+          input_order_root: string
+          market_id?: string | null
+          sequencer_signature: string
+          settlement_status?: string | null
+          settlement_tx_hash?: string | null
+          trades_count?: number | null
+          updated_at?: string | null
+          window_end: number
+          window_start: number
+        }
+        Update: {
+          batch_id?: number
+          book_snapshot_root?: string
+          cancels_count?: number | null
+          created_at?: string | null
+          hcs_batch_message_id?: string | null
+          id?: string
+          input_order_root?: string
+          market_id?: string | null
+          sequencer_signature?: string
+          settlement_status?: string | null
+          settlement_tx_hash?: string | null
+          trades_count?: number | null
+          updated_at?: string | null
+          window_end?: number
+          window_start?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clob_batches_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clob_orders: {
+        Row: {
+          created_at: string | null
+          expiry_timestamp: number | null
+          filled_quantity: number | null
+          hcs_message_id: string | null
+          hcs_sequence_number: number | null
+          id: string
+          maker_account_id: string
+          market_id: string | null
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          quantity: number
+          side: string
+          status: string | null
+          time_in_force: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expiry_timestamp?: number | null
+          filled_quantity?: number | null
+          hcs_message_id?: string | null
+          hcs_sequence_number?: number | null
+          id?: string
+          maker_account_id: string
+          market_id?: string | null
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          quantity: number
+          side: string
+          status?: string | null
+          time_in_force?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expiry_timestamp?: number | null
+          filled_quantity?: number | null
+          hcs_message_id?: string | null
+          hcs_sequence_number?: number | null
+          id?: string
+          maker_account_id?: string
+          market_id?: string | null
+          max_collateral?: number
+          nonce?: number
+          order_id?: string
+          order_signature?: string
+          price_ticks?: number
+          quantity?: number
+          side?: string
+          status?: string | null
+          time_in_force?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clob_orders_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clob_positions: {
+        Row: {
+          account_id: string
+          avg_entry_price: number | null
+          collateral_locked: number | null
+          created_at: string | null
+          id: string
+          market_id: string | null
+          position_type: string
+          quantity: number | null
+          realized_pnl: number | null
+          unrealized_pnl: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          avg_entry_price?: number | null
+          collateral_locked?: number | null
+          created_at?: string | null
+          id?: string
+          market_id?: string | null
+          position_type: string
+          quantity?: number | null
+          realized_pnl?: number | null
+          unrealized_pnl?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          avg_entry_price?: number | null
+          collateral_locked?: number | null
+          created_at?: string | null
+          id?: string
+          market_id?: string | null
+          position_type?: string
+          quantity?: number | null
+          realized_pnl?: number | null
+          unrealized_pnl?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clob_positions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clob_trades: {
+        Row: {
+          batch_id: string | null
+          buy_order_id: string
+          buyer_account_id: string
+          created_at: string | null
+          id: string
+          market_id: string | null
+          price_ticks: number
+          quantity: number
+          sell_order_id: string
+          seller_account_id: string
+          trade_id: string
+          trade_timestamp: number
+        }
+        Insert: {
+          batch_id?: string | null
+          buy_order_id: string
+          buyer_account_id: string
+          created_at?: string | null
+          id?: string
+          market_id?: string | null
+          price_ticks: number
+          quantity: number
+          sell_order_id: string
+          seller_account_id: string
+          trade_id: string
+          trade_timestamp: number
+        }
+        Update: {
+          batch_id?: string | null
+          buy_order_id?: string
+          buyer_account_id?: string
+          created_at?: string | null
+          id?: string
+          market_id?: string | null
+          price_ticks?: number
+          quantity?: number
+          sell_order_id?: string
+          seller_account_id?: string
+          trade_id?: string
+          trade_timestamp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clob_trades_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "clob_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clob_trades_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_markets: {
         Row: {
           category_id: string
@@ -206,6 +449,47 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      hcs_topics: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          market_id: string | null
+          topic_id: string
+          topic_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          market_id?: string | null
+          topic_id: string
+          topic_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          market_id?: string | null
+          topic_id?: string
+          topic_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcs_topics_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hedera_wallets: {
         Row: {
@@ -727,6 +1011,97 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      sequencer_state: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_batch_id: number | null
+          last_processed_at: string | null
+          last_processed_sequence: number | null
+          market_id: string | null
+          order_book_snapshot: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_batch_id?: number | null
+          last_processed_at?: string | null
+          last_processed_sequence?: number | null
+          market_id?: string | null
+          order_book_snapshot?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_batch_id?: number | null
+          last_processed_at?: string | null
+          last_processed_sequence?: number | null
+          market_id?: string | null
+          order_book_snapshot?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequencer_state_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: true
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlement_transactions: {
+        Row: {
+          batch_id: string | null
+          created_at: string | null
+          error_message: string | null
+          gas_price: number | null
+          gas_used: number | null
+          id: string
+          status: string | null
+          transaction_fee: number | null
+          transaction_hash: string | null
+          transaction_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          gas_price?: number | null
+          gas_used?: number | null
+          id?: string
+          status?: string | null
+          transaction_fee?: number | null
+          transaction_hash?: string | null
+          transaction_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          gas_price?: number | null
+          gas_used?: number | null
+          id?: string
+          status?: string | null
+          transaction_fee?: number | null
+          transaction_hash?: string | null
+          transaction_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_transactions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "clob_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       staking_positions: {
         Row: {
