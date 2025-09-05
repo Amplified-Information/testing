@@ -16,9 +16,18 @@ import {
 } from "@hashgraph/hedera-wallet-connect";
 import { LedgerId } from "@hashgraph/sdk";
 import { toast } from "@/hooks/use-toast";
-import { useDebugger } from "@/hooks/useDebugger";
+import { useDebugger, appDebugger } from "@/hooks/useDebugger";
 import { supabase } from "@/integrations/supabase/client";
 import { useSaveWallet, usePrimaryWallet } from "@/hooks/useHederaWallets";
+
+// Visual Edits detection function (extracted from debugger)
+function isVisualEditing(): boolean {
+  return typeof window !== 'undefined' && (
+    window.location.hostname.includes('lovable.app') ||
+    window.parent !== window ||
+    document.querySelector('[data-visual-editor]') !== null
+  );
+}
 
 // Helper function to extract account ID from session
 function getAccountIdFromSession(session: any): string | null {
@@ -278,6 +287,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize DAppConnector only once on mount
   useEffect(() => {
+    // Skip WalletConnect initialization in Visual Edits mode
+    if (isVisualEditing()) {
+      debug.log('Visual Edits mode detected - skipping WalletConnect initialization');
+      // Provide mock wallet state for Visual Edits compatibility
+      setWallet({
+        isConnected: false,
+        accountId: null,
+        publicKey: null,
+      });
+      return;
+    }
+
     const init = async () => {
       try {
         debug.log('Initializing wallet connector');
@@ -340,6 +361,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         debug.log('Wallet connector initialized successfully');
       } catch (error) {
         debug.error("Failed to initialize DAppConnector", error);
+        
+        // Check if it's a Visual Edits related error
+        if (error instanceof Error && error.message.includes('postMessage')) {
+          debug.warn('WalletConnect postMessage error detected - may be Visual Edits related');
+          return;
+        }
+        
         toast({
           title: "Initialization Failed",
           description: "Failed to initialize wallet connector. Please refresh the page.",
@@ -364,6 +392,17 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const connect = async () => {
+    // Prevent connection attempts in Visual Edits mode
+    if (isVisualEditing()) {
+      debug.log('Visual Edits mode - wallet connection disabled');
+      toast({
+        title: "Visual Edits Mode",
+        description: "Wallet connection is disabled in Visual Edits mode.",
+        variant: "default",
+      });
+      return;
+    }
+
     if (!walletConnector) {
       debug.error('Wallet connector not initialized');
       toast({

@@ -28,6 +28,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Handle WalletConnect postMessage errors specifically
+    if (error.name === 'DataCloneError' && error.message.includes('postMessage')) {
+      console.warn('WalletConnect postMessage error - likely Visual Edits conflict');
+      // Don't show error UI for this specific case, just log it
+      this.setState({ hasError: false, error: null, errorInfo: null });
+      return;
+    }
+    
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
   }
