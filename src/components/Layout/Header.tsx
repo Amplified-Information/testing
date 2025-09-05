@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 
 const Header = () => {
+  console.log('Header component rendering');
   const { wallet } = useWallet();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
