@@ -86,7 +86,7 @@ const WalletButton = () => {
       });
     }
   };
-  return <Button onClick={handleConnect} disabled={isLoading} className="bg-primary hover:bg-primary-glow text-slate-600">
+  return <Button onClick={handleConnect} disabled={isLoading} className="bg-primary hover:bg-primary-glow text-slate-50">
       {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
       <Wallet className="w-4 h-4 mr-2" />
       Connect Wallet
