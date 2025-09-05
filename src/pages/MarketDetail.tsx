@@ -169,7 +169,7 @@ const MarketDetail = () => {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                          <button className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">
                             Yes {Math.round(group.candidate.yesPrice * 100)}¢
                           </button>
                           <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
