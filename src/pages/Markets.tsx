@@ -466,7 +466,7 @@ const Markets = () => {
       <Header />
       
       {/* Stats Section - Moved between header and carousel */}
-      <div className="container py-8">
+      <div className="container py-8 pb-0">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <Card>
             <CardHeader className="pb-2">
