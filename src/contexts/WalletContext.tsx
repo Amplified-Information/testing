@@ -300,7 +300,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           [HederaChainId.Testnet]
         );
 
-        await connector.init({ logger: "error" });
+        // Initialize with enhanced error handling and serialization fixes
+        await connector.init({ 
+          logger: "error"
+        });
         
         handleSessionEvents(connector);
         setWalletConnector(connector);

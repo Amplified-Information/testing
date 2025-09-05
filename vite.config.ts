@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     https: {},
+    headers: {
+      'Content-Security-Policy': "frame-ancestors 'self' https://*.walletconnect.com https://*.walletconnect.org",
+    },
   },
   plugins: [
     react(),
