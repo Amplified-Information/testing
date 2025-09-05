@@ -471,9 +471,6 @@ const Markets = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-2">
               
-              <p className="text-lg text-muted-foreground">
-                Discover and trade on prediction markets across various categories
-              </p>
             </div>
           </div>
 
