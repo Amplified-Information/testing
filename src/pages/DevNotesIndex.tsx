@@ -97,7 +97,7 @@ const DevNotesIndex = () => {
                       Detailed progress tracking across database, frontend, backend, and security features
                     </CardDescription>
                   </div>
-                  <Badge variant="secondary">In Progress</Badge>
+                  <Badge className="bg-amber-500 hover:bg-amber-600">In Progress</Badge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -135,7 +135,7 @@ const DevNotesIndex = () => {
                       Comprehensive security assessment, vulnerability analysis, and implementation roadmap
                     </CardDescription>
                   </div>
-                  <Badge variant="secondary">Reviewed</Badge>
+                  <Badge className="bg-blue-500 hover:bg-blue-600">Reviewed</Badge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -145,10 +145,10 @@ const DevNotesIndex = () => {
                     RLS policies, and external API security. Includes resolved issues and remediation plan.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-green-600 border-green-600">3 Resolved</Badge>
-                    <Badge variant="outline" className="text-red-600 border-red-600">2 Critical</Badge>
-                    <Badge variant="outline" className="text-orange-600 border-orange-600">2 Moderate</Badge>
-                    <Badge variant="outline" className="text-blue-600 border-blue-600">4 Config</Badge>
+                    <Badge variant="outline" className="border-emerald-500 text-emerald-600">3 Resolved</Badge>
+                    <Badge variant="outline" className="border-red-500 text-red-600">2 Critical</Badge>
+                    <Badge variant="outline" className="border-amber-500 text-amber-600">2 Moderate</Badge>
+                    <Badge variant="outline" className="border-blue-500 text-blue-600">4 Config</Badge>
                   </div>
                   <Link 
                     to="/dev-notes/security" 
@@ -161,15 +161,15 @@ const DevNotesIndex = () => {
             </Card>
 
             {/* Wallet Connection Troubleshooting */}
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card className="hover:shadow-lg transition-shadow border-red-200 bg-red-50/50">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Wallet className="h-5 w-5 text-primary" />
+                    <CardTitle className="flex items-center gap-2 text-red-800">
+                      <Wallet className="h-5 w-5 text-red-600" />
                       Wallet Connection Troubleshooting
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-red-700">
                       Comprehensive guide to resolve WalletConnect errors and DataCloneError issues
                     </CardDescription>
                   </div>
@@ -178,19 +178,19 @@ const DevNotesIndex = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-red-700">
                     Detailed analysis of the "no internet access" WalletConnect error, including root cause
                     investigation and a three-phase implementation plan to resolve DataCloneError and postMessage issues.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-red-600 border-red-600">DataCloneError</Badge>
-                    <Badge variant="outline" className="text-orange-600 border-orange-600">postMessage</Badge>
-                    <Badge variant="outline" className="text-blue-600 border-blue-600">WalletConnect</Badge>
+                    <Badge variant="outline" className="border-red-500 text-red-600">DataCloneError</Badge>
+                    <Badge variant="outline" className="border-amber-500 text-amber-600">postMessage</Badge>
+                    <Badge variant="outline" className="border-blue-500 text-blue-600">WalletConnect</Badge>
                     <Badge variant="outline">Browser Compatibility</Badge>
                   </div>
                   <Link 
                     to="/dev-notes/wallet-connection" 
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-red-700 hover:underline"
                   >
                     View Wallet Connection Guide <ExternalLink className="h-4 w-4" />
                   </Link>
@@ -199,37 +199,37 @@ const DevNotesIndex = () => {
             </Card>
 
             {/* Wallet Storage Implementation */}
-            <Card className="hover:shadow-lg transition-shadow border-green-200 bg-green-50/50">
+            <Card className="hover:shadow-lg transition-shadow border-emerald-200 bg-emerald-50/50">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2 text-green-800">
-                      <Wallet className="h-5 w-5 text-green-600" />
+                    <CardTitle className="flex items-center gap-2 text-emerald-800">
+                      <Wallet className="h-5 w-5 text-emerald-600" />
                       Wallet Storage Implementation
                     </CardTitle>
-                    <CardDescription className="text-green-700">
+                    <CardDescription className="text-emerald-700">
                       Complete implementation guide for persistent wallet storage with Supabase integration
                     </CardDescription>
                   </div>
-                  <Badge variant="default" className="bg-green-600">Implemented ✅</Badge>
+                  <Badge className="bg-emerald-600 hover:bg-emerald-700">Implemented ✅</Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-emerald-700">
                     Comprehensive documentation of the wallet storage system including user experience flows, 
                     technical architecture, database schema, and implementation details. Features persistent 
                     wallet connections, auto-restoration, and full wallet management interface.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-green-600 border-green-600">Database Schema</Badge>
-                    <Badge variant="outline" className="text-blue-600 border-blue-600">React Hooks</Badge>
-                    <Badge variant="outline" className="text-purple-600 border-purple-600">User Experience</Badge>
-                    <Badge variant="outline" className="text-orange-600 border-orange-600">Auto-Restore</Badge>
+                    <Badge variant="outline" className="border-emerald-500 text-emerald-600">Database Schema</Badge>
+                    <Badge variant="outline" className="border-blue-500 text-blue-600">React Hooks</Badge>
+                    <Badge variant="outline" className="border-purple-500 text-purple-600">User Experience</Badge>
+                    <Badge variant="outline" className="border-amber-500 text-amber-600">Auto-Restore</Badge>
                   </div>
                   <Link 
                     to="/dev-notes/wallet-storage" 
-                    className="inline-flex items-center gap-2 text-sm font-medium text-green-700 hover:underline"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:underline"
                   >
                     View Wallet Storage Implementation <ExternalLink className="h-4 w-4" />
                   </Link>
@@ -238,38 +238,38 @@ const DevNotesIndex = () => {
             </Card>
 
             {/* CLOB Architecture */}
-            <Card className="hover:shadow-lg transition-shadow border-green-200 bg-green-50/50">
+            <Card className="hover:shadow-lg transition-shadow border-emerald-200 bg-emerald-50/50">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2 text-green-800">
-                      <BarChart3 className="h-5 w-5 text-green-600" />
+                    <CardTitle className="flex items-center gap-2 text-emerald-800">
+                      <BarChart3 className="h-5 w-5 text-emerald-600" />
                       CLOB Architecture Implementation
                     </CardTitle>
-                    <CardDescription className="text-green-700">
+                    <CardDescription className="text-emerald-700">
                       Foundation phase completed - CLOB system with UI components and backend services
                     </CardDescription>
                   </div>
-                  <Badge variant="default" className="bg-green-600">Foundation Complete ✅</Badge>
+                  <Badge className="bg-emerald-600 hover:bg-emerald-700">Foundation Complete ✅</Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-emerald-700">
                     Phase 5A foundation completed with database schema, TypeScript interfaces, HCS service integration, 
                     core CLOB logic, order relayer, React hooks, and trading UI components. Ready for next phase: 
                     HCS operator setup and sequencer service implementation.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-green-600 border-green-600">Database Schema ✅</Badge>
-                    <Badge variant="outline" className="text-green-600 border-green-600">UI Components ✅</Badge>
-                    <Badge variant="outline" className="text-green-600 border-green-600">HCS Service ✅</Badge>
-                    <Badge variant="outline" className="text-blue-600 border-blue-600">Operator Setup</Badge>
-                    <Badge variant="outline" className="text-orange-600 border-orange-600">Sequencer</Badge>
+                    <Badge variant="outline" className="border-emerald-500 text-emerald-600">Database Schema ✅</Badge>
+                    <Badge variant="outline" className="border-emerald-500 text-emerald-600">UI Components ✅</Badge>
+                    <Badge variant="outline" className="border-emerald-500 text-emerald-600">HCS Service ✅</Badge>
+                    <Badge variant="outline" className="border-blue-500 text-blue-600">Operator Setup</Badge>
+                    <Badge variant="outline" className="border-amber-500 text-amber-600">Sequencer</Badge>
                   </div>
                   <Link 
                     to="/dev-notes/clob-architecture" 
-                    className="inline-flex items-center gap-2 text-sm font-medium text-green-700 hover:underline"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:underline"
                   >
                     View CLOB Implementation <ExternalLink className="h-4 w-4" />
                   </Link>
