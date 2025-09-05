@@ -525,7 +525,7 @@ const Markets = () => {
 
         {/* Categories View with Carousel */}
         {viewMode === 'categories' && <div className="mb-8 space-y-8">
-            <h2 className="text-xl font-semibold">Categories</h2>
+            
             
             {/* Carousel Wheel */}
             <div className="relative">
