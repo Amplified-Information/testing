@@ -17,6 +17,7 @@ import DevNotesIndex from "./pages/DevNotesIndex";
 import SecurityNotes from "./pages/SecurityNotes";
 import WalletConnectionNotes from "./pages/WalletConnectionNotes";
 import WalletStorageImplementation from "./pages/WalletStorageImplementation";
+import CLOBArchitecture from "./pages/CLOBArchitecture";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -63,6 +64,7 @@ const App = () => (
                   <Route path="/dev-notes/security" element={<SecurityNotes />} />
                   <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
                   <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
+                  <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
                   <Route path="/market/:id" element={<MarketDetail />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

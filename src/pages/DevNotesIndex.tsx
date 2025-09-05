@@ -2,7 +2,7 @@ import Header from "@/components/Layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet } from "lucide-react";
+import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3 } from "lucide-react";
 
 const DevNotesIndex = () => {
   return (
@@ -232,6 +232,45 @@ const DevNotesIndex = () => {
                     className="inline-flex items-center gap-2 text-sm font-medium text-green-700 hover:underline"
                   >
                     View Wallet Storage Implementation <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* CLOB Architecture */}
+            <Card className="hover:shadow-lg transition-shadow border-blue-200 bg-blue-50/50">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-blue-800">
+                      <BarChart3 className="h-5 w-5 text-blue-600" />
+                      CLOB Architecture Specification
+                    </CardTitle>
+                    <CardDescription className="text-blue-700">
+                      Comprehensive specification for Central Limit Order Book using Hedera services
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary">Phase 5 Planning</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-blue-700">
+                    Detailed architecture specification for implementing an off-chain CLOB with HCS ordering, 
+                    EVM settlement, and optimistic dispute resolution. Includes component design, message schemas, 
+                    security model, and economic analysis for high-throughput decentralized trading.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="text-blue-600 border-blue-600">HCS Integration</Badge>
+                    <Badge variant="outline" className="text-purple-600 border-purple-600">Smart Contracts</Badge>
+                    <Badge variant="outline" className="text-green-600 border-green-600">Order Matching</Badge>
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">Fraud Proofs</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/clob-architecture" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:underline"
+                  >
+                    View CLOB Architecture <ExternalLink className="h-4 w-4" />
                   </Link>
                 </div>
               </CardContent>

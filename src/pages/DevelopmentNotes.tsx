@@ -15,7 +15,8 @@ import {
   Vote,
   Settings,
   FileText,
-  Coins
+  Coins,
+  BarChart3
 } from "lucide-react";
 
 const DevelopmentNotes = () => {
@@ -117,6 +118,17 @@ const DevelopmentNotes = () => {
       progress: calculateProgress(securityFeatures),
       components: securityFeatures,
       description: 'Security hardening and production-ready features.'
+    },
+    {
+      phase: 'Phase 5: CLOB Implementation',
+      progress: 0,
+      components: [
+        { name: 'HCS Topics & Infrastructure', status: 'pending', description: 'Orders, batches, oracle topics setup' },
+        { name: 'Settlement Smart Contracts', status: 'pending', description: 'Hedera EVM contracts with HTS integration' },
+        { name: 'Order Matching Engine', status: 'pending', description: 'Deterministic sequencer with fraud proofs' },
+        { name: 'Trading Interface', status: 'pending', description: 'Advanced order book UI and real-time updates' }
+      ],
+      description: 'Central Limit Order Book with off-chain matching and on-chain settlement.'
     }
   ];
 
@@ -151,11 +163,12 @@ const DevelopmentNotes = () => {
           </Card>
 
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="database">Database</TabsTrigger>
               <TabsTrigger value="frontend">Frontend</TabsTrigger>
               <TabsTrigger value="backend">Backend</TabsTrigger>
+              <TabsTrigger value="clob">CLOB</TabsTrigger>
               <TabsTrigger value="architecture">Architecture</TabsTrigger>
             </TabsList>
 
@@ -223,6 +236,10 @@ const DevelopmentNotes = () => {
                         <li className="flex items-center gap-2">
                           <Circle className="h-3 w-3 text-gray-400" />
                           Smart contract deployment (pending)
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          CLOB trading system (phase 5)
                         </li>
                       </ul>
                     </div>
@@ -513,6 +530,156 @@ const DevelopmentNotes = () => {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="clob" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Phase 5: CLOB Implementation Plan
+                  </CardTitle>
+                  <CardDescription>
+                    Central Limit Order Book architecture with Hedera services integration
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-3">CLOB Architecture Overview</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span>Off-chain order matching with HCS ordering</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span>EVM settlement contracts with HTS integration</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span>Optimistic dispute resolution with fraud proofs</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span>Permissionless relayer network</span>
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold mb-3">Implementation Phases</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">5A: Foundation & Infrastructure</span>
+                          <Badge variant="outline">4-6 weeks</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">5B: Core Trading Engine</span>
+                          <Badge variant="outline">6-8 weeks</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">5C: Advanced Features</span>
+                          <Badge variant="outline">4-6 weeks</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">5D: Production & Optimization</span>
+                          <Badge variant="outline">3-4 weeks</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Core Components</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm">HCS Topics Setup</span>
+                        </div>
+                        <Badge variant="outline">Planned</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm">Settlement Smart Contracts</span>
+                        </div>
+                        <Badge variant="outline">Planned</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm">Order Matching Engine</span>
+                        </div>
+                        <Badge variant="outline">Planned</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm">Fraud Proof System</span>
+                        </div>
+                        <Badge variant="outline">Planned</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Technical Integration</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div>
+                        <h5 className="font-medium text-sm mb-2">Database Extensions</h5>
+                        <ul className="text-xs space-y-1 text-muted-foreground">
+                          <li>• clob_markets - Market parameters & tick sizes</li>
+                          <li>• clob_orders - Signed orders with HCS references</li>
+                          <li>• clob_batches - Sequencer output & settlement</li>
+                          <li>• clob_trades - Executed trade history</li>
+                        </ul>
+                      </div>
+                      
+                      <div>
+                        <h5 className="font-medium text-sm mb-2">Edge Functions</h5>
+                        <ul className="text-xs space-y-1 text-muted-foreground">
+                          <li>• Relayer service for order publication</li>
+                          <li>• Sequencer for deterministic matching</li>
+                          <li>• Oracle service for market resolution</li>
+                          <li>• Watcher service for fraud detection</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Message Flow & Architecture</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <pre className="text-xs overflow-auto">
+{`Trader → Relayer → HCS Topic (orders) → Sequencer → HCS Topic (batches) → Settlement Contract → HTS Updates
+
+1. Trader signs EIP-712 order locally
+2. Relayer validates and publishes to HCS orders topic  
+3. Sequencer reads orders, creates deterministic batches
+4. Sequencer publishes batch to HCS batches topic
+5. Settlement contract verifies and executes via HTS
+6. Watchers validate batches, submit fraud proofs if needed`}
+                    </pre>
                   </div>
                 </CardContent>
               </Card>
