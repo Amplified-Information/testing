@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, TrendingUp, Hexagon, Menu } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { TrendingUp, Hexagon, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import WalletButton from "@/components/Wallet/WalletButton";
 import { useWallet } from "@/contexts/WalletContext";
@@ -59,17 +58,6 @@ const Header = () => {
           </Link>
         </nav>
 
-        {/* Search */}
-        <div className="flex-1 max-w-md mx-8 hidden md:block">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search event prediction markets..."
-              className="pl-8 bg-muted/50"
-            />
-          </div>
-        </div>
-
         {/* Mobile Menu */}
         <div className="md:hidden">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -116,17 +104,6 @@ const Header = () => {
                 >
                   Dev Notes
                 </Link>
-                
-                {/* Mobile Search */}
-                <div className="pt-6 border-t">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search markets..."
-                      className="pl-8 bg-muted/50"
-                    />
-                  </div>
-                </div>
               </nav>
             </SheetContent>
           </Sheet>
