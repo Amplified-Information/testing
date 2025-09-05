@@ -43,43 +43,39 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => {
-  console.log('App component rendering');
-  
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <WalletErrorBoundary>
-          <WalletProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <ErrorBoundary>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/markets" element={<Markets />} />
-                    <Route path="/create-market" element={<CreateMarket />} />
-                    <Route path="/portfolio" element={<Portfolio />} />
-                    <Route path="/dev-notes" element={<DevNotesIndex />} />
-                    <Route path="/dev-notes/technical-docs" element={<Documentation />} />
-                    <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
-                    <Route path="/dev-notes/security" element={<SecurityNotes />} />
-                    <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
-                    <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
-                    <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
-                    <Route path="/market/:id" element={<MarketDetail />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </ErrorBoundary>
-            </TooltipProvider>
-          </WalletProvider>
-        </WalletErrorBoundary>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
-};
+const App = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <WalletErrorBoundary>
+        <WalletProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <ErrorBoundary>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/markets" element={<Markets />} />
+                  <Route path="/create-market" element={<CreateMarket />} />
+                  <Route path="/portfolio" element={<Portfolio />} />
+                  <Route path="/dev-notes" element={<DevNotesIndex />} />
+                  <Route path="/dev-notes/technical-docs" element={<Documentation />} />
+                  <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
+                  <Route path="/dev-notes/security" element={<SecurityNotes />} />
+                  <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
+                  <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
+                  <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
+                  <Route path="/market/:id" element={<MarketDetail />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </ErrorBoundary>
+          </TooltipProvider>
+        </WalletProvider>
+      </WalletErrorBoundary>
+    </QueryClientProvider>
+  </ErrorBoundary>
+);
 
 export default App;

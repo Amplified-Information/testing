@@ -20,16 +20,14 @@ export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
-    console.log('ErrorBoundary constructor called');
   }
 
   static getDerivedStateFromError(error: Error): State {
-    console.error('ErrorBoundary caught error:', error);
     return { hasError: true, error, errorInfo: null };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary componentDidCatch:', error, errorInfo);
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
   }
@@ -39,8 +37,6 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   render() {
-    console.log('ErrorBoundary render, hasError:', this.state.hasError);
-    
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;

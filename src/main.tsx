@@ -13,7 +13,4 @@ window.global = window;
 window.Buffer = Buffer;
 window.process = process;
 
-console.log('About to render React app');
-console.log('Root element exists:', !!document.getElementById("root"));
-
 createRoot(document.getElementById("root")!).render(<App />);

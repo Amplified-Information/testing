@@ -14,18 +14,27 @@ import {
   SequencerState,
   HCSMessage
 } from '@/types/clob';
-import { useDebugger } from '@/hooks/useDebugger';
 import { keccak256 } from 'ethers';
 
 export class CLOBService {
-  private debug = useDebugger('CLOBService');
+  private debugEnabled = import.meta.env.MODE === 'development';
+
+  private log(message: string, data?: any) {
+    if (this.debugEnabled) {
+      console.log(`[CLOBService] ${message}`, data);
+    }
+  }
+
+  private error(message: string, data?: any) {
+    console.error(`[CLOBService] ${message}`, data);
+  }
 
   /**
    * Submit a signed order to the CLOB system
    */
   async submitOrder(order: CLOBOrder): Promise<string> {
     try {
-      this.debug.log('Submitting CLOB order', { orderId: order.orderId, marketId: order.marketId });
+      this.log('Submitting CLOB order', { orderId: order.orderId, marketId: order.marketId });
 
       // Validate order signature and structure
       if (!this.validateOrder(order)) {
@@ -53,7 +62,7 @@ export class CLOBService {
         .single();
 
       if (dbError) {
-        this.debug.error('Failed to store order in database', dbError);
+        this.error('Failed to store order in database', dbError);
         throw dbError;
       }
 
@@ -64,11 +73,11 @@ export class CLOBService {
         .update({ status: 'PUBLISHED' })
         .eq('id', orderRow.id);
 
-      this.debug.log('Order submitted successfully', { orderId: order.orderId });
+      this.log('Order submitted successfully', { orderId: order.orderId });
       return order.orderId!;
 
     } catch (error) {
-      this.debug.error('Failed to submit CLOB order', error);
+      this.error('Failed to submit CLOB order', error);
       throw error;
     }
   }
@@ -78,7 +87,7 @@ export class CLOBService {
    */
   async getOrderBook(marketId: string): Promise<OrderBook> {
     try {
-      this.debug.log('Fetching order book', { marketId });
+      this.log('Fetching order book', { marketId });
 
       // Get active orders for the market
       const { data: ordersData, error } = await supabase
@@ -89,7 +98,7 @@ export class CLOBService {
         .order('price_ticks', { ascending: false });
 
       if (error) {
-        this.debug.error('Failed to fetch orders', error);
+        this.error('Failed to fetch orders', error);
         throw error;
       }
 
@@ -118,7 +127,7 @@ export class CLOBService {
       };
 
     } catch (error) {
-      this.debug.error('Failed to get order book', error);
+      this.error('Failed to get order book', error);
       throw error;
     }
   }
@@ -128,7 +137,7 @@ export class CLOBService {
    */
   async getPositions(accountId: string, marketId?: string): Promise<CLOBPosition[]> {
     try {
-      this.debug.log('Fetching positions', { accountId, marketId });
+      this.log('Fetching positions', { accountId, marketId });
 
       let query = supabase
         .from('clob_positions')
@@ -142,14 +151,14 @@ export class CLOBService {
       const { data: positions, error } = await query;
 
       if (error) {
-        this.debug.error('Failed to fetch positions', error);
+        this.error('Failed to fetch positions', error);
         throw error;
       }
 
       return positions.map(this.mapPositionRowToPosition);
 
     } catch (error) {
-      this.debug.error('Failed to get positions', error);
+      this.error('Failed to get positions', error);
       throw error;
     }
   }
@@ -159,7 +168,7 @@ export class CLOBService {
    */
   async getOrderHistory(accountId: string, marketId?: string, limit = 100): Promise<CLOBOrder[]> {
     try {
-      this.debug.log('Fetching order history', { accountId, marketId, limit });
+      this.log('Fetching order history', { accountId, marketId, limit });
 
       let query = supabase
         .from('clob_orders')
@@ -175,7 +184,7 @@ export class CLOBService {
       const { data: ordersData, error } = await query;
 
       if (error) {
-        this.debug.error('Failed to fetch order history', error);
+        this.error('Failed to fetch order history', error);
         throw error;
       }
 
@@ -183,7 +192,7 @@ export class CLOBService {
       return orders.map(this.mapOrderRowToOrder);
 
     } catch (error) {
-      this.debug.error('Failed to get order history', error);
+      this.error('Failed to get order history', error);
       throw error;
     }
   }
@@ -193,7 +202,7 @@ export class CLOBService {
    */
   async getTradeHistory(accountId: string, marketId?: string, limit = 100): Promise<CLOBTrade[]> {
     try {
-      this.debug.log('Fetching trade history', { accountId, marketId, limit });
+      this.log('Fetching trade history', { accountId, marketId, limit });
 
       let query = supabase
         .from('clob_trades')
@@ -209,14 +218,14 @@ export class CLOBService {
       const { data: trades, error } = await query;
 
       if (error) {
-        this.debug.error('Failed to fetch trade history', error);
+        this.error('Failed to fetch trade history', error);
         throw error;
       }
 
       return trades.map(this.mapTradeRowToTrade);
 
     } catch (error) {
-      this.debug.error('Failed to get trade history', error);
+      this.error('Failed to get trade history', error);
       throw error;
     }
   }
@@ -226,7 +235,7 @@ export class CLOBService {
    */
   async cancelOrder(orderId: string, accountId: string): Promise<void> {
     try {
-      this.debug.log('Cancelling order', { orderId, accountId });
+      this.log('Cancelling order', { orderId, accountId });
 
       // Verify ownership and update status
       const { error } = await supabase
@@ -237,16 +246,16 @@ export class CLOBService {
         .in('status', ['PENDING', 'PUBLISHED', 'PARTIAL_FILL']);
 
       if (error) {
-        this.debug.error('Failed to cancel order', error);
+        this.error('Failed to cancel order', error);
         throw error;
       }
 
       // TODO: Publish cancel message to HCS topic
 
-      this.debug.log('Order cancelled successfully', { orderId });
+      this.log('Order cancelled successfully', { orderId });
 
     } catch (error) {
-      this.debug.error('Failed to cancel order', error);
+      this.error('Failed to cancel order', error);
       throw error;
     }
   }
@@ -274,7 +283,7 @@ export class CLOBService {
       };
 
     } catch (error) {
-      this.debug.error('Failed to get market stats', error);
+      this.error('Failed to get market stats', error);
       throw error;
     }
   }

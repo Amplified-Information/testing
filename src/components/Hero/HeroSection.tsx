@@ -7,7 +7,6 @@ import { useMarketStats } from "@/hooks/useMarketStats";
 import { useWallet } from "@/contexts/WalletContext";
 import { useToast } from "@/hooks/use-toast";
 const HeroSection = () => {
-  console.log('HeroSection component rendering');
   const navigate = useNavigate();
   const {
     wallet,
