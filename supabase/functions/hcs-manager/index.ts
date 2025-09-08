@@ -170,10 +170,10 @@ serve(async (req) => {
               log.info(requestId, 'Hedera client obtained successfully')
               
               // Create the topic using our existing logic with timeout wrapper
-              // Hedera timing: testnet 2-5s, mainnet 3-7s + buffer
+              // Hedera timing: testnet 2-5s, mainnet 3-7s + buffer, but network issues can cause delays
               const topicCreationPromise = createCLOBTopic(client, topicType as ValidTopicType, marketId, privateKey)
               const topicTimeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('Topic creation timeout')), 15000) // 15s timeout (generous buffer)
+                setTimeout(() => reject(new Error('Topic creation timeout')), 30000) // 30s timeout for network issues
               })
               
               const topicId = await Promise.race([topicCreationPromise, topicTimeoutPromise])

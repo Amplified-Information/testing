@@ -105,7 +105,8 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
     // Test connection by checking account balance
     console.log('Testing Hedera client connectivity...')
     try {
-      const balance = await client.getAccountBalance(systemAccountId)
+      const accountId = AccountId.fromString(systemAccountId)
+      const balance = await client.getAccountBalance(accountId)
       console.log('✅ Hedera client connectivity verified. Account balance:', balance.hbars.toString())
     } catch (balanceError) {
       console.warn('⚠️ Account balance check failed (client may still work):', balanceError.message)
