@@ -1,228 +1,86 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { PrivateKey } from 'npm:@hashgraph/sdk@2.72.0'
 import { corsHeaders } from '../_shared/cors.ts'
-import { getSystemHederaClient } from '../_shared/hederaClient.ts'
-import { createCLOBTopic } from '../_shared/topicService.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-// Debug environment variables
-console.log('Environment variables check:')
-console.log('CLOB_SYSTEM_ACCOUNT_ID:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID') ? 'SET' : 'NOT SET')
-console.log('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY') ? 'SET' : 'NOT SET')
-
-const systemAccountId = Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID')
-const systemAccountPrivateKey = Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')
-
-if (!systemAccountId || !systemAccountPrivateKey) {
-  console.error('Missing Hedera credentials:', {
-    systemAccountId: systemAccountId ? 'SET' : 'MISSING',
-    systemAccountPrivateKey: systemAccountPrivateKey ? 'SET' : 'MISSING'
-  })
-}
-
 serve(async (req) => {
+  console.log(`HCS Manager - Received ${req.method} request`)
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    
-    if (req.method === 'POST') {
-      const { action, topicType, marketId, description } = await req.json()
-      
-      if (action === 'create_topic') {
-        console.log('Creating HCS topic:', { topicType, marketId })
-        
-        const client = getSystemHederaClient()
-        const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
-        
-        const topicId = await createCLOBTopic(client, topicType, marketId, operatorPrivateKey)
+    // Debug environment variables
+    console.log('Environment variables check:')
+    console.log('SUPABASE_URL:', supabaseUrl ? 'SET' : 'NOT SET')
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'SET' : 'NOT SET')
+    console.log('CLOB_SYSTEM_ACCOUNT_ID:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID') ? 'SET' : 'NOT SET')
+    console.log('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY') ? 'SET' : 'NOT SET')
 
-        // Store topic in database
-        const { data: topic, error } = await supabase
-          .from('hcs_topics')
-          .insert({
-            topic_id: topicId,
-            topic_type: topicType,
-            market_id: marketId || null,
-            description: description || `CLOB ${topicType} topic${marketId ? ` for market ${marketId}` : ''}`,
-            is_active: true
-          })
-          .select()
-          .single()
+    const systemAccountId = Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID')
+    const systemAccountPrivateKey = Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')
 
-        if (error) {
-          console.error('Failed to store topic in database:', error)
-          throw new Error('Failed to store topic in database')
-        }
-
-        console.log('HCS topic created successfully:', { topicId, topicType, marketId })
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            topicId, 
-            topic 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      if (action === 'setup_market_topics') {
-        // Create topics for a specific market
-        const topics = []
-        
-        const client = getSystemHederaClient()
-        const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
-        
-        for (const type of ['orders', 'batches'] as const) {
-          console.log(`Creating ${type} topic for market ${marketId}`)
-          
-          const topicId = await createCLOBTopic(client, type, marketId, operatorPrivateKey)
-
-          const { data: topic, error } = await supabase
-            .from('hcs_topics')
-            .insert({
-              topic_id: topicId,
-              topic_type: type,
-              market_id: marketId,
-              description: `CLOB ${type} topic for market ${marketId}`,
-              is_active: true
-            })
-            .select()
-            .single()
-
-          if (error) {
-            console.error(`Failed to store ${type} topic:`, error)
-            throw new Error(`Failed to store ${type} topic`)
+    if (!systemAccountId || !systemAccountPrivateKey) {
+      console.error('Missing Hedera credentials:', {
+        systemAccountId: systemAccountId ? 'SET' : 'MISSING',
+        systemAccountPrivateKey: systemAccountPrivateKey ? 'SET' : 'MISSING'
+      })
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing Hedera credentials',
+          details: {
+            systemAccountId: systemAccountId ? 'SET' : 'MISSING',
+            systemAccountPrivateKey: systemAccountPrivateKey ? 'SET' : 'MISSING'
           }
-
-          topics.push(topic)
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            marketId,
-            topics 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      if (action === 'initialize_all_markets') {
-        // Create topics for all active markets that don't have them
-        const { data: markets, error: marketsError } = await supabase
-          .from('event_markets')
-          .select('id, name')
-          .eq('is_active', true)
-
-        if (marketsError) {
-          throw new Error('Failed to fetch markets')
-        }
-
-        const results = []
-
-        for (const market of markets || []) {
-          // Check if market already has topics
-          const { data: existingTopics } = await supabase
-            .from('hcs_topics')
-            .select('topic_type')
-            .eq('market_id', market.id)
-            .eq('is_active', true)
-
-          const hasOrders = existingTopics?.some(t => t.topic_type === 'orders')
-          const hasBatches = existingTopics?.some(t => t.topic_type === 'batches')
-
-          if (hasOrders && hasBatches) {
-            console.log(`Market ${market.id} already has all topics`)
-            continue
-          }
-
-          console.log(`Setting up topics for market: ${market.name} (${market.id})`)
-          
-          const marketTopics = []
-          
-          const client = getSystemHederaClient()
-          const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
-          
-          for (const type of ['orders', 'batches'] as const) {
-            if (type === 'orders' && hasOrders) continue
-            if (type === 'batches' && hasBatches) continue
-            
-            const topicId = await createCLOBTopic(client, type, market.id, operatorPrivateKey)
-
-            const { data: topic, error } = await supabase
-              .from('hcs_topics')
-              .insert({
-                topic_id: topicId,
-                topic_type: type,
-                market_id: market.id,
-                description: `CLOB ${type} topic for ${market.name}`,
-                is_active: true
-              })
-              .select()
-              .single()
-
-            if (error) {
-              console.error(`Failed to store ${type} topic for market ${market.id}:`, error)
-              throw new Error(`Failed to store ${type} topic`)
-            }
-
-            marketTopics.push(topic)
-          }
-
-          results.push({
-            marketId: market.id,
-            marketName: market.name,
-            topics: marketTopics
-          })
-        }
-
-        console.log(`Initialized ${results.length} markets with HCS topics`)
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            initialized: results.length,
-            results 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      )
     }
 
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
     if (req.method === 'GET') {
-      // Get HCS topics
-      const url = new URL(req.url)
-      const marketId = url.searchParams.get('marketId')
-      const topicType = url.searchParams.get('topicType')
-
-      let query = supabase
+      console.log('Processing GET request for HCS topics')
+      // Simple GET endpoint to test
+      const { data: topics, error } = await supabase
         .from('hcs_topics')
         .select('*')
         .eq('is_active', true)
 
-      if (marketId) {
-        query = query.eq('market_id', marketId)
-      }
-
-      if (topicType) {
-        query = query.eq('topic_type', topicType)
-      }
-
-      const { data: topics, error } = await query
-
       if (error) {
-        throw new Error('Failed to fetch topics')
+        console.error('Database error:', error)
+        throw new Error('Failed to fetch topics: ' + error.message)
       }
 
+      console.log(`Found ${topics?.length || 0} HCS topics`)
       return new Response(
         JSON.stringify({ topics }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (req.method === 'POST') {
+      console.log('Processing POST request')
+      const { action } = await req.json()
+      console.log('Action:', action)
+      
+      // For now, just return success to test basic functionality
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'HCS Manager is working',
+          action,
+          credentials: {
+            accountId: systemAccountId,
+            hasPrivateKey: !!systemAccountPrivateKey
+          }
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
