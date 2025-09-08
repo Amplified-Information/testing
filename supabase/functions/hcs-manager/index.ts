@@ -166,12 +166,12 @@ serve(async (req) => {
               const topicStartTime = Date.now()
               
               // Get Hedera client with system credentials
-              const client = await getSystemHederaClientFromSecrets(supabase)
+              const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
               log.info(requestId, 'Hedera client obtained successfully')
               
               // Create the topic using our existing logic with timeout wrapper
               // Hedera timing: testnet 2-5s, mainnet 3-7s + buffer
-              const topicCreationPromise = createCLOBTopic(client, topicType as ValidTopicType, marketId)
+              const topicCreationPromise = createCLOBTopic(client, topicType as ValidTopicType, marketId, privateKey)
               const topicTimeoutPromise = new Promise<never>((_, reject) => {
                 setTimeout(() => reject(new Error('Topic creation timeout')), 15000) // 15s timeout (generous buffer)
               })
@@ -289,7 +289,7 @@ serve(async (req) => {
               const setupStartTime = Date.now()
               
               // Get Hedera client
-              const client = await getSystemHederaClientFromSecrets(supabase)
+              const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
               log.info(requestId, 'Hedera client obtained successfully')
               
               // Create orders and batches topics concurrently
@@ -301,8 +301,8 @@ serve(async (req) => {
                 return Promise.race([promise, timeoutPromise])
               }
               
-              const ordersTopicPromise = createWithTimeout(createCLOBTopic(client, 'orders', marketId))
-              const batchesTopicPromise = createWithTimeout(createCLOBTopic(client, 'batches', marketId))
+              const ordersTopicPromise = createWithTimeout(createCLOBTopic(client, 'orders', marketId, privateKey))
+              const batchesTopicPromise = createWithTimeout(createCLOBTopic(client, 'batches', marketId, privateKey))
               
               const [ordersTopicId, batchesTopicId] = await Promise.all([
                 ordersTopicPromise,
@@ -429,7 +429,7 @@ serve(async (req) => {
               }
 
               // Get Hedera client
-              const client = await getSystemHederaClientFromSecrets(supabase)
+              const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
               log.info(requestId, `Processing ${markets.length} markets`)
               
               const results = []
@@ -444,7 +444,7 @@ serve(async (req) => {
                   
                   // Create topics with timeouts (each should take 2-7s on Hedera)
                   const createTopicWithTimeout = (topicType: 'orders' | 'batches') => {
-                    const promise = createCLOBTopic(client, topicType, market.id)
+                    const promise = createCLOBTopic(client, topicType, market.id, privateKey)
                     const timeout = new Promise<never>((_, reject) => {
                       setTimeout(() => reject(new Error(`${topicType} topic creation timeout`)), 15000)
                     })

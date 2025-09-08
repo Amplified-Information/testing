@@ -37,7 +37,7 @@ export function getSystemHederaClient(): Client {
   })
 }
 
-export async function getSystemHederaClientFromSecrets(supabase: any): Promise<Client> {
+export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{ client: Client, privateKey: PrivateKey }> {
   console.log('Reading Hedera credentials from secrets table...')
   
   const { data: secrets, error } = await supabase
@@ -71,27 +71,59 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<C
     throw new Error('Required Hedera credentials are empty in secrets table')
   }
   
-  // Handle different private key formats
+  // Handle different private key formats and validate ECDSA key
   if (systemAccountPrivateKey.startsWith('0x')) {
     systemAccountPrivateKey = systemAccountPrivateKey.slice(2)
   }
   
-  console.log('Successfully retrieved Hedera credentials from secrets', {
+  // Validate ECDSA key format (should be 64 hex characters)
+  if (!/^[0-9a-fA-F]{64}$/.test(systemAccountPrivateKey)) {
+    console.error('Invalid ECDSA private key format:', {
+      length: systemAccountPrivateKey.length,
+      isHex: /^[0-9a-fA-F]+$/.test(systemAccountPrivateKey),
+      expected: '64 hex characters'
+    })
+    throw new Error('Invalid ECDSA private key format. Expected 64 hex characters.')
+  }
+  
+  console.log('Successfully retrieved and validated Hedera credentials', {
     accountId: systemAccountId,
     keyLength: systemAccountPrivateKey.length,
     keyPrefix: systemAccountPrivateKey.substring(0, 4)
   })
   
   try {
-    return createHederaClient({
+    const client = createHederaClient({
       operatorId: systemAccountId,
       operatorKey: systemAccountPrivateKey,
       network: 'testnet'
     })
+    
+    // Create PrivateKey object for topic creation
+    const privateKey = PrivateKey.fromString(systemAccountPrivateKey)
+    
+    // Test connection by checking account balance
+    console.log('Testing Hedera client connectivity...')
+    try {
+      const balance = await client.getAccountBalance(systemAccountId)
+      console.log('✅ Hedera client connectivity verified. Account balance:', balance.hbars.toString())
+    } catch (balanceError) {
+      console.warn('⚠️ Account balance check failed (client may still work):', balanceError.message)
+    }
+    
+    return { client, privateKey }
   } catch (error) {
     console.error('Failed to create Hedera client:', error)
     console.error('Account ID format:', systemAccountId)
     console.error('Private key format (first 10 chars):', systemAccountPrivateKey.substring(0, 10))
-    throw error
+    
+    // Enhanced error categorization
+    if (error.message?.includes('invalid private key') || error.message?.includes('invalid account')) {
+      throw new Error(`Invalid Hedera credentials: ${error.message}`)
+    } else if (error.message?.includes('network') || error.message?.includes('nodes')) {
+      throw new Error(`Network connectivity issue: ${error.message}`)
+    } else {
+      throw new Error(`Hedera client initialization failed: ${error.message}`)
+    }
   }
 }
