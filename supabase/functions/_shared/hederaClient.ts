@@ -36,3 +36,46 @@ export function getSystemHederaClient(): Client {
     network: 'testnet'
   })
 }
+
+export async function getSystemHederaClientFromSecrets(supabase: any): Promise<Client> {
+  console.log('Reading Hedera credentials from secrets table...')
+  
+  const { data: secrets, error } = await supabase
+    .from('secrets')
+    .select('name, value')
+    .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY'])
+  
+  if (error) {
+    console.error('Failed to read secrets from database:', error)
+    throw new Error(`Failed to read secrets: ${error.message}`)
+  }
+  
+  if (!secrets || secrets.length !== 2) {
+    console.error('Missing Hedera credentials in secrets table. Found:', secrets?.length || 0, 'secrets')
+    throw new Error('Required Hedera credentials not found in secrets table')
+  }
+  
+  const secretsMap = secrets.reduce((acc: Record<string, string>, secret) => {
+    acc[secret.name] = secret.value
+    return acc
+  }, {})
+  
+  const systemAccountId = secretsMap['CLOB_SYSTEM_ACCOUNT_ID']
+  const systemAccountPrivateKey = secretsMap['CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']
+  
+  if (!systemAccountId || !systemAccountPrivateKey) {
+    console.error('Missing required credentials:', {
+      accountId: systemAccountId ? 'FOUND' : 'MISSING',
+      privateKey: systemAccountPrivateKey ? 'FOUND' : 'MISSING'
+    })
+    throw new Error('Required Hedera credentials are empty in secrets table')
+  }
+  
+  console.log('Successfully retrieved Hedera credentials from secrets')
+  
+  return createHederaClient({
+    operatorId: systemAccountId,
+    operatorKey: systemAccountPrivateKey,
+    network: 'testnet'
+  })
+}

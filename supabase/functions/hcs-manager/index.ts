@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
-import { getSystemHederaClient } from '../_shared/hederaClient.ts'
+import { getSystemHederaClientFromSecrets } from '../_shared/hederaClient.ts'
 import { createCLOBTopic } from '../_shared/topicService.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -15,36 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    // Debug environment variables
-    console.log('Environment variables check:')
-    console.log('SUPABASE_URL:', supabaseUrl ? 'SET' : 'NOT SET')
-    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'SET' : 'NOT SET')
-    console.log('CLOB_SYSTEM_ACCOUNT_ID:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID') ? 'SET' : 'NOT SET')
-    console.log('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY') ? 'SET' : 'NOT SET')
-
-    const systemAccountId = Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID')
-    const systemAccountPrivateKey = Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')
-
-    if (!systemAccountId || !systemAccountPrivateKey) {
-      console.error('Missing Hedera credentials:', {
-        systemAccountId: systemAccountId ? 'SET' : 'MISSING',
-        systemAccountPrivateKey: systemAccountPrivateKey ? 'SET' : 'MISSING'
-      })
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing Hedera credentials',
-          details: {
-            systemAccountId: systemAccountId ? 'SET' : 'MISSING',
-            systemAccountPrivateKey: systemAccountPrivateKey ? 'SET' : 'MISSING'
-          }
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     if (req.method === 'GET') {
@@ -78,7 +48,7 @@ serve(async (req) => {
             console.log('Creating HCS topic:', { topicType, marketId })
             
             // Get Hedera client with system credentials
-            const client = getSystemHederaClient()
+            const client = await getSystemHederaClientFromSecrets(supabase)
             
             // Create the topic using our existing logic
             const topicId = await createCLOBTopic(client, topicType, marketId)
