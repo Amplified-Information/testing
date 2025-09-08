@@ -129,16 +129,16 @@ window.addEventListener('error', (event) => {
     event.stopPropagation();
     return false;
   }
-});
+}, true); // Capture phase to catch early errors
 
-// Handle unhandled promise rejections from DataCloneErrors
+// Handle unhandled promise rejections from DataCloneErrors  
 window.addEventListener('unhandledrejection', (event) => {
   if (event.reason?.name === 'DataCloneError') {
     console.warn('Unhandled DataCloneError promise rejection caught and suppressed:', event.reason);
     event.preventDefault();
     return false;
   }
-});
+}, true); // Capture phase to catch early rejections
 
 // Enhanced fetch wrapper to handle WalletConnect API calls
 const originalFetch = window.fetch;
