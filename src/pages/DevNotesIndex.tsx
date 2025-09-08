@@ -356,6 +356,46 @@ const DevNotesIndex = () => {
               </CardContent>
             </Card>
 
+            {/* HCS Testing Dashboard */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      HCS Topics Testing Dashboard
+                    </CardTitle>
+                    <CardDescription>
+                      Comprehensive testing suite for Hedera Consensus Service topic creation and validation
+                    </CardDescription>
+                  </div>
+                  <Badge variant="default">Active Testing</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Live testing dashboard for HCS topic lifecycle management with 4-phase validation strategy. 
+                    Tests individual topic creation, market-specific setup, bulk initialization, and performance validation. 
+                    Includes real-time monitoring and detailed test reporting for the CLOB system's HCS integration.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">Phase 1: Setup</Badge>
+                    <Badge variant="outline">Phase 2: Bulk Init</Badge>
+                    <Badge variant="outline">3 Test Markets</Badge>
+                    <Badge variant="outline">20+ Topics</Badge>
+                    <Badge variant="outline">Live Testing</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/hcs-testing" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    Open Testing Dashboard <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
 
           {/* Project Overview */}
