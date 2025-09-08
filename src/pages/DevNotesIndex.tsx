@@ -2,7 +2,7 @@ import Header from "@/components/Layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3 } from "lucide-react";
+import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3, Database } from "lucide-react";
 
 const DevNotesIndex = () => {
   return (
@@ -271,6 +271,46 @@ const DevNotesIndex = () => {
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                   >
                     View Wallet Storage Implementation <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* System Configuration Management */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="h-5 w-5 text-primary" />
+                      System Configuration Management
+                    </CardTitle>
+                    <CardDescription>
+                      Centralized database-driven configuration system replacing environment variables
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">Architecture Design</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Comprehensive migration plan from environment variables to a centralized Supabase configuration 
+                    system with real-time updates, security encryption, admin interface, and type-safe access patterns. 
+                    Includes 8-phase implementation strategy with backward compatibility.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">Database Schema</Badge>
+                    <Badge variant="outline">Migration Plan</Badge>
+                    <Badge variant="outline">ConfigService</Badge>
+                    <Badge variant="outline">Admin Interface</Badge>
+                    <Badge variant="outline">Security</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/system-config" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    View Configuration Management <ExternalLink className="h-4 w-4" />
                   </Link>
                 </div>
               </CardContent>
