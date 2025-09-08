@@ -8,19 +8,30 @@ import { initWalletConnectFixes } from './utils/walletConnectFixes'
 // Initialize WalletConnect DataCloneError fixes before app starts
 initWalletConnectFixes();
 
-// Add early error suppression for WalletConnect
+// Comprehensive early error suppression for WalletConnect
+const suppressWalletConnectError = (error: any) => {
+  return error?.name === 'DataCloneError' || 
+         error?.message?.includes('URL object could not be cloned') ||
+         error?.message?.includes('postMessage') ||
+         error?.stack?.includes('WalletConnect') ||
+         error?.stack?.includes('lovable.js') ||
+         error?.stack?.includes('fetchListings') ||
+         error?.stack?.includes('getRecomendedWallets');
+};
+
 window.addEventListener('error', (event) => {
-  if (event.error?.name === 'DataCloneError' && event.error?.message?.includes('URL object could not be cloned')) {
-    console.warn('Early DataCloneError suppressed:', event.error.message);
+  if (suppressWalletConnectError(event.error)) {
+    console.warn('WalletConnect error suppressed (main):', event.error?.message || 'Unknown error');
     event.preventDefault();
     event.stopPropagation();
+    event.stopImmediatePropagation();
     return false;
   }
-}, true); // Use capture phase to catch early
+}, true);
 
 window.addEventListener('unhandledrejection', (event) => {
-  if (event.reason?.name === 'DataCloneError' && event.reason?.message?.includes('URL object could not be cloned')) {
-    console.warn('Early DataCloneError promise rejection suppressed:', event.reason.message);
+  if (suppressWalletConnectError(event.reason)) {
+    console.warn('WalletConnect promise rejection suppressed (main):', event.reason?.message || 'Unknown rejection');
     event.preventDefault();
     return false;
   }
