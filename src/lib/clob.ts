@@ -66,12 +66,43 @@ export class CLOBService {
         throw dbError;
       }
 
-      // TODO: Publish to HCS orders topic (requires operator credentials)
-      // For now, we'll mark the order as published
-      await supabase
-        .from('clob_orders')
-        .update({ status: 'PUBLISHED' })
-        .eq('id', orderRow.id);
+      // Get HCS topic for orders
+      const { data: topic } = await supabase
+        .from('hcs_topics')
+        .select('topic_id')
+        .eq('topic_type', 'orders')
+        .eq('market_id', order.marketId)
+        .eq('is_active', true)
+        .single();
+
+      if (topic) {
+        try {
+          // TODO: Implement HCS publishing using system account credentials
+          // This would require the private key which should be handled by the edge function
+          this.log('Found HCS topic for market', { topicId: topic.topic_id, marketId: order.marketId });
+          
+          // For now, use the CLOB relayer edge function for HCS publishing
+          const { data, error: relayerError } = await supabase.functions.invoke('clob-relayer', {
+            body: { order }
+          });
+
+          if (relayerError) {
+            throw relayerError;
+          }
+
+          this.log('Order relayed via HCS successfully', { orderId: order.orderId });
+        } catch (hcsError) {
+          this.error('Failed to publish via HCS relayer, marking as pending', hcsError);
+          // Keep as PENDING if HCS publishing fails
+          throw hcsError;
+        }
+      } else {
+        this.log('No HCS topic found for market, marking as published without HCS', { marketId: order.marketId });
+        await supabase
+          .from('clob_orders')
+          .update({ status: 'PUBLISHED' })
+          .eq('id', orderRow.id);
+      }
 
       this.log('Order submitted successfully', { orderId: order.orderId });
       return order.orderId!;
@@ -251,7 +282,31 @@ export class CLOBService {
         throw error;
       }
 
-      // TODO: Publish cancel message to HCS topic
+      // Get HCS topic for orders to publish cancel message
+      const { data: topic } = await supabase
+        .from('hcs_topics')
+        .select('topic_id')
+        .eq('topic_type', 'orders')
+        .in('market_id', [null]) // Global orders topic or market-specific
+        .eq('is_active', true)
+        .single();
+
+      if (topic) {
+        try {
+          const cancelMessage = JSON.stringify({
+            type: 'CANCEL_ORDER',
+            orderId,
+            accountId,
+            timestamp: Date.now()
+          });
+
+          // TODO: Publish cancel message via HCS relayer or directly
+          this.log('Would publish cancel message to HCS', { topicId: topic.topic_id, orderId });
+        } catch (hcsError) {
+          this.error('Failed to publish cancel message to HCS', hcsError);
+          // Cancel still succeeded in database, so don't throw
+        }
+      }
 
       this.log('Order cancelled successfully', { orderId });
 

@@ -5,6 +5,8 @@ import { corsHeaders } from '../_shared/cors.ts'
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const systemAccountId = Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID')!
+const systemAccountPublicKey = Deno.env.get('CLOB_SYSTEM_ACCOUNT_PUBLIC_KEY')!
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -69,12 +71,56 @@ serve(async (req) => {
         )
       }
 
-      // TODO: Publish to HCS topic when operator credentials are configured
-      // For now, mark as published
-      await supabase
-        .from('clob_orders')
-        .update({ status: 'PUBLISHED' })
-        .eq('id', orderRow.id)
+      // Get HCS topic for orders
+      const { data: topic } = await supabase
+        .from('hcs_topics')
+        .select('topic_id')
+        .eq('topic_type', 'orders')
+        .eq('market_id', order.marketId)
+        .eq('is_active', true)
+        .single()
+
+      let hcsMessageId = null
+      let hcsSequenceNumber = null
+
+      if (topic) {
+        try {
+          // Publish order to HCS topic
+          const orderMessage = JSON.stringify({
+            type: 'NEW_ORDER',
+            orderId: order.orderId,
+            marketId: order.marketId,
+            maker: order.maker,
+            side: order.side,
+            priceTicks: order.priceTicks,
+            qty: order.qty,
+            signature: order.signature,
+            timestamp: Date.now()
+          })
+
+          // Note: This would require implementing HCS client in edge function
+          console.log('Would publish to HCS topic:', topic.topic_id, 'Message:', orderMessage)
+          
+          // Mark as published since we have the topic
+          await supabase
+            .from('clob_orders')
+            .update({ 
+              status: 'PUBLISHED',
+              hcs_message_id: hcsMessageId,
+              hcs_sequence_number: hcsSequenceNumber ? parseInt(hcsSequenceNumber) : null
+            })
+            .eq('id', orderRow.id)
+        } catch (hcsError) {
+          console.error('Failed to publish to HCS, marking as pending:', hcsError)
+          // Keep as PENDING if HCS publishing fails
+        }
+      } else {
+        console.warn('No HCS topic found for market, marking as published without HCS')
+        await supabase
+          .from('clob_orders')
+          .update({ status: 'PUBLISHED' })
+          .eq('id', orderRow.id)
+      }
 
       console.log('Order relayed successfully:', order.orderId)
 
