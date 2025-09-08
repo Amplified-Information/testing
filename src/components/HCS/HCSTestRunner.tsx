@@ -19,6 +19,30 @@ export const HCSTestRunner: React.FC = () => {
   const [currentPhase, setCurrentPhase] = useState<string>('');
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [progress, setProgress] = useState(0);
+  const [isConnectionTesting, setIsConnectionTesting] = useState(false);
+
+  const testCLOBConnection = async () => {
+    setIsConnectionTesting(true);
+    
+    try {
+      toast.info('Testing CLOB operator account connection to HCS...');
+      const result = await hcsTopicTester.testCLOBConnectionToHCS();
+      
+      // Add the result to existing results or create new array
+      setTestResults(prev => [result, ...prev]);
+      
+      if (result.results.length > 0 && result.results[0].success) {
+        toast.success('CLOB connection test passed!');
+      } else {
+        toast.error('CLOB connection test failed!');
+      }
+    } catch (error) {
+      console.error('Connection test execution failed:', error);
+      toast.error('Connection test execution failed: ' + (error as Error).message);
+    } finally {
+      setIsConnectionTesting(false);
+    }
+  };
 
   const runPhase1Tests = async () => {
     setIsRunning(true);
@@ -114,10 +138,24 @@ export const HCSTestRunner: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Button
+              onClick={testCLOBConnection}
+              disabled={isRunning || isConnectionTesting}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              {isConnectionTesting ? (
+                <Clock className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              Test CLOB Connection
+            </Button>
+            
             <Button
               onClick={runPhase1Tests}
-              disabled={isRunning}
+              disabled={isRunning || isConnectionTesting}
               className="flex items-center gap-2"
             >
               {isRunning ? (
@@ -130,7 +168,7 @@ export const HCSTestRunner: React.FC = () => {
             
             <Button
               onClick={runPhase2Tests}
-              disabled={isRunning || testResults.length === 0}
+              disabled={isRunning || isConnectionTesting || testResults.length === 0}
               variant="outline"
               className="flex items-center gap-2"
             >
@@ -148,8 +186,17 @@ export const HCSTestRunner: React.FC = () => {
               Download Report
             </Button>
           </div>
+          
+          {isConnectionTesting && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Testing CLOB operator connection to HCS...</span>
+              </div>
+              <Progress value={50} className="w-full" />
+            </div>
+          )}
 
-          {isRunning && (
+          {isRunning && !isConnectionTesting && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>{currentPhase}</span>
@@ -197,10 +244,19 @@ export const HCSTestRunner: React.FC = () => {
                                     {res.topicStats.active} active, {res.topicStats.byMarket} market-specific
                                   </div>
                                 )}
-                                {res.topicsCreated && (
-                                  <div><strong>Topics Created:</strong> {res.topicsCreated}</div>
-                                )}
-                                {res.description && <div><strong>Description:</strong> {res.description}</div>}
+                                 {res.topicsCreated && (
+                                   <div><strong>Topics Created:</strong> {res.topicsCreated}</div>
+                                 )}
+                                 {res.connectionTest && (
+                                   <div><strong>Connection Test:</strong> ✅ Successfully validated CLOB operator account</div>
+                                 )}
+                                 {res.timing && (
+                                   <div><strong>Response Time:</strong> {res.timing.totalDuration || res.timing.duration || 'N/A'}ms</div>
+                                 )}
+                                 {res.requestId && (
+                                   <div><strong>Request ID:</strong> {res.requestId}</div>
+                                 )}
+                                 {res.description && <div><strong>Description:</strong> {res.description}</div>}
                               </div>
                             ) : (
                               <div><strong>Error:</strong> {res.error}</div>
@@ -228,6 +284,15 @@ export const HCSTestRunner: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
+              <h4 className="font-semibold mb-2">Phase 0: Connection Test</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Test CLOB operator account ECDSA key format</li>
+                <li>• Validate Hedera testnet connectivity</li>
+                <li>• Create connection test topic</li>
+                <li>• Verify authentication and error handling</li>
+              </ul>
+            </div>
+            <div>
               <h4 className="font-semibold mb-2">Phase 1: Basic Setup & Testing</h4>
               <ul className="text-sm space-y-1 text-muted-foreground">
                 <li>• Create 3 individual test topics</li>
@@ -235,12 +300,23 @@ export const HCSTestRunner: React.FC = () => {
                 <li>• Validate topic creation and storage</li>
               </ul>
             </div>
+          </div>
+          
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <h4 className="font-semibold mb-2">Phase 2: Comprehensive Initialization</h4>
               <ul className="text-sm space-y-1 text-muted-foreground">
                 <li>• Initialize topics for all remaining markets</li>
                 <li>• Bulk topic creation and organization</li>
                 <li>• Performance monitoring</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Future Phases</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Integration & functional testing</li>
+                <li>• Performance & throughput testing</li>
+                <li>• Monitoring & alerting setup</li>
               </ul>
             </div>
           </div>

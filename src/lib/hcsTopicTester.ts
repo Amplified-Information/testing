@@ -291,6 +291,72 @@ export class HCSTopicTester {
   }
 
   /**
+   * Tests the CLOB operator account connection to HCS
+   */
+  async testCLOBConnectionToHCS(): Promise<TestResults> {
+    console.log('🔌 Testing CLOB operator account connection to HCS...')
+    
+    const startTime = Date.now()
+    const results: any[] = []
+    
+    try {
+      console.log('Making connection test request to hcs-manager...')
+      
+      // Make a simple request to test connection (create a temporary test topic)
+      const { data, error } = await supabase.functions.invoke('hcs-manager', {
+        body: {
+          action: 'create_topic',
+          topicType: 'oracle', // Use oracle type for connection testing
+          marketId: null // No market ID for standalone test
+        }
+      });
+      
+      if (error) {
+        throw new Error(`Connection test failed: ${error.message || 'Unknown error'}`)
+      }
+      
+      if (data && data.success && data.topicId) {
+        results.push({
+          success: true,
+          topicId: data.topicId,
+          description: 'CLOB operator account successfully connected to HCS',
+          timing: data.timing,
+          requestId: data.requestId,
+          connectionTest: true
+        })
+        
+        console.log(`✅ Connection test successful! Topic created: ${data.topicId}`)
+      } else {
+        throw new Error('Connection test failed: No topic ID returned')
+      }
+      
+    } catch (error) {
+      console.error('❌ Connection test failed:', error)
+      
+      results.push({
+        success: false,
+        error: error.message,
+        description: 'Failed to connect CLOB operator account to HCS',
+        connectionTest: true
+      })
+    }
+    
+    const duration = Date.now() - startTime
+    const summary = results.length > 0 && results[0].success 
+      ? `✅ CLOB operator account connection successful (${duration}ms)`
+      : `❌ CLOB operator account connection failed (${duration}ms)`
+    
+    const result: TestResults = {
+      phase: 'CLOB Connection Test',
+      results,
+      summary
+    }
+    
+    this.testResults.push(result)
+    return result
+  }
+
+  /**
    * Get all test results
    */
   getTestResults(): TestResults[] {
