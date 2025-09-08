@@ -7,8 +7,21 @@ import { createCLOBTopic } from '../_shared/topicService.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const systemAccountId = Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID')!
-const systemAccountPrivateKey = Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')!
+
+// Debug environment variables
+console.log('Environment variables check:')
+console.log('CLOB_SYSTEM_ACCOUNT_ID:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID') ? 'SET' : 'NOT SET')
+console.log('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY:', Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY') ? 'SET' : 'NOT SET')
+
+const systemAccountId = Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID')
+const systemAccountPrivateKey = Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')
+
+if (!systemAccountId || !systemAccountPrivateKey) {
+  console.error('Missing Hedera credentials:', {
+    systemAccountId: systemAccountId ? 'SET' : 'MISSING',
+    systemAccountPrivateKey: systemAccountPrivateKey ? 'SET' : 'MISSING'
+  })
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
