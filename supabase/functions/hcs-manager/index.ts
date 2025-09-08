@@ -265,6 +265,249 @@ serve(async (req) => {
               )
             }
           }
+
+          case 'setup_market_topics': {
+            // Create both orders and batches topics for a specific market
+            if (!marketId) {
+              log.warn(requestId, 'Missing marketId for setup_market_topics action')
+              return new Response(
+                JSON.stringify({ 
+                  error: "Missing 'marketId' for setup_market_topics action",
+                  requestId
+                }),
+                { 
+                  status: 400, 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
+              )
+            }
+
+            try {
+              log.info(requestId, 'Setting up market topics:', { marketId })
+              const setupStartTime = Date.now()
+              
+              // Get Hedera client
+              const client = await getSystemHederaClientFromSecrets(supabase)
+              log.info(requestId, 'Hedera client obtained successfully')
+              
+              // Create orders topic
+              const ordersTopicPromise = createCLOBTopic(client, 'orders', marketId)
+              const batchesTopicPromise = createCLOBTopic(client, 'batches', marketId)
+              
+              const [ordersTopicId, batchesTopicId] = await Promise.all([
+                ordersTopicPromise,
+                batchesTopicPromise
+              ])
+              
+              log.info(requestId, `Created market topics:`, { ordersTopicId, batchesTopicId })
+              
+              // Store both topics in database
+              const insertPromises = [
+                supabase.from('hcs_topics').insert({
+                  topic_id: ordersTopicId,
+                  topic_type: 'orders',
+                  market_id: marketId,
+                  description: `CLOB orders topic for market ${marketId}`,
+                  is_active: true
+                }),
+                supabase.from('hcs_topics').insert({
+                  topic_id: batchesTopicId,
+                  topic_type: 'batches',
+                  market_id: marketId,
+                  description: `CLOB batches topic for market ${marketId}`,
+                  is_active: true
+                })
+              ]
+              
+              const [ordersResult, batchesResult] = await Promise.all(insertPromises)
+              
+              if (ordersResult.error || batchesResult.error) {
+                log.error(requestId, 'Database insertion failed:', { ordersResult.error, batchesResult.error })
+                return new Response(
+                  JSON.stringify({ 
+                    success: false,
+                    error: 'Database error during topic storage',
+                    ordersTopicId,
+                    batchesTopicId,
+                    requestId
+                  }),
+                  { 
+                    status: 500, 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                  }
+                )
+              }
+              
+              const totalDuration = Date.now() - setupStartTime
+              log.info(requestId, `Market topics setup completed in ${totalDuration}ms`)
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: true,
+                  ordersTopicId,
+                  batchesTopicId,
+                  marketId,
+                  message: `Successfully created market topics for ${marketId}`,
+                  requestId,
+                  timing: { totalDuration }
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+              
+            } catch (error) {
+              const errorDuration = Date.now() - startTime
+              log.error(requestId, `Market topics setup failed after ${errorDuration}ms:`, error)
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: false,
+                  error: error.message,
+                  marketId,
+                  requestId,
+                  timing: { failedAfter: errorDuration }
+                }),
+                { 
+                  status: 500, 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
+              )
+            }
+          }
+
+          case 'initialize_all_markets': {
+            try {
+              log.info(requestId, 'Initializing all markets with HCS topics')
+              const initStartTime = Date.now()
+              
+              // Get active markets from database
+              const { data: markets, error: marketsError } = await supabase
+                .from('event_markets')
+                .select('id, name')
+                .eq('is_active', true)
+                .limit(10) // Limit to prevent timeout
+              
+              if (marketsError) {
+                log.error(requestId, 'Failed to fetch markets:', marketsError)
+                return new Response(
+                  JSON.stringify({ 
+                    success: false,
+                    error: 'Failed to fetch active markets',
+                    details: marketsError.message,
+                    requestId
+                  }),
+                  { 
+                    status: 500, 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                  }
+                )
+              }
+
+              if (!markets || markets.length === 0) {
+                log.warn(requestId, 'No active markets found')
+                return new Response(
+                  JSON.stringify({ 
+                    success: true,
+                    message: 'No active markets found to initialize',
+                    marketsProcessed: 0,
+                    requestId
+                  }),
+                  { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                )
+              }
+
+              // Get Hedera client
+              const client = await getSystemHederaClientFromSecrets(supabase)
+              log.info(requestId, `Processing ${markets.length} markets`)
+              
+              const results = []
+              let successCount = 0
+              let errorCount = 0
+              
+              // Process markets sequentially to avoid overwhelming Hedera
+              for (const market of markets) {
+                try {
+                  log.info(requestId, `Processing market: ${market.name} (${market.id})`)
+                  
+                  // Create orders and batches topics for each market
+                  const ordersTopicId = await createCLOBTopic(client, 'orders', market.id)
+                  const batchesTopicId = await createCLOBTopic(client, 'batches', market.id)
+                  
+                  // Store in database
+                  await Promise.all([
+                    supabase.from('hcs_topics').insert({
+                      topic_id: ordersTopicId,
+                      topic_type: 'orders',
+                      market_id: market.id,
+                      description: `CLOB orders topic for market ${market.name}`,
+                      is_active: true
+                    }),
+                    supabase.from('hcs_topics').insert({
+                      topic_id: batchesTopicId,
+                      topic_type: 'batches',
+                      market_id: market.id,
+                      description: `CLOB batches topic for market ${market.name}`,
+                      is_active: true
+                    })
+                  ])
+                  
+                  results.push({
+                    marketId: market.id,
+                    marketName: market.name,
+                    success: true,
+                    ordersTopicId,
+                    batchesTopicId
+                  })
+                  
+                  successCount++
+                  log.info(requestId, `Market ${market.name} processed successfully`)
+                  
+                } catch (error) {
+                  log.error(requestId, `Failed to process market ${market.name}:`, error)
+                  results.push({
+                    marketId: market.id,
+                    marketName: market.name,
+                    success: false,
+                    error: error.message
+                  })
+                  errorCount++
+                }
+              }
+              
+              const totalDuration = Date.now() - initStartTime
+              log.info(requestId, `Initialization completed: ${successCount} success, ${errorCount} errors in ${totalDuration}ms`)
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: true,
+                  message: `Processed ${markets.length} markets`,
+                  marketsProcessed: markets.length,
+                  successCount,
+                  errorCount,
+                  results,
+                  requestId,
+                  timing: { totalDuration }
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+              
+            } catch (error) {
+              const errorDuration = Date.now() - startTime
+              log.error(requestId, `Market initialization failed after ${errorDuration}ms:`, error)
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: false,
+                  error: error.message,
+                  requestId,
+                  timing: { failedAfter: errorDuration }
+                }),
+                { 
+                  status: 500, 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
+              )
+            }
+          }
           
           default:
             log.warn(requestId, 'Unsupported action:', action)
@@ -272,7 +515,7 @@ serve(async (req) => {
               JSON.stringify({ 
                 error: 'Unsupported action',
                 provided: action,
-                supportedActions: ['create_topic'],
+                supportedActions: ['create_topic', 'setup_market_topics', 'initialize_all_markets'],
                 requestId
               }),
               { 
