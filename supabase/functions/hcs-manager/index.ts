@@ -14,8 +14,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 const VALID_TOPIC_TYPES = ['orders', 'batches', 'oracle', 'disputes'] as const
 type ValidTopicType = typeof VALID_TOPIC_TYPES[number]
 
-// Request timeout (30 seconds)
-const REQUEST_TIMEOUT = 30000
+// Request timeout optimized for Hedera consensus timing
+// Individual topics: 15s, Multiple topics: 45s for bulk operations
+const REQUEST_TIMEOUT = 45000
 
 // Generate request ID for logging
 const generateRequestId = () => crypto.randomUUID().substring(0, 8)
@@ -169,9 +170,10 @@ serve(async (req) => {
               log.info(requestId, 'Hedera client obtained successfully')
               
               // Create the topic using our existing logic with timeout wrapper
+              // Hedera timing: testnet 2-5s, mainnet 3-7s + buffer
               const topicCreationPromise = createCLOBTopic(client, topicType as ValidTopicType, marketId)
               const topicTimeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('Topic creation timeout')), 25000) // 25s timeout
+                setTimeout(() => reject(new Error('Topic creation timeout')), 15000) // 15s timeout (generous buffer)
               })
               
               const topicId = await Promise.race([topicCreationPromise, topicTimeoutPromise])
@@ -290,9 +292,17 @@ serve(async (req) => {
               const client = await getSystemHederaClientFromSecrets(supabase)
               log.info(requestId, 'Hedera client obtained successfully')
               
-              // Create orders topic
-              const ordersTopicPromise = createCLOBTopic(client, 'orders', marketId)
-              const batchesTopicPromise = createCLOBTopic(client, 'batches', marketId)
+              // Create orders and batches topics concurrently
+              // Each topic: ~2-7s on Hedera, timeout after 15s each
+              const createWithTimeout = (promise: Promise<string>) => {
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                  setTimeout(() => reject(new Error('Topic creation timeout')), 15000)
+                })
+                return Promise.race([promise, timeoutPromise])
+              }
+              
+              const ordersTopicPromise = createWithTimeout(createCLOBTopic(client, 'orders', marketId))
+              const batchesTopicPromise = createWithTimeout(createCLOBTopic(client, 'batches', marketId))
               
               const [ordersTopicId, batchesTopicId] = await Promise.all([
                 ordersTopicPromise,
@@ -427,13 +437,23 @@ serve(async (req) => {
               let errorCount = 0
               
               // Process markets sequentially to avoid overwhelming Hedera
+              // Add small delay between markets to respect Hedera rate limits
               for (const market of markets) {
                 try {
                   log.info(requestId, `Processing market: ${market.name} (${market.id})`)
                   
-                  // Create orders and batches topics for each market
-                  const ordersTopicId = await createCLOBTopic(client, 'orders', market.id)
-                  const batchesTopicId = await createCLOBTopic(client, 'batches', market.id)
+                  // Create topics with timeouts (each should take 2-7s on Hedera)
+                  const createTopicWithTimeout = (topicType: 'orders' | 'batches') => {
+                    const promise = createCLOBTopic(client, topicType, market.id)
+                    const timeout = new Promise<never>((_, reject) => {
+                      setTimeout(() => reject(new Error(`${topicType} topic creation timeout`)), 15000)
+                    })
+                    return Promise.race([promise, timeout])
+                  }
+                  
+                  const ordersTopicId = await createTopicWithTimeout('orders')
+                  await new Promise(resolve => setTimeout(resolve, 1000)) // 1s delay between topics
+                  const batchesTopicId = await createTopicWithTimeout('batches')
                   
                   // Store in database
                   await Promise.all([
