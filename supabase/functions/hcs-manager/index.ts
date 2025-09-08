@@ -322,7 +322,10 @@ serve(async (req) => {
               const [ordersResult, batchesResult] = await Promise.all(insertPromises)
               
               if (ordersResult.error || batchesResult.error) {
-                log.error(requestId, 'Database insertion failed:', { ordersResult.error, batchesResult.error })
+                log.error(requestId, 'Database insertion failed:', { 
+                  ordersError: ordersResult.error, 
+                  batchesError: batchesResult.error 
+                })
                 return new Response(
                   JSON.stringify({ 
                     success: false,
