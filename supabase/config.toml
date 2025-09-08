@@ -2,3 +2,6 @@ project_id = "bfenuvdwsgzglhhjbrql"
 
 [functions.clob-relayer]
 verify_jwt = false
+
+[functions.hcs-manager]
+verify_jwt = false
