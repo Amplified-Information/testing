@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { getSystemHederaClient } from '../_shared/hederaClient.ts'
+import { createCLOBTopic } from '../_shared/topicService.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -67,22 +69,78 @@ serve(async (req) => {
 
     if (req.method === 'POST') {
       console.log('Processing POST request')
-      const { action } = await req.json()
-      console.log('Action:', action)
+      const { action, topicType, marketId } = await req.json()
+      console.log('Action:', action, 'TopicType:', topicType, 'MarketId:', marketId)
       
-      // For now, just return success to test basic functionality
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'HCS Manager is working',
-          action,
-          credentials: {
-            accountId: systemAccountId,
-            hasPrivateKey: !!systemAccountPrivateKey
+      switch (action) {
+        case 'create_topic': {
+          try {
+            console.log('Creating HCS topic:', { topicType, marketId })
+            
+            // Get Hedera client with system credentials
+            const client = getSystemHederaClient()
+            
+            // Create the topic using our existing logic
+            const topicId = await createCLOBTopic(client, topicType, marketId)
+            
+            console.log('Successfully created topic:', topicId)
+            
+            // Store in database
+            const { error: dbError } = await supabase
+              .from('hcs_topics')
+              .insert({
+                topic_id: topicId,
+                topic_type: topicType,
+                market_id: marketId || null,
+                description: `CLOB ${topicType} topic${marketId ? ` for market ${marketId}` : ''}`,
+                is_active: true
+              })
+            
+            if (dbError) {
+              console.error('Failed to store topic in database:', dbError)
+              throw new Error(`Database error: ${dbError.message}`)
+            }
+            
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                topicId,
+                topicType,
+                marketId: marketId || null,
+                message: `Successfully created ${topicType} topic`
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+            
+          } catch (error) {
+            console.error('Topic creation failed:', error)
+            return new Response(
+              JSON.stringify({ 
+                success: false,
+                error: error.message,
+                topicType,
+                marketId: marketId || null
+              }),
+              { 
+                status: 500, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              }
+            )
           }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        }
+        
+        default:
+          return new Response(
+            JSON.stringify({ 
+              error: 'Unsupported action',
+              supportedActions: ['create_topic']
+            }),
+            { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+      }
     }
 
     return new Response(
