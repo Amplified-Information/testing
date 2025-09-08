@@ -16,6 +16,7 @@ import DevelopmentNotes from "./pages/DevelopmentNotes";
 import DevNotesIndex from "./pages/DevNotesIndex";
 import SecurityNotes from "./pages/SecurityNotes";
 import WalletConnectionNotes from "./pages/WalletConnectionNotes";
+import WalletSecurityImplementation from "./pages/WalletSecurityImplementation";
 import WalletStorageImplementation from "./pages/WalletStorageImplementation";
 import CLOBArchitecture from "./pages/CLOBArchitecture";
 import NotFound from "./pages/NotFound";
@@ -62,6 +63,7 @@ const App = () => (
                   <Route path="/dev-notes/technical-docs" element={<Documentation />} />
                   <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
                   <Route path="/dev-notes/security" element={<SecurityNotes />} />
+                  <Route path="/dev-notes/wallet-security" element={<WalletSecurityImplementation />} />
                   <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
                   <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
                   <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />

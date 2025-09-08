@@ -160,6 +160,45 @@ const DevNotesIndex = () => {
               </CardContent>
             </Card>
 
+            {/* Wallet Security Implementation */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Wallet Security Implementation
+                    </CardTitle>
+                    <CardDescription>
+                      20-minute inactivity timeout system with activity monitoring and user warnings
+                    </CardDescription>
+                  </div>
+                  <Badge variant="default">Implemented</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Complete security enhancement featuring automatic wallet timeout after 20 minutes 
+                    of inactivity, with comprehensive activity monitoring, 2-minute warning dialogs, and 
+                    seamless session extension capabilities.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">Activity Monitor</Badge>
+                    <Badge variant="outline">20-min Timeout</Badge>
+                    <Badge variant="outline">Warning Dialog</Badge>
+                    <Badge variant="outline">Auto-Disconnect</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/wallet-security" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    View Security Implementation <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Wallet Connection Troubleshooting */}
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
