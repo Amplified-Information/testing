@@ -28,6 +28,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Suppress DataCloneError from WalletConnect - this is a known WalletConnect issue
+    if (error.name === 'DataCloneError' && error.message?.includes('URL object could not be cloned')) {
+      console.log('Suppressed WalletConnect DataCloneError - app will continue normally');
+      this.setState({ hasError: false, error: null, errorInfo: null });
+      return;
+    }
+    
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
   }

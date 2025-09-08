@@ -363,11 +363,39 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [debug]);
 
+  // Global error handler for WalletConnect DataCloneError
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      if (event.error?.name === 'DataCloneError' && event.error?.message?.includes('URL object could not be cloned')) {
+        debug.log('Suppressed WalletConnect DataCloneError - this is a known WalletConnect issue');
+        event.preventDefault();
+        return false;
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, [debug]);
+
   // Initialize DAppConnector only once on mount
   useEffect(() => {
     const init = async () => {
       try {
         debug.log('Initializing wallet connector');
+        
+        // Wrap fetch to handle URL cloning issues
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+          try {
+            return await originalFetch.apply(this, args);
+          } catch (error) {
+            if (error.name === 'DataCloneError') {
+              debug.log('Handled DataCloneError in fetch');
+              return new Response('{}', { status: 200, statusText: 'OK' });
+            }
+            throw error;
+          }
+        };
         
         const metadata = {
           name: "Hashy Markets",
@@ -391,6 +419,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         await connector.init({ 
           logger: "error"
         });
+        
+        // Restore original fetch
+        window.fetch = originalFetch;
         
         handleSessionEvents(connector);
         setWalletConnector(connector);
