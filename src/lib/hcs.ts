@@ -4,18 +4,39 @@ import {
   TopicMessageSubmitTransaction,
   TopicId,
   AccountId,
-  PrivateKey
+  PrivateKey,
+  Hbar
 } from '@hashgraph/sdk';
 import { apiClient } from '@/utils/apiClient';
 import { HCSMessage, HCSTopic } from '@/types/clob';
 import { useDebugger } from '@/hooks/useDebugger';
 
+export interface HederaClientConfig {
+  operatorId: string
+  operatorKey: string
+  network?: 'testnet' | 'mainnet'
+}
+
 export class HCSService {
   private client: Client;
   private debug = useDebugger('HCSService');
 
-  constructor() {
-    this.client = Client.forTestnet();
+  constructor(config?: HederaClientConfig) {
+    const network = config?.network || 'testnet'
+    this.client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
+    
+    if (config?.operatorId && config?.operatorKey) {
+      this.setOperator(config.operatorId, config.operatorKey)
+    }
+  }
+  
+  /**
+   * Set the operator for the client
+   */
+  setOperator(operatorId: string, operatorKey: string): void {
+    const operatorAccountId = AccountId.fromString(operatorId)
+    const operatorPrivateKey = PrivateKey.fromString(operatorKey)
+    this.client.setOperator(operatorAccountId, operatorPrivateKey)
   }
 
   /**
@@ -31,29 +52,32 @@ export class HCSService {
     try {
       this.debug.log('Creating HCS topic', { topicType, marketId });
       
-      const operatorAccountId = AccountId.fromString(operatorId);
+      this.setOperator(operatorId, operatorKey);
       const operatorPrivateKey = PrivateKey.fromString(operatorKey);
-      
-      this.client.setOperator(operatorAccountId, operatorPrivateKey);
 
+      const memo = `CLOB-${topicType}${marketId ? `-${marketId}` : ''}`;
+      
       const transaction = new TopicCreateTransaction()
-        .setTopicMemo(`CLOB-${topicType}${marketId ? `-${marketId}` : ''}`)
+        .setTopicMemo(memo)
         .setAdminKey(operatorPrivateKey.publicKey)
-        .setSubmitKey(operatorPrivateKey.publicKey);
+        .setSubmitKey(operatorPrivateKey.publicKey)
+        .setAutoRenewAccountId(this.client.operatorAccountId!)
+        .setAutoRenewPeriod(7776000) // 90 days
+        .setMaxTransactionFee(new Hbar(2)); // safety cap
 
       const txResponse = await transaction.execute(this.client);
       const receipt = await txResponse.getReceipt(this.client);
       const topicId = receipt.topicId?.toString();
 
       if (!topicId) {
-        throw new Error('Failed to create HCS topic');
+        throw new Error('Failed to create HCS topic - no topic ID returned');
       }
 
-      this.debug.log('HCS topic created successfully', { topicId });
+      this.debug.log('✅ HCS topic created successfully', { topicId, memo });
       return topicId;
     } catch (error) {
       this.debug.error('Failed to create HCS topic', error);
-      throw error;
+      throw new Error(`Topic creation failed: ${error.message}`);
     }
   }
 
@@ -69,14 +93,12 @@ export class HCSService {
     try {
       this.debug.log('Submitting message to HCS topic', { topicId, messageLength: message.length });
       
-      const operatorAccountId = AccountId.fromString(operatorId);
-      const operatorPrivateKey = PrivateKey.fromString(operatorKey);
-      
-      this.client.setOperator(operatorAccountId, operatorPrivateKey);
+      this.setOperator(operatorId, operatorKey);
 
       const transaction = new TopicMessageSubmitTransaction()
         .setTopicId(TopicId.fromString(topicId))
-        .setMessage(message);
+        .setMessage(message)
+        .setMaxTransactionFee(new Hbar(1)); // safety cap for message submission
 
       const txResponse = await transaction.execute(this.client);
       const receipt = await txResponse.getReceipt(this.client);
@@ -86,11 +108,11 @@ export class HCSService {
         throw new Error('Failed to get sequence number for HCS message');
       }
 
-      this.debug.log('Message submitted successfully', { sequenceNumber });
+      this.debug.log('✅ Message submitted successfully', { sequenceNumber });
       return sequenceNumber;
     } catch (error) {
       this.debug.error('Failed to submit HCS message', error);
-      throw error;
+      throw new Error(`Message submission failed: ${error.message}`);
     }
   }
 

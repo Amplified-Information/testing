@@ -1,12 +1,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { 
-  Client, 
-  TopicCreateTransaction, 
-  AccountId, 
-  PrivateKey 
-} from 'npm:@hashgraph/sdk@2.72.0'
+import { PrivateKey } from 'npm:@hashgraph/sdk@2.72.0'
 import { corsHeaders } from '../_shared/cors.ts'
+import { getSystemHederaClient } from '../_shared/hederaClient.ts'
+import { createCLOBTopic } from '../_shared/topicService.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -27,25 +24,10 @@ serve(async (req) => {
       if (action === 'create_topic') {
         console.log('Creating HCS topic:', { topicType, marketId })
         
-        // Initialize Hedera client
-        const client = Client.forTestnet()
-        const operatorAccountId = AccountId.fromString(systemAccountId)
+        const client = getSystemHederaClient()
         const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
-        client.setOperator(operatorAccountId, operatorPrivateKey)
-
-        // Create HCS topic
-        const transaction = new TopicCreateTransaction()
-          .setTopicMemo(`CLOB-${topicType}${marketId ? `-${marketId}` : ''}`)
-          .setAdminKey(operatorPrivateKey.publicKey)
-          .setSubmitKey(operatorPrivateKey.publicKey)
-
-        const txResponse = await transaction.execute(client)
-        const receipt = await txResponse.getReceipt(client)
-        const topicId = receipt.topicId?.toString()
-
-        if (!topicId) {
-          throw new Error('Failed to create HCS topic')
-        }
+        
+        const topicId = await createCLOBTopic(client, topicType, marketId, operatorPrivateKey)
 
         // Store topic in database
         const { data: topic, error } = await supabase
@@ -81,26 +63,13 @@ serve(async (req) => {
         // Create topics for a specific market
         const topics = []
         
+        const client = getSystemHederaClient()
+        const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
+        
         for (const type of ['orders', 'batches'] as const) {
           console.log(`Creating ${type} topic for market ${marketId}`)
           
-          const client = Client.forTestnet()
-          const operatorAccountId = AccountId.fromString(systemAccountId)
-          const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
-          client.setOperator(operatorAccountId, operatorPrivateKey)
-
-          const transaction = new TopicCreateTransaction()
-            .setTopicMemo(`CLOB-${type}-${marketId}`)
-            .setAdminKey(operatorPrivateKey.publicKey)
-            .setSubmitKey(operatorPrivateKey.publicKey)
-
-          const txResponse = await transaction.execute(client)
-          const receipt = await txResponse.getReceipt(client)
-          const topicId = receipt.topicId?.toString()
-
-          if (!topicId) {
-            throw new Error(`Failed to create ${type} topic`)
-          }
+          const topicId = await createCLOBTopic(client, type, marketId, operatorPrivateKey)
 
           const { data: topic, error } = await supabase
             .from('hcs_topics')
@@ -165,27 +134,14 @@ serve(async (req) => {
           
           const marketTopics = []
           
+          const client = getSystemHederaClient()
+          const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
+          
           for (const type of ['orders', 'batches'] as const) {
             if (type === 'orders' && hasOrders) continue
             if (type === 'batches' && hasBatches) continue
             
-            const client = Client.forTestnet()
-            const operatorAccountId = AccountId.fromString(systemAccountId)
-            const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
-            client.setOperator(operatorAccountId, operatorPrivateKey)
-
-            const transaction = new TopicCreateTransaction()
-              .setTopicMemo(`CLOB-${type}-${market.id}`)
-              .setAdminKey(operatorPrivateKey.publicKey)
-              .setSubmitKey(operatorPrivateKey.publicKey)
-
-            const txResponse = await transaction.execute(client)
-            const receipt = await txResponse.getReceipt(client)
-            const topicId = receipt.topicId?.toString()
-
-            if (!topicId) {
-              throw new Error(`Failed to create ${type} topic for market ${market.id}`)
-            }
+            const topicId = await createCLOBTopic(client, type, market.id, operatorPrivateKey)
 
             const { data: topic, error } = await supabase
               .from('hcs_topics')
