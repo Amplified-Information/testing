@@ -61,7 +61,7 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<C
   }, {})
   
   const systemAccountId = secretsMap['CLOB_SYSTEM_ACCOUNT_ID']
-  const systemAccountPrivateKey = secretsMap['CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']
+  let systemAccountPrivateKey = secretsMap['CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']
   
   if (!systemAccountId || !systemAccountPrivateKey) {
     console.error('Missing required credentials:', {
@@ -71,11 +71,27 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<C
     throw new Error('Required Hedera credentials are empty in secrets table')
   }
   
-  console.log('Successfully retrieved Hedera credentials from secrets')
+  // Handle different private key formats
+  if (systemAccountPrivateKey.startsWith('0x')) {
+    systemAccountPrivateKey = systemAccountPrivateKey.slice(2)
+  }
   
-  return createHederaClient({
-    operatorId: systemAccountId,
-    operatorKey: systemAccountPrivateKey,
-    network: 'testnet'
+  console.log('Successfully retrieved Hedera credentials from secrets', {
+    accountId: systemAccountId,
+    keyLength: systemAccountPrivateKey.length,
+    keyPrefix: systemAccountPrivateKey.substring(0, 4)
   })
+  
+  try {
+    return createHederaClient({
+      operatorId: systemAccountId,
+      operatorKey: systemAccountPrivateKey,
+      network: 'testnet'
+    })
+  } catch (error) {
+    console.error('Failed to create Hedera client:', error)
+    console.error('Account ID format:', systemAccountId)
+    console.error('Private key format (first 10 chars):', systemAccountPrivateKey.substring(0, 10))
+    throw error
+  }
 }
