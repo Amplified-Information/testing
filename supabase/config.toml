@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.hcs-manager]
 verify_jwt = false
+
+[functions.hcs-test]
+verify_jwt = false

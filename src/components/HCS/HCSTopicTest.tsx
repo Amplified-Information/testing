@@ -4,21 +4,60 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, XCircle, Clock, Play, RotateCcw } from 'lucide-react';
-import { hcsTestService, HCSTestResult } from '@/lib/hcsService';
+import { supabase } from '@/integrations/supabase/client';
+
+export interface HCSTestResult {
+  step: string;
+  status: 'success' | 'error' | 'pending';
+  message: string;
+  data?: any;
+  timestamp: string;
+}
 
 export default function HCSTopicTest() {
   const [results, setResults] = useState<HCSTestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+
+  const callHCSFunction = async (action: string, topicId?: string, message?: string): Promise<HCSTestResult> => {
+    const { data, error } = await supabase.functions.invoke('hcs-test', {
+      body: { action, topicId, message }
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data.result;
+  };
+
+  const runCompleteTest = async (): Promise<HCSTestResult[]> => {
+    const { data, error } = await supabase.functions.invoke('hcs-test', {
+      body: { action: 'completeTest' }
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data.results;
+  };
 
   const runTest = async () => {
     setIsRunning(true);
     setResults([]);
     
     try {
-      const testResults = await hcsTestService.runCompleteTest();
+      const testResults = await runCompleteTest();
       setResults(testResults);
     } catch (error) {
       console.error('Test failed:', error);
+      const errorResult: HCSTestResult = {
+        step: 'Test Failed',
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        timestamp: new Date().toISOString()
+      };
+      setResults([errorResult]);
     } finally {
       setIsRunning(false);
     }
@@ -32,22 +71,19 @@ export default function HCSTopicTest() {
       
       switch (step) {
         case 'init':
-          result = await hcsTestService.initialize();
+          result = await callHCSFunction('initialize');
           break;
         case 'balance':
-          result = await hcsTestService.getAccountBalance();
+          result = await callHCSFunction('balance');
           break;
         case 'create':
-          result = await hcsTestService.createTopic("Individual Test - " + new Date().toISOString());
+          result = await callHCSFunction('createTopic', undefined, "Individual Test - " + new Date().toISOString());
           break;
         case 'message':
           // Need a topic ID for this - use the last created topic if available
           const lastCreateResult = results.find(r => r.step === 'Create Topic' && r.status === 'success');
           if (lastCreateResult?.data?.topicId) {
-            result = await hcsTestService.submitMessage(
-              lastCreateResult.data.topicId,
-              `Individual test message - ${new Date().toISOString()}`
-            );
+            result = await callHCSFunction('submitMessage', lastCreateResult.data.topicId, `Individual test message - ${new Date().toISOString()}`);
           } else {
             result = {
               step: 'Submit Message',
@@ -64,6 +100,13 @@ export default function HCSTopicTest() {
       setResults(prev => [...prev, result]);
     } catch (error) {
       console.error('Individual step failed:', error);
+      const errorResult: HCSTestResult = {
+        step: 'Individual Step Failed',
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        timestamp: new Date().toISOString()
+      };
+      setResults(prev => [...prev, errorResult]);
     } finally {
       setIsRunning(false);
     }
