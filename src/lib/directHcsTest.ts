@@ -17,33 +17,28 @@ interface TestCredentials {
 
 export class DirectHCSTest {
   private async fetchCredentials(): Promise<TestCredentials> {
-    // Fetch credentials from Supabase secrets table
-    const { data, error } = await supabase
-      .from('secrets')
-      .select('name, value')
-      .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
-    
-    if (error) {
-      throw new Error(`Failed to fetch credentials: ${error.message}`);
+    try {
+      // Call the hcs-manager edge function to get credentials securely
+      const { data, error } = await supabase.functions.invoke('hcs-manager', {
+        body: { action: 'get-credentials' }
+      });
+      
+      if (error) {
+        throw new Error(`Failed to fetch credentials via edge function: ${error.message}`);
+      }
+      
+      if (!data || !data.operatorId || !data.operatorKey) {
+        throw new Error('Missing required Hedera credentials from edge function');
+      }
+      
+      return {
+        operatorId: data.operatorId,
+        operatorKey: data.operatorKey
+      };
+    } catch (error) {
+      console.error('Failed to fetch credentials:', error);
+      throw new Error(`Credential fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    if (!data || data.length < 2) {
-      throw new Error('Missing required Hedera credentials in secrets table');
-    }
-    
-    const credentials: any = {};
-    data.forEach(secret => {
-      credentials[secret.name] = secret.value;
-    });
-    
-    if (!credentials.CLOB_SYSTEM_ACCOUNT_ID || !credentials.CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY) {
-      throw new Error('CLOB_SYSTEM_ACCOUNT_ID and CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY must be set in secrets table');
-    }
-    
-    return {
-      operatorId: credentials.CLOB_SYSTEM_ACCOUNT_ID,
-      operatorKey: credentials.CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY
-    };
   }
 
   private async getTestMarket() {

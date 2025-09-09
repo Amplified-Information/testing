@@ -8,6 +8,12 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 )
 
+// Initialize service role client for accessing secrets
+const supabaseServiceRole = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -57,6 +63,49 @@ serve(async (req) => {
           headers: corsHeaders,
           status: 200
         })
+      }
+
+      case 'get-credentials': {
+        // Fetch Hedera credentials from secrets table using service role
+        const { data, error } = await supabaseServiceRole
+          .from('secrets')
+          .select('name, value')
+          .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY'])
+
+        if (error) {
+          return new Response(
+            JSON.stringify({ success: false, error: `Failed to fetch credentials: ${error.message}` }),
+            { headers: corsHeaders, status: 500 }
+          )
+        }
+
+        if (!data || data.length < 2) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Missing required Hedera credentials' }),
+            { headers: corsHeaders, status: 404 }
+          )
+        }
+
+        const credentials: Record<string, string> = {}
+        data.forEach(secret => {
+          credentials[secret.name] = secret.value
+        })
+
+        if (!credentials.CLOB_SYSTEM_ACCOUNT_ID || !credentials.CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Incomplete Hedera credentials' }),
+            { headers: corsHeaders, status: 404 }
+          )
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            operatorId: credentials.CLOB_SYSTEM_ACCOUNT_ID,
+            operatorKey: credentials.CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY
+          }),
+          { headers: corsHeaders, status: 200 }
+        )
       }
 
       case 'reset_stuck_jobs': {
