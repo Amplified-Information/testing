@@ -20,7 +20,7 @@ export class HCSTestService {
       const { data: secrets, error } = await supabase
         .from('secrets')
         .select('*')
-        .in('name', ['HEDERA_OPERATOR_ID', 'HEDERA_OPERATOR_KEY']);
+        .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
 
       if (error) {
         throw new Error(`Failed to fetch credentials: ${error.message}`);
@@ -30,8 +30,8 @@ export class HCSTestService {
         throw new Error('Missing Hedera credentials in secrets table');
       }
 
-      const operatorIdSecret = secrets.find(s => s.name === 'HEDERA_OPERATOR_ID');
-      const operatorKeySecret = secrets.find(s => s.name === 'HEDERA_OPERATOR_KEY');
+      const operatorIdSecret = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_ID');
+      const operatorKeySecret = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY');
 
       if (!operatorIdSecret?.value || !operatorKeySecret?.value) {
         throw new Error('Hedera credentials not found or empty');
