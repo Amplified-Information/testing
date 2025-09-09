@@ -1144,6 +1144,7 @@ export type Database = {
       }
       topic_creation_jobs: {
         Row: {
+          claimed_at: string | null
           completed_at: string | null
           created_at: string
           duration: number | null
@@ -1157,6 +1158,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          claimed_at?: string | null
           completed_at?: string | null
           created_at?: string
           duration?: number | null
@@ -1170,6 +1172,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          claimed_at?: string | null
           completed_at?: string | null
           created_at?: string
           duration?: number | null
@@ -1260,6 +1263,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_topic_jobs: {
+        Args: { limit_count: number }
+        Returns: {
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          duration: number | null
+          error: string | null
+          id: string
+          market_id: string | null
+          request_id: string
+          status: string
+          topic_id: string | null
+          topic_type: string
+          updated_at: string
+        }[]
+      }
       create_candidate_binary_options: {
         Args: {
           p_candidate_avatar?: string
