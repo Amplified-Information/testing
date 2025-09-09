@@ -117,8 +117,10 @@ export class HCSTopicTester {
         return { success: false, error: error.message };
       }
 
-      if (!data.requestId) {
-        return { success: false, error: 'No requestId returned from topic creation' };
+      console.log('HCS Manager Response:', data);
+
+      if (!data || !data.requestId) {
+        return { success: false, error: `No requestId returned from topic creation. Response: ${JSON.stringify(data)}` };
       }
 
       // Poll for completion
