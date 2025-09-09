@@ -70,4 +70,5 @@ serve(async (req) => {
       JSON.stringify({ success: false, error: (err as Error).message }),
       { headers: corsHeaders, status: 500 }
     )
+  }
 })
