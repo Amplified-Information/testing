@@ -2,7 +2,7 @@ import Header from "@/components/Layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3, Database } from "lucide-react";
+import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3, Database, MessageSquare } from "lucide-react";
 
 const DevNotesIndex = () => {
   return (
@@ -351,6 +351,46 @@ const DevNotesIndex = () => {
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                   >
                     View CLOB Implementation <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* HCS Topic Test */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                      HCS Topic Test
+                    </CardTitle>
+                    <CardDescription>
+                      Interactive testing suite for Hedera Consensus Service topic creation and messaging
+                    </CardDescription>
+                  </div>
+                  <Badge variant="default">Live Testing</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Step-by-step HCS validation tool that walks through the complete topic lifecycle: 
+                    credential initialization, client setup, topic creation, and message submission. 
+                    Uses stored Hedera testnet credentials from Supabase secrets for secure testing.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">Hedera SDK</Badge>
+                    <Badge variant="outline">Topic Creation</Badge>
+                    <Badge variant="outline">Message Testing</Badge>
+                    <Badge variant="outline">Live Validation</Badge>
+                    <Badge variant="outline">Supabase Secrets</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/hcs-test" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    Run HCS Test <ExternalLink className="h-4 w-4" />
                   </Link>
                 </div>
               </CardContent>
