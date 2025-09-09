@@ -173,7 +173,7 @@ serve(async (req) => {
               // Hedera timing: testnet 2-5s, mainnet 3-7s + buffer, but network issues can cause delays
               const topicCreationPromise = createCLOBTopic(client, topicType as ValidTopicType, marketId, privateKey)
               const topicTimeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('Topic creation timeout')), 30000) // 30s timeout for network issues
+                setTimeout(() => reject(new Error('Topic creation timeout')), 60000) // 60s timeout for network issues
               })
               
               const topicId = await Promise.race([topicCreationPromise, topicTimeoutPromise])
@@ -293,10 +293,10 @@ serve(async (req) => {
               log.info(requestId, 'Hedera client obtained successfully')
               
               // Create orders and batches topics concurrently
-              // Each topic: ~2-7s on Hedera, timeout after 15s each
+              // Each topic: ~2-7s on Hedera, timeout after 60s each
               const createWithTimeout = (promise: Promise<string>) => {
                 const timeoutPromise = new Promise<never>((_, reject) => {
-                  setTimeout(() => reject(new Error('Topic creation timeout')), 15000)
+                  setTimeout(() => reject(new Error('Topic creation timeout')), 60000)
                 })
                 return Promise.race([promise, timeoutPromise])
               }
@@ -446,7 +446,7 @@ serve(async (req) => {
                   const createTopicWithTimeout = (topicType: 'orders' | 'batches') => {
                     const promise = createCLOBTopic(client, topicType, market.id, privateKey)
                     const timeout = new Promise<never>((_, reject) => {
-                      setTimeout(() => reject(new Error(`${topicType} topic creation timeout`)), 15000)
+                      setTimeout(() => reject(new Error(`${topicType} topic creation timeout`)), 60000)
                     })
                     return Promise.race([promise, timeout])
                   }
