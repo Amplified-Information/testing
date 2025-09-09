@@ -1,4 +1,4 @@
-import { Client, AccountId, PrivateKey } from 'npm:@hashgraph/sdk@2.72.0'
+import { Client, AccountId, PrivateKey, AccountBalanceQuery } from 'npm:@hashgraph/sdk@2.72.0'
 
 export interface HederaClientConfig {
   operatorId: string
@@ -106,7 +106,9 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
     console.log('Testing Hedera client connectivity...')
     try {
       const accountId = AccountId.fromString(systemAccountId)
-      const balance = await client.getAccountBalance(accountId)
+      const balanceQuery = new AccountBalanceQuery()
+        .setAccountId(accountId)
+      const balance = await balanceQuery.execute(client)
       console.log('✅ Hedera client connectivity verified. Account balance:', balance.hbars.toString())
     } catch (balanceError) {
       console.warn('⚠️ Account balance check failed (client may still work):', balanceError.message)
