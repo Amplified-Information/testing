@@ -3,7 +3,52 @@ import {
   TopicCreateTransaction, 
   Hbar, 
   PrivateKey 
-} from 'npm:@hashgraph/sdk@2.72.0'
+} from 'https://esm.sh/@hashgraph/sdk@2.72.0'
+
+// Configuration constants
+const TOPIC_CREATION_TIMEOUT = 30000 // 30s timeout
+const MAX_RETRIES = 2 // Retry attempts for testnet
+const BASE_RETRY_DELAY = 1000 // 1s base delay
+
+// Timing utility for SDK operations
+const withTiming = async <T>(label: string, operation: () => Promise<T>): Promise<T> => {
+  const start = Date.now()
+  try {
+    const result = await operation()
+    console.log(`${label} completed in ${Date.now() - start}ms`)
+    return result
+  } catch (error) {
+    console.log(`${label} failed after ${Date.now() - start}ms:`, error)
+    throw error
+  }
+}
+
+// Retry with exponential backoff for testnet
+const withRetry = async <T>(
+  operation: () => Promise<T>, 
+  maxRetries: number = MAX_RETRIES, 
+  baseDelay: number = BASE_RETRY_DELAY
+): Promise<T> => {
+  let lastError: Error
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error as Error
+      
+      if (attempt === maxRetries) {
+        throw lastError
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt)
+      console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  throw lastError!
+}
 
 export interface TopicCreationOptions {
   memo: string
@@ -79,20 +124,71 @@ export async function createTopic(
   }
 }
 
+// Create a CLOB topic with proper abort handling, timing, and retry
 export async function createCLOBTopic(
   client: Client,
   topicType: 'orders' | 'batches' | 'oracle' | 'disputes',
   marketId?: string,
   operatorPrivateKey?: PrivateKey
 ): Promise<string> {
-  const memo = `CLOB-${topicType}${marketId ? `-${marketId}` : ''}`
+  console.log(`Creating ${topicType} topic${marketId ? ` for market ${marketId}` : ''}`)
   
-  return createTopic(client, {
-    memo,
-    adminKey: operatorPrivateKey,
-    submitKey: operatorPrivateKey,
-    autoRenewAccountId: client.operatorAccountId?.toString(),
-    autoRenewPeriod: 7776000, // 90 days
-    maxTransactionFee: 2
+  const memo = `CLOB-${topicType.toUpperCase()}${marketId ? `-${marketId}` : ''}`
+  
+  return await withRetry(async () => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), TOPIC_CREATION_TIMEOUT)
+    
+    try {
+      const topicId = await withTiming(`${topicType} topic creation`, async () => {
+        const transaction = new TopicCreateTransaction()
+          .setTopicMemo(memo)
+          .setMaxTransactionFee(new Hbar(2))
+        
+        // Set admin and submit keys if provided
+        if (operatorPrivateKey) {
+          transaction.setAdminKey(operatorPrivateKey.publicKey)
+          transaction.setSubmitKey(operatorPrivateKey.publicKey)
+        }
+        
+        // Set auto-renew for long-lived topics
+        if (client.operatorAccountId) {
+          transaction.setAutoRenewAccountId(client.operatorAccountId.toString())
+          transaction.setAutoRenewPeriod(7776000) // 90 days
+        }
+        
+        // Freeze and sign transaction if private key provided
+        const finalTx = operatorPrivateKey ? 
+          await transaction.freezeWith(client).sign(operatorPrivateKey) :
+          transaction
+        
+        // Send transaction and track timing
+        const txResponse = await withTiming('Transaction submit', async () => {
+          return await finalTx.execute(client)
+        })
+        
+        // Get receipt and track timing
+        const receipt = await withTiming('Receipt retrieval', async () => {
+          return await txResponse.getReceipt(client)
+        })
+        
+        if (!receipt.topicId) {
+          throw new Error('Topic creation failed - no topic ID in receipt')
+        }
+        
+        return receipt.topicId.toString()
+      })
+      
+      console.log(`Successfully created ${topicType} topic: ${topicId}`)
+      return topicId
+      
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new Error(`${topicType} topic creation timeout after ${TOPIC_CREATION_TIMEOUT}ms`)
+      }
+      throw error
+    } finally {
+      clearTimeout(timeout)
+    }
   })
 }

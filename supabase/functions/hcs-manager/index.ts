@@ -15,11 +15,53 @@ const VALID_TOPIC_TYPES = ['orders', 'batches', 'oracle', 'disputes'] as const
 type ValidTopicType = typeof VALID_TOPIC_TYPES[number]
 
 // Request timeout optimized for Supabase edge function limits (60s gateway timeout)
-// Individual topics: 45s, Multiple operations: 50s to stay under gateway limit
+// Individual topics: 30s, Multiple operations: 50s to stay under gateway limit
 const REQUEST_TIMEOUT = 50000
+const TOPIC_CREATION_TIMEOUT = 30000
+const CONNECTION_TEST_TIMEOUT = 5000
 
 // Generate request ID for logging
 const generateRequestId = () => crypto.randomUUID().substring(0, 8)
+
+// Timing utility for SDK operations
+const withTiming = async <T>(label: string, operation: () => Promise<T>): Promise<T> => {
+  const start = Date.now()
+  try {
+    const result = await operation()
+    console.log(`${label} completed in ${Date.now() - start}ms`)
+    return result
+  } catch (error) {
+    console.log(`${label} failed after ${Date.now() - start}ms:`, error)
+    throw error
+  }
+}
+
+// Retry with exponential backoff for testnet
+const withRetry = async <T>(
+  operation: () => Promise<T>, 
+  maxRetries: number = 2, 
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: Error
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error as Error
+      
+      if (attempt === maxRetries) {
+        throw lastError
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt)
+      console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  throw lastError!
+}
 
 // Logging helper with consistent format
 const log = {
@@ -170,13 +212,8 @@ serve(async (req) => {
               log.info(requestId, 'Hedera client obtained successfully')
               
               // Create the topic using our existing logic with timeout wrapper
-              // Hedera timing: testnet 2-5s, mainnet 3-7s + buffer, but network issues can cause delays
-              const topicCreationPromise = createCLOBTopic(client, topicType as ValidTopicType, marketId, privateKey)
-              const topicTimeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('Topic creation timeout')), 45000) // 45s timeout to stay under gateway limit
-              })
-              
-              const topicId = await Promise.race([topicCreationPromise, topicTimeoutPromise])
+              // Create topic with built-in timeout and retry logic
+              const topicId = await createCLOBTopic(client, topicType as ValidTopicType, marketId, privateKey)
               const topicDuration = Date.now() - topicStartTime
               
               log.info(requestId, `Successfully created topic: ${topicId} in ${topicDuration}ms`)
@@ -292,21 +329,10 @@ serve(async (req) => {
               const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
               log.info(requestId, 'Hedera client obtained successfully')
               
-              // Create orders and batches topics concurrently
-              // Each topic: ~2-7s on Hedera, timeout after 60s each
-              const createWithTimeout = (promise: Promise<string>) => {
-                const timeoutPromise = new Promise<never>((_, reject) => {
-                  setTimeout(() => reject(new Error('Topic creation timeout')), 45000)
-                })
-                return Promise.race([promise, timeoutPromise])
-              }
-              
-              const ordersTopicPromise = createWithTimeout(createCLOBTopic(client, 'orders', marketId, privateKey))
-              const batchesTopicPromise = createWithTimeout(createCLOBTopic(client, 'batches', marketId, privateKey))
-              
+              // Create both topics concurrently with built-in timeout and retry
               const [ordersTopicId, batchesTopicId] = await Promise.all([
-                ordersTopicPromise,
-                batchesTopicPromise
+                createCLOBTopic(client, 'orders', marketId, privateKey),
+                createCLOBTopic(client, 'batches', marketId, privateKey)
               ])
               
               log.info(requestId, `Created market topics:`, { ordersTopicId, batchesTopicId })
@@ -442,20 +468,13 @@ serve(async (req) => {
                 try {
                   log.info(requestId, `Processing market: ${market.name} (${market.id})`)
                   
-                  // Create topics with timeouts (each should take 2-7s on Hedera)
-                  const createTopicWithTimeout = (topicType: 'orders' | 'batches') => {
-                    const promise = createCLOBTopic(client, topicType, market.id, privateKey)
-                    const timeout = new Promise<never>((_, reject) => {
-                      setTimeout(() => reject(new Error(`${topicType} topic creation timeout`)), 45000)
-                    })
-                    return Promise.race([promise, timeout])
-                  }
+                  // Create topics with built-in timeout and retry logic
+                  const [ordersTopicId, batchesTopicId] = await Promise.all([
+                    createCLOBTopic(client, 'orders', market.id, privateKey),
+                    createCLOBTopic(client, 'batches', market.id, privateKey)
+                  ])
                   
-                  const ordersTopicId = await createTopicWithTimeout('orders')
-                  await new Promise(resolve => setTimeout(resolve, 1000)) // 1s delay between topics
-                  const batchesTopicId = await createTopicWithTimeout('batches')
-                  
-                  // Store in database
+                  // Store both topics in database concurrently
                   await Promise.all([
                     supabase.from('hcs_topics').insert({
                       topic_id: ordersTopicId,
