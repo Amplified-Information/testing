@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { HCSTestRunner } from '@/components/HCS/HCSTestRunner';
+import { DirectTopicTest } from '@/components/HCS/DirectTopicTest';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Target, Zap, CheckCircle } from 'lucide-react';
 
@@ -209,6 +210,9 @@ export default function HCSTestingDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Direct Topic Test Component */}
+      <DirectTopicTest />
 
       {/* Test Runner Component */}
       <HCSTestRunner />
