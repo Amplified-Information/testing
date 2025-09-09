@@ -15,7 +15,7 @@ export function createHederaClient(config: HederaClientConfig): Client {
   const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
   
   const operatorAccountId = AccountId.fromString(config.operatorId)
-  const operatorPrivateKey = PrivateKey.fromString(config.operatorKey)
+  const operatorPrivateKey = PrivateKey.fromStringECDSA(config.operatorKey)
   
   client.setOperator(operatorAccountId, operatorPrivateKey)
   
@@ -99,8 +99,8 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
       network: 'testnet'
     })
     
-    // Create PrivateKey object for topic creation
-    const privateKey = PrivateKey.fromString(systemAccountPrivateKey)
+    // Create PrivateKey object for topic creation using ECDSA format
+    const privateKey = PrivateKey.fromStringECDSA(systemAccountPrivateKey)
     
     // Test connection by checking account balance
     console.log('Testing Hedera client connectivity...')
