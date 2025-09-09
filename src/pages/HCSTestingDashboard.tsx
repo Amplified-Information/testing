@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { HCSTestRunner } from '@/components/HCS/HCSTestRunner';
-import { DirectTopicTest } from '@/components/HCS/DirectTopicTest';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Target, Zap, CheckCircle } from 'lucide-react';
 
@@ -28,7 +27,7 @@ export default function HCSTestingDashboard() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5 Phases</div>
+            <div className="text-2xl font-bold">4 Phases</div>
             <p className="text-xs text-muted-foreground">
               Connection test + systematic HCS validation
             </p>
@@ -129,24 +128,8 @@ export default function HCSTestingDashboard() {
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-semibold text-lg">Five-Phase Testing Strategy</h4>
+            <h4 className="font-semibold text-lg">Four-Phase Testing Strategy</h4>
             <div className="grid gap-4">
-              <div className="p-4 rounded-lg border bg-card/50">
-                <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-medium">Phase 0: CLOB Connection Test</h5>
-                  <Badge>New</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Validate that the CLOB operator account can successfully connect to HCS and create topics.
-                </p>
-                <ul className="text-xs space-y-1">
-                  <li>• Test ECDSA private key format and validation</li>
-                  <li>• Verify Hedera client connectivity to testnet nodes</li>
-                  <li>• Create a test topic to confirm authentication</li>
-                  <li>• Validate proper error handling and logging</li>
-                </ul>
-              </div>
-              
               <div className="p-4 rounded-lg border bg-card/50">
                 <div className="flex items-center justify-between mb-2">
                   <h5 className="font-medium">Phase 1: Basic Topic Setup & Testing</h5>
@@ -210,9 +193,6 @@ export default function HCSTestingDashboard() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Direct Topic Test Component */}
-      <DirectTopicTest />
 
       {/* Test Runner Component */}
       <HCSTestRunner />
