@@ -155,6 +155,7 @@ export async function createCLOBTopic(
         const transaction = new TopicCreateTransaction()
           .setTopicMemo(memo)
           .setMaxTransactionFee(new Hbar(2))
+          .setTransactionValidDuration(60) // 60 seconds gRPC deadline for slow testnet
         
         // Set admin and submit keys if provided
         if (operatorPrivateKey) {

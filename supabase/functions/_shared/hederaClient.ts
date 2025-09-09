@@ -155,6 +155,7 @@ async function hcsMessageTest(client: Client, topicId: string) {
   const tx = await new TopicMessageSubmitTransaction()
     .setTopicId(TopicId.fromString(topicId))
     .setMessage(`Connection test at ${new Date().toISOString()}`)
+    .setTransactionValidDuration(30) // 30 seconds for lighter message operation
     .execute(client)
 
   const receipt = await tx.getReceipt(client)
