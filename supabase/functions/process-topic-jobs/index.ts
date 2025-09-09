@@ -3,90 +3,95 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
 import { getSystemHederaClientFromSecrets } from '../_shared/hederaClient.ts'
 import { createCLOBTopic } from '../_shared/topicService.ts'
 
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
+
 serve(async () => {
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // service role needed
-  )
+  try {
+    console.log('🔄 Worker started: attempting to claim jobs...')
 
-  console.log('[Topic Jobs Worker] Starting job processing batch...')
+    // Atomically claim jobs in one SQL call
+    const { data: jobs, error: claimError } = await supabase.rpc(
+      'claim_topic_jobs',
+      { limit_count: 5 }
+    )
 
-  const { data: jobs, error } = await supabase
-    .from('topic_creation_jobs')
-    .select('*')
-    .eq('status', 'pending')
-    .limit(5)
-
-  if (error) {
-    console.error('[Topic Jobs Worker] Error fetching jobs', error)
-    return new Response('Error fetching jobs', { status: 500 })
-  }
-
-  if (!jobs || jobs.length === 0) {
-    console.log('[Topic Jobs Worker] No pending jobs found')
-    return new Response('No pending jobs', { status: 200 })
-  }
-
-  console.log(`[Topic Jobs Worker] Processing ${jobs.length} jobs`)
-
-  for (const job of jobs) {
-    const start = Date.now()
-    
-    try {
-      console.log(`[Topic Jobs Worker] Processing job ${job.request_id} - ${job.topic_type}`)
-      
-      // Update status to processing
-      await supabase.from('topic_creation_jobs')
-        .update({ status: 'processing' })
-        .eq('id', job.id)
-
-      const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
-
-      const topicId = await createCLOBTopic(
-        client,
-        job.topic_type as 'orders' | 'batches' | 'oracle' | 'disputes',
-        job.market_id,
-        privateKey
+    if (claimError) {
+      console.error('Error claiming jobs:', claimError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to claim jobs' }),
+        { status: 500 }
       )
+    }
 
-      // Store the topic in hcs_topics table
-      const { error: hcsError } = await supabase
-        .from('hcs_topics')
-        .insert({
+    if (!jobs || jobs.length === 0) {
+      console.log('No jobs available to process.')
+      return new Response(JSON.stringify({ message: 'No jobs claimed' }), { status: 200 })
+    }
+
+    console.log(`✅ Claimed ${jobs.length} job(s)`)
+
+    // Process each claimed job
+    for (const job of jobs) {
+      const startTime = Date.now()
+      try {
+        console.log(`Processing job ${job.id} (${job.topic_type})`)
+
+        const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
+
+        const topicId = await createCLOBTopic(
+          client,
+          job.topic_type as 'orders' | 'batches' | 'oracle' | 'disputes',
+          job.market_id,
+          privateKey
+        )
+
+        const duration = Date.now() - startTime
+
+        // Insert into hcs_topics table
+        await supabase.from('hcs_topics').insert({
           topic_id: topicId,
           topic_type: job.topic_type,
           market_id: job.market_id,
-          description: `CLOB ${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`
+          description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`
         })
 
-      if (hcsError) {
-        console.error(`[Topic Jobs Worker] Failed to store topic in hcs_topics for job ${job.request_id}`, hcsError)
+        // Mark job as success
+        await supabase
+          .from('topic_creation_jobs')
+          .update({
+            status: 'success',
+            topic_id: topicId,
+            completed_at: new Date().toISOString(),
+            duration
+          })
+          .eq('id', job.id)
+
+        console.log(`🎉 Job ${job.id} succeeded in ${duration}ms → ${topicId}`)
+      } catch (err) {
+        const duration = Date.now() - startTime
+        const errorMessage = (err as Error).message
+
+        console.error(`❌ Job ${job.id} failed:`, errorMessage)
+
+        await supabase
+          .from('topic_creation_jobs')
+          .update({
+            status: 'failed',
+            error: errorMessage,
+            completed_at: new Date().toISOString(),
+            duration
+          })
+          .eq('id', job.id)
       }
-
-      await supabase.from('topic_creation_jobs')
-        .update({
-          status: 'success',
-          topic_id: topicId,
-          duration: Date.now() - start,
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', job.id)
-
-      console.log(`[Topic Jobs Worker] ✅ Created topic ${topicId} for job ${job.request_id}`)
-      
-    } catch (err) {
-      console.error(`[Topic Jobs Worker] ❌ Topic creation failed for job ${job.request_id}`, err)
-
-      await supabase.from('topic_creation_jobs')
-        .update({
-          status: 'failed',
-          error: (err as Error).message,
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', job.id)
     }
-  }
 
-  console.log('[Topic Jobs Worker] Batch processing completed')
-  return new Response('Processed jobs', { status: 200 })
+    return new Response(JSON.stringify({ message: `Processed ${jobs.length} job(s)` }), { status: 200 })
+
+  } catch (err) {
+    console.error('Worker runtime error:', err)
+    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500 })
+  }
 })
