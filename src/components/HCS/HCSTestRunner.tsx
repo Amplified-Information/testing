@@ -25,20 +25,20 @@ export const HCSTestRunner: React.FC = () => {
     setIsConnectionTesting(true);
     
     try {
-      toast.info('Testing CLOB operator account connection to HCS...');
+      toast.info('Testing Hedera network connectivity...');
       const result = await hcsTopicTester.testCLOBConnectionToHCS();
       
       // Add the result to existing results or create new array
       setTestResults(prev => [result, ...prev]);
       
       if (result.results.length > 0 && result.results[0].success) {
-        toast.success('CLOB connection test passed!');
+        toast.success('Hedera connectivity test passed!');
       } else {
-        toast.error('CLOB connection test failed!');
+        toast.error('Hedera connectivity test failed!');
       }
     } catch (error) {
-      console.error('Connection test execution failed:', error);
-      toast.error('Connection test execution failed: ' + (error as Error).message);
+      console.error('Connectivity test execution failed:', error);
+      toast.error('Connectivity test execution failed: ' + (error as Error).message);
     } finally {
       setIsConnectionTesting(false);
     }
@@ -150,7 +150,7 @@ export const HCSTestRunner: React.FC = () => {
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              Test CLOB Connection
+              Test Hedera Network
             </Button>
             
             <Button
@@ -190,7 +190,7 @@ export const HCSTestRunner: React.FC = () => {
           {isConnectionTesting && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Testing CLOB operator connection to HCS...</span>
+                <span>Testing Hedera network connectivity...</span>
               </div>
               <Progress value={50} className="w-full" />
             </div>
@@ -248,7 +248,10 @@ export const HCSTestRunner: React.FC = () => {
                                    <div><strong>Topics Created:</strong> {res.topicsCreated}</div>
                                  )}
                                  {res.connectionTest && (
-                                   <div><strong>Connection Test:</strong> ✅ Successfully validated CLOB operator account</div>
+                                   <div><strong>Connectivity Test:</strong> ✅ Successfully verified Hedera network connectivity</div>
+                                 )}
+                                 {res.requestId && (
+                                   <div><strong>Request ID:</strong> {res.requestId}</div>
                                  )}
                                  {res.timing && (
                                    <div><strong>Response Time:</strong> {res.timing.totalDuration || res.timing.duration || 'N/A'}ms</div>
@@ -284,12 +287,12 @@ export const HCSTestRunner: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <h4 className="font-semibold mb-2">Phase 0: Connection Test</h4>
+              <h4 className="font-semibold mb-2">Phase 0: Connectivity Test</h4>
               <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Test CLOB operator account ECDSA key format</li>
-                <li>• Validate Hedera testnet connectivity (Account Balance)</li> 
-                <li>• Test HCS message submission capability</li>
-                <li>• Two-tier verification (no topic creation required)</li>
+                <li>• Test Hedera network connectivity</li>
+                <li>• Validate topic creation capability</li> 
+                <li>• Use async job polling architecture</li>
+                <li>• Verify job queue processing</li>
               </ul>
             </div>
             <div>
