@@ -21,7 +21,7 @@ export class DirectHCSTest {
     const { data, error } = await supabase
       .from('secrets')
       .select('name, value')
-      .in('name', ['HEDERA_OPERATOR_ID', 'HEDERA_OPERATOR_KEY']);
+      .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
     
     if (error) {
       throw new Error(`Failed to fetch credentials: ${error.message}`);
@@ -36,13 +36,13 @@ export class DirectHCSTest {
       credentials[secret.name] = secret.value;
     });
     
-    if (!credentials.HEDERA_OPERATOR_ID || !credentials.HEDERA_OPERATOR_KEY) {
-      throw new Error('HEDERA_OPERATOR_ID and HEDERA_OPERATOR_KEY must be set in secrets table');
+    if (!credentials.CLOB_SYSTEM_ACCOUNT_ID || !credentials.CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY) {
+      throw new Error('CLOB_SYSTEM_ACCOUNT_ID and CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY must be set in secrets table');
     }
     
     return {
-      operatorId: credentials.HEDERA_OPERATOR_ID,
-      operatorKey: credentials.HEDERA_OPERATOR_KEY
+      operatorId: credentials.CLOB_SYSTEM_ACCOUNT_ID,
+      operatorKey: credentials.CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY
     };
   }
 
