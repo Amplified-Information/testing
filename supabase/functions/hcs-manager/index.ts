@@ -14,9 +14,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 const VALID_TOPIC_TYPES = ['orders', 'batches', 'oracle', 'disputes'] as const
 type ValidTopicType = typeof VALID_TOPIC_TYPES[number]
 
-// Request timeout optimized for Hedera consensus timing
-// Individual topics: 60s, Multiple topics: 90s for bulk operations  
-const REQUEST_TIMEOUT = 90000
+// Request timeout optimized for Supabase edge function limits (60s gateway timeout)
+// Individual topics: 45s, Multiple operations: 50s to stay under gateway limit
+const REQUEST_TIMEOUT = 50000
 
 // Generate request ID for logging
 const generateRequestId = () => crypto.randomUUID().substring(0, 8)
@@ -173,7 +173,7 @@ serve(async (req) => {
               // Hedera timing: testnet 2-5s, mainnet 3-7s + buffer, but network issues can cause delays
               const topicCreationPromise = createCLOBTopic(client, topicType as ValidTopicType, marketId, privateKey)
               const topicTimeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('Topic creation timeout')), 60000) // 60s timeout for network issues
+                setTimeout(() => reject(new Error('Topic creation timeout')), 45000) // 45s timeout to stay under gateway limit
               })
               
               const topicId = await Promise.race([topicCreationPromise, topicTimeoutPromise])
@@ -296,7 +296,7 @@ serve(async (req) => {
               // Each topic: ~2-7s on Hedera, timeout after 60s each
               const createWithTimeout = (promise: Promise<string>) => {
                 const timeoutPromise = new Promise<never>((_, reject) => {
-                  setTimeout(() => reject(new Error('Topic creation timeout')), 60000)
+                  setTimeout(() => reject(new Error('Topic creation timeout')), 45000)
                 })
                 return Promise.race([promise, timeoutPromise])
               }
@@ -446,7 +446,7 @@ serve(async (req) => {
                   const createTopicWithTimeout = (topicType: 'orders' | 'batches') => {
                     const promise = createCLOBTopic(client, topicType, market.id, privateKey)
                     const timeout = new Promise<never>((_, reject) => {
-                      setTimeout(() => reject(new Error(`${topicType} topic creation timeout`)), 60000)
+                      setTimeout(() => reject(new Error(`${topicType} topic creation timeout`)), 45000)
                     })
                     return Promise.race([promise, timeout])
                   }
