@@ -1,4 +1,4 @@
-import { Client, AccountId, PrivateKey } from 'npm:@hashgraph/sdk@2.72.0'
+import { Client, AccountId, PrivateKey, AccountBalanceQuery, TopicMessageSubmitTransaction, TopicId } from 'npm:@hashgraph/sdk@2.72.0'
 
 export interface HederaClientConfig {
   operatorId: string
@@ -120,6 +120,80 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
       throw new Error(`Network connectivity issue: ${error.message}`)
     } else {
       throw new Error(`Hedera client initialization failed: ${error.message}`)
+    }
+  }
+}
+
+// Test topic ID for HCS connectivity tests (reusable across tests)
+const HCS_TEST_TOPIC_ID = '0.0.4809394' // Pre-created test topic on testnet
+
+// Quick connectivity test using account balance query
+async function quickConnectivityTest(client: Client, operatorId: string) {
+  const start = Date.now()
+
+  const balance = await new AccountBalanceQuery()
+    .setAccountId(AccountId.fromString(operatorId))
+    .execute(client)
+
+  return {
+    success: true,
+    description: "Operator credentials valid, client connected",
+    hbars: balance.hbars.toString(),
+    timing: Date.now() - start,
+  }
+}
+
+// HCS message submit test to verify consensus service connectivity
+async function hcsMessageTest(client: Client, topicId: string) {
+  const start = Date.now()
+
+  const tx = await new TopicMessageSubmitTransaction()
+    .setTopicId(TopicId.fromString(topicId))
+    .setMessage(`Connection test at ${new Date().toISOString()}`)
+    .execute(client)
+
+  const receipt = await tx.getReceipt(client)
+
+  return {
+    success: receipt.status.toString() === "SUCCESS",
+    description: "Message successfully submitted to HCS",
+    status: receipt.status.toString(),
+    timing: Date.now() - start,
+  }
+}
+
+// Two-tier connection test combining both approaches
+export async function twoTierConnectionTest(client: Client, operatorId: string, testTopicId: string = HCS_TEST_TOPIC_ID) {
+  const results = []
+
+  try {
+    // Tier 1: Quick balance check
+    console.log('🔍 Tier 1: Quick connectivity test...')
+    results.push(await quickConnectivityTest(client, operatorId))
+
+    // Tier 2: HCS message submit
+    console.log('🔍 Tier 2: HCS message test...')
+    results.push(await hcsMessageTest(client, testTopicId))
+
+    const totalTime = results.map(r => r.timing).reduce((a,b) => a+b, 0)
+    const allSuccess = results.every(r => r.success)
+
+    return {
+      phase: "Two-Tier Connection Test",
+      results,
+      summary: allSuccess
+        ? `✅ Connection + HCS verified (${totalTime}ms)`
+        : "❌ One or more connection tests failed",
+    }
+  } catch (error) {
+    return {
+      phase: "Two-Tier Connection Test", 
+      results: [{
+        success: false,
+        description: "Unexpected error during test",
+        error: error instanceof Error ? error.message : String(error),
+      }],
+      summary: "❌ Connection test failed with error",
     }
   }
 }

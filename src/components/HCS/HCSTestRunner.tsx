@@ -287,9 +287,9 @@ export const HCSTestRunner: React.FC = () => {
               <h4 className="font-semibold mb-2">Phase 0: Connection Test</h4>
               <ul className="text-sm space-y-1 text-muted-foreground">
                 <li>• Test CLOB operator account ECDSA key format</li>
-                <li>• Validate Hedera testnet connectivity</li>
-                <li>• Create connection test topic</li>
-                <li>• Verify authentication and error handling</li>
+                <li>• Validate Hedera testnet connectivity (Account Balance)</li> 
+                <li>• Test HCS message submission capability</li>
+                <li>• Two-tier verification (no topic creation required)</li>
               </ul>
             </div>
             <div>

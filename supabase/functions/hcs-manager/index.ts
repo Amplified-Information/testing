@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
-import { getSystemHederaClientFromSecrets } from '../_shared/hederaClient.ts'
+import { getSystemHederaClientFromSecrets, twoTierConnectionTest } from '../_shared/hederaClient.ts'
 import { createCLOBTopic } from '../_shared/topicService.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -550,6 +550,71 @@ serve(async (req) => {
               )
             }
           }
+
+          case 'connection_test': {
+            try {
+              log.info(requestId, 'Running two-tier connection test')
+              const testStartTime = Date.now()
+              
+              // Get Hedera client and account ID
+              const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
+              
+              // Extract operator account ID from secrets for the test
+              const { data: secrets, error: secretsError } = await supabase
+                .from('secrets')
+                .select('name, value')
+                .eq('name', 'CLOB_SYSTEM_ACCOUNT_ID')
+                .single()
+
+              if (secretsError || !secrets) {
+                log.error(requestId, 'Failed to get operator account ID:', secretsError)
+                return new Response(
+                  JSON.stringify({ 
+                    success: false,
+                    error: 'Failed to retrieve operator account ID',
+                    requestId
+                  }),
+                  { 
+                    status: 500, 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                  }
+                )
+              }
+
+              // Run two-tier connection test
+              const testResult = await twoTierConnectionTest(client, secrets.value)
+              const testDuration = Date.now() - testStartTime
+              
+              log.info(requestId, `Connection test completed in ${testDuration}ms:`, testResult.summary)
+              
+              return new Response(
+                JSON.stringify({ 
+                  ...testResult,
+                  requestId,
+                  timing: { totalDuration: testDuration }
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+              
+            } catch (error) {
+              const errorDuration = Date.now() - startTime
+              log.error(requestId, `Connection test failed after ${errorDuration}ms:`, error)
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: false,
+                  phase: "Connection Test Error",
+                  error: error.message,
+                  requestId,
+                  timing: { failedAfter: errorDuration }
+                }),
+                { 
+                  status: 500, 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
+              )
+            }
+          }
           
           default:
             log.warn(requestId, 'Unsupported action:', action)
@@ -557,7 +622,7 @@ serve(async (req) => {
               JSON.stringify({ 
                 error: 'Unsupported action',
                 provided: action,
-                supportedActions: ['create_topic', 'setup_market_topics', 'initialize_all_markets'],
+                supportedActions: ['create_topic', 'setup_market_topics', 'initialize_all_markets', 'connection_test'],
                 requestId
               }),
               { 

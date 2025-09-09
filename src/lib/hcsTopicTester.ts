@@ -302,12 +302,10 @@ export class HCSTopicTester {
     try {
       console.log('Making connection test request to hcs-manager...')
       
-      // Make a simple request to test connection (create a temporary test topic)
+      // Make a connection test request using the new two-tier test
       const { data, error } = await supabase.functions.invoke('hcs-manager', {
         body: {
-          action: 'create_topic',
-          topicType: 'oracle', // Use oracle type for connection testing
-          marketId: null // No market ID for standalone test
+          action: 'connection_test'
         }
       });
       
@@ -315,19 +313,25 @@ export class HCSTopicTester {
         throw new Error(`Connection test failed: ${error.message || 'Unknown error'}`)
       }
       
-      if (data && data.success && data.topicId) {
+      if (data && data.results) {
+        // Process two-tier test results
+        const allTestsPassed = data.results.every((result: any) => result.success)
+        
         results.push({
-          success: true,
-          topicId: data.topicId,
-          description: 'CLOB operator account successfully connected to HCS',
+          success: allTestsPassed,
+          testResults: data.results,
+          summary: data.summary,
+          description: allTestsPassed 
+            ? 'CLOB operator account successfully connected to HCS (Two-tier test passed)'
+            : 'CLOB operator account connection test failed',
           timing: data.timing,
           requestId: data.requestId,
           connectionTest: true
         })
         
-        console.log(`✅ Connection test successful! Topic created: ${data.topicId}`)
+        console.log(`${allTestsPassed ? '✅' : '❌'} Connection test completed: ${data.summary}`)
       } else {
-        throw new Error('Connection test failed: No topic ID returned')
+        throw new Error('Connection test failed: Invalid response format')
       }
       
     } catch (error) {
