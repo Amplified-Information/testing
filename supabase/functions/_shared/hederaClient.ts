@@ -14,6 +14,11 @@ export function createHederaClient(config: HederaClientConfig): Client {
   const network = config.network || 'testnet'
   const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
   
+  // Configure longer timeouts for testnet reliability
+  if (network === 'testnet') {
+    client.setRequestTimeout(120000) // 2 minutes for testnet
+  }
+  
   const operatorAccountId = AccountId.fromString(config.operatorId)
   const operatorPrivateKey = PrivateKey.fromStringECDSA(config.operatorKey)
   

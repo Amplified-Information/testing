@@ -6,9 +6,9 @@ import {
 } from 'https://esm.sh/@hashgraph/sdk@2.72.0'
 
 // Configuration constants
-const TOPIC_CREATION_TIMEOUT = 30000 // 30s timeout
-const MAX_RETRIES = 2 // Retry attempts for testnet
-const BASE_RETRY_DELAY = 1000 // 1s base delay
+const TOPIC_CREATION_TIMEOUT = 60000 // 60s timeout for slow testnet
+const MAX_RETRIES = 3 // More retry attempts for testnet  
+const BASE_RETRY_DELAY = 2000 // 2s base delay
 
 // Timing utility for SDK operations
 const withTiming = async <T>(label: string, operation: () => Promise<T>): Promise<T> => {

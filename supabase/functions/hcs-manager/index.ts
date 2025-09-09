@@ -15,9 +15,9 @@ const VALID_TOPIC_TYPES = ['orders', 'batches', 'oracle', 'disputes'] as const
 type ValidTopicType = typeof VALID_TOPIC_TYPES[number]
 
 // Request timeout optimized for Supabase edge function limits (60s gateway timeout)
-// Individual topics: 30s, Multiple operations: 50s to stay under gateway limit
-const REQUEST_TIMEOUT = 50000
-const TOPIC_CREATION_TIMEOUT = 30000
+// Individual topics: 60s, Multiple operations: 120s to stay under gateway limit  
+const REQUEST_TIMEOUT = 120000
+const TOPIC_CREATION_TIMEOUT = 60000
 const CONNECTION_TEST_TIMEOUT = 5000
 
 // Generate request ID for logging
