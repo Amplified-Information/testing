@@ -12,10 +12,10 @@ serve(async () => {
   try {
     console.log('🔄 Worker started: attempting to claim jobs...')
 
-    // Atomically claim jobs in one SQL call
+    // Atomically claim jobs in one SQL call (reduced to 1 for better timeout handling)
     const { data: jobs, error: claimError } = await supabase.rpc(
       'claim_topic_jobs',
-      { limit_count: 5 }
+      { limit_count: 1 }
     )
 
     if (claimError) {
@@ -33,49 +33,61 @@ serve(async () => {
 
     console.log(`✅ Claimed ${jobs.length} job(s)`)
 
-    // Process each claimed job
+    // Process each claimed job with timeout protection
     for (const job of jobs) {
       const startTime = Date.now()
       try {
         console.log(`Processing job ${job.id} (${job.topic_type})`)
 
-        const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
-
-        const topicId = await createCLOBTopic(
-          client,
-          job.topic_type as 'orders' | 'batches' | 'oracle' | 'disputes',
-          job.market_id,
-          privateKey
-        )
-
-        const duration = Date.now() - startTime
-
-        // Insert into hcs_topics table
-        await supabase.from('hcs_topics').insert({
-          topic_id: topicId,
-          topic_type: job.topic_type,
-          market_id: job.market_id,
-          description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`
+        // Add timeout protection - fail job if it takes longer than 2 minutes
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Job timeout after 120 seconds')), 120000)
         })
 
-        // Mark job as success
-        await supabase
-          .from('topic_creation_jobs')
-          .update({
-            status: 'success',
-            topic_id: topicId,
-            completed_at: new Date().toISOString(),
-            duration
-          })
-          .eq('id', job.id)
+        const jobPromise = (async () => {
+          const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
 
-        console.log(`🎉 Job ${job.id} succeeded in ${duration}ms → ${topicId}`)
+          const topicId = await createCLOBTopic(
+            client,
+            job.topic_type as 'orders' | 'batches' | 'oracle' | 'disputes',
+            job.market_id,
+            privateKey
+          )
+
+          const duration = Date.now() - startTime
+
+          // Insert into hcs_topics table
+          await supabase.from('hcs_topics').insert({
+            topic_id: topicId,
+            topic_type: job.topic_type,
+            market_id: job.market_id,
+            description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`
+          })
+
+          // Mark job as success
+          await supabase
+            .from('topic_creation_jobs')
+            .update({
+              status: 'success',
+              topic_id: topicId,
+              completed_at: new Date().toISOString(),
+              duration
+            })
+            .eq('id', job.id)
+
+          console.log(`🎉 Job ${job.id} succeeded in ${duration}ms → ${topicId}`)
+          return topicId
+        })()
+
+        await Promise.race([jobPromise, timeoutPromise])
+
       } catch (err) {
         const duration = Date.now() - startTime
         const errorMessage = (err as Error).message
 
         console.error(`❌ Job ${job.id} failed:`, errorMessage)
 
+        // Mark job as failed with proper error handling
         await supabase
           .from('topic_creation_jobs')
           .update({
