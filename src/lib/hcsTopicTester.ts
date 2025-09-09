@@ -540,6 +540,69 @@ export class HCSTopicTester {
   clearResults() {
     this.testResults = [];
   }
+
+  /**
+   * Reset stuck jobs and trigger the worker
+   */
+  async resetStuckJobsAndTriggerWorker(): Promise<TestResults> {
+    const startTime = Date.now();
+    
+    try {
+      console.log('🔄 Resetting stuck jobs and triggering worker...');
+      
+      // First, reset any stuck jobs via the HCS manager
+      const resetResponse = await supabase.functions.invoke('hcs-manager', {
+        body: {
+          action: 'reset_stuck_jobs'
+        }
+      });
+
+      if (resetResponse.error) {
+        throw new Error(`Reset failed: ${resetResponse.error.message}`);
+      }
+
+      console.log('Reset response:', resetResponse.data);
+
+      // Then trigger the worker
+      const triggerResponse = await supabase.functions.invoke('process-topic-jobs', {
+        body: {}
+      });
+
+      if (triggerResponse.error) {
+        throw new Error(`Worker trigger failed: ${triggerResponse.error.message}`);
+      }
+
+      console.log('Worker trigger response:', triggerResponse.data);
+
+      const duration = Date.now() - startTime;
+
+      return {
+        phase: 'Worker Management',
+        summary: 'Reset stuck jobs and triggered worker',
+        results: [{
+          success: true,
+          description: 'Successfully reset stuck jobs and triggered worker',
+          resetResult: resetResponse.data,
+          triggerResult: triggerResponse.data,
+          timing: { duration }
+        }]
+      };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error('Worker management failed:', error);
+
+      return {
+        phase: 'Worker Management',
+        summary: 'Failed to reset stuck jobs and trigger worker',
+        results: [{
+          success: false,
+          error: (error as Error).message,
+          timing: { duration }
+        }]
+      };
+    }
+  }
 }
 
 export const hcsTopicTester = HCSTopicTester.getInstance();

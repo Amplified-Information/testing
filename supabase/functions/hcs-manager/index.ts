@@ -59,6 +59,36 @@ serve(async (req) => {
         })
       }
 
+      case 'reset_stuck_jobs': {
+        // Reset jobs that have been processing for more than 5 minutes
+        const { data, error } = await supabase
+          .from('topic_creation_jobs')
+          .update({
+            status: 'pending',
+            claimed_at: null,
+            updated_at: new Date().toISOString()
+          })
+          .lt('claimed_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+          .eq('status', 'processing')
+          .select('id, topic_type')
+
+        if (error) {
+          return new Response(
+            JSON.stringify({ success: false, error: error.message }),
+            { headers: corsHeaders, status: 500 }
+          )
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Reset ${data?.length || 0} stuck jobs to pending status`,
+            resetJobs: data
+          }),
+          { headers: corsHeaders, status: 200 }
+        )
+      }
+
       default:
         return new Response(
           JSON.stringify({ success: false, error: 'Invalid action' }),

@@ -20,6 +20,7 @@ export const HCSTestRunner: React.FC = () => {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [progress, setProgress] = useState(0);
   const [isConnectionTesting, setIsConnectionTesting] = useState(false);
+  const [isWorkerManagement, setIsWorkerManagement] = useState(false);
 
   const testCLOBConnection = async () => {
     setIsConnectionTesting(true);
@@ -41,6 +42,28 @@ export const HCSTestRunner: React.FC = () => {
       toast.error('Connectivity test execution failed: ' + (error as Error).message);
     } finally {
       setIsConnectionTesting(false);
+    }
+  };
+
+  const resetWorkerAndJobs = async () => {
+    setIsWorkerManagement(true);
+    
+    try {
+      toast.info('Resetting stuck jobs and triggering worker...');
+      const result = await hcsTopicTester.resetStuckJobsAndTriggerWorker();
+      
+      setTestResults(prev => [result, ...prev]);
+      
+      if (result.results.length > 0 && result.results[0].success) {
+        toast.success('Worker management completed successfully!');
+      } else {
+        toast.error('Worker management failed!');
+      }
+    } catch (error) {
+      console.error('Worker management failed:', error);
+      toast.error('Worker management failed: ' + (error as Error).message);
+    } finally {
+      setIsWorkerManagement(false);
     }
   };
 
@@ -138,10 +161,10 @@ export const HCSTestRunner: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Button
               onClick={testCLOBConnection}
-              disabled={isRunning || isConnectionTesting}
+              disabled={isRunning || isConnectionTesting || isWorkerManagement}
               variant="secondary"
               className="flex items-center gap-2"
             >
@@ -154,8 +177,22 @@ export const HCSTestRunner: React.FC = () => {
             </Button>
             
             <Button
+              onClick={resetWorkerAndJobs}
+              disabled={isRunning || isConnectionTesting || isWorkerManagement}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              {isWorkerManagement ? (
+                <Clock className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              Reset Worker
+            </Button>
+            
+            <Button
               onClick={runPhase1Tests}
-              disabled={isRunning || isConnectionTesting}
+              disabled={isRunning || isConnectionTesting || isWorkerManagement}
               className="flex items-center gap-2"
             >
               {isRunning ? (
@@ -168,7 +205,7 @@ export const HCSTestRunner: React.FC = () => {
             
             <Button
               onClick={runPhase2Tests}
-              disabled={isRunning || isConnectionTesting || testResults.length === 0}
+              disabled={isRunning || isConnectionTesting || isWorkerManagement || testResults.length === 0}
               variant="outline"
               className="flex items-center gap-2"
             >
