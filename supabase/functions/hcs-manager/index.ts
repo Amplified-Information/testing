@@ -21,6 +21,7 @@ serve(async (req) => {
 
   try {
     const { action, topicType, marketId, requestId } = await req.json()
+    console.log(`HCS Manager received action: ${action}`)
 
     switch (action) {
       case 'create_topic': {
@@ -66,13 +67,18 @@ serve(async (req) => {
       }
 
       case 'get-credentials': {
+        console.log('Processing get-credentials request...')
+        
         // Fetch Hedera credentials from secrets table using service role
         const { data, error } = await supabaseServiceRole
           .from('secrets')
           .select('name, value')
           .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY'])
 
+        console.log('Secrets query result:', { data, error })
+
         if (error) {
+          console.error('Secrets query error:', error)
           return new Response(
             JSON.stringify({ success: false, error: `Failed to fetch credentials: ${error.message}` }),
             { headers: corsHeaders, status: 500 }
@@ -80,6 +86,7 @@ serve(async (req) => {
         }
 
         if (!data || data.length < 2) {
+          console.error('Insufficient credentials found:', data)
           return new Response(
             JSON.stringify({ success: false, error: 'Missing required Hedera credentials' }),
             { headers: corsHeaders, status: 404 }
@@ -91,13 +98,17 @@ serve(async (req) => {
           credentials[secret.name] = secret.value
         })
 
+        console.log('Parsed credentials keys:', Object.keys(credentials))
+
         if (!credentials.CLOB_SYSTEM_ACCOUNT_ID || !credentials.CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY) {
+          console.error('Incomplete credentials:', Object.keys(credentials))
           return new Response(
             JSON.stringify({ success: false, error: 'Incomplete Hedera credentials' }),
             { headers: corsHeaders, status: 404 }
           )
         }
 
+        console.log('Successfully returning credentials')
         return new Response(
           JSON.stringify({
             success: true,

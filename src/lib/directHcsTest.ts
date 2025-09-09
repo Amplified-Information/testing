@@ -18,19 +18,36 @@ interface TestCredentials {
 export class DirectHCSTest {
   private async fetchCredentials(): Promise<TestCredentials> {
     try {
+      console.log('DirectHCSTest: Calling hcs-manager edge function for credentials...');
+      
       // Call the hcs-manager edge function to get credentials securely
       const { data, error } = await supabase.functions.invoke('hcs-manager', {
         body: { action: 'get-credentials' }
       });
       
+      console.log('Edge function response:', { data, error });
+      
       if (error) {
+        console.error('Edge function error:', error);
         throw new Error(`Failed to fetch credentials via edge function: ${error.message}`);
       }
       
-      if (!data || !data.operatorId || !data.operatorKey) {
+      if (!data) {
+        console.error('No data returned from edge function');
+        throw new Error('No response data from edge function');
+      }
+      
+      if (!data.success) {
+        console.error('Edge function returned failure:', data);
+        throw new Error(`Edge function failed: ${data.error || 'Unknown error'}`);
+      }
+      
+      if (!data.operatorId || !data.operatorKey) {
+        console.error('Missing credentials in response:', data);
         throw new Error('Missing required Hedera credentials from edge function');
       }
       
+      console.log('Successfully fetched credentials from edge function');
       return {
         operatorId: data.operatorId,
         operatorKey: data.operatorKey
