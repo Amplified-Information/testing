@@ -556,22 +556,62 @@ serve(async (req) => {
               log.info(requestId, 'Running two-tier connection test')
               const testStartTime = Date.now()
               
-              // Get Hedera client and account ID
-              const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
-              
-              // Extract operator account ID from secrets for the test
-              const { data: secrets, error: secretsError } = await supabase
-                .from('secrets')
-                .select('name, value')
-                .eq('name', 'CLOB_SYSTEM_ACCOUNT_ID')
-                .single()
-
-              if (secretsError || !secrets) {
-                log.error(requestId, 'Failed to get operator account ID:', secretsError)
+              // Get Hedera client and account ID with enhanced error logging
+              let client, privateKey, systemAccountId
+              try {
+                const clientResult = await getSystemHederaClientFromSecrets(supabase)
+                client = clientResult.client
+                privateKey = clientResult.privateKey
+                log.info(requestId, 'Hedera client obtained successfully')
+              } catch (clientError) {
+                log.error(requestId, 'Failed to create Hedera client:', clientError)
                 return new Response(
                   JSON.stringify({ 
                     success: false,
-                    error: 'Failed to retrieve operator account ID',
+                    error: 'Failed to initialize Hedera client',
+                    details: clientError.message,
+                    requestId
+                  }),
+                  { 
+                    status: 500, 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                  }
+                )
+              }
+              
+              // Extract operator account ID from secrets for the test
+              try {
+                const { data: secrets, error: secretsError } = await supabase
+                  .from('secrets')
+                  .select('name, value')
+                  .eq('name', 'CLOB_SYSTEM_ACCOUNT_ID')
+                  .single()
+
+                if (secretsError || !secrets) {
+                  log.error(requestId, 'Failed to get operator account ID:', secretsError)
+                  return new Response(
+                    JSON.stringify({ 
+                      success: false,
+                      error: 'Failed to retrieve operator account ID',
+                      details: secretsError?.message,
+                      requestId
+                    }),
+                    { 
+                      status: 500, 
+                      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                    }
+                  )
+                }
+
+                systemAccountId = secrets.value
+                log.info(requestId, 'Retrieved operator account ID for connection test')
+              } catch (secretsFetchError) {
+                log.error(requestId, 'Error fetching secrets:', secretsFetchError)
+                return new Response(
+                  JSON.stringify({ 
+                    success: false,
+                    error: 'Database error retrieving credentials',
+                    details: secretsFetchError.message,
                     requestId
                   }),
                   { 
@@ -582,7 +622,7 @@ serve(async (req) => {
               }
 
               // Run two-tier connection test
-              const testResult = await twoTierConnectionTest(client, secrets.value)
+              const testResult = await twoTierConnectionTest(client, systemAccountId)
               const testDuration = Date.now() - testStartTime
               
               log.info(requestId, `Connection test completed in ${testDuration}ms:`, testResult.summary)
@@ -605,6 +645,7 @@ serve(async (req) => {
                   success: false,
                   phase: "Connection Test Error",
                   error: error.message,
+                  details: error.stack?.split('\n')[0],
                   requestId,
                   timing: { failedAfter: errorDuration }
                 }),

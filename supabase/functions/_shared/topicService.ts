@@ -165,8 +165,15 @@ export async function createCLOBTopic(
         
         // Set auto-renew for long-lived topics
         if (client.operatorAccountId) {
-          transaction.setAutoRenewAccountId(client.operatorAccountId.toString())
-          transaction.setAutoRenewPeriod(7776000) // 90 days
+          console.log('Setting auto-renew account ID:', client.operatorAccountId)
+          try {
+            transaction.setAutoRenewAccountId(client.operatorAccountId)
+            transaction.setAutoRenewPeriod(7776000) // 90 days
+            console.log('Auto-renew settings applied successfully')
+          } catch (autoRenewError) {
+            console.warn('Failed to set auto-renew settings:', autoRenewError)
+            // Continue without auto-renew if it fails
+          }
         }
         
         // Freeze and sign transaction if private key provided
