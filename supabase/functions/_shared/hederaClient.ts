@@ -1,4 +1,4 @@
-import { Client, AccountId, PrivateKey, AccountBalanceQuery } from 'npm:@hashgraph/sdk@2.72.0'
+import { Client, AccountId, PrivateKey } from 'npm:@hashgraph/sdk@2.72.0'
 
 export interface HederaClientConfig {
   operatorId: string
@@ -106,26 +106,6 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
     
     // Create PrivateKey object for topic creation using ECDSA format
     const privateKey = PrivateKey.fromStringECDSA(systemAccountPrivateKey)
-    
-    // Test connection by checking account balance (with timeout)
-    console.log('Testing Hedera client connectivity...')
-    try {
-      const accountId = AccountId.fromString(systemAccountId)
-      const balanceQuery = new AccountBalanceQuery()
-        .setAccountId(accountId)
-      
-      // Add timeout to prevent hanging
-      const balancePromise = balanceQuery.execute(client)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Balance query timeout after 10s')), 10000)
-      )
-      
-      const balance = await Promise.race([balancePromise, timeoutPromise])
-      console.log('✅ Hedera client connectivity verified. Account balance:', balance.hbars.toString())
-    } catch (balanceError) {
-      console.warn('⚠️ Account balance check failed (client may still work):', balanceError.message)
-      console.warn('This could indicate network issues with Hedera testnet nodes')
-    }
     
     return { client, privateKey }
   } catch (error) {
