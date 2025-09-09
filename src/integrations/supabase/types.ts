@@ -1142,6 +1142,48 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_creation_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration: number | null
+          error: string | null
+          id: string
+          market_id: string | null
+          request_id: string
+          status: string
+          topic_id: string | null
+          topic_type: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration?: number | null
+          error?: string | null
+          id?: string
+          market_id?: string | null
+          request_id: string
+          status?: string
+          topic_id?: string | null
+          topic_type: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration?: number | null
+          error?: string | null
+          id?: string
+          market_id?: string | null
+          request_id?: string
+          status?: string
+          topic_id?: string | null
+          topic_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_token_balances: {
         Row: {
           created_at: string

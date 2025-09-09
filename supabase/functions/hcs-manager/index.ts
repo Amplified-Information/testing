@@ -4,6 +4,76 @@ import { getSystemHederaClientFromSecrets, twoTierConnectionTest } from '../_sha
 import { createCLOBTopic } from '../_shared/topicService.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
+// Background job processing function
+async function processTopicCreationJob(requestId: string, supabase: any, log: any) {
+  const startTime = Date.now()
+  
+  try {
+    log.info(requestId, "Starting background topic creation")
+    
+    // Get job details
+    const { data: job, error: fetchError } = await supabase
+      .from("topic_creation_jobs")
+      .select("*")
+      .eq("request_id", requestId)
+      .single()
+
+    if (fetchError || !job) {
+      throw new Error(`Job not found: ${fetchError?.message}`)
+    }
+
+    const { topic_type, market_id } = job
+
+    // Update status to processing
+    await supabase.from("topic_creation_jobs")
+      .update({ status: "processing" })
+      .eq("request_id", requestId)
+
+    // Create the topic
+    const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
+    const topicId = await createCLOBTopic(client, topic_type as 'orders' | 'batches' | 'oracle' | 'disputes', market_id, privateKey)
+    
+    // Store the topic in hcs_topics table
+    const { error: hcsError } = await supabase
+      .from('hcs_topics')
+      .insert({
+        topic_id: topicId,
+        topic_type: topic_type,
+        market_id: market_id,
+        description: `CLOB ${topic_type} topic${market_id ? ` for market ${market_id}` : ''}`
+      })
+
+    if (hcsError) {
+      log.error(requestId, "Failed to store topic in hcs_topics", hcsError)
+    }
+
+    const duration = Date.now() - startTime
+    log.info(requestId, `✅ Topic created: ${topicId} in ${duration}ms`)
+
+    // Update job with success
+    await supabase.from("topic_creation_jobs")
+      .update({
+        status: "success",
+        topic_id: topicId,
+        duration,
+        completed_at: new Date().toISOString()
+      })
+      .eq("request_id", requestId)
+
+  } catch (error) {
+    log.error(requestId, "❌ Topic creation failed", error)
+
+    // Update job with failure
+    await supabase.from("topic_creation_jobs")
+      .update({
+        status: "failed",
+        error: error.message,
+        completed_at: new Date().toISOString()
+      })
+      .eq("request_id", requestId)
+  }
+}
+
 // Constants
 const REQUEST_TIMEOUT = 30000 // 30 seconds
 const VALID_TOPIC_TYPES = ['orders', 'batches', 'oracle', 'disputes'] as const
@@ -165,37 +235,83 @@ serve(async (req) => {
                 }, 400)
               }
 
-              log.info(requestId, `Creating ${topicType} topic${marketId ? ` for market ${marketId}` : ''}`)
+              const asyncRequestId = crypto.randomUUID()
+              
+              try {
+                log.info(requestId, "Enqueuing async topic creation request", { topicType, marketId, asyncRequestId })
+
+                // Save a pending job in DB
+                const { error: dbError } = await supabase.from("topic_creation_jobs").insert({
+                  request_id: asyncRequestId,
+                  topic_type: topicType,
+                  market_id: marketId,
+                  status: "pending"
+                })
+
+                if (dbError) {
+                  log.error(requestId, "Failed to enqueue topic creation", dbError)
+                  throw new Error(`Database error: ${dbError.message}`)
+                }
+
+                // Start background processing
+                EdgeRuntime.waitUntil(processTopicCreationJob(asyncRequestId, supabase, log))
+
+                // Respond immediately (don't wait for Hedera)
+                return createJSONResponse({
+                  success: true,
+                  requestId: asyncRequestId,
+                  message: "Topic creation started. Poll status with topic_status action.",
+                  status: "pending",
+                  topicType,
+                  marketId: marketId || null
+                }, 202)
+              } catch (error) {
+                log.error(requestId, "Failed to enqueue topic creation", error)
+                return createJSONResponse({
+                  success: false,
+                  requestId: asyncRequestId,
+                  error: error.message
+                }, 500)
+              }
+            }
+
+            case 'topic_status': {
+              const { requestId: jobRequestId } = requestBody
+              
+              if (!jobRequestId) {
+                return createJSONResponse({
+                  success: false,
+                  error: "requestId is required for topic_status action",
+                  requestId
+                }, 400)
+              }
 
               try {
-                const topicId = await createCLOBTopic(
-                  hederaClient,
-                  topicType as ValidTopicType,
-                  marketId,
-                  operatorPrivateKey
-                )
+                const { data, error } = await supabase
+                  .from("topic_creation_jobs")
+                  .select("*")
+                  .eq("request_id", jobRequestId)
+                  .single()
 
-                const duration = Date.now() - startTime
-                log.info(requestId, `Topic creation completed after ${duration}ms`)
+                if (error || !data) {
+                  return createJSONResponse({
+                    success: false,
+                    error: "Job not found",
+                    requestId: jobRequestId
+                  }, 404)
+                }
 
                 return createJSONResponse({
                   success: true,
-                  topicId,
-                  topicType,
-                  marketId: marketId || null,
-                  requestId,
-                  timing: { duration }
+                  job: data,
+                  requestId: jobRequestId
                 })
               } catch (error) {
-                const errorDuration = Date.now() - startTime
-                log.error(requestId, `Topic creation failed after ${errorDuration}ms:`, error)
+                log.error(requestId, "Failed to fetch job status", error)
                 return createJSONResponse({
-                  error: 'Topic creation failed',
-                  details: error.message,
-                  topicType,
-                  marketId: marketId || null,
-                  requestId,
-                  timing: { failedAfter: errorDuration }
+                  success: false,
+                  error: error.message,
+                  requestId: jobRequestId
                 }, 500)
               }
             }
@@ -417,7 +533,7 @@ serve(async (req) => {
               return createJSONResponse({ 
                 error: 'Unsupported action',
                 provided: action,
-                supportedActions: ['create_topic', 'setup_market_topics', 'initialize_all_markets', 'connection_test'],
+                supportedActions: ['create_topic', 'topic_status', 'setup_market_topics', 'initialize_all_markets', 'connection_test'],
                 requestId
               }, 400)
             }
