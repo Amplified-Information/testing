@@ -2,7 +2,7 @@ import Header from "@/components/Layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3, Database, MessageSquare } from "lucide-react";
+import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3, Database, MessageSquare, Clock, CheckCircle } from "lucide-react";
 
 const DevNotesIndex = () => {
   return (
@@ -391,6 +391,49 @@ const DevNotesIndex = () => {
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                   >
                     Run HCS Test <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* HCS Async Documentation */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-primary" />
+                      HCS Async Topic Creation
+                    </CardTitle>
+                    <CardDescription>
+                      Asynchronous topic creation system with background processing
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    Architecture
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Complete documentation of the async HCS topic creation system featuring 
+                    fire-and-forget pattern, background workers, retry logic, and real-time 
+                    status updates. Includes process flow diagrams and implementation details.
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>Non-blocking</span>
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>Retry Logic</span>
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>Status Polling</span>
+                  </div>
+                  <Link 
+                    to="/dev-notes/hcs-async" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    View Async Documentation <ExternalLink className="h-4 w-4" />
                   </Link>
                 </div>
               </CardContent>

@@ -18,6 +18,7 @@ import SecurityNotes from "./pages/SecurityNotes";
 import WalletConnectionNotes from "./pages/WalletConnectionNotes";
 import WalletSecurityImplementation from "./pages/WalletSecurityImplementation";
 import WalletStorageImplementation from "./pages/WalletStorageImplementation";
+import HCSAsyncDocumentation from "./pages/HCSAsyncDocumentation";
 import CLOBArchitecture from "./pages/CLOBArchitecture";
 import SystemConfigManagement from "./pages/SystemConfigManagement";
 import HCSTopicTestPage from "./pages/HCSTopicTestPage";
@@ -71,6 +72,7 @@ const App = () => (
                   <Route path="/dev-notes/system-config" element={<SystemConfigManagement />} />
                   <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
                   <Route path="/dev-notes/hcs-test" element={<HCSTopicTestPage />} />
+                  <Route path="/dev-notes/hcs-async" element={<HCSAsyncDocumentation />} />
                   <Route path="/market/:id" element={<MarketDetail />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
