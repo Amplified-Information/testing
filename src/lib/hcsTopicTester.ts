@@ -118,25 +118,37 @@ export class HCSTopicTester {
       }
 
       console.log('HCS Manager Response:', data);
+      console.log('Data type:', typeof data);
+      console.log('Data.requestId:', data?.requestId);
 
-      if (!data || !data.requestId) {
-        return { success: false, error: `No requestId returned from topic creation. Response: ${JSON.stringify(data)}` };
+      // Handle case where response might be a string that needs parsing
+      let responseData = data;
+      if (typeof data === 'string') {
+        try {
+          responseData = JSON.parse(data);
+        } catch (parseError) {
+          return { success: false, error: `Failed to parse response: ${data}` };
+        }
+      }
+
+      if (!responseData || !responseData.requestId) {
+        return { success: false, error: `No requestId returned from topic creation. Response: ${JSON.stringify(responseData)}` };
       }
 
       // Poll for completion
-      const result = await this.pollJobStatus(data.requestId);
+      const result = await this.pollJobStatus(responseData.requestId);
       
       if (result.success && result.topic_id) {
         return {
           success: true,
           topicId: result.topic_id,
-          requestId: data.requestId
+          requestId: responseData.requestId
         };
       } else {
         return {
           success: false,
           error: result.error || 'Topic creation failed',
-          requestId: data.requestId
+          requestId: responseData.requestId
         };
       }
     } catch (err) {
