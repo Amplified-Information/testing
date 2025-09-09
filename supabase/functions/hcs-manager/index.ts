@@ -15,8 +15,8 @@ const VALID_TOPIC_TYPES = ['orders', 'batches', 'oracle', 'disputes'] as const
 type ValidTopicType = typeof VALID_TOPIC_TYPES[number]
 
 // Request timeout optimized for Hedera consensus timing
-// Individual topics: 15s, Multiple topics: 45s for bulk operations
-const REQUEST_TIMEOUT = 45000
+// Individual topics: 60s, Multiple topics: 90s for bulk operations  
+const REQUEST_TIMEOUT = 90000
 
 // Generate request ID for logging
 const generateRequestId = () => crypto.randomUUID().substring(0, 8)
