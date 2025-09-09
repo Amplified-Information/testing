@@ -1297,6 +1297,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_topic_job: {
+        Args: { p_market_id?: string; p_topic_type: string }
+        Returns: string
+      }
       get_processing_state: {
         Args: { process_name_param: string }
         Returns: {
