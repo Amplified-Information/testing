@@ -14,9 +14,14 @@ export function createHederaClient(config: HederaClientConfig): Client {
   const network = config.network || 'testnet'
   const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
   
-  // Configure longer timeouts for testnet reliability
+  // Configure comprehensive timeouts and resilience for testnet
   if (network === 'testnet') {
-    client.setRequestTimeout(120000) // 2 minutes for testnet
+    client.setRequestTimeout(180000) // 3 minutes for testnet operations
+    client.setMaxBackoff(30000) // 30 second max backoff between retries
+    client.setMinBackoff(2000) // 2 second min backoff
+    client.setMaxNodeAttempts(5) // Try up to 5 different nodes
+    client.setMinNodeReadmitTime(10000) // 10 seconds before readmitting failed nodes
+    client.setMaxNodeReadmitTime(60000) // 60 seconds max readmit time
   }
   
   const operatorAccountId = AccountId.fromString(config.operatorId)

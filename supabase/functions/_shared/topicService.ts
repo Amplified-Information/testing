@@ -23,7 +23,7 @@ const withTiming = async <T>(label: string, operation: () => Promise<T>): Promis
   }
 }
 
-// Retry with exponential backoff for testnet
+// Retry with exponential backoff for testnet - enhanced for gRPC timeouts
 const withRetry = async <T>(
   operation: () => Promise<T>, 
   maxRetries: number = MAX_RETRIES, 
@@ -41,8 +41,19 @@ const withRetry = async <T>(
         throw lastError
       }
       
+      // Check if this is a gRPC timeout that we should retry
+      const isRetryableError = lastError.message?.includes('GrpcServiceError') || 
+                             lastError.message?.includes('TIMEOUT') ||
+                             lastError.message?.includes('UNAVAILABLE') ||
+                             lastError.message?.includes('DEADLINE_EXCEEDED')
+      
+      if (!isRetryableError) {
+        console.log(`Non-retryable error on attempt ${attempt + 1}, failing immediately:`, error)
+        throw lastError
+      }
+      
       const delay = baseDelay * Math.pow(2, attempt)
-      console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error)
+      console.log(`gRPC timeout on attempt ${attempt + 1}/${maxRetries + 1}, retrying in ${delay}ms:`, error.message)
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
@@ -164,12 +175,18 @@ export async function createCLOBTopic(
         
         // Send transaction and track timing
         const txResponse = await withTiming('Transaction submit', async () => {
-          return await finalTx.execute(client)
+          console.log('Submitting transaction to Hedera network...')
+          const response = await finalTx.execute(client)
+          console.log('Transaction submitted successfully, response received')
+          return response
         })
         
         // Get receipt and track timing
         const receipt = await withTiming('Receipt retrieval', async () => {
-          return await txResponse.getReceipt(client)
+          console.log('Retrieving transaction receipt...')
+          const r = await txResponse.getReceipt(client)
+          console.log('Receipt retrieved successfully')
+          return r
         })
         
         if (!receipt.topicId) {
