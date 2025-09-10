@@ -14,22 +14,17 @@ export function createHederaClient(config: HederaClientConfig): Client {
   const network = config.network || 'testnet'
   const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
   
-  // Enhanced gRPC keepalive and timeout configuration for Hedera testnet stability
-  // Based on analysis of gRPC issue #7542: Missing keepalive causing Code 17 timeouts
+  // Enhanced gRPC configuration for better testnet reliability
   if (network === 'testnet') {
-    console.log('🔧 Configuring enhanced gRPC keepalive settings for testnet...')
+    console.log('🔧 Configuring enhanced gRPC settings for testnet stability...')
     
-    // Primary timeout for network operations - increased for testnet instability
-    client.setRequestTimeout(180000) // 3 minutes (was 2 minutes)
-    
-    // Exponential backoff configuration for retries
-    client.setMinBackoff(1000)      // Start with 1 second backoff
-    client.setMaxBackoff(16000)     // Max 16 seconds between retries (reduced from potential default)
+    // Improved timeout and retry configuration
+    client.setRequestTimeout(30000)     // 30 second timeout per request
+    client.setMaxNodeAttempts(5)        // Try up to 5 different nodes
+    client.setMinBackoff(1000)          // 1s min backoff between retries  
+    client.setMaxBackoff(8000)          // 8s max backoff between retries
     
     // Node failure tolerance - be more aggressive about removing bad nodes
-    client.setMaxNodeAttempts(3)    // Remove node after 3 consecutive failures (vs default)
-    
-    // Node readmission timing - allow faster recovery of nodes (method availability varies by SDK version)  
     if (typeof client.setMaxNodeReadmitTime === 'function') {
       client.setMaxNodeReadmitTime(300000) // 5 minutes maximum readmit time
     }
@@ -39,7 +34,8 @@ export function createHederaClient(config: HederaClientConfig): Client {
       client.setCloseTimeout(10000)   // 10 seconds to close connections
     }
     
-    console.log('✅ Enhanced gRPC keepalive configuration applied')
+    console.log('✅ Enhanced gRPC and retry configuration applied')
+    console.log(`📊 Client config: timeout=${client.getRequestTimeout()}ms, maxAttempts=${client.getMaxNodeAttempts()}`)
   }
   
   const operatorAccountId = AccountId.fromString(config.operatorId)

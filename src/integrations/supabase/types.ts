@@ -1152,11 +1152,15 @@ export type Database = {
           id: string
           market_id: string | null
           max_retries: number
+          mirror_node_checked_at: string | null
+          mirror_node_retry_count: number | null
           request_id: string
           retry_count: number
           status: string
+          submitted_at: string | null
           topic_id: string | null
           topic_type: string
+          transaction_id: string | null
           updated_at: string
           worker_id: string | null
         }
@@ -1169,11 +1173,15 @@ export type Database = {
           id?: string
           market_id?: string | null
           max_retries?: number
+          mirror_node_checked_at?: string | null
+          mirror_node_retry_count?: number | null
           request_id: string
           retry_count?: number
           status?: string
+          submitted_at?: string | null
           topic_id?: string | null
           topic_type: string
+          transaction_id?: string | null
           updated_at?: string
           worker_id?: string | null
         }
@@ -1186,11 +1194,15 @@ export type Database = {
           id?: string
           market_id?: string | null
           max_retries?: number
+          mirror_node_checked_at?: string | null
+          mirror_node_retry_count?: number | null
           request_id?: string
           retry_count?: number
           status?: string
+          submitted_at?: string | null
           topic_id?: string | null
           topic_type?: string
+          transaction_id?: string | null
           updated_at?: string
           worker_id?: string | null
         }
@@ -1285,11 +1297,15 @@ export type Database = {
           id: string
           market_id: string | null
           max_retries: number
+          mirror_node_checked_at: string | null
+          mirror_node_retry_count: number | null
           request_id: string
           retry_count: number
           status: string
+          submitted_at: string | null
           topic_id: string | null
           topic_type: string
+          transaction_id: string | null
           updated_at: string
           worker_id: string | null
         }[]

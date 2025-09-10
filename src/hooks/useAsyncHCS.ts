@@ -6,8 +6,12 @@ interface TopicJob {
   id: string;
   topic_type: string;
   market_id?: string;
-  status: 'pending' | 'processing' | 'success' | 'failed';
+  status: 'pending' | 'processing' | 'submitted' | 'confirmed' | 'failed';
   topic_id?: string;
+  transaction_id?: string;
+  submitted_at?: string;
+  mirror_node_checked_at?: string;
+  mirror_node_retry_count?: number;
   error?: string;
   duration?: number;
   created_at: string;
@@ -59,7 +63,13 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
 
       const typedJobs = jobs as TopicJob[];
       setJobHistory(typedJobs);
-      setActiveJobs(typedJobs.filter((j) => ['pending', 'processing'].includes(j.status)));
+      
+      // Set activeJobs to jobs that are still in progress
+      setActiveJobs(typedJobs.filter(job => 
+        job.status === 'pending' || 
+        job.status === 'processing' || 
+        job.status === 'submitted'
+      ));
     };
 
     fetchJobs();
@@ -99,7 +109,7 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
           // Update active jobs
           setActiveJobs((prev) => {
             const filtered = prev.filter((j) => j.id !== newJob.id);
-            if (['pending', 'processing'].includes(newJob.status)) {
+            if (['pending', 'processing', 'submitted'].includes(newJob.status)) {
               return [newJob, ...filtered];
             }
             return filtered;

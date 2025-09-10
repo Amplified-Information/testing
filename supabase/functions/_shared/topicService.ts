@@ -2,7 +2,8 @@ import {
   Client, 
   TopicCreateTransaction, 
   Hbar, 
-  PrivateKey 
+  PrivateKey,
+  Duration 
 } from 'https://esm.sh/@hashgraph/sdk@2.72.0'
 
 // Configuration constants
@@ -23,15 +24,15 @@ const withTiming = async <T>(label: string, operation: () => Promise<T>): Promis
   }
 }
 
-// Retry with exponential backoff for testnet - enhanced for gRPC timeouts
+// Enhanced retry with exponential backoff for testnet - improved for gRPC timeouts
 const withRetry = async <T>(
   operation: () => Promise<T>, 
-  maxRetries: number = MAX_RETRIES, 
-  baseDelay: number = BASE_RETRY_DELAY
+  maxRetries: number = MAX_RETRIES,
+  shouldRetry?: (attempt: number, error: Error) => boolean
 ): Promise<T> => {
   let lastError: Error
   
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation()
     } catch (error) {
@@ -41,19 +42,24 @@ const withRetry = async <T>(
         throw lastError
       }
       
-      // Check if this is a gRPC timeout that we should retry
-      const isRetryableError = lastError.message?.includes('GrpcServiceError') || 
-                             lastError.message?.includes('TIMEOUT') ||
-                             lastError.message?.includes('UNAVAILABLE') ||
-                             lastError.message?.includes('DEADLINE_EXCEEDED')
-      
-      if (!isRetryableError) {
-        console.log(`Non-retryable error on attempt ${attempt + 1}, failing immediately:`, error)
+      // Use custom retry logic if provided, otherwise default behavior
+      if (shouldRetry && !shouldRetry(attempt, lastError)) {
         throw lastError
+      } else if (!shouldRetry) {
+        // Default retry logic for gRPC timeouts
+        const isRetryableError = lastError.message?.includes('GrpcServiceError') || 
+                               lastError.message?.includes('TIMEOUT') ||
+                               lastError.message?.includes('UNAVAILABLE') ||
+                               lastError.message?.includes('DEADLINE_EXCEEDED')
+        
+        if (!isRetryableError) {
+          console.log(`Non-retryable error on attempt ${attempt}, failing immediately:`, error)
+          throw lastError
+        }
       }
       
-      const delay = baseDelay * Math.pow(2, attempt)
-      console.log(`gRPC timeout on attempt ${attempt + 1}/${maxRetries + 1}, retrying in ${delay}ms:`, error.message)
+      const delay = BASE_RETRY_DELAY * Math.pow(2, attempt - 1)
+      console.log(`gRPC timeout on attempt ${attempt}/${maxRetries}, retrying in ${delay}ms: ${lastError.message}`)
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
@@ -135,85 +141,56 @@ export async function createTopic(
   }
 }
 
-// Create a CLOB topic with proper abort handling, timing, and retry
 export async function createCLOBTopic(
   client: Client,
   topicType: 'orders' | 'batches' | 'oracle' | 'disputes',
   marketId?: string,
   operatorPrivateKey?: PrivateKey
 ): Promise<string> {
-  console.log(`Creating ${topicType} topic${marketId ? ` for market ${marketId}` : ''}`)
+  const memo = marketId 
+    ? `${topicType.toUpperCase()}_${marketId}` 
+    : topicType.toUpperCase();
   
-  const memo = `CLOB-${topicType.toUpperCase()}${marketId ? `-${marketId}` : ''}`
+  console.log(`Creating ${topicType} topic`);
   
-  return await withRetry(async () => {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), TOPIC_CREATION_TIMEOUT)
-    
-    try {
-      const topicId = await withTiming(`${topicType} topic creation`, async () => {
-        const transaction = new TopicCreateTransaction()
-          .setTopicMemo(memo)
-          .setMaxTransactionFee(new Hbar(2))
-          .setTransactionValidDuration(60) // 60 seconds gRPC deadline for slow testnet
-        
-        // Set admin and submit keys if provided
-        if (operatorPrivateKey) {
-          transaction.setAdminKey(operatorPrivateKey.publicKey)
-          transaction.setSubmitKey(operatorPrivateKey.publicKey)
+  return withTiming(
+    `${topicType} topic creation`,
+    withRetry(async () => {
+      const transaction = new TopicCreateTransaction()
+        .setTopicMemo(memo);
+
+      // Optimized transaction settings for quick submission
+      transaction.setTransactionValidDuration(60); // 1 minute
+      transaction.setGrpcDeadline(25000); // 25 second gRPC timeout
+
+      if (operatorPrivateKey) {
+        console.log('Auto-renew settings applied successfully');
+        const operatorAccountId = client.operatorAccountId;
+        if (operatorAccountId) {
+          console.log(`Setting auto-renew account ID: ${operatorAccountId}`);
+          transaction.setAutoRenewAccountId(operatorAccountId);
+          transaction.setAutoRenewPeriod(Duration.fromDays(90)); // 90 days auto-renew
         }
-        
-        // Set auto-renew for long-lived topics
-        if (client.operatorAccountId) {
-          console.log('Setting auto-renew account ID:', client.operatorAccountId.toString())
-          try {
-            transaction.setAutoRenewAccountId(client.operatorAccountId.toString())
-            transaction.setAutoRenewPeriod(7776000) // 90 days
-            console.log('Auto-renew settings applied successfully')
-          } catch (autoRenewError) {
-            console.warn('Failed to set auto-renew settings:', autoRenewError)
-            // Continue without auto-renew if it fails
-          }
-        }
-        
-        // Freeze and sign transaction if private key provided
-        const finalTx = operatorPrivateKey ? 
-          await transaction.freezeWith(client).sign(operatorPrivateKey) :
-          transaction
-        
-        // Send transaction and track timing
-        const txResponse = await withTiming('Transaction submit', async () => {
-          console.log('Submitting transaction to Hedera network...')
-          const response = await finalTx.execute(client)
-          console.log('Transaction submitted successfully, response received')
-          return response
-        })
-        
-        // Get receipt and track timing
-        const receipt = await withTiming('Receipt retrieval', async () => {
-          console.log('Retrieving transaction receipt...')
-          const r = await txResponse.getReceipt(client)
-          console.log('Receipt retrieved successfully')
-          return r
-        })
-        
-        if (!receipt.topicId) {
-          throw new Error('Topic creation failed - no topic ID in receipt')
-        }
-        
-        return receipt.topicId.toString()
-      })
-      
-      console.log(`Successfully created ${topicType} topic: ${topicId}`)
-      return topicId
-      
-    } catch (error) {
-      if (controller.signal.aborted) {
-        throw new Error(`${topicType} topic creation timeout after ${TOPIC_CREATION_TIMEOUT}ms`)
       }
-      throw error
-    } finally {
-      clearTimeout(timeout)
-    }
-  })
+
+      // Submit to Hedera network - SUBMIT ONLY, don't wait for receipt
+      console.log('Submitting transaction to Hedera network...');
+      const response = await transaction.execute(client);
+      
+      // Return the transaction ID immediately - no receipt waiting
+      const transactionId = response.transactionId?.toString();
+      if (!transactionId) {
+        throw new Error('Transaction submission failed: no transaction ID');
+      }
+
+      console.log(`✅ Transaction submitted successfully: ${transactionId}`);
+      return transactionId;
+    }, 4, (attempt, error) => {
+      if (error.message.includes('TIMEOUT') || error.message.includes('Code: 17')) {
+        console.log(`gRPC timeout on attempt ${attempt}/4, retrying in ${Math.pow(2, attempt) * 1000}ms: ${error.message}`);
+        return true;
+      }
+      return false;
+    })
+  );
 }
