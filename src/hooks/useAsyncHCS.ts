@@ -1,5 +1,4 @@
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +14,8 @@ interface TopicJob {
   updated_at: string;
   completed_at?: string;
   claimed_at?: string;
+  retry_count?: number;
+  worker_id?: string;
 }
 
 interface CreateTopicOptions {
@@ -26,140 +27,122 @@ interface CreateTopicOptions {
 
 interface UseAsyncHCSReturn {
   createTopic: (options: CreateTopicOptions) => Promise<{ jobId: string; topicId?: string }>;
-  pollJobStatus: (jobId: string) => Promise<TopicJob | null>;
-  getJobHistory: () => TopicJob[];
-  jobHistory: TopicJob[]; // ✅ add jobHistory to interface
+  activeJobs: TopicJob[];
+  jobHistory: TopicJob[];
   clearAllJobs: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
-  activeJobs: TopicJob[];
 }
 
 export function useAsyncHCS(): UseAsyncHCSReturn {
+  const [activeJobs, setActiveJobs] = useState<TopicJob[]>([]);
+  const [jobHistory, setJobHistory] = useState<TopicJob[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Query for active jobs
-  const { data: activeJobs = [] } = useQuery({
-    queryKey: ['hcs-jobs', 'active'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('topic_creation_jobs')
-        .select('*')
-        .in('status', ['pending', 'processing'])
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as TopicJob[];
-    },
-    refetchInterval: 5000, // Poll every 5 seconds
-  });
-
-  // Query for job history
-  const { data: jobHistory = [] } = useQuery({
-    queryKey: ['hcs-jobs', 'history'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  // Initial load of jobs
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const { data: jobs, error } = await supabase
         .from('topic_creation_jobs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
-      
-      if (error) throw error;
-      return data as TopicJob[];
-    },
-  });
 
-  // Mutation for creating topics
-  const createTopicMutation = useMutation({
-    mutationFn: async (options: CreateTopicOptions) => {
-      const { data, error } = await supabase.rpc('create_topic_job', {
-        p_topic_type: options.topicType,
-        p_market_id: options.marketId || null,
-      });
+      if (error) {
+        console.error('Error fetching jobs:', error);
+        setError(error.message);
+        return;
+      }
 
-      if (error) throw error;
-      return { jobId: data };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hcs-jobs'] });
-      toast({
-        title: "Topic Creation Started",
-        description: "Your topic creation job has been queued and will be processed shortly.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to Create Topic Job",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
-      });
-    },
-  });
+      const typedJobs = jobs as TopicJob[];
+      setJobHistory(typedJobs);
+      setActiveJobs(typedJobs.filter((j) => ['pending', 'processing'].includes(j.status)));
+    };
+
+    fetchJobs();
+  }, []);
+
+  // Subscribe to realtime changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('jobs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'topic_creation_jobs',
+        },
+        (payload) => {
+          console.log('Realtime job update:', payload);
+          
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            setJobHistory((prev) => prev.filter((j) => j.id !== deletedId));
+            setActiveJobs((prev) => prev.filter((j) => j.id !== deletedId));
+            return;
+          }
+
+          const newJob = payload.new as TopicJob;
+          if (!newJob) return;
+
+          // Update job history
+          setJobHistory((prev) => {
+            const filtered = prev.filter((j) => j.id !== newJob.id);
+            const updated = [newJob, ...filtered];
+            return updated.slice(0, 50); // keep last 50
+          });
+
+          // Update active jobs
+          setActiveJobs((prev) => {
+            const filtered = prev.filter((j) => j.id !== newJob.id);
+            if (['pending', 'processing'].includes(newJob.status)) {
+              return [newJob, ...filtered];
+            }
+            return filtered;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const createTopic = useCallback(async (options: CreateTopicOptions) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const { jobId } = await createTopicMutation.mutateAsync(options);
-      
-      // If progress callback provided, start polling
-      if (options.onProgress) {
-        const pollInterval = setInterval(async () => {
-          const job = await pollJobStatus(jobId);
-          if (job) {
-            options.onProgress!(job);
-            
-            if (job.status === 'success' || job.status === 'failed') {
-              clearInterval(pollInterval);
-              setIsLoading(false);
-            }
-          }
-        }, 2000);
-
-        // Set timeout if provided
-        if (options.timeout) {
-          setTimeout(() => {
-            clearInterval(pollInterval);
-            setIsLoading(false);
-          }, options.timeout);
-        }
-      }
-
-      return { jobId };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      if (!options.onProgress) {
-        setIsLoading(false);
-      }
-    }
-  }, [createTopicMutation]);
-
-  const pollJobStatus = useCallback(async (jobId: string): Promise<TopicJob | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('topic_creation_jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single();
+      const { data, error } = await supabase.rpc('create_topic_job', {
+        p_topic_type: options.topicType,
+        p_market_id: options.marketId || null,
+      });
 
       if (error) throw error;
-      return data as TopicJob;
-    } catch (err) {
-      console.error('Failed to poll job status:', err);
-      return null;
-    }
-  }, []);
 
-  const getJobHistory = useCallback(() => {
-    return jobHistory;
-  }, [jobHistory]);
+      toast({
+        title: "Topic Creation Started",
+        description: "Your job has been queued and will be processed shortly.",
+      });
+
+      return { jobId: data };
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      toast({
+        title: "Failed to Create Topic Job",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   const clearAllJobs = useCallback(async () => {
     try {
@@ -176,9 +159,6 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
         .lt('created_at', new Date(Date.now() - 60000).toISOString());
 
       if (error) throw error;
-
-      // Refresh the job data
-      queryClient.invalidateQueries({ queryKey: ['hcs-jobs'] });
       
       toast({
         title: "Jobs Cleared",
@@ -191,16 +171,14 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
         variant: "destructive",
       });
     }
-  }, [queryClient, toast]);
+  }, [toast]);
 
   return {
     createTopic,
-    pollJobStatus,
-    getJobHistory: () => jobHistory || [], // ✅ added getter for compatibility
-    jobHistory: jobHistory || [], // ✅ expose jobHistory directly
-    clearAllJobs,
-    isLoading: isLoading || createTopicMutation.isPending,
-    error,
     activeJobs,
+    jobHistory,
+    clearAllJobs,
+    isLoading,
+    error,
   };
 }

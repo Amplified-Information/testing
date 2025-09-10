@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Clock, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useAsyncHCS } from '@/hooks/useAsyncHCS';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -14,8 +14,7 @@ interface HCSJobMonitorProps {
 }
 
 export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMonitorProps) {
-  const { activeJobs, getJobHistory, pollJobStatus, clearAllJobs } = useAsyncHCS();
-  const jobHistory = getJobHistory();
+  const { activeJobs, jobHistory, clearAllJobs } = useAsyncHCS();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -54,9 +53,7 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
     return 0;
   };
 
-  const handleRefreshJob = async (jobId: string) => {
-    await pollJobStatus(jobId);
-  };
+  // Refresh functionality removed since realtime updates automatically
 
   if (compact) {
     return (
@@ -130,13 +127,6 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRefreshJob(job.id)}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
                       {getStatusBadge(job.status)}
                     </div>
                   </div>
