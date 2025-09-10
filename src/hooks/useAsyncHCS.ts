@@ -80,7 +80,12 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
     console.log('Setting up real-time subscription for topic_creation_jobs...');
     
     const channel = supabase
-      .channel('jobs-changes')
+      .channel('jobs-changes', {
+        config: {
+          broadcast: { self: true },
+          presence: { key: 'jobs' }
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -127,8 +132,18 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
           });
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('Real-time subscription status:', status);
+        if (err) {
+          console.error('Real-time subscription error:', err);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully connected to real-time updates');
+        } else if (status === 'TIMED_OUT') {
+          console.warn('⚠️ Real-time connection timed out, but will auto-retry');
+        } else if (status === 'CLOSED') {
+          console.warn('⚠️ Real-time connection closed, will attempt reconnect');
+        }
       });
 
     return () => {
