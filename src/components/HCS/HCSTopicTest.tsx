@@ -20,7 +20,7 @@ export interface HCSTestResult {
 export default function HCSTopicTest() {
   const [results, setResults] = useState<HCSTestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const { createTopic, isLoading: isAsyncLoading } = useAsyncHCS();
+  const { createTopic, clearAllJobs, isLoading: isAsyncLoading } = useAsyncHCS();
 
   const callHCSFunction = async (action: string, topicId?: string, message?: string): Promise<HCSTestResult> => {
     const { data, error } = await supabase.functions.invoke('hcs-test', {
@@ -207,6 +207,9 @@ export default function HCSTopicTest() {
                 
                 <Button variant="ghost" onClick={() => setResults([])} disabled={isRunning} size="sm">
                   Clear Results
+                </Button>
+                <Button variant="ghost" onClick={clearAllJobs} disabled={isRunning || isAsyncLoading} size="sm" className="text-destructive hover:text-destructive">
+                  Clear All Jobs
                 </Button>
               </div>
             </CardContent>

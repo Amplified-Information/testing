@@ -14,7 +14,7 @@ interface HCSJobMonitorProps {
 }
 
 export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMonitorProps) {
-  const { activeJobs, getJobHistory, pollJobStatus } = useAsyncHCS();
+  const { activeJobs, getJobHistory, pollJobStatus, clearAllJobs } = useAsyncHCS();
   const jobHistory = getJobHistory();
 
   const getStatusIcon = (status: string) => {
@@ -184,10 +184,22 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
       {showHistory && (
         <Card>
           <CardHeader>
-            <CardTitle>Job History</CardTitle>
-            <CardDescription>
-              Recent topic creation jobs and their results
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Job History</CardTitle>
+                <CardDescription>
+                  Recent topic creation jobs and their results
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllJobs}
+                className="text-destructive hover:text-destructive"
+              >
+                Clear All
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {jobHistory.length === 0 ? (

@@ -28,6 +28,7 @@ interface UseAsyncHCSReturn {
   createTopic: (options: CreateTopicOptions) => Promise<{ jobId: string; topicId?: string }>;
   pollJobStatus: (jobId: string) => Promise<TopicJob | null>;
   getJobHistory: () => TopicJob[];
+  clearAllJobs: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
   activeJobs: TopicJob[];
@@ -159,10 +160,43 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
     return jobHistory;
   }, [jobHistory]);
 
+  const clearAllJobs = useCallback(async () => {
+    try {
+      // Clear all jobs that are older than 1 minute to prevent clearing active ones
+      const { error } = await supabase
+        .from('topic_creation_jobs')
+        .update({
+          status: 'failed',
+          error: 'Manually cleared by user',
+          updated_at: new Date().toISOString(),
+          completed_at: new Date().toISOString()
+        })
+        .in('status', ['pending', 'processing', 'failed'])
+        .lt('created_at', new Date(Date.now() - 60000).toISOString());
+
+      if (error) throw error;
+
+      // Refresh the job data
+      queryClient.invalidateQueries({ queryKey: ['hcs-jobs'] });
+      
+      toast({
+        title: "Jobs Cleared",
+        description: "All job history and logs have been cleared.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to Clear Jobs",
+        description: err instanceof Error ? err.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
+  }, [queryClient, toast]);
+
   return {
     createTopic,
     pollJobStatus,
     getJobHistory,
+    clearAllJobs,
     isLoading: isLoading || createTopicMutation.isPending,
     error,
     activeJobs,
