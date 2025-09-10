@@ -160,9 +160,9 @@ export async function createCLOBTopic(
   
   console.log(`Creating ${topicType} topic`);
   
-  return withTiming(
+  return await withTiming(
     `${topicType} topic creation`,
-    withRetry(async () => {
+    () => withRetry(async () => {
       const transaction = new TopicCreateTransaction()
         .setTopicMemo(memo);
 
