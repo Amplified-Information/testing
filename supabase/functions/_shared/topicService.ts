@@ -31,9 +31,17 @@ const withRetry = async <T>(
 ): Promise<T> => {
   let lastError: Error
   
+  // Defensive check
+  if (typeof operation !== 'function') {
+    throw new Error(`withRetry expects operation to be a function, got ${typeof operation}`)
+  }
+  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation()
+      console.log(`Retry attempt ${attempt}/${maxRetries} - calling operation function`)
+      const result = await operation()
+      console.log(`Operation succeeded on attempt ${attempt}`)
+      return result
     } catch (error) {
       lastError = error as Error
       
