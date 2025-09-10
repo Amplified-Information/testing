@@ -6,7 +6,7 @@ import {
   TopicId, 
   AccountId, 
   PrivateKey 
-} from 'https://esm.sh/@hashgraph/sdk@2.72.0'
+} from 'npm:@hashgraph/sdk@2.72.0'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!

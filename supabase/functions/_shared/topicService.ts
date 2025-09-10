@@ -2,8 +2,9 @@ import {
   Client, 
   TopicCreateTransaction, 
   Hbar, 
-  PrivateKey
-} from 'https://esm.sh/@hashgraph/sdk@2.72.0'
+  PrivateKey,
+  Duration 
+} from 'npm:@hashgraph/sdk@2.72.0'
 
 // Configuration constants
 const TOPIC_CREATION_TIMEOUT = 60000 // 60s timeout for slow testnet
@@ -168,7 +169,7 @@ export async function createCLOBTopic(
         if (operatorAccountId) {
           console.log(`Setting auto-renew account ID: ${operatorAccountId}`);
           transaction.setAutoRenewAccountId(operatorAccountId);
-          transaction.setAutoRenewPeriod(7776000); // 90 days in seconds (90 * 24 * 60 * 60)
+          transaction.setAutoRenewPeriod(Duration.fromDays(90)); // 90 days auto-renew
         }
       }
 
