@@ -2,8 +2,7 @@ import {
   Client, 
   TopicCreateTransaction, 
   Hbar, 
-  PrivateKey,
-  Duration 
+  PrivateKey
 } from 'https://esm.sh/@hashgraph/sdk@2.72.0'
 
 // Configuration constants
@@ -169,7 +168,7 @@ export async function createCLOBTopic(
         if (operatorAccountId) {
           console.log(`Setting auto-renew account ID: ${operatorAccountId}`);
           transaction.setAutoRenewAccountId(operatorAccountId);
-          transaction.setAutoRenewPeriod(Duration.fromDays(90)); // 90 days auto-renew
+          transaction.setAutoRenewPeriod(7776000); // 90 days in seconds (90 * 24 * 60 * 60)
         }
       }
 
