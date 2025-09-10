@@ -18,11 +18,17 @@ export function createHederaClient(config: HederaClientConfig): Client {
   if (network === 'testnet') {
     console.log('🔧 Configuring enhanced gRPC settings for testnet stability...')
     
+    // Store configuration values for logging
+    const requestTimeout = 30000
+    const maxNodeAttempts = 5
+    const minBackoff = 1000
+    const maxBackoff = 8000
+    
     // Improved timeout and retry configuration
-    client.setRequestTimeout(30000)     // 30 second timeout per request
-    client.setMaxNodeAttempts(5)        // Try up to 5 different nodes
-    client.setMinBackoff(1000)          // 1s min backoff between retries  
-    client.setMaxBackoff(8000)          // 8s max backoff between retries
+    client.setRequestTimeout(requestTimeout)     // 30 second timeout per request
+    client.setMaxNodeAttempts(maxNodeAttempts)   // Try up to 5 different nodes
+    client.setMinBackoff(minBackoff)             // 1s min backoff between retries  
+    client.setMaxBackoff(maxBackoff)             // 8s max backoff between retries
     
     // Node failure tolerance - be more aggressive about removing bad nodes
     if (typeof client.setMaxNodeReadmitTime === 'function') {
@@ -35,7 +41,7 @@ export function createHederaClient(config: HederaClientConfig): Client {
     }
     
     console.log('✅ Enhanced gRPC and retry configuration applied')
-    console.log(`📊 Client config: timeout=${client.getRequestTimeout()}ms, maxAttempts=${client.getMaxNodeAttempts()}`)
+    console.log(`📊 Client config: timeout=${requestTimeout}ms, maxAttempts=${maxNodeAttempts}`)
   }
   
   const operatorAccountId = AccountId.fromString(config.operatorId)
@@ -187,11 +193,11 @@ export async function twoTierConnectionTest(client: Client, operatorId: string, 
   const results = []
 
   try {
-    console.log('🔧 Client configuration summary:')
-    console.log(`   Request Timeout: ${client.getRequestTimeout()}ms`)
-    console.log(`   Min Backoff: ${client.getMinBackoff()}ms`)
-    console.log(`   Max Backoff: ${client.getMaxBackoff()}ms`)
-    console.log(`   Max Node Attempts: ${client.getMaxNodeAttempts()}`)
+    console.log('🔧 Client configuration summary (using default values):')
+    console.log('   Request Timeout: 30000ms')
+    console.log('   Min Backoff: 1000ms')
+    console.log('   Max Backoff: 8000ms')
+    console.log('   Max Node Attempts: 5')
 
     // Tier 1: Quick balance check
     console.log('🔍 Tier 1: Quick connectivity test...')
@@ -211,10 +217,10 @@ export async function twoTierConnectionTest(client: Client, operatorId: string, 
         ? `✅ Connection + HCS verified with keepalive (${totalTime}ms)`
         : "❌ One or more connection tests failed",
       configuration: {
-        requestTimeout: client.getRequestTimeout(),
-        minBackoff: client.getMinBackoff(),
-        maxBackoff: client.getMaxBackoff(),
-        maxNodeAttempts: client.getMaxNodeAttempts()
+        requestTimeout: 30000,
+        minBackoff: 1000,
+        maxBackoff: 8000,
+        maxNodeAttempts: 5
       }
     }
   } catch (error) {
