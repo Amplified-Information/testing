@@ -29,13 +29,15 @@ export function createHederaClient(config: HederaClientConfig): Client {
     // Node failure tolerance - be more aggressive about removing bad nodes
     client.setMaxNodeAttempts(3)    // Remove node after 3 consecutive failures (vs default)
     
-    // Node readmission timing - allow faster recovery of nodes (method availability varies by SDK version)
+    // Node readmission timing - allow faster recovery of nodes (method availability varies by SDK version)  
     if (typeof client.setMaxNodeReadmitTime === 'function') {
       client.setMaxNodeReadmitTime(300000) // 5 minutes maximum readmit time
     }
     
-    // Connection close timeout - faster cleanup of stale connections
-    client.setCloseTimeout(10000)   // 10 seconds to close connections
+    // Connection close timeout - check if method exists before calling
+    if (typeof client.setCloseTimeout === 'function') {
+      client.setCloseTimeout(10000)   // 10 seconds to close connections
+    }
     
     console.log('✅ Enhanced gRPC keepalive configuration applied')
   }
