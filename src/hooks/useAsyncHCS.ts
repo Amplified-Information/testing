@@ -77,6 +77,8 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
 
   // Subscribe to realtime changes
   useEffect(() => {
+    console.log('Setting up real-time subscription for topic_creation_jobs...');
+    
     const channel = supabase
       .channel('jobs-changes')
       .on(
@@ -87,22 +89,29 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
           table: 'topic_creation_jobs',
         },
         (payload) => {
-          console.log('Realtime job update:', payload);
+          console.log('🔔 Realtime job update received:', payload);
           
           if (payload.eventType === 'DELETE') {
             const deletedId = payload.old?.id;
+            console.log('DELETE event for job:', deletedId);
             setJobHistory((prev) => prev.filter((j) => j.id !== deletedId));
             setActiveJobs((prev) => prev.filter((j) => j.id !== deletedId));
             return;
           }
 
           const newJob = payload.new as TopicJob;
-          if (!newJob) return;
+          if (!newJob) {
+            console.log('No job data in payload:', payload);
+            return;
+          }
+
+          console.log('Processing job update:', newJob.id, newJob.status);
 
           // Update job history
           setJobHistory((prev) => {
             const filtered = prev.filter((j) => j.id !== newJob.id);
             const updated = [newJob, ...filtered];
+            console.log('Updated job history, now has', updated.length, 'jobs');
             return updated.slice(0, 50); // keep last 50
           });
 
@@ -110,20 +119,26 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
           setActiveJobs((prev) => {
             const filtered = prev.filter((j) => j.id !== newJob.id);
             if (['pending', 'processing', 'submitted'].includes(newJob.status)) {
+              console.log('Adding job to active jobs:', newJob.id);
               return [newJob, ...filtered];
             }
+            console.log('Job not active anymore:', newJob.id, newJob.status);
             return filtered;
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
 
     return () => {
+      console.log('Removing real-time subscription...');
       supabase.removeChannel(channel);
     };
   }, []);
 
   const createTopic = useCallback(async (options: CreateTopicOptions) => {
+    console.log('Creating topic job with options:', options);
     setIsLoading(true);
     setError(null);
 
@@ -133,7 +148,12 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
         p_market_id: options.marketId || null,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('RPC error:', error);
+        throw error;
+      }
+
+      console.log('Topic job created with ID:', data);
 
       toast({
         title: "Topic Creation Started",
@@ -143,6 +163,7 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
       return { jobId: data };
     } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error creating topic job:', errorMessage);
       setError(errorMessage);
       toast({
         title: "Failed to Create Topic Job",
