@@ -184,12 +184,13 @@ const DevelopmentNotes = () => {
           </Card>
 
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="database">Database</TabsTrigger>
               <TabsTrigger value="frontend">Frontend</TabsTrigger>
               <TabsTrigger value="backend">Backend</TabsTrigger>
               <TabsTrigger value="clob">CLOB</TabsTrigger>
+              <TabsTrigger value="resolution">Resolution</TabsTrigger>
               <TabsTrigger value="architecture">Architecture</TabsTrigger>
             </TabsList>
 
@@ -701,6 +702,164 @@ const DevelopmentNotes = () => {
 5. Settlement contract verifies and executes via HTS
 6. Watchers validate batches, submit fraud proofs if needed`}
                     </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="resolution" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Market Resolution & HCS Topic Lifecycle
+                  </CardTitle>
+                  <CardDescription>
+                    Critical operational considerations for market lifecycle management
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <h4 className="font-semibold text-amber-800">Critical: HCS Topic Auto-Renewal</h4>
+                    </div>
+                    <p className="text-sm text-amber-700">
+                      Each market creates 4 HCS topics with 90-day auto-renewal periods. Without cleanup, 
+                      resolved markets will continue incurring HBAR charges indefinitely.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        HCS Topics Per Market
+                      </h4>
+                      <ul className="space-y-2 text-sm">
+                        <li><code className="bg-muted px-2 py-1 rounded">orders-topic</code> - Order submissions</li>
+                        <li><code className="bg-muted px-2 py-1 rounded">batches-topic</code> - Batch processing</li>
+                        <li><code className="bg-muted px-2 py-1 rounded">oracle-topic</code> - Market resolution data</li>
+                        <li><code className="bg-muted px-2 py-1 rounded">disputes-topic</code> - Fraud proofs</li>
+                      </ul>
+                      <div className="mt-3 p-3 bg-blue-50 rounded">
+                        <p className="text-xs text-blue-700">
+                          <strong>Auto-renewal:</strong> 90 days (7,776,000 seconds)<br/>
+                          Each topic renews automatically using the operator account
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Cleanup Trigger Points
+                      </h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-2 w-2 fill-current" />
+                          Market <code className="bg-muted px-1 rounded">resolution_status = 'resolved'</code>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-2 w-2 fill-current" />
+                          Market <code className="bg-muted px-1 rounded">resolution_status = 'cancelled'</code>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-2 w-2 fill-current" />
+                          Market <code className="bg-muted px-1 rounded">end_date</code> has passed
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Circle className="h-2 w-2 fill-current" />
+                          Manual admin intervention (if needed)
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3">Required Implementation Components</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="border rounded p-4">
+                        <h5 className="font-medium mb-2">Database Triggers</h5>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Automatically detect market resolution events
+                        </p>
+                        <ul className="text-xs space-y-1">
+                          <li>• Monitor <code>resolution_status</code> changes</li>
+                          <li>• Track <code>end_date</code> expiration</li>
+                          <li>• Queue cleanup jobs</li>
+                        </ul>
+                      </div>
+
+                      <div className="border rounded p-4">
+                        <h5 className="font-medium mb-2">Edge Function</h5>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Process HCS topic deactivation
+                        </p>
+                        <ul className="text-xs space-y-1">
+                          <li>• Remove auto-renew accounts</li>
+                          <li>• Update database <code>is_active = false</code></li>
+                          <li>• Handle errors gracefully</li>
+                        </ul>
+                      </div>
+
+                      <div className="border rounded p-4">
+                        <h5 className="font-medium mb-2">Background Job</h5>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Periodic cleanup validation
+                        </p>
+                        <ul className="text-xs space-y-1">
+                          <li>• Find stale resolved markets</li>
+                          <li>• Cleanup missed topics</li>
+                          <li>• Generate cost reports</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      <h4 className="font-semibold text-red-800">Important Note</h4>
+                    </div>
+                    <p className="text-sm text-red-700">
+                      HCS topics cannot be deleted once created, only deactivated by removing the auto-renew account.
+                      This cleanup system is essential to prevent ongoing HBAR charges for resolved markets.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3">Implementation Status</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium">HCS Topic Cleanup Service</span>
+                        </div>
+                        <Badge variant="outline">pending</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium">Market Resolution Triggers</span>
+                        </div>
+                        <Badge variant="outline">pending</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium">Background Cleanup Job</span>
+                        </div>
+                        <Badge variant="outline">pending</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded border">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium">Cost Monitoring Dashboard</span>
+                        </div>
+                        <Badge variant="outline">pending</Badge>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
