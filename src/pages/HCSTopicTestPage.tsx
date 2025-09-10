@@ -18,13 +18,13 @@ export default function HCSTopicTestPage() {
           
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">HCS Topic Test</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Async HCS Topic Creation</h1>
               <p className="text-lg text-muted-foreground mt-2">
-                Test Hedera Consensus Service topic creation and messaging
+                Test asynchronous Hedera Consensus Service topic creation with real-time processing
               </p>
             </div>
             <Badge variant="outline" className="px-3 py-1">
-              Live Testing
+              Async Testing
             </Badge>
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function HCSTopicTestPage() {
                   Test Methodology
                 </CardTitle>
                 <CardDescription>
-                  Step-by-step HCS validation process
+                  Async job processing workflow
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -55,8 +55,8 @@ export default function HCSTopicTestPage() {
                       1
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Prerequisites</p>
-                      <p className="text-xs text-muted-foreground">Account credentials and network setup</p>
+                      <p className="font-medium text-sm">Job Creation</p>
+                      <p className="text-xs text-muted-foreground">Queue topic creation request</p>
                     </div>
                   </div>
                   
@@ -65,8 +65,8 @@ export default function HCSTopicTestPage() {
                       2
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Initialize Client</p>
-                      <p className="text-xs text-muted-foreground">Connect to testnet with operator</p>
+                      <p className="font-medium text-sm">Worker Processing</p>
+                      <p className="text-xs text-muted-foreground">Database trigger starts worker</p>
                     </div>
                   </div>
                   
@@ -75,8 +75,8 @@ export default function HCSTopicTestPage() {
                       3
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Create Topic</p>
-                      <p className="text-xs text-muted-foreground">Generate new HCS topic</p>
+                      <p className="font-medium text-sm">Topic Creation</p>
+                      <p className="text-xs text-muted-foreground">Worker creates HCS topic</p>
                     </div>
                   </div>
                   
@@ -85,8 +85,8 @@ export default function HCSTopicTestPage() {
                       4
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Submit Message</p>
-                      <p className="text-xs text-muted-foreground">Send test message to topic</p>
+                      <p className="font-medium text-sm">Real-time Updates</p>
+                      <p className="text-xs text-muted-foreground">Status updates via database</p>
                     </div>
                   </div>
                 </div>
@@ -112,8 +112,8 @@ export default function HCSTopicTestPage() {
                     <p className="text-muted-foreground">@hashgraph/sdk ^2.72.0</p>
                   </div>
                   <div>
-                    <p className="font-medium">Auto-Renewal</p>
-                    <p className="text-muted-foreground">3600 seconds (1 hour)</p>
+                    <p className="font-medium">Processing</p>
+                    <p className="text-muted-foreground">Database trigger + worker</p>
                   </div>
                   <div>
                     <p className="font-medium">Credentials</p>
@@ -134,16 +134,16 @@ export default function HCSTopicTestPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span>Message ordering</span>
+                    <Zap className="h-4 w-4 text-muted-foreground" />
+                    <span>Instant job creation</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Database className="h-4 w-4 text-muted-foreground" />
-                    <span>Immutable consensus</span>
+                    <span>Real-time updates</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Zap className="h-4 w-4 text-muted-foreground" />
-                    <span>Low latency</span>
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <span>Error recovery</span>
                   </div>
                 </div>
               </CardContent>
