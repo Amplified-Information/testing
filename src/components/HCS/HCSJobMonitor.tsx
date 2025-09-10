@@ -31,16 +31,20 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, retryCount?: number, maxRetries?: number) => {
+    const retryText = retryCount !== undefined && maxRetries !== undefined 
+      ? ` (Retry ${retryCount}/${maxRetries})` 
+      : '';
+    
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="secondary">Pending{retryText}</Badge>;
       case 'processing':
-        return <Badge variant="default">Processing</Badge>;
+        return <Badge variant="default">Processing{retryText}</Badge>;
       case 'success':
         return <Badge variant="outline" className="text-success border-success">Success</Badge>;
       case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="destructive">Failed{retryText}</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -80,7 +84,7 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
                       </Badge>
                     )}
                   </div>
-                  {getStatusBadge(job.status)}
+                  {getStatusBadge(job.status, job.retry_count, job.max_retries)}
                 </div>
               ))}
             </div>
@@ -127,7 +131,7 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {getStatusBadge(job.status)}
+                      {getStatusBadge(job.status, job.retry_count, job.max_retries)}
                     </div>
                   </div>
 
@@ -154,6 +158,12 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
                       <div>
                         <span className="text-muted-foreground">Duration:</span>
                         <p>{job.duration}ms</p>
+                      </div>
+                    )}
+                    {(job.retry_count !== undefined && job.max_retries !== undefined) && (
+                      <div>
+                        <span className="text-muted-foreground">Retries:</span>
+                        <p>{job.retry_count}/{job.max_retries}</p>
                       </div>
                     )}
                   </div>
@@ -218,7 +228,7 @@ export function HCSJobMonitor({ showHistory = true, compact = false }: HCSJobMon
                             {job.topic_id}
                           </Badge>
                         )}
-                        {getStatusBadge(job.status)}
+                        {getStatusBadge(job.status, job.retry_count, job.max_retries)}
                       </div>
                     </div>
                     {index < jobHistory.length - 1 && <Separator />}

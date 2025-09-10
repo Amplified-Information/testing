@@ -86,33 +86,38 @@ serve(async () => {
         console.error(`❌ Job ${job.id} failed:`, errorMessage)
 
         // Retry logic: increment counter, requeue if under limit
-        const newRetryCount = (job.retry_count || 0) + 1
-        const maxRetries = 3
+        const newRetryCount = (job.retry_count || 0) + 1;
+        const maxRetries = job.max_retries || 3;
+
+        const updateData = {
+          retry_count: newRetryCount,
+          updated_at: new Date().toISOString(),
+          error: errorMessage,
+          worker_id: workerId,
+        };
 
         if (newRetryCount < maxRetries) {
+          // Still have retries left - requeue job
           await supabase.from('topic_creation_jobs')
             .update({
+              ...updateData,
               status: 'pending',
-              retry_count: newRetryCount,
-              updated_at: new Date().toISOString(),
-              error: errorMessage,
             })
-            .eq('id', job.id)
+            .eq('id', job.id);
 
-          console.log(`🔁 Job ${job.id} requeued (retry ${newRetryCount}/${maxRetries})`)
+          console.log(`🔁 Job ${job.id} requeued (retry ${newRetryCount}/${maxRetries})`);
         } else {
+          // Max retries reached - mark as permanently failed
           await supabase.from('topic_creation_jobs')
             .update({
+              ...updateData,
               status: 'failed',
-              error: errorMessage,
               completed_at: new Date().toISOString(),
               duration,
-              retry_count: newRetryCount,
-              worker_id: workerId,
             })
-            .eq('id', job.id)
+            .eq('id', job.id);
 
-          console.log(`💀 Job ${job.id} permanently failed after ${newRetryCount} attempts`)
+          console.log(`💀 Job ${job.id} permanently failed after ${newRetryCount} attempts`);
         }
       }
     }

@@ -15,6 +15,7 @@ interface TopicJob {
   completed_at?: string;
   claimed_at?: string;
   retry_count?: number;
+  max_retries?: number;
   worker_id?: string;
 }
 

@@ -1151,6 +1151,7 @@ export type Database = {
           error: string | null
           id: string
           market_id: string | null
+          max_retries: number
           request_id: string
           retry_count: number
           status: string
@@ -1167,6 +1168,7 @@ export type Database = {
           error?: string | null
           id?: string
           market_id?: string | null
+          max_retries?: number
           request_id: string
           retry_count?: number
           status?: string
@@ -1183,6 +1185,7 @@ export type Database = {
           error?: string | null
           id?: string
           market_id?: string | null
+          max_retries?: number
           request_id?: string
           retry_count?: number
           status?: string
@@ -1281,6 +1284,7 @@ export type Database = {
           error: string | null
           id: string
           market_id: string | null
+          max_retries: number
           request_id: string
           retry_count: number
           status: string
