@@ -4,11 +4,12 @@ import {
   Hbar, 
   PrivateKey
 } from 'npm:@hashgraph/sdk@2.72.0'
+import { networkHealth } from './networkHealth.ts'
 
-// Configuration constants
-const TOPIC_CREATION_TIMEOUT = 60000 // 60s timeout for slow testnet
-const MAX_RETRIES = 3 // More retry attempts for testnet  
-const BASE_RETRY_DELAY = 2000 // 2s base delay
+// Aggressive configuration for submission-only operations
+const SUBMISSION_TIMEOUT = 10000 // 10s max for submission (reduced from 60s)
+const MAX_FAST_RETRIES = 4 // Quick retry attempts  
+const FAST_RETRY_DELAY = 500 // 500ms base delay for fast switching
 
 // Timing utility for SDK operations
 const withTiming = async <T>(label: string, operation: () => Promise<T>): Promise<T> => {
@@ -23,55 +24,87 @@ const withTiming = async <T>(label: string, operation: () => Promise<T>): Promis
   }
 }
 
-// Enhanced retry with exponential backoff for testnet - improved for gRPC timeouts
-const withRetry = async <T>(
+// Circuit Breaker with Network Health Awareness
+const withCircuitBreakerRetry = async <T>(
   operation: () => Promise<T>, 
-  maxRetries: number = MAX_RETRIES,
-  shouldRetry?: (attempt: number, error: Error) => boolean
+  maxRetries: number = MAX_FAST_RETRIES,
+  operationName: string = 'operation'
 ): Promise<T> => {
   let lastError: Error
   
-  // Defensive check
+  // Pre-flight network health check
+  if (networkHealth.shouldSkipTransaction()) {
+    throw new Error('Circuit breaker OPEN - network too unhealthy')
+  }
+  
   if (typeof operation !== 'function') {
-    throw new Error(`withRetry expects operation to be a function, got ${typeof operation}`)
+    throw new Error(`withCircuitBreakerRetry expects operation to be a function, got ${typeof operation}`)
   }
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const attemptStart = Date.now()
+    
     try {
-      console.log(`Retry attempt ${attempt}/${maxRetries} - calling operation function`)
+      console.log(`🔄 ${operationName} attempt ${attempt}/${maxRetries}`)
       const result = await operation()
-      console.log(`Operation succeeded on attempt ${attempt}`)
+      
+      // Record success for network health
+      const duration = Date.now() - attemptStart
+      const nodeId = extractNodeIdFromContext() // Will implement node extraction
+      if (nodeId) {
+        networkHealth.recordSuccess(nodeId, duration)
+      }
+      
+      console.log(`✅ ${operationName} succeeded on attempt ${attempt} (${duration}ms)`)
       return result
     } catch (error) {
       lastError = error as Error
+      const duration = Date.now() - attemptStart
+      
+      // Record failure for network health
+      const nodeId = extractNodeIdFromError(lastError) || 'unknown'
+      networkHealth.recordFailure(nodeId, lastError.message)
+      
+      console.log(`❌ ${operationName} attempt ${attempt} failed in ${duration}ms: ${lastError.message}`)
       
       if (attempt === maxRetries) {
         throw lastError
       }
       
-      // Use custom retry logic if provided, otherwise default behavior
-      if (shouldRetry && !shouldRetry(attempt, lastError)) {
-        throw lastError
-      } else if (!shouldRetry) {
-        // Default retry logic for gRPC timeouts
-        const isRetryableError = lastError.message?.includes('GrpcServiceError') || 
+      // Fast retry for submission operations
+      const isRetryableError = lastError.message?.includes('timeout') ||
                                lastError.message?.includes('TIMEOUT') ||
                                lastError.message?.includes('UNAVAILABLE') ||
-                               lastError.message?.includes('DEADLINE_EXCEEDED')
-        
-        if (!isRetryableError) {
-          console.log(`Non-retryable error on attempt ${attempt}, failing immediately:`, error)
-          throw lastError
-        }
+                               lastError.message?.includes('DEADLINE_EXCEEDED') ||
+                               lastError.message?.includes('Code: 17') ||
+                               lastError.message?.includes('Code: 14')
+      
+      if (!isRetryableError) {
+        console.log(`Non-retryable error, failing immediately: ${lastError.message}`)
+        throw lastError
       }
       
-      const delay = BASE_RETRY_DELAY * Math.pow(2, attempt - 1)
-      console.log(`gRPC timeout on attempt ${attempt}/${maxRetries}, retrying in ${delay}ms: ${lastError.message}`)
+      // Fast exponential backoff for quick node switching
+      const delay = FAST_RETRY_DELAY * Math.pow(1.5, attempt - 1)
+      console.log(`⚡ Fast retry in ${delay}ms (circuit breaker pattern)`)
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
   
   throw lastError!
+}
+
+// Extract node ID from error messages for health tracking
+function extractNodeIdFromError(error: Error): string | null {
+  const nodeMatch = error.message.match(/nodeAccountId.*?(\d+\.\d+\.\d+)/)
+  return nodeMatch ? nodeMatch[1] : null
+}
+
+// Extract node ID from successful operations (placeholder for now)
+function extractNodeIdFromContext(): string | null {
+  // This would need SDK integration to track which node was used
+  // For now, return null and rely on error-based tracking
+  return null
 }
 
 export interface TopicCreationOptions {
@@ -88,7 +121,7 @@ export async function createTopic(
   options: TopicCreationOptions
 ): Promise<string> {
   try {
-    console.log('Creating HCS topic with memo:', options.memo)
+    console.log('🚀 Creating HCS topic with circuit breaker:', options.memo)
     console.log('Transaction details:', {
       memo: options.memo,
       hasAdminKey: !!options.adminKey,
@@ -97,46 +130,59 @@ export async function createTopic(
       maxFee: options.maxTransactionFee || 2
     })
     
-    const transaction = new TopicCreateTransaction()
-      .setTopicMemo(options.memo)
-      .setMaxTransactionFee(new Hbar(options.maxTransactionFee || 2))
+    // Network health pre-check
+    const networkStatus = networkHealth.getNetworkStatus()
+    console.log(`🏥 Network health: ${networkStatus.healthy}/${networkStatus.total} nodes`)
     
-    // Set admin key if provided (allows topic updates/deletion)
-    if (options.adminKey) {
-      console.log('Setting admin key...')
-      transaction.setAdminKey(options.adminKey.publicKey)
-    }
-    
-    // Set submit key if provided (restricts who can submit messages)
-    if (options.submitKey) {
-      console.log('Setting submit key...')
-      transaction.setSubmitKey(options.submitKey.publicKey)
-    }
-    
-    // Set auto-renew for long-lived topics
-    if (options.autoRenewAccountId) {
-      console.log('Setting auto-renew...')
-      transaction.setAutoRenewAccountId(options.autoRenewAccountId)
-      transaction.setAutoRenewPeriod(options.autoRenewPeriod || 7776000) // 90 days
-    }
+    return await withTiming(
+      'HCS topic creation',
+      () => withCircuitBreakerRetry(async () => {
+        const transaction = new TopicCreateTransaction()
+          .setTopicMemo(options.memo)
+          .setMaxTransactionFee(new Hbar(options.maxTransactionFee || 2))
+        
+        // Set admin key if provided (allows topic updates/deletion)
+        if (options.adminKey) {
+          console.log('Setting admin key...')
+          transaction.setAdminKey(options.adminKey.publicKey)
+        }
+        
+        // Set submit key if provided (restricts who can submit messages)
+        if (options.submitKey) {
+          console.log('Setting submit key...')
+          transaction.setSubmitKey(options.submitKey.publicKey)
+        }
+        
+        // Set auto-renew for long-lived topics
+        if (options.autoRenewAccountId) {
+          console.log('Setting auto-renew...')
+          transaction.setAutoRenewAccountId(options.autoRenewAccountId)
+          transaction.setAutoRenewPeriod(options.autoRenewPeriod || 7776000) // 90 days
+        }
 
-    console.log('Executing transaction...')
-    const executeStart = Date.now()
-    const txResponse = await transaction.execute(client)
-    console.log(`Transaction executed in ${Date.now() - executeStart}ms, getting receipt...`)
-    
-    const receiptStart = Date.now()
-    const receipt = await txResponse.getReceipt(client)
-    console.log(`Receipt received in ${Date.now() - receiptStart}ms`)
-    
-    const topicId = receipt.topicId?.toString()
+        // Aggressive timeout settings
+        transaction.setTransactionValidDuration(30) // 30 seconds
+        transaction.setGrpcDeadline(6000) // 6 seconds
 
-    if (!topicId) {
-      throw new Error('Failed to create HCS topic - no topic ID returned')
-    }
+        console.log('Executing transaction with circuit breaker...')
+        const executeStart = Date.now()
+        const txResponse = await transaction.execute(client)
+        console.log(`Transaction executed in ${Date.now() - executeStart}ms, getting receipt...`)
+        
+        const receiptStart = Date.now()
+        const receipt = await txResponse.getReceipt(client)
+        console.log(`Receipt received in ${Date.now() - receiptStart}ms`)
+        
+        const topicId = receipt.topicId?.toString()
 
-    console.log(`✅ Created new topic with ID: ${topicId}`)
-    return topicId
+        if (!topicId) {
+          throw new Error('Failed to create HCS topic - no topic ID returned')
+        }
+
+        console.log(`✅ Created new topic with ID: ${topicId}`)
+        return topicId
+      }, MAX_FAST_RETRIES, 'HCS topic creation')
+    )
   } catch (error) {
     console.error('Error creating topic:', error)
     console.error('Error details:', {
@@ -158,17 +204,21 @@ export async function createCLOBTopic(
     ? `${topicType.toUpperCase()}_${marketId}` 
     : topicType.toUpperCase();
   
-  console.log(`Creating ${topicType} topic`);
+  console.log(`🚀 Creating ${topicType} topic with circuit breaker pattern`);
+  
+  // Pre-flight network health check
+  const networkStatus = networkHealth.getNetworkStatus()
+  console.log(`🏥 Network status: ${networkStatus.healthy}/${networkStatus.total} healthy nodes`)
   
   return await withTiming(
-    `${topicType} topic creation`,
-    () => withRetry(async () => {
+    `${topicType} topic submission`,
+    () => withCircuitBreakerRetry(async () => {
       const transaction = new TopicCreateTransaction()
         .setTopicMemo(memo);
 
-      // Optimized transaction settings for quick submission
-      transaction.setTransactionValidDuration(60); // 1 minute
-      transaction.setGrpcDeadline(25000); // 25 second gRPC timeout
+      // Aggressive timeout settings for submission-only operations
+      transaction.setTransactionValidDuration(30); // 30 seconds (reduced from 60)
+      transaction.setGrpcDeadline(6000); // 6 second gRPC timeout (reduced from 25s)
 
       if (operatorPrivateKey) {
         console.log('Auto-renew settings applied successfully');
@@ -176,28 +226,25 @@ export async function createCLOBTopic(
         if (operatorAccountId) {
           console.log(`Setting auto-renew account ID: ${operatorAccountId}`);
           transaction.setAutoRenewAccountId(operatorAccountId);
-          transaction.setAutoRenewPeriod(7776000); // 90 days in seconds (90 * 24 * 60 * 60)
+          transaction.setAutoRenewPeriod(7776000); // 90 days in seconds
         }
       }
 
-      // Submit to Hedera network - SUBMIT ONLY, don't wait for receipt
+      // Submission with aggressive timeout - no receipt waiting
       console.log('Submitting transaction to Hedera network...');
-      const response = await transaction.execute(client);
+      const submissionStart = Date.now()
       
-      // Return the transaction ID immediately - no receipt waiting
+      const response = await transaction.execute(client);
+      const submissionTime = Date.now() - submissionStart
+      
+      // Return transaction ID immediately 
       const transactionId = response.transactionId?.toString();
       if (!transactionId) {
         throw new Error('Transaction submission failed: no transaction ID');
       }
 
-      console.log(`✅ Transaction submitted successfully: ${transactionId}`);
+      console.log(`⚡ Fast submission completed in ${submissionTime}ms: ${transactionId}`);
       return transactionId;
-    }, 4, (attempt, error) => {
-      if (error.message.includes('TIMEOUT') || error.message.includes('Code: 17')) {
-        console.log(`gRPC timeout on attempt ${attempt}/4, retrying in ${Math.pow(2, attempt) * 1000}ms: ${error.message}`);
-        return true;
-      }
-      return false;
-    })
+    }, MAX_FAST_RETRIES, `${topicType} topic submission`)
   );
 }

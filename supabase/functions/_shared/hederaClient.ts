@@ -1,4 +1,5 @@
 import { Client, AccountId, PrivateKey, AccountBalanceQuery, TopicMessageSubmitTransaction, TopicId } from 'npm:@hashgraph/sdk@2.72.0'
+import { networkHealth } from './networkHealth.ts'
 
 export interface HederaClientConfig {
   operatorId: string
@@ -14,34 +15,40 @@ export function createHederaClient(config: HederaClientConfig): Client {
   const network = config.network || 'testnet'
   const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
   
-  // Enhanced gRPC configuration for better testnet reliability
+  // Circuit Breaker Pattern: Aggressive configuration for submission-only operations
   if (network === 'testnet') {
-    console.log('🔧 Configuring enhanced gRPC settings for testnet stability...')
+    console.log('🔧 Configuring circuit breaker pattern for testnet submission...')
     
-    // Store configuration values for logging
-    const requestTimeout = 30000
-    const maxNodeAttempts = 5
-    const minBackoff = 1000
-    const maxBackoff = 8000
+    // Aggressive timeouts for submission-only (no receipt waiting)
+    const requestTimeout = 8000        // 8s max per node attempt (reduced from 30s)
+    const maxNodeAttempts = 7          // Try more nodes but faster
+    const minBackoff = 500             // Faster backoff for quick node switching
+    const maxBackoff = 2000            // Lower max backoff
     
-    // Improved timeout and retry configuration
-    client.setRequestTimeout(requestTimeout)     // 30 second timeout per request
-    client.setMaxNodeAttempts(maxNodeAttempts)   // Try up to 5 different nodes
-    client.setMinBackoff(minBackoff)             // 1s min backoff between retries  
-    client.setMaxBackoff(maxBackoff)             // 8s max backoff between retries
+    client.setRequestTimeout(requestTimeout)
+    client.setMaxNodeAttempts(maxNodeAttempts)
+    client.setMinBackoff(minBackoff)
+    client.setMaxBackoff(maxBackoff)
     
-    // Node failure tolerance - be more aggressive about removing bad nodes
+    // More aggressive node management for circuit breaker
     if (typeof client.setMaxNodeReadmitTime === 'function') {
-      client.setMaxNodeReadmitTime(300000) // 5 minutes maximum readmit time
+      client.setMaxNodeReadmitTime(60000) // 1 minute readmit (reduced from 5 min)
     }
     
-    // Connection close timeout - check if method exists before calling
     if (typeof client.setCloseTimeout === 'function') {
-      client.setCloseTimeout(10000)   // 10 seconds to close connections
+      client.setCloseTimeout(3000)   // 3s close timeout
     }
     
-    console.log('✅ Enhanced gRPC and retry configuration applied')
-    console.log(`📊 Client config: timeout=${requestTimeout}ms, maxAttempts=${maxNodeAttempts}`)
+    // Network health check
+    const networkStatus = networkHealth.getNetworkStatus()
+    console.log(`🏥 Network health: ${networkStatus.healthy}/${networkStatus.total} nodes, avg: ${networkStatus.avgResponseTime}ms`)
+    
+    if (networkHealth.shouldSkipTransaction()) {
+      console.warn('🚨 Circuit breaker OPEN - network too unhealthy for transactions')
+    }
+    
+    console.log('✅ Circuit breaker configuration applied')
+    console.log(`📊 Aggressive config: timeout=${requestTimeout}ms, maxAttempts=${maxNodeAttempts}`)
   }
   
   const operatorAccountId = AccountId.fromString(config.operatorId)
