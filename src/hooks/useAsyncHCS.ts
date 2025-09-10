@@ -28,6 +28,7 @@ interface UseAsyncHCSReturn {
   createTopic: (options: CreateTopicOptions) => Promise<{ jobId: string; topicId?: string }>;
   pollJobStatus: (jobId: string) => Promise<TopicJob | null>;
   getJobHistory: () => TopicJob[];
+  jobHistory: TopicJob[]; // ✅ add jobHistory to interface
   clearAllJobs: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -195,7 +196,8 @@ export function useAsyncHCS(): UseAsyncHCSReturn {
   return {
     createTopic,
     pollJobStatus,
-    getJobHistory,
+    getJobHistory: () => jobHistory || [], // ✅ added getter for compatibility
+    jobHistory: jobHistory || [], // ✅ expose jobHistory directly
     clearAllJobs,
     isLoading: isLoading || createTopicMutation.isPending,
     error,

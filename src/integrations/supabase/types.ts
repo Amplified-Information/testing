@@ -1152,10 +1152,12 @@ export type Database = {
           id: string
           market_id: string | null
           request_id: string
+          retry_count: number
           status: string
           topic_id: string | null
           topic_type: string
           updated_at: string
+          worker_id: string | null
         }
         Insert: {
           claimed_at?: string | null
@@ -1166,10 +1168,12 @@ export type Database = {
           id?: string
           market_id?: string | null
           request_id: string
+          retry_count?: number
           status?: string
           topic_id?: string | null
           topic_type: string
           updated_at?: string
+          worker_id?: string | null
         }
         Update: {
           claimed_at?: string | null
@@ -1180,10 +1184,12 @@ export type Database = {
           id?: string
           market_id?: string | null
           request_id?: string
+          retry_count?: number
           status?: string
           topic_id?: string | null
           topic_type?: string
           updated_at?: string
+          worker_id?: string | null
         }
         Relationships: []
       }
@@ -1264,7 +1270,9 @@ export type Database = {
     }
     Functions: {
       claim_topic_jobs: {
-        Args: { limit_count: number }
+        Args:
+          | { limit_count: number }
+          | { limit_count: number; p_worker_id?: string }
         Returns: {
           claimed_at: string | null
           completed_at: string | null
@@ -1274,10 +1282,12 @@ export type Database = {
           id: string
           market_id: string | null
           request_id: string
+          retry_count: number
           status: string
           topic_id: string | null
           topic_type: string
           updated_at: string
+          worker_id: string | null
         }[]
       }
       create_candidate_binary_options: {

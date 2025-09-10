@@ -10,13 +10,15 @@ const supabase = createClient(
 
 serve(async () => {
   try {
-    console.log('🔄 Worker started: attempting to claim jobs...')
+    console.log('🔄 Worker started')
 
-    // Atomically claim jobs in one SQL call (reduced to 1 for better timeout handling)
-    const { data: jobs, error: claimError } = await supabase.rpc(
-      'claim_topic_jobs',
-      { limit_count: 1 }
-    )
+    const workerId = crypto.randomUUID() // unique identifier per run
+
+    // Atomically claim 1 job and mark with worker_id
+    const { data: jobs, error: claimError } = await supabase.rpc('claim_topic_jobs', {
+      limit_count: 1,
+      p_worker_id: workerId,
+    })
 
     if (claimError) {
       console.error('Error claiming jobs:', claimError)
@@ -27,17 +29,14 @@ serve(async () => {
     }
 
     if (!jobs || jobs.length === 0) {
-      console.log('No jobs available to process.')
+      console.log('No jobs available')
       return new Response(JSON.stringify({ message: 'No jobs claimed' }), { status: 200 })
     }
 
-    console.log(`✅ Claimed ${jobs.length} job(s)`)
-
-    // Process each claimed job with timeout protection
     for (const job of jobs) {
       const startTime = Date.now()
       try {
-        console.log(`Processing job ${job.id} (${job.topic_type})`)
+        console.log(`⚡ Worker ${workerId} processing job ${job.id}`)
 
         // Add timeout protection - fail job if it takes longer than 2 minutes
         const timeoutPromise = new Promise((_, reject) => {
@@ -64,18 +63,17 @@ serve(async () => {
             description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`
           })
 
-          // Mark job as success
-          await supabase
-            .from('topic_creation_jobs')
+          await supabase.from('topic_creation_jobs')
             .update({
               status: 'success',
               topic_id: topicId,
               completed_at: new Date().toISOString(),
-              duration
+              duration,
+              worker_id: workerId,
             })
             .eq('id', job.id)
 
-          console.log(`🎉 Job ${job.id} succeeded in ${duration}ms → ${topicId}`)
+          console.log(`🎉 Job ${job.id} succeeded → ${topicId}`)
           return topicId
         })()
 
@@ -87,16 +85,35 @@ serve(async () => {
 
         console.error(`❌ Job ${job.id} failed:`, errorMessage)
 
-        // Mark job as failed with proper error handling
-        await supabase
-          .from('topic_creation_jobs')
-          .update({
-            status: 'failed',
-            error: errorMessage,
-            completed_at: new Date().toISOString(),
-            duration
-          })
-          .eq('id', job.id)
+        // Retry logic: increment counter, requeue if under limit
+        const newRetryCount = (job.retry_count || 0) + 1
+        const maxRetries = 3
+
+        if (newRetryCount < maxRetries) {
+          await supabase.from('topic_creation_jobs')
+            .update({
+              status: 'pending',
+              retry_count: newRetryCount,
+              updated_at: new Date().toISOString(),
+              error: errorMessage,
+            })
+            .eq('id', job.id)
+
+          console.log(`🔁 Job ${job.id} requeued (retry ${newRetryCount}/${maxRetries})`)
+        } else {
+          await supabase.from('topic_creation_jobs')
+            .update({
+              status: 'failed',
+              error: errorMessage,
+              completed_at: new Date().toISOString(),
+              duration,
+              retry_count: newRetryCount,
+              worker_id: workerId,
+            })
+            .eq('id', job.id)
+
+          console.log(`💀 Job ${job.id} permanently failed after ${newRetryCount} attempts`)
+        }
       }
     }
 
