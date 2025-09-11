@@ -20,10 +20,11 @@ const WalletButton = () => {
     return `${accountId.slice(0, 6)}...${accountId.slice(-4)}`;
   };
   const formatBalance = (balance: any) => {
-    if (!balance) return '0.00 ℏ';
-    // Format balance from tinybars to HBAR
-    const hbarAmount = (balance / 100000000).toFixed(2);
-    return `${hbarAmount} ℏ`;
+    if (!balance?.balance?.balance) return null;
+    const numBalance = balance.balance.balance / 100000000; // Convert from tinybars to HBAR
+    if (numBalance === 0) return '0 ℏ';
+    if (numBalance < 1) return `${numBalance.toFixed(4)} ℏ`;
+    return `${numBalance.toFixed(2)} ℏ`;
   };
   const copyAccountId = async () => {
     if (!wallet.accountId) return;
@@ -45,8 +46,7 @@ const WalletButton = () => {
   };
   const openAccountOnHashscan = () => {
     if (!wallet.accountId) return;
-    const url = `https://hashscan.io/testnet/account/${wallet.accountId}`;
-    window.open(url, '_blank');
+    window.open(`https://hashscan.io/testnet/account/${wallet.accountId}`, '_blank');
   };
   if (wallet.isConnected) {
     return <>
@@ -59,9 +59,9 @@ const WalletButton = () => {
             {copied ? <Copy className="w-3 h-3 text-primary" /> : <Copy className="w-3 h-3" />}
           </Badge>
           
-          <Badge variant="secondary" className="text-xs">
-            {formatBalance(balance)}
-          </Badge>
+          {balance && <Badge variant="secondary" className="text-xs">
+              {formatBalance(balance)}
+            </Badge>}
 
           <Button variant="ghost" size="sm" onClick={openAccountOnHashscan} className="h-8 w-8 p-0">
             <ExternalLink className="w-3 h-3" />
@@ -75,7 +75,16 @@ const WalletButton = () => {
       </>;
   }
   const handleConnect = async () => {
-    await connect();
+    try {
+      await connect();
+    } catch (error: any) {
+      console.error("Connection failed:", error);
+      toast({
+        title: "Connection Failed",
+        description: error.message || "Failed to connect wallet",
+        variant: "destructive"
+      });
+    }
   };
   return <Button onClick={handleConnect} disabled={isLoading} className="bg-primary hover:bg-primary-glow text-slate-50">
       {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

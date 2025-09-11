@@ -46,10 +46,10 @@ const BinaryMarketInterface = ({ yesOption, noOption }: BinaryMarketInterfacePro
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button variant="yes" size="sm">
                 Yes {yesPercentage}¢
               </Button>
-              <Button variant="destructive" size="sm">
+              <Button variant="no" size="sm">
                 No {100 - yesPercentage}¢
               </Button>
             </div>
@@ -76,10 +76,10 @@ const BinaryMarketInterface = ({ yesOption, noOption }: BinaryMarketInterfacePro
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button variant="yes" size="sm">
                 Yes {noPercentage}¢
               </Button>
-              <Button variant="destructive" size="sm">
+              <Button variant="no" size="sm">
                 No {100 - noPercentage}¢
               </Button>
             </div>

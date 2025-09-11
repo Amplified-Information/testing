@@ -6,7 +6,6 @@ import TradingInterface from "@/components/Markets/TradingInterface";
 import CandidateList from "@/components/Markets/CandidateList";
 import MarketHeader from "@/components/Markets/MarketHeader";
 import MultiChoiceTradingInterface from "@/components/Markets/MultiChoiceTradingInterface";
-import TrueBinaryInterface from "@/components/Markets/TrueBinaryInterface";
 import BinaryMarketInterface from "@/components/Markets/BinaryMarketInterface";
 import BinaryTradingInterface from "@/components/Markets/BinaryTradingInterface";
 import CLOBTradingInterface from "@/components/CLOB/CLOBTradingInterface";
@@ -34,25 +33,19 @@ const MarketDetail = () => {
   const isTrueBinary = market?.market_structure === 'binary' || 
                       (market?.options && market.options.length === 2 && 
                        market.options.every(opt => ['yes', 'no'].includes(opt.option_type?.toLowerCase() || '')));
-  
-  console.log('Market Debug:', {
-    marketStructure: market?.market_structure,
-    marketType: market?.market_type,
-    optionsLength: market?.options?.length,
-    optionTypes: market?.options?.map(opt => opt.option_type),
-    isTrueBinary,
-    isMultiChoice
-  });
 
-  // Transform options for multi-choice markets only
+  // Transform options for different market types
   const candidates = useMemo(() => {
-    if (!market?.options || isTrueBinary) return [];
+    if (!market?.options) return [];
     
-    if (isMultiChoice) {
+    if (isTrueBinary) {
+      // For true binary markets, don't transform into candidates
+      return [];
+    } else if (isMultiChoice) {
       // For multi-candidate markets, use binaryCandidates from hook
       return binaryCandidates;
     } else {
-      // Fallback transformation for other market types
+      // Fallback transformation
       return market.options.map(option => ({
         id: option.id,
         name: option.option_name,
@@ -137,13 +130,13 @@ const MarketDetail = () => {
               <div className="bg-card rounded-lg border p-6">
                 <MarketChart 
                   data={market.chartData}
-                  candidates={isTrueBinary ? [] : candidates}
+                  candidates={candidates}
                 />
               </div>
             )}
             
             {isTrueBinary && binaryOptions.yesOption && binaryOptions.noOption ? (
-              <TrueBinaryInterface 
+              <BinaryMarketInterface 
                 yesOption={binaryOptions.yesOption}
                 noOption={binaryOptions.noOption}
               />
