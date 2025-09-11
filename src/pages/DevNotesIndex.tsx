@@ -439,6 +439,49 @@ const DevNotesIndex = () => {
               </CardContent>
             </Card>
 
+            {/* Database Design Document */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="h-5 w-5 text-primary" />
+                      Database Design Document
+                    </CardTitle>
+                    <CardDescription>
+                      Comprehensive documentation of all database tables, columns, and relationships
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">
+                    Documentation
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Complete database schema documentation covering 23 tables across 5 main domains: 
+                    CLOB & Trading, Markets & Events, Governance System, User Management, and System Infrastructure. 
+                    Includes column descriptions, data types, relationships, and RLS policies.
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>23 Tables</span>
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>RLS Policies</span>
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span>Relationships</span>
+                  </div>
+                  <Link 
+                    to="/dev-notes/database-design" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    View Database Design <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
 
           {/* Project Overview */}

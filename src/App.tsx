@@ -24,6 +24,7 @@ import CLOBArchitecture from "./pages/CLOBArchitecture";
 import SystemConfigManagement from "./pages/SystemConfigManagement";
 import HCSTopicTestPage from "./pages/HCSTopicTestPage";
 import CLOBTest from "./pages/CLOBTest";
+import DatabaseDesignDocument from "./pages/DatabaseDesignDocument";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -75,6 +76,7 @@ const App = () => (
                   <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
                   <Route path="/dev-notes/hcs-test" element={<HCSTopicTestPage />} />
                   <Route path="/dev-notes/clob-test" element={<CLOBTest />} />
+                  <Route path="/dev-notes/database-design" element={<DatabaseDesignDocument />} />
                   <Route path="/dev-notes/hcs-async" element={<HCSAsyncDocumentation />} />
                   <Route path="/dev-notes/hcs-architecture" element={<HCSArchitectureGuidance />} />
                   <Route path="/market/:id" element={<MarketDetail />} />
