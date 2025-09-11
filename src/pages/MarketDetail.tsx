@@ -34,18 +34,15 @@ const MarketDetail = () => {
                       (market?.options && market.options.length === 2 && 
                        market.options.every(opt => ['yes', 'no'].includes(opt.option_type?.toLowerCase() || '')));
 
-  // Transform options for different market types
+  // Transform options for multi-choice markets only
   const candidates = useMemo(() => {
-    if (!market?.options) return [];
+    if (!market?.options || isTrueBinary) return [];
     
-    if (isTrueBinary) {
-      // For true binary markets, don't transform into candidates
-      return [];
-    } else if (isMultiChoice) {
+    if (isMultiChoice) {
       // For multi-candidate markets, use binaryCandidates from hook
       return binaryCandidates;
     } else {
-      // Fallback transformation
+      // Fallback transformation for other market types
       return market.options.map(option => ({
         id: option.id,
         name: option.option_name,
@@ -130,7 +127,7 @@ const MarketDetail = () => {
               <div className="bg-card rounded-lg border p-6">
                 <MarketChart 
                   data={market.chartData}
-                  candidates={candidates}
+                  candidates={isTrueBinary ? [] : candidates}
                 />
               </div>
             )}
