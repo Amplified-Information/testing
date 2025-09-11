@@ -44,7 +44,7 @@ const MultiChoiceMarketCard = ({
   const displayCandidates = showAllCandidates ? candidates : candidates.slice(0, 6);
 
   return (
-    <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group">
+    <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group" style={{background: 'var(--gradient-card)'}}>
       <CardHeader 
         className="pb-3 cursor-pointer" 
         onClick={handleCardClick}

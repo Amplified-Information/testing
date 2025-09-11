@@ -50,7 +50,7 @@ const MarketCard = ({
   const handleCardClick = () => {
     navigate(`/market/${id}`);
   };
-  return <Card className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50 border-border/50 cursor-pointer" onClick={handleCardClick}>
+  return <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer" style={{background: 'var(--gradient-card)'}} onClick={handleCardClick}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <Badge variant="outline" className="mb-2">
