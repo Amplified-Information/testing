@@ -534,11 +534,13 @@ const Markets = () => {
             dragFree: true
           }}>
                 <CarouselContent className="py-8">
-                  {categories.filter(cat => cat.id !== 'all').map((category, index) => {
+                {categories.filter(cat => cat.id !== 'all').map((category, index) => {
                 const Icon = category.icon;
                 const isCenter = index === selectedIndex;
+                const totalCategories = categories.filter(cat => cat.id !== 'all').length;
                 const distance = Math.abs(index - selectedIndex);
-                const isAdjacent = distance === 1 || distance === categories.filter(cat => cat.id !== 'all').length - 1;
+                const distanceFromEnd = Math.min(distance, totalCategories - distance);
+                const isAdjacent = distanceFromEnd === 1;
                 return <CarouselItem key={category.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6 flex justify-center px-1">
                         <div className={`
                             relative transition-all duration-500 ease-out cursor-pointer
