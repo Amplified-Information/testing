@@ -884,6 +884,69 @@ export type Database = {
           },
         ]
       }
+      order_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          expiry_timestamp: number | null
+          id: string
+          maker_account_id: string
+          market_id: string
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          priority_score: number
+          processed_at: string | null
+          quantity: number
+          side: string
+          status: string
+          time_in_force: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          expiry_timestamp?: number | null
+          id?: string
+          maker_account_id: string
+          market_id: string
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          priority_score?: number
+          processed_at?: string | null
+          quantity: number
+          side: string
+          status?: string
+          time_in_force?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          expiry_timestamp?: number | null
+          id?: string
+          maker_account_id?: string
+          market_id?: string
+          max_collateral?: number
+          nonce?: number
+          order_id?: string
+          order_signature?: string
+          price_ticks?: number
+          priority_score?: number
+          processed_at?: string | null
+          quantity?: number
+          side?: string
+          status?: string
+          time_in_force?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1014,33 +1077,45 @@ export type Database = {
       }
       sequencer_state: {
         Row: {
+          ask_levels: Json | null
+          bid_levels: Json | null
           created_at: string | null
           id: string
           last_batch_id: number | null
+          last_matched_price: number | null
           last_processed_at: string | null
           last_processed_sequence: number | null
           market_id: string | null
           order_book_snapshot: Json | null
+          total_volume_24h: number | null
           updated_at: string | null
         }
         Insert: {
+          ask_levels?: Json | null
+          bid_levels?: Json | null
           created_at?: string | null
           id?: string
           last_batch_id?: number | null
+          last_matched_price?: number | null
           last_processed_at?: string | null
           last_processed_sequence?: number | null
           market_id?: string | null
           order_book_snapshot?: Json | null
+          total_volume_24h?: number | null
           updated_at?: string | null
         }
         Update: {
+          ask_levels?: Json | null
+          bid_levels?: Json | null
           created_at?: string | null
           id?: string
           last_batch_id?: number | null
+          last_matched_price?: number | null
           last_processed_at?: string | null
           last_processed_sequence?: number | null
           market_id?: string | null
           order_book_snapshot?: Json | null
+          total_volume_24h?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1284,6 +1359,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_order_queue_jobs: {
+        Args: { limit_count: number; p_worker_id?: string }
+        Returns: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          expiry_timestamp: number | null
+          id: string
+          maker_account_id: string
+          market_id: string
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          priority_score: number
+          processed_at: string | null
+          quantity: number
+          side: string
+          status: string
+          time_in_force: string
+        }[]
+      }
       claim_topic_jobs: {
         Args:
           | { limit_count: number }
