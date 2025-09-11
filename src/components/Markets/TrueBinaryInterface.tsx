@@ -21,57 +21,31 @@ const TrueBinaryInterface = ({ yesOption, noOption }: TrueBinaryInterfaceProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Candidate Outcomes</CardTitle>
+        <CardTitle>Binary Outcome</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Single Binary Choice Row */}
-        <div className="space-y-4">
-          {/* Yes Choice */}
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-card/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-semibold">Y</span>
-              </div>
-              <div>
-                <div className="font-semibold">Yes</div>
-                <div className="text-sm text-muted-foreground">Yes</div>
-              </div>
+      <CardContent>
+        <div className="flex items-center justify-between p-6 rounded-lg border bg-card/50">
+          {/* Left side - Outcome percentages */}
+          <div className="flex items-center gap-8">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">{yesPercentage}%</div>
+              <div className="text-sm text-muted-foreground">Yes</div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-2xl font-bold">{yesPercentage}%</div>
-                <div className="text-sm text-muted-foreground">+0</div>
-              </div>
-              <div className="flex gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
-                  Yes {yesPercentage}¢
-                </Button>
-              </div>
+            <div className="h-8 w-px bg-border"></div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-destructive">{noPercentage}%</div>
+              <div className="text-sm text-muted-foreground">No</div>
             </div>
           </div>
-
-          {/* No Choice */}
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-card/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-destructive rounded-full flex items-center justify-center">
-                <span className="text-destructive-foreground font-semibold">N</span>
-              </div>
-              <div>
-                <div className="font-semibold">No</div>
-                <div className="text-sm text-muted-foreground">No</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-2xl font-bold">{noPercentage}%</div>
-                <div className="text-sm text-muted-foreground">+0</div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="destructive" size="sm">
-                  No {noPercentage}¢
-                </Button>
-              </div>
-            </div>
+          
+          {/* Right side - Trading buttons */}
+          <div className="flex gap-3">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="lg">
+              Yes {yesPercentage}¢
+            </Button>
+            <Button variant="destructive" size="lg">
+              No {noPercentage}¢
+            </Button>
           </div>
         </div>
       </CardContent>
