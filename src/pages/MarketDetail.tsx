@@ -6,7 +6,7 @@ import TradingInterface from "@/components/Markets/TradingInterface";
 import CandidateList from "@/components/Markets/CandidateList";
 import MarketHeader from "@/components/Markets/MarketHeader";
 import MultiChoiceTradingInterface from "@/components/Markets/MultiChoiceTradingInterface";
-import SimpleBinaryInterface from "@/components/Markets/SimpleBinaryInterface";
+import TrueBinaryInterface from "@/components/Markets/TrueBinaryInterface";
 import BinaryMarketInterface from "@/components/Markets/BinaryMarketInterface";
 import BinaryTradingInterface from "@/components/Markets/BinaryTradingInterface";
 import CLOBTradingInterface from "@/components/CLOB/CLOBTradingInterface";
@@ -34,6 +34,15 @@ const MarketDetail = () => {
   const isTrueBinary = market?.market_structure === 'binary' || 
                       (market?.options && market.options.length === 2 && 
                        market.options.every(opt => ['yes', 'no'].includes(opt.option_type?.toLowerCase() || '')));
+  
+  console.log('Market Debug:', {
+    marketStructure: market?.market_structure,
+    marketType: market?.market_type,
+    optionsLength: market?.options?.length,
+    optionTypes: market?.options?.map(opt => opt.option_type),
+    isTrueBinary,
+    isMultiChoice
+  });
 
   // Transform options for multi-choice markets only
   const candidates = useMemo(() => {
@@ -134,7 +143,7 @@ const MarketDetail = () => {
             )}
             
             {isTrueBinary && binaryOptions.yesOption && binaryOptions.noOption ? (
-              <SimpleBinaryInterface 
+              <TrueBinaryInterface 
                 yesOption={binaryOptions.yesOption}
                 noOption={binaryOptions.noOption}
               />
