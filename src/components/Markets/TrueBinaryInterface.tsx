@@ -46,9 +46,6 @@ const TrueBinaryInterface = ({ yesOption, noOption }: TrueBinaryInterfaceProps) 
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
                   Yes {yesPercentage}¢
                 </Button>
-                <Button variant="destructive" size="sm">
-                  No {noPercentage}¢
-                </Button>
               </div>
             </div>
           </div>
@@ -70,9 +67,6 @@ const TrueBinaryInterface = ({ yesOption, noOption }: TrueBinaryInterfaceProps) 
                 <div className="text-sm text-muted-foreground">+0</div>
               </div>
               <div className="flex gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
-                  Yes {yesPercentage}¢
-                </Button>
                 <Button variant="destructive" size="sm">
                   No {noPercentage}¢
                 </Button>
