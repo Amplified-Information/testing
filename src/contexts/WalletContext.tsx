@@ -5,9 +5,11 @@ import React, {
   useCallback,
   useMemo,
   ReactNode,
+  useEffect,
 } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useDebugger } from "@/hooks/useDebugger";
+import { useSaveWallet, usePrimaryWallet } from "@/hooks/useHederaWallets";
 
 interface WalletState {
   isConnected: boolean;
@@ -20,7 +22,7 @@ interface WalletContextType {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   isLoading: boolean;
-  walletConnector: null; // Mock mode - no real connector
+  walletConnector: null;
   extendSession: () => void;
   sessionTimeRemaining: number | null;
 }
@@ -33,68 +35,158 @@ interface WalletProviderProps {
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const debug = useDebugger('WalletProvider');
+  const { mutateAsync: saveWallet } = useSaveWallet();
+  const { data: primaryWallet } = usePrimaryWallet();
   
-  // MOCK WALLET STATE - Always connected for off-chain development
-  const [wallet] = useState<WalletState>({
-    isConnected: true,
-    accountId: "0.0.12345", // Mock account ID for testing
-    publicKey: "mock_public_key_for_testing",
+  const [wallet, setWallet] = useState<WalletState>({
+    isConnected: false,
+    accountId: null,
+    publicKey: null,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionTimeRemaining, setSessionTimeRemaining] = useState<number | null>(null);
   
-  // Simple mock extension function
+  // Check for previous wallet connection
+  useEffect(() => {
+    if (primaryWallet?.account_id) {
+      setWallet({
+        isConnected: true,
+        accountId: primaryWallet.account_id,
+        publicKey: primaryWallet.public_key,
+      });
+      debug.log('Restored previous wallet connection', primaryWallet.account_id);
+    }
+  }, [debug, primaryWallet]);
+
   const extendSession = useCallback(() => {
-    debug.log('Mock session extension');
-    toast({
-      title: "Mock Session",
-      description: "Session management disabled in development mode",
-    });
-  }, [debug]);
+    debug.log('Session extension');
+    if (sessionTimeRemaining && sessionTimeRemaining < 300000) { // 5 minutes
+      setSessionTimeRemaining(900000); // Reset to 15 minutes
+      toast({
+        title: "Session Extended",
+        description: "Your wallet session has been extended",
+      });
+    }
+  }, [debug, sessionTimeRemaining]);
 
   const connect = async () => {
-    // MOCK CONNECTION - Wallet is always connected in development mode
-    debug.log('Mock wallet connection - wallet functionality suspended');
-    toast({
-      title: "Wallet Connected (Mock)",
-      description: "Using mock wallet for off-chain development",
-    });
-    return;
+    try {
+      setIsLoading(true);
+      debug.log('Attempting wallet connection');
+
+      // For now, prompt user to enter account ID (simplified connection)
+      const accountId = prompt('Enter your Hedera account ID (e.g., 0.0.12345):');
+      
+      if (!accountId || !accountId.match(/^\d+\.\d+\.\d+$/)) {
+        throw new Error('Invalid account ID format. Please use format: 0.0.12345');
+      }
+
+      setWallet({
+        isConnected: true,
+        accountId,
+        publicKey: null, // We don't have public key in this simplified version
+      });
+
+      // Save wallet to database
+      await saveWallet({
+        accountId,
+        publicKey: null,
+        walletName: "Manual Connection",
+        isPrimary: true,
+      });
+
+      // Set session timeout (15 minutes)
+      setSessionTimeRemaining(900000);
+
+      toast({
+        title: "Wallet Connected",
+        description: `Connected to ${accountId}`,
+      });
+
+      debug.log('Wallet connected successfully', accountId);
+    } catch (error) {
+      debug.error('Wallet connection failed', error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to connect wallet",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const disconnect = async () => {
     try {
-      // MOCK DISCONNECT - Reset to mock connected state
-      debug.log('Mock wallet disconnect - resetting to mock state');
-      
-      // Don't actually disconnect in mock mode, just show feedback
-      toast({ 
-        title: "Mock Disconnect", 
-        description: "Wallet remains connected in development mode" 
+      setIsLoading(true);
+      debug.log('Disconnecting wallet');
+
+      setWallet({
+        isConnected: false,
+        accountId: null,
+        publicKey: null,
       });
-      
+
+      setSessionTimeRemaining(null);
+
+      toast({
+        title: "Wallet Disconnected",
+        description: "Your wallet has been disconnected",
+      });
+
+      debug.log('Wallet disconnected successfully');
     } catch (error) {
-      debug.error("Mock disconnect", error);
+      debug.error('Wallet disconnect failed', error);
+      toast({
+        title: "Disconnect Failed",
+        description: error instanceof Error ? error.message : "Failed to disconnect wallet",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Mock context value with simplified state
+  // Session timeout management
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (sessionTimeRemaining && sessionTimeRemaining > 0) {
+      interval = setInterval(() => {
+        setSessionTimeRemaining(prev => {
+          if (prev && prev <= 1000) {
+            // Session expired, disconnect wallet
+            disconnect();
+            return null;
+          }
+          return prev ? prev - 1000 : null;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [sessionTimeRemaining]);
+
   const contextValue = useMemo(
     () => ({ 
       wallet, 
       connect, 
       disconnect, 
       isLoading, 
-      walletConnector: null, // Mock mode - no real connector
+      walletConnector: null,
       extendSession,
-      sessionTimeRemaining: null, // Mock mode - no session timeout
+      sessionTimeRemaining,
     }),
-    [wallet, isLoading, extendSession, connect, disconnect]
+    [wallet, isLoading, extendSession, sessionTimeRemaining, connect, disconnect]
   );
 
   return (
     <WalletContext.Provider value={contextValue}>
       {children}
-      {/* Mock mode - no inactivity dialog */}
     </WalletContext.Provider>
   );
 };

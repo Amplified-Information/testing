@@ -20,8 +20,10 @@ const WalletButton = () => {
     return `${accountId.slice(0, 6)}...${accountId.slice(-4)}`;
   };
   const formatBalance = (balance: any) => {
-    // Mock balance for development
-    return '100.00 ℏ (Mock)';
+    if (!balance) return '0.00 ℏ';
+    // Format balance from tinybars to HBAR
+    const hbarAmount = (balance / 100000000).toFixed(2);
+    return `${hbarAmount} ℏ`;
   };
   const copyAccountId = async () => {
     if (!wallet.accountId) return;
@@ -31,7 +33,7 @@ const WalletButton = () => {
       setTimeout(() => setCopied(false), 2000);
       toast({
         title: "Account ID Copied",
-        description: "Mock account ID copied to clipboard"
+        description: "Account ID copied to clipboard"
       });
     } catch (error) {
       toast({
@@ -42,10 +44,9 @@ const WalletButton = () => {
     }
   };
   const openAccountOnHashscan = () => {
-    toast({
-      title: "Mock Account",
-      description: "This is a mock account for development - no real Hashscan link",
-    });
+    if (!wallet.accountId) return;
+    const url = `https://hashscan.io/testnet/account/${wallet.accountId}`;
+    window.open(url, '_blank');
   };
   if (wallet.isConnected) {
     return <>
@@ -53,7 +54,7 @@ const WalletButton = () => {
           <Badge variant="outline" className="bg-primary/10 border-primary text-primary cursor-pointer hover:bg-primary/20 transition-colors" onClick={copyAccountId}>
             <Wallet className="w-3 h-3 mr-1" />
             <span className="mr-1">
-              {wallet.accountId ? formatAccountId(wallet.accountId) : 'Connected'} (Mock)
+              {wallet.accountId ? formatAccountId(wallet.accountId) : 'Connected'}
             </span>
             {copied ? <Copy className="w-3 h-3 text-primary" /> : <Copy className="w-3 h-3" />}
           </Badge>
@@ -62,27 +63,24 @@ const WalletButton = () => {
             {formatBalance(balance)}
           </Badge>
 
-          <Button variant="ghost" size="sm" onClick={openAccountOnHashscan} className="h-8 w-8 p-0" disabled>
+          <Button variant="ghost" size="sm" onClick={openAccountOnHashscan} className="h-8 w-8 p-0">
             <ExternalLink className="w-3 h-3" />
           </Button>
 
           <Button variant="outline" size="sm" onClick={disconnect} disabled={isLoading}>
             {isLoading && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-            Disconnect (Mock)
+            Disconnect
           </Button>
         </div>
       </>;
   }
   const handleConnect = async () => {
-    // Wallet is always connected in mock mode
-    toast({
-      title: "Already Connected",
-      description: "Mock wallet is always connected in development mode",
-    });
+    await connect();
   };
-  return <Button onClick={handleConnect} disabled className="bg-primary hover:bg-primary-glow text-slate-50">
+  return <Button onClick={handleConnect} disabled={isLoading} className="bg-primary hover:bg-primary-glow text-slate-50">
+      {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
       <Wallet className="w-4 h-4 mr-2" />
-      Connected (Mock)
+      Connect Wallet
     </Button>;
 };
 export default WalletButton;
