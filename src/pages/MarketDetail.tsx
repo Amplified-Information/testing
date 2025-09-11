@@ -6,6 +6,7 @@ import TradingInterface from "@/components/Markets/TradingInterface";
 import CandidateList from "@/components/Markets/CandidateList";
 import MarketHeader from "@/components/Markets/MarketHeader";
 import MultiChoiceTradingInterface from "@/components/Markets/MultiChoiceTradingInterface";
+import SimpleBinaryInterface from "@/components/Markets/SimpleBinaryInterface";
 import BinaryMarketInterface from "@/components/Markets/BinaryMarketInterface";
 import BinaryTradingInterface from "@/components/Markets/BinaryTradingInterface";
 import CLOBTradingInterface from "@/components/CLOB/CLOBTradingInterface";
@@ -133,7 +134,7 @@ const MarketDetail = () => {
             )}
             
             {isTrueBinary && binaryOptions.yesOption && binaryOptions.noOption ? (
-              <BinaryMarketInterface 
+              <SimpleBinaryInterface 
                 yesOption={binaryOptions.yesOption}
                 noOption={binaryOptions.noOption}
               />
