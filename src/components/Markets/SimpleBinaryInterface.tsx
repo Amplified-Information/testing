@@ -25,7 +25,7 @@ const SimpleBinaryInterface = ({ yesOption, noOption }: SimpleBinaryInterfacePro
         <CardTitle>Candidate Outcomes</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Yes Option */}
+        {/* Yes Binary Option */}
         <div className="flex items-center justify-between p-4 rounded-lg border bg-card/50">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 bg-primary">
@@ -48,13 +48,13 @@ const SimpleBinaryInterface = ({ yesOption, noOption }: SimpleBinaryInterfacePro
                 Yes {yesPercentage}¢
               </Button>
               <Button variant="destructive" size="sm">
-                No {100 - yesPercentage}¢
+                No {noPercentage}¢
               </Button>
             </div>
           </div>
         </div>
 
-        {/* No Option */}
+        {/* No Binary Option */}
         <div className="flex items-center justify-between p-4 rounded-lg border bg-card/50">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 bg-destructive">
@@ -74,10 +74,10 @@ const SimpleBinaryInterface = ({ yesOption, noOption }: SimpleBinaryInterfacePro
             </div>
             <div className="flex gap-2">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
-                Yes {noPercentage}¢
+                Yes {yesPercentage}¢
               </Button>
               <Button variant="destructive" size="sm">
-                No {100 - noPercentage}¢
+                No {noPercentage}¢
               </Button>
             </div>
           </div>
