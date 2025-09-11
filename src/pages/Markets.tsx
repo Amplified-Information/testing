@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SwipeCarousel from "@/components/ui/swipe-carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { Search, Filter, TrendingUp, Calendar, DollarSign, Trophy, Zap, Globe, Briefcase, Gamepad2, Activity, Heart, TreePine, Building2, Microscope, Stethoscope, MapPin, ArrowLeft, ChevronRight, Users, Clock, Target, Droplets, Plus, Star, Landmark } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import MarketCard from "@/components/Markets/MarketCard";
@@ -31,6 +31,7 @@ const Markets = () => {
 
   // Carousel state
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [api, setApi] = useState<CarouselApi>();
 
   // Map category names to icons
   const getIconForCategory = (name: string) => {
@@ -181,10 +182,18 @@ const Markets = () => {
     fetchData();
   }, []);
 
-  // Handle carousel slide change
-  const handleSlideChange = (index: number) => {
-    setSelectedIndex(index);
-  };
+  // Carousel effect
+  useEffect(() => {
+    if (!api) return;
+    const onSelect = () => {
+      setSelectedIndex(api.selectedScrollSnap());
+    };
+    api.on("select", onSelect);
+    onSelect();
+    return () => {
+      api?.off("select", onSelect);
+    };
+  }, [api]);
 
   // Handle URL parameters on mount and when they change
   useEffect(() => {
@@ -518,58 +527,59 @@ const Markets = () => {
           <div className="mb-8 space-y-8">
             {/* Carousel Wheel */}
             <div className="relative">
-              <SwipeCarousel 
-                onSlideChange={handleSlideChange}
-                selectedIndex={selectedIndex}
-                className="w-full max-w-6xl mx-auto py-8"
-              >
+              <Carousel setApi={setApi} className="w-full max-w-6xl mx-auto" opts={{
+            align: "center",
+            loop: true,
+            skipSnaps: false,
+            dragFree: true
+          }}>
+                <CarouselContent className="py-8">
                 {categories.filter(cat => cat.id !== 'all').map((category, index) => {
-                  const Icon = category.icon;
-                  const isCenter = index === selectedIndex;
-                  
-                  return (
-                    <div 
-                      key={category.id} 
-                      className="flex justify-center px-1 w-20 md:w-24"
-                      onClick={() => setSelectedIndex(index)}
-                    >
-                      <div className={`
-                        relative transition-all duration-500 ease-out cursor-pointer
-                        ${isCenter ? 'scale-125 z-20' : 'scale-100 z-10'}
-                      `}>
-                        {/* Card Shadow/Glow Effect */}
-                        {isCenter && (
-                          <div 
-                            className="absolute inset-0 rounded-2xl blur-xl opacity-30" 
-                            style={{ backgroundColor: category.color }} 
-                          />
-                        )}
-                        
-                        {/* Category Card */}
-                        <Card className={`
-                          relative w-20 h-16 md:w-24 md:h-20 cursor-pointer transition-all duration-500
-                          ${isCenter ? 'shadow-2xl ring-2 ring-primary' : 'shadow-md hover:shadow-lg'}
-                        `}>
-                          <CardContent className="p-2 text-center h-full flex flex-col items-center justify-center">
-                            <Icon className="h-4 w-4 md:h-5 md:w-5 mx-auto mb-1 text-primary transition-all duration-500" />
-                            
-                            {/* Category Label */}
-                            <p className="font-medium text-xs leading-tight line-clamp-1">{category.label}</p>
-                            <p className="text-xs text-muted-foreground hidden sm:block">{category.count}</p>
-                          </CardContent>
+                const Icon = category.icon;
+                const isCenter = index === selectedIndex;
+                const totalCategories = categories.filter(cat => cat.id !== 'all').length;
+                const distance = Math.abs(index - selectedIndex);
+                const distanceFromEnd = Math.min(distance, totalCategories - distance);
+                const isAdjacent = distanceFromEnd === 1;
+                return <CarouselItem key={category.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6 flex justify-center px-1">
+                        <div className={`
+                            relative transition-all duration-500 ease-out cursor-pointer
+                            ${isCenter ? 'scale-125 z-20' : isAdjacent ? 'scale-100 z-10' : 'scale-75 z-0 opacity-50'}
+                          `} onClick={() => api?.scrollTo(index)}>
+                          {/* Card Shadow/Glow Effect */}
+                          {isCenter && <div className="absolute inset-0 rounded-2xl blur-xl opacity-30" style={{
+                      backgroundColor: category.color
+                    }} />}
                           
-                          {/* Market Count Badge */}
-                          {isCenter && (
-                            <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in">
-                              <span className="text-xs">{category.count}</span>
-                            </div>
-                          )}
-                        </Card>
-                      </div>
-                    </div>
-                  );
-                })}
-              </SwipeCarousel>
+                          {/* Category Card */}
+                          <Card className={`
+                              relative w-20 h-16 md:w-24 md:h-20 cursor-pointer transition-all duration-500
+                              ${isCenter ? 'shadow-2xl ring-2 ring-primary' : 'shadow-md hover:shadow-lg'}
+                            `} style={{
+                      transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`
+                    }}>
+                            <CardContent className="p-2 text-center h-full flex flex-col items-center justify-center">
+                              <Icon className="h-4 w-4 md:h-5 md:w-5 mx-auto mb-1 text-primary transition-all duration-500" />
+                              
+                              {/* Category Label */}
+                              <p className="font-medium text-xs leading-tight line-clamp-1">{category.label}</p>
+                              <p className="text-xs text-muted-foreground hidden sm:block">{category.count}</p>
+                            </CardContent>
+                            
+                            {/* Market Count Badge */}
+                            {isCenter && <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-foreground animate-fade-in">
+                                <span className="text-xs">{category.count}</span>
+                              </div>}
+                          </Card>
+                        </div>
+                      </CarouselItem>;
+              })}
+                </CarouselContent>
+                
+                {/* Custom Navigation Buttons */}
+                <CarouselPrevious className="left-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary" />
+                <CarouselNext className="right-4 w-12 h-12 border-2 hover:scale-110 transition-transform border-primary" />
+              </Carousel>
               
               {/* Diner Wheel Base */}
               <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-4">
