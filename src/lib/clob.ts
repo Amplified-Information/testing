@@ -34,16 +34,16 @@ export class CLOBService {
    */
   async submitOrder(order: CLOBOrder): Promise<string> {
     try {
-      this.log('Submitting CLOB order', { orderId: order.orderId, marketId: order.marketId });
+      this.log('Submitting CLOB order to queue', { orderId: order.orderId, marketId: order.marketId });
 
       // Validate order signature and structure
       if (!this.validateOrder(order)) {
         throw new Error('Invalid order structure or signature');
       }
 
-      // Store order in database
-      const { data: orderRow, error: dbError } = await supabase
-        .from('clob_orders')
+      // Add order to processing queue instead of direct insertion
+      const { data: queueData, error: queueError } = await supabase
+        .from('order_queue')
         .insert({
           order_id: order.orderId!,
           market_id: order.marketId,
@@ -51,60 +51,39 @@ export class CLOBService {
           side: order.side,
           price_ticks: order.priceTicks,
           quantity: order.qty,
+          max_collateral: order.maxCollateral,
           time_in_force: order.tif,
           expiry_timestamp: order.expiry,
           nonce: parseInt(order.nonce),
-          max_collateral: order.maxCollateral,
           order_signature: order.signature!,
-          status: 'PENDING'
+          status: 'QUEUED',
+          priority_score: Date.now() * 1000 // microsecond precision for ordering
         })
         .select()
         .single();
 
-      if (dbError) {
-        this.error('Failed to store order in database', dbError);
-        throw dbError;
+      if (queueError) {
+        this.error('Failed to queue order', queueError);
+        throw queueError;
       }
 
-      // Get HCS topic for orders
-      const { data: topic } = await supabase
-        .from('hcs_topics')
-        .select('topic_id')
-        .eq('topic_type', 'orders')
-        .eq('market_id', order.marketId)
-        .eq('is_active', true)
-        .single();
+      this.log('Order queued successfully', { orderId: order.orderId, queueId: queueData.id });
 
-      if (topic) {
-        try {
-          // TODO: Implement HCS publishing using system account credentials
-          // This would require the private key which should be handled by the edge function
-          this.log('Found HCS topic for market', { topicId: topic.topic_id, marketId: order.marketId });
-          
-          // For now, use the CLOB relayer edge function for HCS publishing
-          const { data, error: relayerError } = await supabase.functions.invoke('clob-relayer', {
-            body: { order }
-          });
+      // Trigger order matching worker
+      try {
+        const { data: matcherResponse, error: matcherError } = await supabase.functions.invoke('order-matcher', {
+          body: { trigger: 'new_order', orderId: order.orderId }
+        });
 
-          if (relayerError) {
-            throw relayerError;
-          }
-
-          this.log('Order relayed via HCS successfully', { orderId: order.orderId });
-        } catch (hcsError) {
-          this.error('Failed to publish via HCS relayer, marking as pending', hcsError);
-          // Keep as PENDING if HCS publishing fails
-          throw hcsError;
+        if (matcherError) {
+          this.log('Order matcher trigger failed, will be processed in next cycle', matcherError);
+        } else {
+          this.log('Order matcher triggered successfully', matcherResponse);
         }
-      } else {
-        this.log('No HCS topic found for market, marking as published without HCS', { marketId: order.marketId });
-        await supabase
-          .from('clob_orders')
-          .update({ status: 'PUBLISHED' })
-          .eq('id', orderRow.id);
+      } catch (matcherError) {
+        this.log('Order matcher unavailable, will be processed in next cycle', matcherError);
       }
 
-      this.log('Order submitted successfully', { orderId: order.orderId });
       return order.orderId!;
 
     } catch (error) {
@@ -118,8 +97,36 @@ export class CLOBService {
    */
   async getOrderBook(marketId: string): Promise<OrderBook> {
     try {
+      // First try to get real-time order book from sequencer state
+      const { data: sequencerState } = await supabase
+        .from('sequencer_state')
+        .select('bid_levels, ask_levels, last_matched_price, total_volume_24h, last_processed_at')
+        .eq('market_id', marketId)
+        .single();
+      
+      if (sequencerState && sequencerState.bid_levels && sequencerState.ask_levels) {
+        const bidLevels = sequencerState.bid_levels as any[]
+        const askLevels = sequencerState.ask_levels as any[]
+        
+        return {
+          marketId,
+          bids: bidLevels.map((level: any) => ({
+            price: level.price,
+            quantity: level.quantity,
+            orderCount: level.orders
+          })),
+          asks: askLevels.map((level: any) => ({
+            price: level.price,
+            quantity: level.quantity,
+            orderCount: level.orders
+          })),
+          lastUpdate: new Date(sequencerState.last_processed_at).getTime()
+        };
+      }
+      
+      // Fallback to traditional method if sequencer state not available
       // Only log errors or when orders are found, not every fetch
-      // this.log('Fetching order book', { marketId });
+      // this.log('Fetching order book via traditional method', { marketId });
 
       // Get active orders for the market
       const { data: ordersData, error } = await supabase

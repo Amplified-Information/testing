@@ -12,10 +12,10 @@ export const useCLOBOrderBook = (marketId: string) => {
   const isDevelopment = import.meta.env.MODE === 'development';
   const isDocumentVisible = typeof document !== 'undefined' ? !document.hidden : true;
   
-  // Use slower polling in development, faster in production when visible
+  // Use faster polling for better real-time feel with new matching engine
   const getRefetchInterval = () => {
     if (!isDocumentVisible) return false; // Pause when tab not visible
-    return isDevelopment ? 10000 : 5000; // 10s in dev, 5s in prod
+    return isDevelopment ? 3000 : 1000; // 3s in dev, 1s in prod for real-time matching
   };
 
   return useQuery({
@@ -29,7 +29,7 @@ export const useCLOBOrderBook = (marketId: string) => {
     },
     enabled: !!marketId,
     refetchInterval: getRefetchInterval(),
-    staleTime: 5000,
+    staleTime: 1000, // Reduced for real-time matching
   });
 };
 
