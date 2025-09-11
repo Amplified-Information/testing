@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { Search, Filter, TrendingUp, Calendar, DollarSign, Trophy, Zap, Globe, Briefcase, Gamepad2, Activity, Heart, TreePine, Building2, Microscope, Stethoscope, MapPin, ArrowLeft, ChevronRight, Users, Clock, Target, Droplets, Plus, Star, Landmark } from "lucide-react";
 import Header from "@/components/Layout/Header";
-import MarketCard from "@/components/Markets/MarketCard";
+import SmartMarketCard from "@/components/Markets/SmartMarketCard";
 import { supabase } from "@/integrations/supabase/client";
 const Markets = () => {
   const [searchParams] = useSearchParams();
@@ -75,14 +75,15 @@ const Markets = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // First fetch all markets
+        // First fetch all markets with their options
         const {
           data: marketsData,
           error: marketsError
         } = await supabase.from('event_markets').select(`
             *,
             market_categories(name),
-            market_subcategories(name)
+            market_subcategories(name),
+            market_options(*)
           `).eq('is_active', true).order('created_at', {
           ascending: false
         });
@@ -103,7 +104,10 @@ const Markets = () => {
           whyItMatters: market.why_it_matters,
           createdAt: market.created_at,
           is_featured: market.is_featured,
-          is_trending: market.is_trending
+          is_trending: market.is_trending,
+          marketType: market.market_type,
+          marketStructure: market.market_structure,
+          options: market.market_options || []
         })) || [];
         setAllMarkets(formattedMarkets);
 
@@ -319,7 +323,8 @@ const Markets = () => {
       } = await supabase.from('event_markets').select(`
           *,
           market_categories(name),
-          market_subcategories(name)
+          market_subcategories(name),
+          market_options(*)
         `).eq('is_active', true).or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`).order('created_at', {
         ascending: false
       });
@@ -340,7 +345,10 @@ const Markets = () => {
         whyItMatters: market.why_it_matters,
         createdAt: market.created_at,
         is_featured: market.is_featured,
-        is_trending: market.is_trending
+        is_trending: market.is_trending,
+        marketType: market.market_type,
+        marketStructure: market.market_structure,
+        options: market.market_options || []
       })) || [];
       setSearchResults(formattedResults);
       setHasSearched(true);
@@ -884,7 +892,7 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getDisplayMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+              {getDisplayMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getDisplayMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets found</p>
@@ -902,7 +910,7 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getFeaturedMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+              {getFeaturedMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getFeaturedMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No featured markets</p>
@@ -920,7 +928,7 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getTrendingMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+              {getTrendingMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getTrendingMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No trending markets</p>
@@ -938,7 +946,7 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getNewMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+              {getNewMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getNewMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No new markets</p>
@@ -956,7 +964,7 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getEndingSoonMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+              {getEndingSoonMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getEndingSoonMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets ending soon</p>
@@ -974,7 +982,7 @@ const Markets = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getHighVolumeMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+              {getHighVolumeMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getHighVolumeMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No high volume markets</p>
