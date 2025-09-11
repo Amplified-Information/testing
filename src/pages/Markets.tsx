@@ -555,9 +555,7 @@ const Markets = () => {
                           <Card className={`
                               relative w-20 h-16 md:w-24 md:h-20 cursor-pointer transition-all duration-500
                               ${isCenter ? 'shadow-2xl ring-2 ring-primary' : 'shadow-md hover:shadow-lg'}
-                            `} style={{
-                      transform: isCenter ? 'rotateY(0deg)' : `rotateY(${(index - selectedIndex) * 5}deg)`
-                    }}>
+                             `}>
                             <CardContent className="p-2 text-center h-full flex flex-col items-center justify-center">
                               <Icon className="h-4 w-4 md:h-5 md:w-5 mx-auto mb-1 text-primary transition-all duration-500" />
                               
