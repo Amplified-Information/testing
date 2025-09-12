@@ -21,31 +21,36 @@ export interface CandidateOption {
 interface CandidateCarouselProps {
   candidates: CandidateOption[];
   maxVisible?: number;
+  currentIndex?: number;
   showPrices?: boolean;
+  showControls?: boolean;
   onCandidateClick?: (candidate: CandidateOption) => void;
 }
 
 const CandidateCarousel = ({ 
   candidates, 
-  maxVisible = 3, 
+  maxVisible = 3,
+  currentIndex: externalCurrentIndex = 0,
   showPrices = true,
+  showControls = true,
   onCandidateClick 
 }: CandidateCarouselProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [internalCurrentIndex, setInternalCurrentIndex] = useState(0);
   
+  const currentIndex = showControls ? internalCurrentIndex : externalCurrentIndex;
   const visibleCandidates = candidates.slice(currentIndex, currentIndex + maxVisible);
   const canScrollLeft = currentIndex > 0;
   const canScrollRight = currentIndex + maxVisible < candidates.length;
   
   const scrollLeft = () => {
-    if (canScrollLeft) {
-      setCurrentIndex(Math.max(0, currentIndex - 1));
+    if (canScrollLeft && showControls) {
+      setInternalCurrentIndex(Math.max(0, currentIndex - 1));
     }
   };
   
   const scrollRight = () => {
-    if (canScrollRight) {
-      setCurrentIndex(Math.min(candidates.length - maxVisible, currentIndex + 1));
+    if (canScrollRight && showControls) {
+      setInternalCurrentIndex(Math.min(candidates.length - maxVisible, currentIndex + 1));
     }
   };
 
@@ -60,40 +65,42 @@ const CandidateCarousel = ({
   return (
     <div className="space-y-3">
       {/* Carousel Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">
-            Top Candidates
-          </span>
-          <div className="text-xs bg-muted px-2 py-1 rounded-full">
-            {candidates.length} total
+      {showControls && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              Top Candidates
+            </span>
+            <div className="text-xs bg-muted px-2 py-1 rounded-full">
+              {candidates.length} total
+            </div>
           </div>
+          
+          {/* Navigation Controls */}
+          {candidates.length > maxVisible && (
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={scrollLeft}
+                disabled={!canScrollLeft}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={scrollRight}
+                disabled={!canScrollRight}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
-        
-        {/* Navigation Controls */}
-        {candidates.length > maxVisible && (
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={scrollLeft}
-              disabled={!canScrollLeft}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={scrollRight}
-              disabled={!canScrollRight}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Candidates Display */}
       <div className="grid grid-cols-1 gap-2">
@@ -160,12 +167,12 @@ const CandidateCarousel = ({
       </div>
 
       {/* Pagination Dots */}
-      {candidates.length > maxVisible && (
+      {showControls && candidates.length > maxVisible && (
         <div className="flex justify-center gap-1 pt-2">
           {Array.from({ length: Math.ceil(candidates.length / maxVisible) }).map((_, i) => (
             <button
               key={i}
-              onClick={() => setCurrentIndex(i * maxVisible)}
+              onClick={() => setInternalCurrentIndex(i * maxVisible)}
               className={cn(
                 "h-2 w-2 rounded-full transition-colors",
                 Math.floor(currentIndex / maxVisible) === i 
