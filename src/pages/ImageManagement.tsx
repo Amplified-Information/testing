@@ -35,6 +35,9 @@ const ImageManagement = () => {
   const [searchId, setSearchId] = useState("");
   const [searchResult, setSearchResult] = useState<ImageFile | null>(null);
   const [searching, setSearching] = useState(false);
+  const [keywordSearch, setKeywordSearch] = useState("");
+  const [keywordResults, setKeywordResults] = useState<ImageFile[]>([]);
+  const [keywordSearching, setKeywordSearching] = useState(false);
   const { toast } = useToast();
 
   console.log("🔍 Search state:", { searchId, searchResult, searching });
@@ -108,6 +111,55 @@ const ImageManagement = () => {
   const clearSearch = () => {
     setSearchId("");
     setSearchResult(null);
+  };
+
+  // Search images by keywords
+  const searchByKeywords = useCallback(async () => {
+    if (!keywordSearch.trim()) {
+      setKeywordResults([]);
+      return;
+    }
+
+    setKeywordSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from("image_files")
+        .select("*")
+        .overlaps('keywords', [keywordSearch.trim().toLowerCase()])
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      setKeywordResults(data || []);
+      
+      if (data && data.length > 0) {
+        toast({
+          title: "Found",
+          description: `Found ${data.length} image(s) with keyword "${keywordSearch.trim()}"`,
+        });
+      } else {
+        toast({
+          title: "No results",
+          description: `No images found with keyword "${keywordSearch.trim()}"`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error searching by keywords:", error);
+      toast({
+        title: "Error",
+        description: "Failed to search images",
+        variant: "destructive",
+      });
+      setKeywordResults([]);
+    } finally {
+      setKeywordSearching(false);
+    }
+  }, [keywordSearch, toast]);
+
+  const clearKeywordSearch = () => {
+    setKeywordSearch("");
+    setKeywordResults([]);
   };
 
   useEffect(() => {
@@ -387,6 +439,115 @@ const ImageManagement = () => {
                     </CardContent>
                   </div>
                 </Card>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Keyword Search */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Search by Keywords
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-4">
+                <Input
+                  placeholder="Enter keyword to search..."
+                  value={keywordSearch}
+                  onChange={(e) => setKeywordSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchByKeywords()}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={searchByKeywords} 
+                  disabled={keywordSearching || !keywordSearch.trim()}
+                >
+                  {keywordSearching ? "Searching..." : "Search"}
+                </Button>
+                {(keywordSearch || keywordResults.length > 0) && (
+                  <Button 
+                    variant="outline" 
+                    onClick={clearKeywordSearch}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Keyword Search Results */}
+              {keywordResults.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-medium">
+                    Found {keywordResults.length} result(s) for "{keywordSearch}"
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {keywordResults.map((image) => (
+                      <Card key={image.id} className="overflow-hidden">
+                        <div className="flex flex-col sm:flex-row">
+                          <div className="w-full sm:w-32 aspect-square overflow-hidden">
+                            <img
+                              src={image.url}
+                              alt={image.alt_text || image.filename}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <CardContent className="flex-1 p-3 space-y-2">
+                            <div>
+                              <h4 className="font-medium text-sm truncate" title={image.filename}>
+                                {image.filename}
+                              </h4>
+                              <p className="text-xs text-muted-foreground">
+                                ID: {image.id}
+                              </p>
+                              <p className="text-xs text-muted-foreground font-mono break-all">
+                                URL: {image.url}
+                              </p>
+                            </div>
+                            
+                            <div>
+                              <p className="text-xs">
+                                <span className="font-medium">Alt:</span>{" "}
+                                {image.alt_text || "No description"}
+                              </p>
+                            </div>
+
+                            {image.keywords && image.keywords.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {image.keywords.map((keyword, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {keyword}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex gap-1 pt-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => startEditing(image)}
+                                className="text-xs px-2 py-1 h-6"
+                              >
+                                <Edit2 className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteImage(image)}
+                                className="text-xs px-2 py-1 h-6 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
