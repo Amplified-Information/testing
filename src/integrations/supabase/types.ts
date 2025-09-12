@@ -527,6 +527,39 @@ export type Database = {
         }
         Relationships: []
       }
+      image_files: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          filename: string
+          id: string
+          keywords: string[] | null
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          filename: string
+          id?: string
+          keywords?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          filename?: string
+          id?: string
+          keywords?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       market_categories: {
         Row: {
           created_at: string
