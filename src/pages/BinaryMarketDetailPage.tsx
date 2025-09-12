@@ -76,10 +76,22 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
               </div>
             )}
             
-            <BinaryMarketInterface 
-              yesOption={binaryOptions.yesOption}
-              noOption={binaryOptions.noOption}
-            />
+            <div className="bg-card rounded-lg border p-6">
+              <div className="flex items-center justify-center gap-4">
+                <button className="flex-1 px-6 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">YES</div>
+                    <div className="text-2xl font-bold">{Math.round(binaryOptions.yesOption.current_price * 100)}¢</div>
+                  </div>
+                </button>
+                <button className="flex-1 px-6 py-4 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">NO</div>
+                    <div className="text-2xl font-bold">{Math.round(binaryOptions.noOption.current_price * 100)}¢</div>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
