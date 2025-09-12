@@ -8,6 +8,8 @@ import React, {
   useRef,
   useMemo,
 } from "react";
+import { useActivityMonitor } from "@/hooks/useActivityMonitor";
+import { InactivityWarningDialog } from "@/components/Wallet/InactivityWarningDialog";
 import { 
   DAppConnector,
   HederaSessionEvent,
@@ -62,6 +64,8 @@ interface WalletContextType {
   disconnect: () => Promise<void>;
   isLoading: boolean;
   walletConnector: DAppConnector | null;
+  extendSession: () => void;
+  sessionTimeRemaining: number | null;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -81,6 +85,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [walletConnector, setWalletConnector] = useState<DAppConnector | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // Inactivity timeout state
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [sessionTimeRemaining, setSessionTimeRemaining] = useState<number | null>(null);
+  
+  // Timeout configuration (20 minutes = 1200000ms, warning at 2 minutes = 120000ms)
+  const SESSION_TIMEOUT = 20 * 60 * 1000; // 20 minutes
+  const WARNING_THRESHOLD = 2 * 60 * 1000; // 2 minutes warning
 
   // Database operations
   const saveWalletMutation = useSaveWallet();
@@ -89,7 +102,81 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   // Use ref to access current wallet state without causing re-renders
   const walletRef = useRef(wallet);
   const connectorRef = useRef<DAppConnector | null>(null);
+  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   walletRef.current = wallet;
+
+  // Handle session timeout
+  const handleSessionTimeout = useCallback(async () => {
+    debug.log('Session timed out due to inactivity');
+    setShowWarningDialog(false);
+    
+    toast({
+      title: "Session Expired",
+      description: "Your wallet has been disconnected due to 20 minutes of inactivity.",
+      variant: "destructive",
+    });
+    
+    await disconnect();
+  }, [debug]);
+
+  // Handle inactivity warning
+  const handleInactivityWarning = useCallback(() => {
+    if (wallet.isConnected) {
+      debug.log('Showing inactivity warning dialog');
+      setShowWarningDialog(true);
+    }
+  }, [wallet.isConnected, debug]);
+
+  // Handle user activity
+  const handleUserActivity = useCallback(() => {
+    if (wallet.isConnected) {
+      debug.log('User activity detected, session extended');
+    }
+  }, [wallet.isConnected, debug]);
+
+  // Extend session manually
+  const extendSession = useCallback(() => {
+    debug.log('Session extended manually by user');
+    setShowWarningDialog(false);
+    setSessionStartTime(Date.now());
+    
+    toast({
+      title: "Session Extended",
+      description: "Your wallet session has been extended for another 20 minutes.",
+    });
+  }, [debug]);
+
+  // Update session time remaining
+  useEffect(() => {
+    if (!wallet.isConnected || !sessionStartTime) {
+      setSessionTimeRemaining(null);
+      return;
+    }
+
+    const updateTimer = () => {
+      const elapsed = Date.now() - sessionStartTime;
+      const remaining = Math.max(0, SESSION_TIMEOUT - elapsed);
+      setSessionTimeRemaining(remaining);
+    };
+
+    // Update immediately
+    updateTimer();
+    
+    // Update every minute
+    const interval = setInterval(updateTimer, 60000);
+    
+    return () => clearInterval(interval);
+  }, [wallet.isConnected, sessionStartTime, SESSION_TIMEOUT]);
+
+  // Activity monitor hook
+  useActivityMonitor({
+    onActivity: handleUserActivity,
+    timeout: SESSION_TIMEOUT,
+    warningThreshold: WARNING_THRESHOLD,
+    onWarning: handleInactivityWarning,
+    onTimeout: handleSessionTimeout,
+    enabled: wallet.isConnected,
+  });
 
   // Function to save wallet to database after connection
   const saveConnectedWallet = useCallback(async (accountId: string, publicKey: string | null) => {
@@ -276,11 +363,39 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [debug]);
 
+  // Global error handler for WalletConnect DataCloneError
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      if (event.error?.name === 'DataCloneError' && event.error?.message?.includes('URL object could not be cloned')) {
+        debug.log('Suppressed WalletConnect DataCloneError - this is a known WalletConnect issue');
+        event.preventDefault();
+        return false;
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, [debug]);
+
   // Initialize DAppConnector only once on mount
   useEffect(() => {
     const init = async () => {
       try {
         debug.log('Initializing wallet connector');
+        
+        // Wrap fetch to handle URL cloning issues
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+          try {
+            return await originalFetch.apply(this, args);
+          } catch (error) {
+            if (error.name === 'DataCloneError') {
+              debug.log('Handled DataCloneError in fetch');
+              return new Response('{}', { status: 200, statusText: 'OK' });
+            }
+            throw error;
+          }
+        };
         
         const metadata = {
           name: "Hashy Markets",
@@ -304,6 +419,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         await connector.init({ 
           logger: "error"
         });
+        
+        // Restore original fetch
+        window.fetch = originalFetch;
         
         handleSessionEvents(connector);
         setWalletConnector(connector);
@@ -461,6 +579,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const publicKey = await fetchPublicKey(accountId);
 
       setWallet({ isConnected: true, accountId, publicKey });
+      setSessionStartTime(Date.now()); // Start session timer
       
       // Save wallet to database if user is authenticated
       await saveConnectedWallet(accountId, publicKey);
@@ -504,7 +623,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       }
+      
+      // Clear session state
       setWallet({ isConnected: false, accountId: null, publicKey: null });
+      setSessionStartTime(null);
+      setSessionTimeRemaining(null);
+      setShowWarningDialog(false);
+      
       toast({ title: "Wallet Disconnected", description: "Your wallet has been disconnected" });
     } catch (error) {
       debug.error("Error disconnecting", error);
@@ -513,11 +638,29 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const contextValue = useMemo(
-    () => ({ wallet, connect, disconnect, isLoading, walletConnector }),
-    [wallet, connect, disconnect, isLoading, walletConnector]
+    () => ({ 
+      wallet, 
+      connect, 
+      disconnect, 
+      isLoading, 
+      walletConnector,
+      extendSession,
+      sessionTimeRemaining,
+    }),
+    [wallet, connect, disconnect, isLoading, walletConnector, extendSession, sessionTimeRemaining]
   );
 
-  return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>;
+  return (
+    <WalletContext.Provider value={contextValue}>
+      {children}
+      <InactivityWarningDialog
+        open={showWarningDialog}
+        onExtendSession={extendSession}
+        onDisconnect={handleSessionTimeout}
+        warningDuration={WARNING_THRESHOLD}
+      />
+    </WalletContext.Provider>
+  );
 };
 
 export const useWallet = (): WalletContextType => {

@@ -1,4 +1,23 @@
 project_id = "bfenuvdwsgzglhhjbrql"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
 [functions.clob-relayer]
+verify_jwt = false
+
+[functions.hcs-manager]
+verify_jwt = false
+
+[functions.hcs-test]
+verify_jwt = false
+
+[functions.process-topic-jobs]
+verify_jwt = false
+
+[functions.hedera-mirror-poller]
 verify_jwt = false

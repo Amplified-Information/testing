@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { Search, Filter, TrendingUp, Calendar, DollarSign, Trophy, Zap, Globe, Briefcase, Gamepad2, Activity, Heart, TreePine, Building2, Microscope, Stethoscope, MapPin, ArrowLeft, ChevronRight, Users, Clock, Target, Droplets, Plus, Star, Landmark } from "lucide-react";
 import Header from "@/components/Layout/Header";
-import MarketCard from "@/components/Markets/MarketCard";
+import SmartMarketCard from "@/components/Markets/SmartMarketCard";
 import { supabase } from "@/integrations/supabase/client";
 const Markets = () => {
   const [searchParams] = useSearchParams();
@@ -75,14 +75,15 @@ const Markets = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // First fetch all markets
+        // First fetch all markets with their options
         const {
           data: marketsData,
           error: marketsError
         } = await supabase.from('event_markets').select(`
             *,
             market_categories(name),
-            market_subcategories(name)
+            market_subcategories(name),
+            market_options(*)
           `).eq('is_active', true).order('created_at', {
           ascending: false
         });
@@ -103,7 +104,9 @@ const Markets = () => {
           whyItMatters: market.why_it_matters,
           createdAt: market.created_at,
           is_featured: market.is_featured,
-          is_trending: market.is_trending
+          is_trending: market.is_trending,
+          marketStructure: market.market_structure,
+          options: market.market_options || []
         })) || [];
         setAllMarkets(formattedMarkets);
 
@@ -313,18 +316,43 @@ const Markets = () => {
     if (!query.trim()) return;
     setIsSearching(true);
     try {
+      // First search in main market fields
       const {
         data: marketsData,
         error
       } = await supabase.from('event_markets').select(`
           *,
           market_categories(name),
-          market_subcategories(name)
+          market_subcategories(name),
+          market_options(*)
         `).eq('is_active', true).or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`).order('created_at', {
         ascending: false
       });
+
       if (error) throw error;
-      const formattedResults = marketsData?.map(market => ({
+
+      // Also search for markets that have matching candidate outcomes
+      const {
+        data: candidateMarketsData,
+        error: candidateError
+      } = await supabase.from('event_markets').select(`
+          *,
+          market_categories(name),
+          market_subcategories(name),
+          market_options!inner(*)
+        `).eq('is_active', true).or(`market_options.option_name.ilike.%${query}%,market_options.candidate_name.ilike.%${query}%`).order('created_at', {
+        ascending: false
+      });
+
+      if (candidateError) throw candidateError;
+
+      // Combine and deduplicate results
+      const allResults = [...(marketsData || []), ...(candidateMarketsData || [])];
+      const uniqueResults = allResults.filter((market, index, self) => 
+        index === self.findIndex(m => m.id === market.id)
+      );
+
+      const formattedResults = uniqueResults?.map(market => ({
         id: market.id,
         question: market.name,
         category: market.market_categories?.name || 'Unknown',
@@ -340,7 +368,9 @@ const Markets = () => {
         whyItMatters: market.why_it_matters,
         createdAt: market.created_at,
         is_featured: market.is_featured,
-        is_trending: market.is_trending
+        is_trending: market.is_trending,
+        marketStructure: market.market_structure,
+        options: market.market_options || []
       })) || [];
       setSearchResults(formattedResults);
       setHasSearched(true);
@@ -534,11 +564,13 @@ const Markets = () => {
             dragFree: true
           }}>
                 <CarouselContent className="py-8">
-                  {categories.filter(cat => cat.id !== 'all').map((category, index) => {
+                {categories.filter(cat => cat.id !== 'all').map((category, index) => {
                 const Icon = category.icon;
                 const isCenter = index === selectedIndex;
+                const totalCategories = categories.filter(cat => cat.id !== 'all').length;
                 const distance = Math.abs(index - selectedIndex);
-                const isAdjacent = distance === 1 || distance === categories.filter(cat => cat.id !== 'all').length - 1;
+                const distanceFromEnd = Math.min(distance, totalCategories - distance);
+                const isAdjacent = distanceFromEnd === 1;
                 return <CarouselItem key={category.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6 flex justify-center px-1">
                         <div className={`
                             relative transition-all duration-500 ease-out cursor-pointer
@@ -881,8 +913,12 @@ const Markets = () => {
                 {getDisplayMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getDisplayMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getDisplayMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getDisplayMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets found</p>
@@ -899,8 +935,12 @@ const Markets = () => {
                 {getFeaturedMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getFeaturedMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getFeaturedMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getFeaturedMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No featured markets</p>
@@ -917,8 +957,12 @@ const Markets = () => {
                 {getTrendingMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getTrendingMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getTrendingMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getTrendingMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No trending markets</p>
@@ -935,8 +979,12 @@ const Markets = () => {
                 {getNewMarkets().length} Markets (30 days)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getNewMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getNewMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getNewMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No new markets</p>
@@ -953,8 +1001,12 @@ const Markets = () => {
                 {getEndingSoonMarkets().length} Markets (7 days)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getEndingSoonMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getEndingSoonMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getEndingSoonMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets ending soon</p>
@@ -971,8 +1023,12 @@ const Markets = () => {
                 {getHighVolumeMarkets().length} Markets ($10K+)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getHighVolumeMarkets().map(market => <MarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getHighVolumeMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getHighVolumeMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No high volume markets</p>

@@ -16,8 +16,15 @@ import DevelopmentNotes from "./pages/DevelopmentNotes";
 import DevNotesIndex from "./pages/DevNotesIndex";
 import SecurityNotes from "./pages/SecurityNotes";
 import WalletConnectionNotes from "./pages/WalletConnectionNotes";
+import WalletSecurityImplementation from "./pages/WalletSecurityImplementation";
 import WalletStorageImplementation from "./pages/WalletStorageImplementation";
+import HCSAsyncDocumentation from "./pages/HCSAsyncDocumentation";
+import HCSArchitectureGuidance from "./pages/HCSArchitectureGuidance";
 import CLOBArchitecture from "./pages/CLOBArchitecture";
+import SystemConfigManagement from "./pages/SystemConfigManagement";
+import HCSTopicTestPage from "./pages/HCSTopicTestPage";
+import CLOBTest from "./pages/CLOBTest";
+import ImageManagement from "./pages/ImageManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -62,9 +69,16 @@ const App = () => (
                   <Route path="/dev-notes/technical-docs" element={<Documentation />} />
                   <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
                   <Route path="/dev-notes/security" element={<SecurityNotes />} />
+                  <Route path="/dev-notes/wallet-security" element={<WalletSecurityImplementation />} />
                   <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
                   <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
+                  <Route path="/dev-notes/system-config" element={<SystemConfigManagement />} />
                   <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
+                  <Route path="/dev-notes/hcs-test" element={<HCSTopicTestPage />} />
+                  <Route path="/dev-notes/clob-test" element={<CLOBTest />} />
+                  <Route path="/dev-notes/hcs-async" element={<HCSAsyncDocumentation />} />
+                  <Route path="/dev-notes/hcs-architecture" element={<HCSArchitectureGuidance />} />
+                  <Route path="/dev-notes/image-management" element={<ImageManagement />} />
                   <Route path="/market/:id" element={<MarketDetail />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

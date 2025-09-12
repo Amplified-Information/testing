@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, Clock, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MarketOption } from "@/types/market";
@@ -16,8 +16,9 @@ interface MarketCardProps {
   endDate: string;
   liquidity: number;
   change24h: number;
-  marketType?: string;
+  marketStructure?: string;
   options?: MarketOption[];
+  imageUrl?: string;
 }
 const MarketCard = ({
   id,
@@ -29,13 +30,14 @@ const MarketCard = ({
   endDate,
   liquidity,
   change24h,
-  marketType,
-  options = []
+  marketStructure,
+  options = [],
+  imageUrl
 }: MarketCardProps) => {
   const navigate = useNavigate();
 
   // Detect if this is a multi-candidate market
-  const isMultiChoice = marketType === 'multi_choice' || options.length > 2;
+  const isMultiChoice = marketStructure === 'multi-choice' || options.length > 2;
 
   // Process candidates for multi-choice markets
   const candidates = isMultiChoice ? options.filter(option => option.option_type === 'yes').sort((a, b) => b.current_price - a.current_price).slice(0, 3).map(option => ({
@@ -50,20 +52,17 @@ const MarketCard = ({
   const handleCardClick = () => {
     navigate(`/market/${id}`);
   };
-  return <Card className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50 border-border/50 cursor-pointer" onClick={handleCardClick}>
+  return <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer" style={{background: 'var(--gradient-card)'}} onClick={handleCardClick}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <Badge variant="outline" className="mb-2">
-            {category}
-          </Badge>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Clock className="mr-1 h-3 w-3" />
-            {endDate}
-          </div>
+        <div className="flex items-center space-x-2">
+          <Avatar className="h-7 w-7">
+            <AvatarImage src={imageUrl || '/placeholder.svg'} alt={`${question} image`} />
+            <AvatarFallback className="text-xs">MK</AvatarFallback>
+          </Avatar>
+          <h3 className="text-base font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+            {question}
+          </h3>
         </div>
-        <h3 className="text-base font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-          {question}
-        </h3>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -91,51 +90,85 @@ const MarketCard = ({
                   </div>
                 </div>)}
             </div>
-          </div> : (/* Binary market display */
-      <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-yes font-medium">YES {yesPrice}¢</span>
-              <span className="text-no font-medium">NO {noPrice}¢</span>
+          </div> : (
+          /* Binary market display - compact layout */
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              <div className="flex items-center text-sm">
+                {change24h >= 0 ? (
+                  <TrendingUp className="mr-1 h-3 w-3 text-up" />
+                ) : (
+                  <TrendingDown className="mr-1 h-3 w-3 text-down" />
+                )}
+                <span className={`font-medium ${change24h >= 0 ? 'text-up' : 'text-down'}`}>
+                  {change24h >= 0 ? '+' : ''}{change24h.toFixed(1)}%
+                </span>
+              </div>
             </div>
-            <Progress value={yesPercentage} className="h-2" />
-          </div>)}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center">
-            <DollarSign className="mr-1 h-3 w-3 text-muted-foreground" />
-            <span className="text-muted-foreground">Volume:</span>
-            <span className="ml-1 font-medium">${volume.toLocaleString()}</span>
+            {/* Trading buttons - on one row, YES left */}
+            <div className="flex items-center gap-2 ml-3">
+              <Button
+                variant="yes"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Handle buy yes action
+                }}
+                className="text-xs px-2 py-1 h-7"
+              >
+                YES {yesPrice}¢
+              </Button>
+              <Button
+                variant="no"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Handle buy no action
+                }}
+                className="text-xs px-2 py-1 h-7"
+              >
+                NO {noPrice}¢
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center">
-            {change24h >= 0 ? <TrendingUp className="mr-1 h-3 w-3 text-up" /> : <TrendingDown className="mr-1 h-3 w-3 text-down" />}
-            <span className={`font-medium ${change24h >= 0 ? 'text-up' : 'text-down'}`}>
-              {change24h >= 0 ? '+' : ''}{change24h.toFixed(1)}%
-            </span>
-          </div>
-        </div>
+        )}
 
-        {/* Trading Buttons */}
-        {isMultiChoice ? <Button variant="trading" size="sm" className="w-full" onClick={e => {
-        e.stopPropagation();
-        navigate(`/market/${id}`);
-      }}>
-            View Market
-          </Button> : <div className="grid grid-cols-2 gap-2 pt-2">
-            <Button variant="yes" size="sm" onClick={e => {
-          e.stopPropagation();
-          // Handle buy yes action
-        }} className="w-full text-slate-50">
-              Buy YES
+          {/* Bottom info row: volume (left), category (center), clock (right) */}
+          <div className="mt-3 flex items-center justify-between text-sm">
+            <div className="flex items-center">
+              <DollarSign className="mr-1 h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Vol:</span>
+              <span className="ml-1 font-medium">${volume.toLocaleString()}</span>
+            </div>
+            <Badge variant="outline">{category}</Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Clock className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Resolves: {endDate}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Multi-choice trading button */}
+          {isMultiChoice && (
+            <Button
+              variant="trading"
+              size="sm"
+              className="w-full mt-3"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/market/${id}`);
+              }}
+            >
+              View Market
             </Button>
-            <Button variant="no" size="sm" className="w-full" onClick={e => {
-          e.stopPropagation();
-          // Handle buy no action
-        }}>
-              Buy NO
-            </Button>
-          </div>}
-      </CardContent>
+          )}
+        </CardContent>
     </Card>;
 };
 export default MarketCard;

@@ -1,10 +1,18 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { 
+  Client, 
+  TopicMessageSubmitTransaction, 
+  TopicId, 
+  AccountId, 
+  PrivateKey 
+} from 'npm:@hashgraph/sdk@2.72.0'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const systemAccountId = Deno.env.get('CLOB_SYSTEM_ACCOUNT_ID')!
+const systemAccountPrivateKey = Deno.env.get('CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')!
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -69,12 +77,79 @@ serve(async (req) => {
         )
       }
 
-      // TODO: Publish to HCS topic when operator credentials are configured
-      // For now, mark as published
-      await supabase
-        .from('clob_orders')
-        .update({ status: 'PUBLISHED' })
-        .eq('id', orderRow.id)
+      // Get HCS topic for orders
+      const { data: topic } = await supabase
+        .from('hcs_topics')
+        .select('topic_id')
+        .eq('topic_type', 'orders')
+        .eq('market_id', order.marketId)
+        .eq('is_active', true)
+        .single()
+
+      let hcsMessageId = null
+      let hcsSequenceNumber = null
+
+      if (topic) {
+        try {
+          // Publish order to HCS topic
+          const orderMessage = JSON.stringify({
+            type: 'NEW_ORDER',
+            orderId: order.orderId,
+            marketId: order.marketId,
+            maker: order.maker,
+            side: order.side,
+            priceTicks: order.priceTicks,
+            qty: order.qty,
+            signature: order.signature,
+            timestamp: Date.now()
+          })
+
+          console.log('Publishing to HCS topic:', topic.topic_id)
+          
+          // Initialize Hedera client and publish message
+          const client = Client.forTestnet()
+          const operatorAccountId = AccountId.fromString(systemAccountId)
+          const operatorPrivateKey = PrivateKey.fromString(systemAccountPrivateKey)
+          client.setOperator(operatorAccountId, operatorPrivateKey)
+
+          const transaction = new TopicMessageSubmitTransaction()
+            .setTopicId(TopicId.fromString(topic.topic_id))
+            .setMessage(orderMessage)
+
+          const txResponse = await transaction.execute(client)
+          const receipt = await txResponse.getReceipt(client)
+          hcsSequenceNumber = receipt.topicSequenceNumber?.toString()
+          hcsMessageId = `${topic.topic_id}:${hcsSequenceNumber}`
+
+          console.log('Successfully published to HCS:', { 
+            topicId: topic.topic_id, 
+            sequenceNumber: hcsSequenceNumber 
+          })
+          
+          // Mark as published with HCS details
+          await supabase
+            .from('clob_orders')
+            .update({ 
+              status: 'PUBLISHED',
+              hcs_message_id: hcsMessageId,
+              hcs_sequence_number: hcsSequenceNumber ? parseInt(hcsSequenceNumber) : null
+            })
+            .eq('id', orderRow.id)
+        } catch (hcsError) {
+          console.error('Failed to publish to HCS, marking as pending:', hcsError)
+          // Keep as PENDING if HCS publishing fails
+          await supabase
+            .from('clob_orders')
+            .update({ status: 'PENDING' })
+            .eq('id', orderRow.id)
+        }
+      } else {
+        console.warn('No HCS topic found for market, marking as published without HCS')
+        await supabase
+          .from('clob_orders')
+          .update({ status: 'PUBLISHED' })
+          .eq('id', orderRow.id)
+      }
 
       console.log('Order relayed successfully:', order.orderId)
 

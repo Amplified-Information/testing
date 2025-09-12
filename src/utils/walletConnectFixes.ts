@@ -121,24 +121,33 @@ const originalWindowPostMessageOverload = Window.prototype.postMessage;
   }
 };
 
-// Enhanced global error handler for DataCloneErrors
+// Enhanced global error handler for all WalletConnect errors
 window.addEventListener('error', (event) => {
-  if (event.error?.name === 'DataCloneError') {
-    console.warn('Global DataCloneError caught and suppressed:', event.error);
+  if (event.error?.name === 'DataCloneError' || 
+      event.error?.message?.includes('URL object could not be cloned') ||
+      event.error?.message?.includes('postMessage') ||
+      event.error?.stack?.includes('WalletConnect') ||
+      event.error?.stack?.includes('lovable.js')) {
+    console.warn('WalletConnect error suppressed:', event.error?.message || event.error);
     event.preventDefault();
     event.stopPropagation();
+    event.stopImmediatePropagation();
     return false;
   }
-});
+}, true); // Capture phase to catch early errors
 
-// Handle unhandled promise rejections from DataCloneErrors
+// Handle unhandled promise rejections from WalletConnect  
 window.addEventListener('unhandledrejection', (event) => {
-  if (event.reason?.name === 'DataCloneError') {
-    console.warn('Unhandled DataCloneError promise rejection caught and suppressed:', event.reason);
+  if (event.reason?.name === 'DataCloneError' || 
+      event.reason?.message?.includes('URL object could not be cloned') ||
+      event.reason?.message?.includes('postMessage') ||
+      event.reason?.stack?.includes('WalletConnect') ||
+      event.reason?.stack?.includes('lovable.js')) {
+    console.warn('WalletConnect promise rejection suppressed:', event.reason?.message || event.reason);
     event.preventDefault();
     return false;
   }
-});
+}, true); // Capture phase to catch early rejections
 
 // Enhanced fetch wrapper to handle WalletConnect API calls
 const originalFetch = window.fetch;

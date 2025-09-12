@@ -4,18 +4,38 @@ import {
   TopicMessageSubmitTransaction,
   TopicId,
   AccountId,
-  PrivateKey
+  PrivateKey,
+  Hbar
 } from '@hashgraph/sdk';
 import { apiClient } from '@/utils/apiClient';
 import { HCSMessage, HCSTopic } from '@/types/clob';
-import { useDebugger } from '@/hooks/useDebugger';
+// Removed useDebugger import since it can't be used in classes
+
+export interface HederaClientConfig {
+  operatorId: string
+  operatorKey: string
+  network?: 'testnet' | 'mainnet'
+}
 
 export class HCSService {
   private client: Client;
-  private debug = useDebugger('HCSService');
 
-  constructor() {
-    this.client = Client.forTestnet();
+  constructor(config?: HederaClientConfig) {
+    const network = config?.network || 'testnet'
+    this.client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
+    
+    if (config?.operatorId && config?.operatorKey) {
+      this.setOperator(config.operatorId, config.operatorKey)
+    }
+  }
+  
+  /**
+   * Set the operator for the client
+   */
+  setOperator(operatorId: string, operatorKey: string): void {
+    const operatorAccountId = AccountId.fromString(operatorId)
+    const operatorPrivateKey = PrivateKey.fromString(operatorKey)
+    this.client.setOperator(operatorAccountId, operatorPrivateKey)
   }
 
   /**
@@ -29,31 +49,34 @@ export class HCSService {
     description?: string
   ): Promise<string> {
     try {
-      this.debug.log('Creating HCS topic', { topicType, marketId });
+      console.log('[HCS] Creating HCS topic', { topicType, marketId });
       
-      const operatorAccountId = AccountId.fromString(operatorId);
+      this.setOperator(operatorId, operatorKey);
       const operatorPrivateKey = PrivateKey.fromString(operatorKey);
-      
-      this.client.setOperator(operatorAccountId, operatorPrivateKey);
 
+      const memo = `CLOB-${topicType}${marketId ? `-${marketId}` : ''}`;
+      
       const transaction = new TopicCreateTransaction()
-        .setTopicMemo(`CLOB-${topicType}${marketId ? `-${marketId}` : ''}`)
+        .setTopicMemo(memo)
         .setAdminKey(operatorPrivateKey.publicKey)
-        .setSubmitKey(operatorPrivateKey.publicKey);
+        .setSubmitKey(operatorPrivateKey.publicKey)
+        .setAutoRenewAccountId(this.client.operatorAccountId!)
+        .setAutoRenewPeriod(7776000) // 90 days
+        .setMaxTransactionFee(new Hbar(2)); // safety cap
 
       const txResponse = await transaction.execute(this.client);
       const receipt = await txResponse.getReceipt(this.client);
       const topicId = receipt.topicId?.toString();
 
       if (!topicId) {
-        throw new Error('Failed to create HCS topic');
+        throw new Error('Failed to create HCS topic - no topic ID returned');
       }
 
-      this.debug.log('HCS topic created successfully', { topicId });
+      console.log('[HCS] ✅ HCS topic created successfully', { topicId, memo });
       return topicId;
     } catch (error) {
-      this.debug.error('Failed to create HCS topic', error);
-      throw error;
+      console.error('[HCS] Failed to create HCS topic', error);
+      throw new Error(`Topic creation failed: ${error.message}`);
     }
   }
 
@@ -67,16 +90,14 @@ export class HCSService {
     operatorKey: string
   ): Promise<string> {
     try {
-      this.debug.log('Submitting message to HCS topic', { topicId, messageLength: message.length });
+      console.log('[HCS] Submitting message to HCS topic', { topicId, messageLength: message.length });
       
-      const operatorAccountId = AccountId.fromString(operatorId);
-      const operatorPrivateKey = PrivateKey.fromString(operatorKey);
-      
-      this.client.setOperator(operatorAccountId, operatorPrivateKey);
+      this.setOperator(operatorId, operatorKey);
 
       const transaction = new TopicMessageSubmitTransaction()
         .setTopicId(TopicId.fromString(topicId))
-        .setMessage(message);
+        .setMessage(message)
+        .setMaxTransactionFee(new Hbar(1)); // safety cap for message submission
 
       const txResponse = await transaction.execute(this.client);
       const receipt = await txResponse.getReceipt(this.client);
@@ -86,11 +107,11 @@ export class HCSService {
         throw new Error('Failed to get sequence number for HCS message');
       }
 
-      this.debug.log('Message submitted successfully', { sequenceNumber });
+      console.log('[HCS] ✅ Message submitted successfully', { sequenceNumber });
       return sequenceNumber;
     } catch (error) {
-      this.debug.error('Failed to submit HCS message', error);
-      throw error;
+      console.error('[HCS] Failed to submit HCS message', error);
+      throw new Error(`Message submission failed: ${error.message}`);
     }
   }
 
@@ -114,7 +135,7 @@ export class HCSService {
       const messageId = Date.now().toString();
       const totalChunks = Math.ceil(message.length / maxChunkSize);
 
-      this.debug.log('Splitting large message into chunks', { totalChunks, messageLength: message.length });
+      console.log('[HCS] Splitting large message into chunks', { totalChunks, messageLength: message.length });
 
       for (let i = 0; i < totalChunks; i++) {
         const start = i * maxChunkSize;
@@ -134,7 +155,7 @@ export class HCSService {
 
       return chunks;
     } catch (error) {
-      this.debug.error('Failed to submit large HCS message', error);
+      console.error('[HCS] Failed to submit large HCS message', error);
       throw error;
     }
   }
@@ -148,7 +169,7 @@ export class HCSService {
     limit = 100
   ): Promise<HCSMessage[]> {
     try {
-      this.debug.log('Fetching HCS topic messages', { topicId, startSequence, limit });
+      console.log('[HCS] Fetching HCS topic messages', { topicId, startSequence, limit });
       
       const mirrorNodeUrl = import.meta.env.VITE_MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com/api/v1';
       let url = `${mirrorNodeUrl}/topics/${topicId}/messages?limit=${limit}&order=asc`;
@@ -167,10 +188,10 @@ export class HCSService {
         message: atob(msg.message), // decode base64
       }));
 
-      this.debug.log('Retrieved HCS messages', { count: messages.length });
+      console.log('[HCS] Retrieved HCS messages', { count: messages.length });
       return messages;
     } catch (error) {
-      this.debug.error('Failed to fetch HCS messages', error);
+      console.error('[HCS] Failed to fetch HCS messages', error);
       throw error;
     }
   }
@@ -183,7 +204,7 @@ export class HCSService {
       const messages = await this.getTopicMessages(topicId, undefined, 1);
       return messages.length > 0 ? messages[0] : null;
     } catch (error) {
-      this.debug.error('Failed to fetch latest HCS message', error);
+      console.error('[HCS] Failed to fetch latest HCS message', error);
       return null;
     }
   }
@@ -213,7 +234,7 @@ export class HCSService {
           }
         }
       } catch (error) {
-        this.debug.error('Error polling HCS topic', error);
+        console.error('[HCS] Error polling HCS topic', error);
       }
 
       if (isRunning) {
@@ -253,14 +274,14 @@ export class HCSService {
       
       // Verify we have all chunks
       if (chunkData.length !== totalChunks) {
-        this.debug.warn('Missing chunks for message', { messageId, expected: totalChunks, received: chunkData.length });
+        console.warn('[HCS] Missing chunks for message', { messageId, expected: totalChunks, received: chunkData.length });
         return null;
       }
 
       // Reconstruct message
       return chunkData.map(chunk => chunk.chunk).join('');
     } catch (error) {
-      this.debug.error('Failed to reconstruct chunked message', error);
+      console.error('[HCS] Failed to reconstruct chunked message', error);
       return null;
     }
   }
@@ -274,7 +295,7 @@ export class HCSService {
       const url = `${mirrorNodeUrl}/topics/${topicId}`;
       return await apiClient.fetchWithRetry(url);
     } catch (error) {
-      this.debug.error('Failed to fetch topic info', error);
+      console.error('[HCS] Failed to fetch topic info', error);
       throw error;
     }
   }

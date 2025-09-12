@@ -271,14 +271,14 @@ export type Database = {
             | Database["public"]["Enums"]["governance_status"]
             | null
           id: string
+          image_url: string | null
           is_active: boolean
           is_featured: boolean
           is_new: boolean
           is_trending: boolean
           liquidity: number
           market_format: string | null
-          market_structure: string | null
-          market_type: string
+          market_structure: string
           maximum_bet: number | null
           minimum_bet: number
           name: string
@@ -317,14 +317,14 @@ export type Database = {
             | Database["public"]["Enums"]["governance_status"]
             | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_new?: boolean
           is_trending?: boolean
           liquidity?: number
           market_format?: string | null
-          market_structure?: string | null
-          market_type?: string
+          market_structure?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name: string
@@ -363,14 +363,14 @@ export type Database = {
             | Database["public"]["Enums"]["governance_status"]
             | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_new?: boolean
           is_trending?: boolean
           liquidity?: number
           market_format?: string | null
-          market_structure?: string | null
-          market_type?: string
+          market_structure?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name?: string
@@ -524,6 +524,39 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           wallet_name?: string | null
+        }
+        Relationships: []
+      }
+      image_files: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          filename: string
+          id: string
+          keywords: string[] | null
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          filename: string
+          id?: string
+          keywords?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          filename?: string
+          id?: string
+          keywords?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string
         }
         Relationships: []
       }
@@ -884,6 +917,69 @@ export type Database = {
           },
         ]
       }
+      order_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          expiry_timestamp: number | null
+          id: string
+          maker_account_id: string
+          market_id: string
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          priority_score: number
+          processed_at: string | null
+          quantity: number
+          side: string
+          status: string
+          time_in_force: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          expiry_timestamp?: number | null
+          id?: string
+          maker_account_id: string
+          market_id: string
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          priority_score?: number
+          processed_at?: string | null
+          quantity: number
+          side: string
+          status?: string
+          time_in_force?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          expiry_timestamp?: number | null
+          id?: string
+          maker_account_id?: string
+          market_id?: string
+          max_collateral?: number
+          nonce?: number
+          order_id?: string
+          order_signature?: string
+          price_ticks?: number
+          priority_score?: number
+          processed_at?: string | null
+          quantity?: number
+          side?: string
+          status?: string
+          time_in_force?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1014,33 +1110,45 @@ export type Database = {
       }
       sequencer_state: {
         Row: {
+          ask_levels: Json | null
+          bid_levels: Json | null
           created_at: string | null
           id: string
           last_batch_id: number | null
+          last_matched_price: number | null
           last_processed_at: string | null
           last_processed_sequence: number | null
           market_id: string | null
           order_book_snapshot: Json | null
+          total_volume_24h: number | null
           updated_at: string | null
         }
         Insert: {
+          ask_levels?: Json | null
+          bid_levels?: Json | null
           created_at?: string | null
           id?: string
           last_batch_id?: number | null
+          last_matched_price?: number | null
           last_processed_at?: string | null
           last_processed_sequence?: number | null
           market_id?: string | null
           order_book_snapshot?: Json | null
+          total_volume_24h?: number | null
           updated_at?: string | null
         }
         Update: {
+          ask_levels?: Json | null
+          bid_levels?: Json | null
           created_at?: string | null
           id?: string
           last_batch_id?: number | null
+          last_matched_price?: number | null
           last_processed_at?: string | null
           last_processed_sequence?: number | null
           market_id?: string | null
           order_book_snapshot?: Json | null
+          total_volume_24h?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1142,6 +1250,72 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_creation_jobs: {
+        Row: {
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          duration: number | null
+          error: string | null
+          id: string
+          market_id: string | null
+          max_retries: number
+          mirror_node_checked_at: string | null
+          mirror_node_retry_count: number | null
+          request_id: string
+          retry_count: number
+          status: string
+          submitted_at: string | null
+          topic_id: string | null
+          topic_type: string
+          transaction_id: string | null
+          updated_at: string
+          worker_id: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration?: number | null
+          error?: string | null
+          id?: string
+          market_id?: string | null
+          max_retries?: number
+          mirror_node_checked_at?: string | null
+          mirror_node_retry_count?: number | null
+          request_id: string
+          retry_count?: number
+          status?: string
+          submitted_at?: string | null
+          topic_id?: string | null
+          topic_type: string
+          transaction_id?: string | null
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration?: number | null
+          error?: string | null
+          id?: string
+          market_id?: string | null
+          max_retries?: number
+          mirror_node_checked_at?: string | null
+          mirror_node_retry_count?: number | null
+          request_id?: string
+          retry_count?: number
+          status?: string
+          submitted_at?: string | null
+          topic_id?: string | null
+          topic_type?: string
+          transaction_id?: string | null
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
       user_token_balances: {
         Row: {
           created_at: string
@@ -1218,6 +1392,55 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_order_queue_jobs: {
+        Args: { limit_count: number; p_worker_id?: string }
+        Returns: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          expiry_timestamp: number | null
+          id: string
+          maker_account_id: string
+          market_id: string
+          max_collateral: number
+          nonce: number
+          order_id: string
+          order_signature: string
+          price_ticks: number
+          priority_score: number
+          processed_at: string | null
+          quantity: number
+          side: string
+          status: string
+          time_in_force: string
+        }[]
+      }
+      claim_topic_jobs: {
+        Args:
+          | { limit_count: number }
+          | { limit_count: number; p_worker_id?: string }
+        Returns: {
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          duration: number | null
+          error: string | null
+          id: string
+          market_id: string | null
+          max_retries: number
+          mirror_node_checked_at: string | null
+          mirror_node_retry_count: number | null
+          request_id: string
+          retry_count: number
+          status: string
+          submitted_at: string | null
+          topic_id: string | null
+          topic_type: string
+          transaction_id: string | null
+          updated_at: string
+          worker_id: string | null
+        }[]
+      }
       create_candidate_binary_options: {
         Args: {
           p_candidate_avatar?: string
@@ -1234,6 +1457,10 @@ export type Database = {
       create_default_binary_options: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_topic_job: {
+        Args: { p_market_id?: string; p_topic_type: string }
+        Returns: string
       }
       get_processing_state: {
         Args: { process_name_param: string }

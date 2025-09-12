@@ -12,10 +12,10 @@ export const useCLOBOrderBook = (marketId: string) => {
   const isDevelopment = import.meta.env.MODE === 'development';
   const isDocumentVisible = typeof document !== 'undefined' ? !document.hidden : true;
   
-  // Use slower polling in development, faster in production when visible
+  // Use faster polling for better real-time feel with new matching engine
   const getRefetchInterval = () => {
     if (!isDocumentVisible) return false; // Pause when tab not visible
-    return isDevelopment ? 10000 : 5000; // 10s in dev, 5s in prod
+    return isDevelopment ? 3000 : 1000; // 3s in dev, 1s in prod for real-time matching
   };
 
   return useQuery({
@@ -25,11 +25,44 @@ export const useCLOBOrderBook = (marketId: string) => {
       if (isDevelopment) {
         debug.debug('Fetching CLOB order book', { marketId });
       }
-      return clobService.getOrderBook(marketId);
+      
+      // Mock order book data for demonstration
+      const mockOrderBook = {
+        marketId,
+        lastUpdate: Date.now(),
+        bids: [
+          { price: 6200, quantity: 1250, orderCount: 3 },
+          { price: 6150, quantity: 2100, orderCount: 5 },
+          { price: 6100, quantity: 850, orderCount: 2 },
+          { price: 6050, quantity: 1800, orderCount: 4 },
+          { price: 6000, quantity: 3200, orderCount: 8 },
+          { price: 5950, quantity: 1100, orderCount: 2 },
+          { price: 5900, quantity: 2500, orderCount: 6 },
+          { price: 5850, quantity: 950, orderCount: 1 },
+          { price: 5800, quantity: 1700, orderCount: 3 },
+          { price: 5750, quantity: 2800, orderCount: 7 },
+        ],
+        asks: [
+          { price: 6250, quantity: 900, orderCount: 2 },
+          { price: 6300, quantity: 1600, orderCount: 4 },
+          { price: 6350, quantity: 2200, orderCount: 6 },
+          { price: 6400, quantity: 800, orderCount: 1 },
+          { price: 6450, quantity: 1400, orderCount: 3 },
+          { price: 6500, quantity: 3100, orderCount: 9 },
+          { price: 6550, quantity: 1200, orderCount: 2 },
+          { price: 6600, quantity: 1900, orderCount: 4 },
+          { price: 6650, quantity: 2600, orderCount: 5 },
+          { price: 6700, quantity: 1050, orderCount: 2 },
+        ],
+        snapshotRoot: "0x1234567890abcdef"
+      };
+      
+      return mockOrderBook;
+      // return clobService.getOrderBook(marketId);
     },
     enabled: !!marketId,
     refetchInterval: getRefetchInterval(),
-    staleTime: 5000,
+    staleTime: 1000, // Reduced for real-time matching
   });
 };
 

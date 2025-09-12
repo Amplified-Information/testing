@@ -5,12 +5,13 @@ interface MarketOption {
   id: string;
   option_name: string;
   option_type: string;
+  candidate_name?: string | null;
   current_price: number;
   total_shares: number;
   sort_order: number;
 }
 
-interface MarketDetail {
+export interface MarketDetail {
   id: string;
   name: string;
   description: string;
@@ -18,8 +19,7 @@ interface MarketDetail {
   subcategory?: string;
   volume: number;
   end_date: string;
-  market_type: string;
-  market_structure?: string;
+  market_structure: string;
   options: MarketOption[];
   chartData: any[];
 }
@@ -85,8 +85,7 @@ export const useMarketDetail = (marketId: string) => {
           subcategory: marketData.market_subcategories?.name,
           volume: Number(marketData.volume || 0),
           end_date: marketData.end_date,
-          market_type: marketData.market_type,
-          market_structure: marketData.market_structure,
+          market_structure: marketData.market_structure || 'binary',
           options: optionsData || [],
           chartData
         };
