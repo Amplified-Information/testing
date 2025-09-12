@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import Header from "@/components/Layout/Header";
-import MarketChart from "@/components/Markets/MarketChart";
+import BinaryMarketChart from "@/components/Markets/BinaryMarketChart";
 import MarketHeader from "@/components/Markets/MarketHeader";
+import MarketRules from "@/components/Markets/MarketRules";
+import MarketResolution from "@/components/Markets/MarketResolution";
+import DiscussionBoard from "@/components/Markets/DiscussionBoard";
 import BinaryMarketInterface from "@/components/Markets/BinaryMarketInterface";
 import BinaryTradingInterface from "@/components/Markets/BinaryTradingInterface";
 import CLOBTradingInterface from "@/components/CLOB/CLOBTradingInterface";
@@ -67,15 +70,15 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
               description={market.description}
             />
             
-            {market.chartData && market.chartData.length > 0 && (
-              <div className="bg-card rounded-lg border p-6">
-                <MarketChart 
-                  data={market.chartData}
-                  candidates={[]}
-                />
-              </div>
-            )}
+            {/* Price History Chart */}
+            <BinaryMarketChart
+              data={market.chartData || []}
+              yesPrice={binaryOptions.yesOption.current_price}
+              noPrice={binaryOptions.noOption.current_price}
+              volume={market.volume}
+            />
             
+            {/* Buy Buttons */}
             <div className="bg-card rounded-lg border p-6">
               <div className="flex items-center justify-center gap-4">
                 <button className="flex-1 px-6 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
@@ -92,11 +95,38 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
                 </button>
               </div>
             </div>
+
+            {/* Market Rules */}
+            <MarketRules
+              marketId={market.id}
+              endDate={market.end_date}
+              minimumBet={1}
+              maximumBet={undefined}
+              category={market.category}
+              subcategory={market.subcategory}
+            />
+
+            {/* Market Resolution */}
+            <MarketResolution
+              status="open"
+              endDate={market.end_date}
+              resolutionDate={undefined}
+              resolutionNotes={undefined}
+              resolutionValue={undefined}
+              oracleType="Manual"
+            />
+
+            {/* Discussion Board */}
+            <DiscussionBoard marketId={market.id} />
           </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
+              {/* Order Book */}
+              <OrderBookDisplay marketId={market.id} />
+
+              {/* Trading Interface */}
               <Tabs defaultValue="clob" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="clob">CLOB Trading</TabsTrigger>
@@ -105,7 +135,6 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
                 
                 <TabsContent value="clob" className="space-y-4">
                   <CLOBTradingInterface marketId={market.id} />
-                  <OrderBookDisplay marketId={market.id} />
                 </TabsContent>
                 
                 <TabsContent value="traditional">
@@ -117,6 +146,7 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
                 </TabsContent>
               </Tabs>
               
+              {/* Order History */}
               {wallet.accountId && (
                 <OrderHistoryTable 
                   marketId={market.id}
