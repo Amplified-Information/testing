@@ -316,6 +316,7 @@ const Markets = () => {
     if (!query.trim()) return;
     setIsSearching(true);
     try {
+      // First search in main market fields
       const {
         data: marketsData,
         error
@@ -327,8 +328,31 @@ const Markets = () => {
         `).eq('is_active', true).or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`).order('created_at', {
         ascending: false
       });
+
       if (error) throw error;
-      const formattedResults = marketsData?.map(market => ({
+
+      // Also search for markets that have matching candidate outcomes
+      const {
+        data: candidateMarketsData,
+        error: candidateError
+      } = await supabase.from('event_markets').select(`
+          *,
+          market_categories(name),
+          market_subcategories(name),
+          market_options!inner(*)
+        `).eq('is_active', true).or(`market_options.option_name.ilike.%${query}%,market_options.candidate_name.ilike.%${query}%`).order('created_at', {
+        ascending: false
+      });
+
+      if (candidateError) throw candidateError;
+
+      // Combine and deduplicate results
+      const allResults = [...(marketsData || []), ...(candidateMarketsData || [])];
+      const uniqueResults = allResults.filter((market, index, self) => 
+        index === self.findIndex(m => m.id === market.id)
+      );
+
+      const formattedResults = uniqueResults?.map(market => ({
         id: market.id,
         question: market.name,
         category: market.market_categories?.name || 'Unknown',
