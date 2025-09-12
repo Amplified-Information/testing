@@ -24,6 +24,7 @@ interface ImageFile {
 }
 
 const ImageManagement = () => {
+  console.log("🚀 ImageManagement component rendering");
   const [images, setImages] = useState<ImageFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -35,6 +36,8 @@ const ImageManagement = () => {
   const [searchResult, setSearchResult] = useState<ImageFile | null>(null);
   const [searching, setSearching] = useState(false);
   const { toast } = useToast();
+
+  console.log("🔍 Search state:", { searchId, searchResult, searching });
 
   // Fetch existing images
   const fetchImages = useCallback(async () => {
@@ -289,11 +292,11 @@ const ImageManagement = () => {
           </div>
 
           {/* Image ID Lookup */}
-          <Card>
+          <Card className="border-2 border-orange-500 bg-orange-50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-orange-800">
                 <Search className="h-5 w-5" />
-                Lookup by Image ID
+                🔍 NEW: Lookup by Image ID
               </CardTitle>
             </CardHeader>
             <CardContent>
