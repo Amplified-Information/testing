@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, Clock, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MarketOption } from "@/types/market";
@@ -91,50 +91,67 @@ const MarketCard = ({
                   </div>
                 </div>)}
             </div>
-          </div> : (/* Binary market display */
-      <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-yes font-medium">YES {yesPrice}¢</span>
-              <span className="text-no font-medium">NO {noPrice}¢</span>
+          </div> : (
+          /* Binary market display - compact layout */
+          <div className="flex justify-between items-start">
+            <div className="flex-1 space-y-3">
+              {/* Stats */}
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-center">
+                  <DollarSign className="mr-1 h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Vol:</span>
+                  <span className="ml-1 font-medium">${volume.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center">
+                  {change24h >= 0 ? <TrendingUp className="mr-1 h-3 w-3 text-up" /> : <TrendingDown className="mr-1 h-3 w-3 text-down" />}
+                  <span className={`font-medium ${change24h >= 0 ? 'text-up' : 'text-down'}`}>
+                    {change24h >= 0 ? '+' : ''}{change24h.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom icons */}
+              <TooltipProvider>
+                <div className="flex items-center space-x-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Clock className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Resolves: {endDate}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </div>
-            <Progress value={yesPercentage} className="h-2" />
-          </div>)}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center">
-            <DollarSign className="mr-1 h-3 w-3 text-muted-foreground" />
-            <span className="text-muted-foreground">Volume:</span>
-            <span className="ml-1 font-medium">${volume.toLocaleString()}</span>
+            {/* Trading buttons - stacked on the right */}
+            <div className="flex flex-col gap-1 ml-3">
+              <Button variant="yes" size="sm" onClick={e => {
+                e.stopPropagation();
+                // Handle buy yes action
+              }} className="text-xs px-2 py-1 h-7">
+                YES {yesPrice}¢
+              </Button>
+              <Button variant="no" size="sm" onClick={e => {
+                e.stopPropagation();
+                // Handle buy no action
+              }} className="text-xs px-2 py-1 h-7">
+                NO {noPrice}¢
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center">
-            {change24h >= 0 ? <TrendingUp className="mr-1 h-3 w-3 text-up" /> : <TrendingDown className="mr-1 h-3 w-3 text-down" />}
-            <span className={`font-medium ${change24h >= 0 ? 'text-up' : 'text-down'}`}>
-              {change24h >= 0 ? '+' : ''}{change24h.toFixed(1)}%
-            </span>
-          </div>
-        </div>
+        )}
 
-        {/* Trading Buttons */}
-        {isMultiChoice ? <Button variant="trading" size="sm" className="w-full" onClick={e => {
-        e.stopPropagation();
-        navigate(`/market/${id}`);
-      }}>
+        {/* Multi-choice trading button */}
+        {isMultiChoice && (
+          <Button variant="trading" size="sm" className="w-full" onClick={e => {
+            e.stopPropagation();
+            navigate(`/market/${id}`);
+          }}>
             View Market
-          </Button> : <div className="grid grid-cols-2 gap-2 pt-2">
-            <Button variant="yes" size="sm" onClick={e => {
-          e.stopPropagation();
-          // Handle buy yes action
-        }} className="w-full text-slate-50">
-              Buy YES
-            </Button>
-            <Button variant="no" size="sm" className="w-full" onClick={e => {
-          e.stopPropagation();
-          // Handle buy no action
-        }}>
-              Buy NO
-            </Button>
-          </div>}
+          </Button>
+        )}
       </CardContent>
     </Card>;
 };
