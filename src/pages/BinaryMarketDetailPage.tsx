@@ -70,14 +70,6 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
               description={market.description}
             />
             
-            {/* Price History Chart */}
-            <BinaryMarketChart
-              data={market.chartData || []}
-              yesPrice={binaryOptions.yesOption.current_price}
-              noPrice={binaryOptions.noOption.current_price}
-              volume={market.volume}
-            />
-            
             {/* Buy Buttons */}
             <div className="bg-card rounded-lg border p-6">
               <div className="flex items-center justify-center gap-4">
@@ -95,6 +87,14 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
                 </button>
               </div>
             </div>
+
+            {/* Price History Chart */}
+            <BinaryMarketChart
+              data={market.chartData || []}
+              yesPrice={binaryOptions.yesOption.current_price}
+              noPrice={binaryOptions.noOption.current_price}
+              volume={market.volume}
+            />
 
             {/* Market Rules */}
             <MarketRules
