@@ -50,8 +50,20 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 py-8">
-          <div className="text-center text-muted-foreground">
-            Invalid binary market configuration
+          <div className="max-w-2xl mx-auto text-center space-y-4">
+            <div className="text-destructive text-xl font-semibold">
+              Market Configuration Error
+            </div>
+            <div className="text-muted-foreground space-y-2">
+              <p>This binary market is missing its trading options.</p>
+              <p>Expected: YES and NO options</p>
+              <p>Found: {binaryOptions.yesOption ? '✓ YES' : '✗ YES'} • {binaryOptions.noOption ? '✓ NO' : '✗ NO'}</p>
+            </div>
+            <div className="text-sm text-muted-foreground mt-4 p-4 bg-muted rounded-lg">
+              <p><strong>Market ID:</strong> {market.id}</p>
+              <p><strong>Market Name:</strong> {market.name}</p>
+              <p>This market needs to be configured with proper YES/NO options before trading can begin.</p>
+            </div>
           </div>
         </main>
       </div>
