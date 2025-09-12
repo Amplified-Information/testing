@@ -891,8 +891,12 @@ const Markets = () => {
                 {getDisplayMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {getDisplayMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getDisplayMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getDisplayMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets found</p>
@@ -909,8 +913,12 @@ const Markets = () => {
                 {getFeaturedMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {getFeaturedMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getFeaturedMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getFeaturedMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No featured markets</p>
@@ -927,8 +935,12 @@ const Markets = () => {
                 {getTrendingMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {getTrendingMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getTrendingMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getTrendingMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No trending markets</p>
@@ -945,8 +957,12 @@ const Markets = () => {
                 {getNewMarkets().length} Markets (30 days)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {getNewMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getNewMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getNewMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No new markets</p>
@@ -963,8 +979,12 @@ const Markets = () => {
                 {getEndingSoonMarkets().length} Markets (7 days)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {getEndingSoonMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getEndingSoonMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getEndingSoonMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No markets ending soon</p>
@@ -981,8 +1001,12 @@ const Markets = () => {
                 {getHighVolumeMarkets().length} Markets ($10K+)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {getHighVolumeMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
+            <div className="columns-1 md:columns-3 gap-4 space-y-4">
+              {getHighVolumeMarkets().map(market => (
+                <div key={market.id} className="break-inside-avoid mb-4">
+                  <SmartMarketCard {...market} />
+                </div>
+              ))}
             </div>
             {getHighVolumeMarkets().length === 0 && <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground mb-2">No high volume markets</p>
