@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Edit2, Save, Trash2, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Edit2, Save, Trash2, Image as ImageIcon, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ImageFile {
@@ -31,6 +31,9 @@ const ImageManagement = () => {
     alt_text: "",
     keywords: ""
   });
+  const [searchId, setSearchId] = useState("");
+  const [searchResult, setSearchResult] = useState<ImageFile | null>(null);
+  const [searching, setSearching] = useState(false);
   const { toast } = useToast();
 
   // Fetch existing images
@@ -52,6 +55,57 @@ const ImageManagement = () => {
       });
     }
   }, [toast]);
+
+  // Lookup image by ID
+  const lookupImageById = useCallback(async () => {
+    if (!searchId.trim()) {
+      setSearchResult(null);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from("image_files")
+        .select("*")
+        .eq("id", searchId.trim())
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          setSearchResult(null);
+          toast({
+            title: "Not found",
+            description: "No image found with that ID",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        setSearchResult(data);
+        toast({
+          title: "Found",
+          description: "Image found successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error looking up image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to lookup image",
+        variant: "destructive",
+      });
+      setSearchResult(null);
+    } finally {
+      setSearching(false);
+    }
+  }, [searchId, toast]);
+
+  const clearSearch = () => {
+    setSearchId("");
+    setSearchResult(null);
+  };
 
   useEffect(() => {
     fetchImages();
@@ -234,6 +288,106 @@ const ImageManagement = () => {
             </p>
           </div>
 
+          {/* Image ID Lookup */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Lookup by Image ID
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-4">
+                <Input
+                  placeholder="Enter image ID..."
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && lookupImageById()}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={lookupImageById} 
+                  disabled={searching || !searchId.trim()}
+                >
+                  {searching ? "Searching..." : "Search"}
+                </Button>
+                {(searchId || searchResult) && (
+                  <Button 
+                    variant="outline" 
+                    onClick={clearSearch}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Search Result */}
+              {searchResult && (
+                <Card className="overflow-hidden">
+                  <div className="flex flex-col md:flex-row">
+                    <div className="w-full md:w-48 aspect-square overflow-hidden">
+                      <img
+                        src={searchResult.url}
+                        alt={searchResult.alt_text || searchResult.filename}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <CardContent className="flex-1 p-4 space-y-3">
+                      <div>
+                        <h3 className="font-medium text-lg">{searchResult.filename}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          ID: {searchResult.id}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Created: {new Date(searchResult.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm">
+                          <span className="font-medium">Alt Text:</span>{" "}
+                          {searchResult.alt_text || "No description"}
+                        </p>
+                      </div>
+
+                      {searchResult.keywords && searchResult.keywords.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium mb-2">Keywords:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {searchResult.keywords.map((keyword, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {keyword}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEditing(searchResult)}
+                        >
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => deleteImage(searchResult)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </div>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Upload Area */}
           <Card>
             <CardHeader>
@@ -290,6 +444,9 @@ const ImageManagement = () => {
                     </h3>
                     <p className="text-xs text-muted-foreground">
                       {new Date(image.created_at).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono truncate" title={image.id}>
+                      ID: {image.id}
                     </p>
                   </div>
 
