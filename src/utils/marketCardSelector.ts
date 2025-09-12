@@ -15,18 +15,17 @@ export interface MarketData {
 }
 
 export const isMultiChoiceMarket = (market: MarketData): boolean => {
-  // Check market structure first
+  // Primary check: Use market_structure as the authoritative source
   if (market.marketStructure === 'multi-choice') {
     return true;
   }
-
-  // Fallback: Check if there are more than 2 options or if there are candidate options
-  if (market.options && market.options.length > 2) {
-    return true;
+  
+  if (market.marketStructure === 'binary') {
+    return false;
   }
 
-  // Check if any option has candidate information
-  if (market.options && market.options.some(option => option.candidate_name)) {
+  // Fallback for legacy data: only check option count, not candidate_name
+  if (market.options && market.options.length > 2) {
     return true;
   }
 
