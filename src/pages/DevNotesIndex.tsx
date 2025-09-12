@@ -2,7 +2,7 @@ import Header from "@/components/Layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3, Database, MessageSquare, Clock, CheckCircle } from "lucide-react";
+import { FileText, Code2, BookOpen, ExternalLink, Shield, Wallet, BarChart3, Database, MessageSquare, Clock, CheckCircle, Image } from "lucide-react";
 
 const DevNotesIndex = () => {
   return (
@@ -351,6 +351,44 @@ const DevNotesIndex = () => {
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                   >
                     View CLOB Implementation <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Image Management */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5 text-primary" />
+                      Image Management System
+                    </CardTitle>
+                    <CardDescription>
+                      Upload, organize and manage images with drag & drop functionality and keyword tagging
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary">Active</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Complete image management solution with Supabase Storage integration, drag & drop upload, 
+                    keyword tagging system, and full CRUD operations for organizing project assets.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">Drag & Drop</Badge>
+                    <Badge variant="outline">Keywords</Badge>
+                    <Badge variant="outline">Storage</Badge>
+                    <Badge variant="outline">Metadata</Badge>
+                  </div>
+                  <Link 
+                    to="/dev-notes/image-management" 
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    Manage Images <ExternalLink className="h-4 w-4" />
                   </Link>
                 </div>
               </CardContent>
