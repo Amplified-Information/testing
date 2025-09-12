@@ -60,14 +60,17 @@ const MultiChoiceMarketCard = ({
   };
 
   return (
-    <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group" style={{background: 'var(--gradient-card)'}}>
+    <Card className="hover:shadow-md transition-all duration-200 group" style={{background: 'var(--gradient-card)'}}>
       <CardHeader className="pb-3">
         <div className="flex items-center space-x-2">
           <Avatar className="h-7 w-7">
             <AvatarImage src={imageUrl || '/placeholder.svg'} alt={`${question} image`} />
             <AvatarFallback className="text-xs">MK</AvatarFallback>
           </Avatar>
-          <h3 className="text-base font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 
+            className="text-base font-semibold leading-tight line-clamp-2 hover:text-primary transition-colors cursor-pointer"
+            onClick={handleCardClick}
+          >
             {question}
           </h3>
         </div>
