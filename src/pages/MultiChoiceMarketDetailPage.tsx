@@ -1,6 +1,10 @@
+import { useEffect } from "react";
 import Header from "@/components/Layout/Header";
 import MarketChart from "@/components/Markets/MarketChart";
 import MarketHeader from "@/components/Markets/MarketHeader";
+import MarketRules from "@/components/Markets/MarketRules";
+import MarketResolution from "@/components/Markets/MarketResolution";
+import DiscussionBoard from "@/components/Markets/DiscussionBoard";
 import MultiChoiceTradingInterface from "@/components/Markets/MultiChoiceTradingInterface";
 import CLOBTradingInterface from "@/components/CLOB/CLOBTradingInterface";
 import OrderBookDisplay from "@/components/CLOB/OrderBookDisplay";
@@ -22,6 +26,11 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
     binaryCandidates,
     loading: multiChoiceLoading 
   } = useMultiChoiceMarket(market.id);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   if (multiChoiceLoading) {
     return (
@@ -104,11 +113,38 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
                 ))}
               </div>
             </div>
+
+            {/* Market Rules */}
+            <MarketRules
+              marketId={market.id}
+              endDate={market.end_date}
+              minimumBet={1}
+              maximumBet={undefined}
+              category={market.category}
+              subcategory={market.subcategory}
+            />
+
+            {/* Market Resolution */}
+            <MarketResolution
+              status="open"
+              endDate={market.end_date}
+              resolutionDate={undefined}
+              resolutionNotes={undefined}
+              resolutionValue={undefined}
+              oracleType="Manual"
+            />
+
+            {/* Discussion Board */}
+            <DiscussionBoard marketId={market.id} />
           </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
+              {/* Order Book */}
+              <OrderBookDisplay marketId={market.id} />
+
+              {/* Trading Interface */}
               <Tabs defaultValue="clob" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="clob">CLOB Trading</TabsTrigger>
@@ -117,7 +153,6 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
                 
                 <TabsContent value="clob" className="space-y-4">
                   <CLOBTradingInterface marketId={market.id} />
-                  <OrderBookDisplay marketId={market.id} />
                 </TabsContent>
                 
                 <TabsContent value="traditional">
@@ -128,6 +163,7 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
                 </TabsContent>
               </Tabs>
               
+              {/* Order History */}
               {wallet.accountId && (
                 <OrderHistoryTable 
                   marketId={market.id}
