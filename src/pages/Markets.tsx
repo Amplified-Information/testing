@@ -891,7 +891,7 @@ const Markets = () => {
                 {getDisplayMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {getDisplayMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getDisplayMarkets().length === 0 && <div className="text-center py-12">
@@ -909,7 +909,7 @@ const Markets = () => {
                 {getFeaturedMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {getFeaturedMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getFeaturedMarkets().length === 0 && <div className="text-center py-12">
@@ -927,7 +927,7 @@ const Markets = () => {
                 {getTrendingMarkets().length} Markets
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {getTrendingMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getTrendingMarkets().length === 0 && <div className="text-center py-12">
@@ -945,7 +945,7 @@ const Markets = () => {
                 {getNewMarkets().length} Markets (30 days)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {getNewMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getNewMarkets().length === 0 && <div className="text-center py-12">
@@ -963,7 +963,7 @@ const Markets = () => {
                 {getEndingSoonMarkets().length} Markets (7 days)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {getEndingSoonMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getEndingSoonMarkets().length === 0 && <div className="text-center py-12">
@@ -981,7 +981,7 @@ const Markets = () => {
                 {getHighVolumeMarkets().length} Markets ($10K+)
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {getHighVolumeMarkets().map(market => <SmartMarketCard key={market.id} {...market} />)}
             </div>
             {getHighVolumeMarkets().length === 0 && <div className="text-center py-12">
