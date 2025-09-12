@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Volume2, Droplet, Users, Eye, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Clock, Volume2, Droplet, Eye, ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CandidateCarousel, { type CandidateOption } from "./CandidateCarousel";
 import type { MultiChoiceCandidate } from "@/types/market";
@@ -17,6 +18,7 @@ interface MultiChoiceMarketCardProps {
   volume: number;
   endDate: string;
   liquidity: number;
+  imageUrl?: string;
 }
 
 const MultiChoiceMarketCard = ({
@@ -26,7 +28,8 @@ const MultiChoiceMarketCard = ({
   candidates,
   volume,
   endDate,
-  liquidity
+  liquidity,
+  imageUrl
 }: MultiChoiceMarketCardProps) => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -40,8 +43,6 @@ const MultiChoiceMarketCard = ({
     // Navigate to market with candidate pre-selected
     navigate(`/market/${id}?candidate=${candidate.id}`);
   };
-
-  const timeToEnd = formatDistanceToNow(new Date(endDate), { addSuffix: true });
   
   const canScrollLeft = currentIndex > 0;
   const canScrollRight = currentIndex + maxVisible < candidates.length;
@@ -60,41 +61,16 @@ const MultiChoiceMarketCard = ({
 
   return (
     <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group" style={{background: 'var(--gradient-card)'}}>
-      <CardHeader 
-        className="pb-3 cursor-pointer" 
-        onClick={handleCardClick}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 space-y-2">
-            {/* Category and Market Type Badge */}
-            <div className="flex items-center gap-2">
-              <Badge 
-                variant="secondary" 
-                className="text-xs font-medium"
-              >
-                {category}
-              </Badge>
-              <Badge 
-                variant="outline" 
-                className="text-xs border-primary/20 text-primary"
-              >
-                <Users className="h-3 w-3 mr-1" />
-                Multi-Choice
-              </Badge>
-            </div>
-            
-            {/* End Date */}
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              <span>Ends {timeToEnd}</span>
-            </div>
-          </div>
+      <CardHeader className="pb-3">
+        <div className="flex items-center space-x-2">
+          <Avatar className="h-7 w-7">
+            <AvatarImage src={imageUrl || '/placeholder.svg'} alt={`${question} image`} />
+            <AvatarFallback className="text-xs">MK</AvatarFallback>
+          </Avatar>
+          <h3 className="text-base font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+            {question}
+          </h3>
         </div>
-
-        {/* Question */}
-        <h3 className="text-sm font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-          {question}
-        </h3>
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
@@ -108,20 +84,16 @@ const MultiChoiceMarketCard = ({
           onCandidateClick={handleCandidateClick}
         />
 
-        {/* Market Stats */}
-        <div className="flex items-center justify-between pt-2 border-t">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Volume2 className="h-3 w-3" />
-              <span>${volume.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Droplet className="h-3 w-3" />
-              <span>${liquidity.toLocaleString()}</span>
-            </div>
+        {/* Bottom info row: volume (left), category (center), clock (right) */}
+        <div className="mt-3 flex items-center justify-between text-sm">
+          <div className="flex items-center">
+            <DollarSign className="mr-1 h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground">Vol:</span>
+            <span className="ml-1 font-medium">${volume.toLocaleString()}</span>
           </div>
-
+          <Badge variant="outline">{category}</Badge>
           <div className="flex items-center gap-2">
+
             {/* Carousel Navigation */}
             {candidates.length > maxVisible && (
               <div className="flex items-center gap-1">
@@ -151,19 +123,17 @@ const MultiChoiceMarketCard = ({
                 </Button>
               </div>
             )}
-
-            {/* View Market Button */}
-            <Button 
-              size="sm" 
-              className="h-7 text-xs px-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCardClick();
-              }}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              View Market
-            </Button>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Clock className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Resolves: {endDate}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </CardContent>

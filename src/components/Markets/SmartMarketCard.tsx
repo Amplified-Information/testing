@@ -20,6 +20,7 @@ const SmartMarketCard = (props: SmartMarketCardProps) => {
         volume={props.volume}
         endDate={props.endDate}
         liquidity={props.liquidity}
+        imageUrl={props.imageUrl}
       />
     );
   }

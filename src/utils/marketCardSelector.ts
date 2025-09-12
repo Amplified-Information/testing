@@ -12,6 +12,7 @@ export interface MarketData {
   change24h: number;
   marketStructure?: string;
   options?: MarketOption[];
+  imageUrl?: string;
 }
 
 export const isMultiChoiceMarket = (market: MarketData): boolean => {
