@@ -16,7 +16,7 @@ interface MarketCardProps {
   endDate: string;
   liquidity: number;
   change24h: number;
-  marketType?: string;
+  marketStructure?: string;
   options?: MarketOption[];
   imageUrl?: string;
 }
@@ -30,14 +30,14 @@ const MarketCard = ({
   endDate,
   liquidity,
   change24h,
-  marketType,
+  marketStructure,
   options = [],
   imageUrl
 }: MarketCardProps) => {
   const navigate = useNavigate();
 
   // Detect if this is a multi-candidate market
-  const isMultiChoice = marketType === 'multi_choice' || options.length > 2;
+  const isMultiChoice = marketStructure === 'multi-choice' || options.length > 2;
 
   // Process candidates for multi-choice markets
   const candidates = isMultiChoice ? options.filter(option => option.option_type === 'yes').sort((a, b) => b.current_price - a.current_price).slice(0, 3).map(option => ({

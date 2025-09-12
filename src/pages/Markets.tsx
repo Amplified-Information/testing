@@ -105,7 +105,6 @@ const Markets = () => {
           createdAt: market.created_at,
           is_featured: market.is_featured,
           is_trending: market.is_trending,
-          marketType: market.market_type,
           marketStructure: market.market_structure,
           options: market.market_options || []
         })) || [];
@@ -346,7 +345,6 @@ const Markets = () => {
         createdAt: market.created_at,
         is_featured: market.is_featured,
         is_trending: market.is_trending,
-        marketType: market.market_type,
         marketStructure: market.market_structure,
         options: market.market_options || []
       })) || [];

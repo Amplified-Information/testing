@@ -278,8 +278,7 @@ export type Database = {
           is_trending: boolean
           liquidity: number
           market_format: string | null
-          market_structure: string | null
-          market_type: string
+          market_structure: string
           maximum_bet: number | null
           minimum_bet: number
           name: string
@@ -325,8 +324,7 @@ export type Database = {
           is_trending?: boolean
           liquidity?: number
           market_format?: string | null
-          market_structure?: string | null
-          market_type?: string
+          market_structure?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name: string
@@ -372,8 +370,7 @@ export type Database = {
           is_trending?: boolean
           liquidity?: number
           market_format?: string | null
-          market_structure?: string | null
-          market_type?: string
+          market_structure?: string
           maximum_bet?: number | null
           minimum_bet?: number
           name?: string

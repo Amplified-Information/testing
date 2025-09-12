@@ -10,7 +10,6 @@ export interface MarketData {
   endDate: string;
   liquidity: number;
   change24h: number;
-  marketType?: string;
   marketStructure?: string;
   options?: MarketOption[];
 }

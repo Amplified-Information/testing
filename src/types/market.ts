@@ -20,8 +20,7 @@ export interface MarketDetail {
   name: string;
   description?: string;
   category_id: string;
-  market_type: string;
-  market_structure?: string;
+  market_structure: string;
   participants_count?: number;
   yes_price: number;
   no_price: number;

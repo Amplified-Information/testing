@@ -26,19 +26,19 @@ const SmartMarketCard = (props: SmartMarketCardProps) => {
 
   // Fallback to binary market card
   return (
-    <MarketCard
-      id={props.id}
-      question={props.question}
-      category={props.category}
-      yesPrice={props.yesPrice}
-      noPrice={props.noPrice}
-      volume={props.volume}
-      endDate={props.endDate}
-      liquidity={props.liquidity}
-      change24h={props.change24h}
-      marketType={props.marketType}
-      options={props.options}
-    />
+      <MarketCard
+        id={props.id}
+        question={props.question}
+        category={props.category}
+        yesPrice={props.yesPrice}
+        noPrice={props.noPrice}
+        volume={props.volume}
+        endDate={props.endDate}
+        liquidity={props.liquidity}
+        change24h={props.change24h}
+        marketStructure={props.marketStructure}
+        options={props.options}
+      />
   );
 };
 
