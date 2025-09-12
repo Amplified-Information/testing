@@ -271,6 +271,7 @@ export type Database = {
             | Database["public"]["Enums"]["governance_status"]
             | null
           id: string
+          image_url: string | null
           is_active: boolean
           is_featured: boolean
           is_new: boolean
@@ -317,6 +318,7 @@ export type Database = {
             | Database["public"]["Enums"]["governance_status"]
             | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_new?: boolean
@@ -363,6 +365,7 @@ export type Database = {
             | Database["public"]["Enums"]["governance_status"]
             | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_new?: boolean
