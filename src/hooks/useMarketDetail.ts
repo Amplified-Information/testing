@@ -5,12 +5,13 @@ interface MarketOption {
   id: string;
   option_name: string;
   option_type: string;
+  candidate_name?: string | null;
   current_price: number;
   total_shares: number;
   sort_order: number;
 }
 
-interface MarketDetail {
+export interface MarketDetail {
   id: string;
   name: string;
   description: string;
