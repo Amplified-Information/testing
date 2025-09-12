@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import Header from "@/components/Layout/Header";
 import BinaryMarketChart from "@/components/Markets/BinaryMarketChart";
 import MarketHeader from "@/components/Markets/MarketHeader";
@@ -20,6 +20,11 @@ interface BinaryMarketDetailPageProps {
 
 const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
   const { wallet } = useWallet();
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Get binary options
   const binaryOptions = useMemo(() => {
@@ -71,19 +76,13 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
             />
             
             {/* Buy Buttons */}
-            <div className="bg-card rounded-lg border p-6">
+            <div className="bg-card rounded-lg border p-4">
               <div className="flex items-center justify-center gap-4">
-                <button className="flex-1 px-6 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">YES</div>
-                    <div className="text-2xl font-bold">{Math.round(binaryOptions.yesOption.current_price * 100)}¢</div>
-                  </div>
+                <button className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
+                  Buy YES {Math.round(binaryOptions.yesOption.current_price * 100)}¢
                 </button>
-                <button className="flex-1 px-6 py-4 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">NO</div>
-                    <div className="text-2xl font-bold">{Math.round(binaryOptions.noOption.current_price * 100)}¢</div>
-                  </div>
+                <button className="flex-1 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors text-sm font-medium">
+                  Buy NO {Math.round(binaryOptions.noOption.current_price * 100)}¢
                 </button>
               </div>
             </div>
