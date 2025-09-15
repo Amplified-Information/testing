@@ -54,14 +54,21 @@ const MarketCard = ({
   };
   return <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer" style={{background: 'var(--gradient-card)'}} onClick={handleCardClick}>
       <CardHeader className="pb-3">
-        <div className="flex items-center space-x-2">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={imageUrl || '/placeholder.svg'} alt={`${question} image`} />
-            <AvatarFallback className="text-xs">MK</AvatarFallback>
-          </Avatar>
-          <h3 className="text-base font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-            {question}
-          </h3>
+        <div className="flex items-start space-x-3">
+          {imageUrl && (
+            <div className="flex-shrink-0">
+              <img 
+                src={imageUrl} 
+                alt={`${question} image`}
+                className="w-12 h-12 object-cover rounded-md"
+              />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+              {question}
+            </h3>
+          </div>
         </div>
       </CardHeader>
       
