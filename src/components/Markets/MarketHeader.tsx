@@ -17,11 +17,22 @@ interface MarketHeaderProps {
   volume: number;
   endDate: string;
   description: string;
+  imageUrl?: string;
 }
 
-const MarketHeader = ({ question, category, subcategory, volume, endDate, description }: MarketHeaderProps) => {
+const MarketHeader = ({ question, category, subcategory, volume, endDate, description, imageUrl }: MarketHeaderProps) => {
   return (
     <div className="space-y-4">
+      {imageUrl && (
+        <div className="w-full">
+          <img 
+            src={imageUrl} 
+            alt={question}
+            className="w-full h-48 md:h-64 object-cover rounded-lg shadow-sm"
+          />
+        </div>
+      )}
+      
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <Breadcrumb className="mb-3">

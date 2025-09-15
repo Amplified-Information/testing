@@ -85,6 +85,7 @@ const BinaryMarketDetailPage = ({ market }: BinaryMarketDetailPageProps) => {
               volume={market.volume}
               endDate={market.end_date}
               description={market.description}
+              imageUrl={market.image_url}
             />
             
             {/* Buy Buttons */}

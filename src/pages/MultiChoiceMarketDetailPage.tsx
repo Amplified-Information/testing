@@ -62,6 +62,7 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
               volume={market.volume}
               endDate={market.end_date}
               description={market.description}
+              imageUrl={market.image_url}
             />
             
             {market.chartData && market.chartData.length > 0 && (
