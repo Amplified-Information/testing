@@ -59,10 +59,18 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
           };
         }
         
-        // Use option_type to determine yes/no
-        if (record.option_type === 'yes') {
+        // Use option_type from the joined market_options data
+        const optionType = record.market_options?.option_type;
+        console.log('BinaryMarketChart: Processing record', {
+          date,
+          price: record.price,
+          optionType,
+          rawRecord: record
+        });
+        
+        if (optionType === 'yes') {
           groupedByDate[date].yes = Number(record.price) * 100;
-        } else if (record.option_type === 'no') {
+        } else if (optionType === 'no') {
           groupedByDate[date].no = Number(record.price) * 100;
         }
         
@@ -77,7 +85,8 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
 
     console.log('BinaryMarketChart: Final result', { 
       resultLength: result.length, 
-      firstItem: result[0] 
+      firstItem: result[0],
+      sampleItems: result.slice(0, 3)
     });
     
     return result;

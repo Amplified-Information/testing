@@ -69,7 +69,14 @@ export const useMarketDetail = (marketId: string) => {
         // Fetch price history for chart
         const { data: priceHistory, error: priceHistoryError } = await supabase
           .from('market_price_history')
-          .select('*')
+          .select(`
+            *,
+            market_options!inner(
+              option_name,
+              option_type,
+              candidate_name
+            )
+          `)
           .eq('market_id', marketId)
           .order('timestamp');
 
