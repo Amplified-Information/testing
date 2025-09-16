@@ -96,7 +96,7 @@ async function pollMirrorNodeForJob(
             }
 
             // Update job status to confirmed
-            const { error: updateError } = await supabase.from('topic_creation_jobs')
+            const { error: jobUpdateError } = await supabase.from('topic_creation_jobs')
               .update({
                 status: 'confirmed',
                 topic_id: topicId,
@@ -105,9 +105,9 @@ async function pollMirrorNodeForJob(
               })
               .eq('id', jobId);
             
-            if (updateError) {
-              console.error(`❌ Failed to update job ${jobId} to confirmed:`, updateError);
-              return { success: false, error: `Job update failed: ${updateError.message}` };
+            if (jobUpdateError) {
+              console.error(`❌ Failed to update job ${jobId} to confirmed:`, jobUpdateError);
+              return { success: false, error: `Job update failed: ${jobUpdateError.message}` };
             }
 
             return { success: true, topicId };
