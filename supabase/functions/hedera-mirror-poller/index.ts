@@ -67,7 +67,7 @@ serve(async (req) => {
     
     console.log(`🔍 Searching for recent CONSENSUSCREATETOPIC transactions since ${thirtyMinutesAgo.toISOString()}`)
     
-    const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions?transactiontype=CONSENSUSCREATETOPIC&timestamp=gte:${startTimestamp}&order=desc&limit=100`;
+    const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions?result=success&type=CONSENSUSCREATETOPIC&timestamp=gte:${startTimestamp}&order=desc&limit=100`;
     
     let recentTransactions = [];
     try {
@@ -79,7 +79,18 @@ serve(async (req) => {
       if (response.ok) {
         const data = await response.json();
         recentTransactions = data.transactions || [];
-        console.log(`📦 Found ${recentTransactions.length} recent topic creation transactions`)
+        console.log(`📦 Found ${recentTransactions.length} recent topic creation transactions`);
+        
+        // Debug: Log some transaction memos to see what we're actually getting
+        if (recentTransactions.length > 0) {
+          console.log(`🔍 Sample transaction memos from mirror node:`, 
+            recentTransactions.slice(0, 5).map(tx => ({ 
+              consensus_timestamp: tx.consensus_timestamp,
+              memo: tx.memo_base64 ? atob(tx.memo_base64) : 'no memo',
+              entity_id: tx.entity_id
+            }))
+          );
+        }
       } else {
         console.error(`❌ Mirror node API error: ${response.status}`)
       }
