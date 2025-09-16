@@ -66,16 +66,33 @@ async function pollMirrorNodeForJob(
           if (transaction.result === 'SUCCESS' && transaction.entity_id) {
             const topicId = transaction.entity_id;
             
+            // Get job details for topic insertion
+            const { data: jobData, error: jobError } = await supabase
+              .from('topic_creation_jobs')
+              .select('topic_type, market_id')
+              .eq('id', jobId)
+              .maybeSingle();
+            
+            if (jobError || !jobData) {
+              console.error(`❌ Failed to get job data for ${jobId}:`, jobError);
+              return { success: false, error: `Job data not found: ${jobError?.message}` };
+            }
+
             // Insert into hcs_topics table
-            await supabase.from('hcs_topics').insert({
+            const { error: insertError } = await supabase.from('hcs_topics').insert({
               topic_id: topicId,
-              topic_type: (await supabase.from('topic_creation_jobs').select('topic_type, market_id').eq('id', jobId).single()).data.topic_type,
-              market_id: (await supabase.from('topic_creation_jobs').select('topic_type, market_id').eq('id', jobId).single()).data.market_id,
+              topic_type: jobData.topic_type,
+              market_id: jobData.market_id,
               description: `Topic confirmed via mirror node polling`
             });
+            
+            if (insertError) {
+              console.error(`❌ Failed to insert topic ${topicId}:`, insertError);
+              return { success: false, error: `Topic insertion failed: ${insertError.message}` };
+            }
 
             // Update job status to confirmed
-            await supabase.from('topic_creation_jobs')
+            const { error: updateError } = await supabase.from('topic_creation_jobs')
               .update({
                 status: 'confirmed',
                 topic_id: topicId,
@@ -83,11 +100,16 @@ async function pollMirrorNodeForJob(
                 mirror_node_checked_at: new Date().toISOString()
               })
               .eq('id', jobId);
+            
+            if (updateError) {
+              console.error(`❌ Failed to update job ${jobId} to confirmed:`, updateError);
+              return { success: false, error: `Job update failed: ${updateError.message}` };
+            }
 
             return { success: true, topicId };
           } else if (transaction.result !== 'SUCCESS') {
             // Transaction failed
-            await supabase.from('topic_creation_jobs')
+            const { error: failUpdateError } = await supabase.from('topic_creation_jobs')
               .update({
                 status: 'failed',
                 error: `Hedera transaction failed: ${transaction.result}`,
