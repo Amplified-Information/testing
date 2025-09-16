@@ -23,114 +23,6 @@ interface MirrorNodeResponse {
   transactions: MirrorNodeTransaction[];
 }
 
-// Recovery mechanism for jobs stuck in 'submitting' status
-async function recoverStuckJobs(stuckJobs: any[], supabase: any) {
-  if (!stuckJobs.length) return;
-  
-  console.log(`🔧 Attempting to recover ${stuckJobs.length} stuck jobs`);
-  
-  for (const job of stuckJobs) {
-    try {
-      console.log(`🔧 Recovering stuck job ${job.id}, checking for transactions around ${job.updated_at}`);
-      
-      // Search for transactions created around the time this job was last updated
-      const jobTime = new Date(job.updated_at);
-      const searchStart = new Date(jobTime.getTime() - 15 * 60 * 1000); // 15 minutes before
-      const searchEnd = new Date(jobTime.getTime() + 15 * 60 * 1000); // 15 minutes after
-      
-      const startTimestamp = (searchStart.getTime() / 1000).toFixed(9);
-      const endTimestamp = (searchEnd.getTime() / 1000).toFixed(9);
-      
-      // Search Mirror Node for topic creation transactions in this timeframe
-      const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions?account.id=0.0.34&result=success&type=CONSENSUSCREATETOPIC&timestamp=gte:${startTimestamp}&timestamp=lte:${endTimestamp}&limit=50`;
-      
-      const response = await fetch(mirrorUrl, {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000)
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.transactions && data.transactions.length > 0) {
-          // Look for transactions that match our job's memo pattern
-          const expectedMemo = job.market_id 
-            ? `${job.topic_type.toUpperCase()}_${job.market_id}` 
-            : job.topic_type.toUpperCase();
-          
-          for (const tx of data.transactions) {
-            let actualMemo = '';
-            if (tx.memo_base64) {
-              try {
-                actualMemo = atob(tx.memo_base64);
-              } catch (e) {
-                continue;
-              }
-            }
-            
-            if (actualMemo === expectedMemo && tx.entity_id) {
-              console.log(`🎯 Found matching transaction for stuck job ${job.id}: ${tx.transaction_id} → Topic: ${tx.entity_id}`);
-              
-              // Update existing hcs_topics record with the HCS topic ID
-              const { error: updateError } = await supabase.from('hcs_topics')
-                .update({
-                  topic_id: tx.entity_id,
-                  is_active: true,
-                  description: `${job.topic_type} topic recovered from stuck state`,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('market_id', job.market_id)
-                .eq('topic_type', job.topic_type)
-                .is('topic_id', null);
-              
-              if (updateError) {
-                console.error(`❌ Failed to update recovered topic:`, updateError);
-              }
-
-              // Update job status to confirmed
-              await supabase.from('topic_creation_jobs')
-                .update({
-                  status: 'confirmed',
-                  topic_id: tx.entity_id,
-                  transaction_id: tx.transaction_id,
-                  completed_at: new Date().toISOString(),
-                  mirror_node_checked_at: new Date().toISOString()
-                })
-                .eq('id', job.id);
-              
-              console.log(`✅ Successfully recovered stuck job ${job.id}`);
-              break;
-            }
-          }
-        }
-      }
-      
-    } catch (err) {
-      console.error(`Error recovering stuck job ${job.id}:`, err);
-      
-      // Mark as failed after too many attempts
-      const retryCount = (job.retry_count || 0) + 1;
-      if (retryCount >= 8) {
-        await supabase.from('topic_creation_jobs')
-          .update({
-            status: 'failed',
-            error: `Failed to recover stuck job after ${retryCount} attempts: ${(err as Error).message}`,
-            completed_at: new Date().toISOString()
-          })
-          .eq('id', job.id);
-        
-        console.log(`💀 Marked stuck job ${job.id} as permanently failed`);
-      } else {
-        await supabase.from('topic_creation_jobs')
-          .update({
-            retry_count: retryCount,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', job.id);
-      }
-    }
-  }
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -141,247 +33,169 @@ serve(async (req) => {
   try {
     console.log('🔍 Mirror Node poller started')
 
-    // Get jobs that have been submitted or are stuck in submitting status
-    const { data: jobsToCheck, error: fetchError } = await supabase
-      .from('topic_creation_jobs')
+    // Find topics that have been submitted but not yet confirmed (topic_id is NULL but submitted_at is not NULL)
+    const { data: unconfirmedTopics, error: fetchError } = await supabase
+      .from('hcs_topics')
       .select('*')
-      .in('status', ['submitted', 'submitted_checking'])
-      .not('transaction_id', 'is', null)
+      .is('topic_id', null)
+      .not('submitted_at', 'is', null)
+      .eq('is_active', false)
       .order('submitted_at', { ascending: true })
-      .limit(30); // Process up to 30 jobs at a time
-
-    // Also check for jobs stuck in 'submitting' status for more than 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: stuckJobs, error: stuckError } = await supabase
-      .from('topic_creation_jobs')
-      .select('*')
-      .eq('status', 'submitting')
-      .lt('updated_at', fiveMinutesAgo)
-      .not('transaction_id', 'is', null)
-      .limit(10);
-
-    // Also check for jobs in 'submitted' status without transaction_id (timeout cases)
-    const { data: timeoutJobs, error: timeoutError } = await supabase
-      .from('topic_creation_jobs')
-      .select('*')
-      .eq('status', 'submitted')
-      .is('transaction_id', null)
-      .lt('updated_at', fiveMinutesAgo)
-      .limit(10);
-
-    if (stuckError) {
-      console.error('Error fetching stuck jobs:', stuckError);
-    }
-    
-    if (timeoutError) {
-      console.error('Error fetching timeout jobs:', timeoutError);
-    }
-
-    // Combine all jobs to check
-    const allJobs = [...(jobsToCheck || []), ...(stuckJobs || [])];
-    const allStuckJobs = [...(stuckJobs || []), ...(timeoutJobs || [])];
-    
-    if (fetchError && !stuckError && !timeoutError) {
-      console.error('Error fetching jobs:', fetchError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch jobs' }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
+      .limit(50); // Process up to 50 topics at a time
 
     if (fetchError) {
-      console.error('Error fetching submitted jobs:', fetchError)
+      console.error('Error fetching unconfirmed topics:', fetchError)
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch jobs' }),
+        JSON.stringify({ error: 'Failed to fetch unconfirmed topics' }),
         { status: 500, headers: corsHeaders }
       )
     }
 
-    if (!allJobs || allJobs.length === 0) {
-      console.log('No jobs to check')
+    if (!unconfirmedTopics || unconfirmedTopics.length === 0) {
+      console.log('No unconfirmed topics to check')
       return new Response(
-        JSON.stringify({ message: 'No jobs to poll', checked: 0 }),
+        JSON.stringify({ message: 'No unconfirmed topics found', checked: 0 }),
         { status: 200, headers: corsHeaders }
       )
     }
 
-    console.log(`📋 Found ${allJobs.length} jobs to check (${jobsToCheck?.length || 0} submitted/checking + ${allStuckJobs.length} stuck/timeout)`)
+    console.log(`📋 Found ${unconfirmedTopics.length} unconfirmed topics to check`)
     
-    // First, try to recover stuck jobs by searching mirror node
-    await recoverStuckJobs(allStuckJobs, supabase);
+    // Search recent transactions on mirror node for CONSENSUSCREATETOPIC
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const startTimestamp = (thirtyMinutesAgo.getTime() / 1000).toFixed(9);
+    
+    console.log(`🔍 Searching for recent CONSENSUSCREATETOPIC transactions since ${thirtyMinutesAgo.toISOString()}`)
+    
+    const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions?result=success&type=CONSENSUSCREATETOPIC&timestamp=gte:${startTimestamp}&order=desc&limit=100`;
+    
+    let recentTransactions = [];
+    try {
+      const response = await fetch(mirrorUrl, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        recentTransactions = data.transactions || [];
+        console.log(`📦 Found ${recentTransactions.length} recent topic creation transactions`)
+      } else {
+        console.error(`❌ Mirror node API error: ${response.status}`)
+      }
+    } catch (err) {
+      console.error('Error fetching recent transactions:', err);
+    }
 
     let confirmedCount = 0;
     let failedCount = 0;
     let stillPendingCount = 0;
 
-    for (const job of allJobs) {
+    // Match unconfirmed topics with recent transactions
+    for (const topic of unconfirmedTopics) {
       try {
-        console.log(`🔎 Checking transaction ${job.transaction_id} for job ${job.id}`)
-
-        // Multiple mirror nodes with fallback support
-        const mirrorNodes = [
-          'https://testnet.mirrornode.hedera.com',
-          'https://mainnet-public.mirrornode.hedera.com', 
-          'https://hashio.io/api/testnet'
-        ];
+        console.log(`🔎 Looking for HCS topic ID for ${topic.topic_type} topic (DB ID: ${topic.id})`)
         
-        let response;
-        let lastError;
+        // Build expected memo pattern
+        const expectedMemo = topic.market_id 
+          ? `${topic.topic_type.toUpperCase()}_${topic.market_id}` 
+          : topic.topic_type.toUpperCase();
         
-        // Try each mirror node until one succeeds
-        for (const mirrorNode of mirrorNodes) {
-          try {
-            const mirrorUrl = `${mirrorNode}/api/v1/transactions/${job.transaction_id}`;
-            response = await fetch(mirrorUrl, {
-              headers: { 'Accept': 'application/json' },
-              signal: AbortSignal.timeout(8000)
-            });
-            
-            if (response.ok || response.status === 404) {
-              break; // Success or expected 404, stop trying other nodes
+        console.log(`🎯 Expected memo pattern: "${expectedMemo}"`)
+        
+        // Find matching transaction by memo and timing
+        let matchedTransaction = null;
+        
+        for (const tx of recentTransactions) {
+          let actualMemo = '';
+          if (tx.memo_base64) {
+            try {
+              actualMemo = atob(tx.memo_base64);
+            } catch (e) {
+              continue;
             }
-          } catch (err) {
-            lastError = err;
-            console.log(`⚠️ Mirror node ${mirrorNode} failed, trying next...`);
-            continue;
           }
-        }
-        
-        if (!response) {
-          throw lastError || new Error('All mirror nodes failed');
-        }
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            // Transaction not yet visible in Mirror Node
-            console.log(`⏳ Transaction ${job.transaction_id} not yet in Mirror Node`)
-            stillPendingCount++;
+          
+          // Check if memo matches our expected pattern
+          if (actualMemo === expectedMemo && tx.entity_id) {
+            // Additional timing check - transaction should be after topic's submitted_at
+            const txTimestamp = new Date(parseFloat(tx.consensus_timestamp) * 1000);
+            const topicSubmittedAt = new Date(topic.submitted_at);
             
-            // Update mirror node check timestamp
-            await supabase.from('topic_creation_jobs')
-              .update({
-                mirror_node_checked_at: new Date().toISOString(),
-                mirror_node_retry_count: (job.mirror_node_retry_count || 0) + 1
-              })
-              .eq('id', job.id);
-
-            continue;
+            // Allow some margin for clock differences (5 minutes before, 30 minutes after)
+            const marginBefore = 5 * 60 * 1000; // 5 minutes
+            const marginAfter = 30 * 60 * 1000; // 30 minutes
+            
+            if (txTimestamp >= new Date(topicSubmittedAt.getTime() - marginBefore) && 
+                txTimestamp <= new Date(topicSubmittedAt.getTime() + marginAfter)) {
+              
+              matchedTransaction = tx;
+              console.log(`🎯 Found matching transaction for topic ${topic.id}: ${tx.transaction_id} → HCS Topic: ${tx.entity_id}`);
+              break;
+            }
           }
-          
-          throw new Error(`Mirror Node API error: ${response.status}`);
         }
-
-        const data: MirrorNodeResponse = await response.json();
         
-        if (!data.transactions || data.transactions.length === 0) {
-          console.log(`⏳ No transaction data yet for ${job.transaction_id}`)
-          stillPendingCount++;
-          continue;
-        }
-
-        const transaction = data.transactions[0];
-
-        if (transaction.result === 'SUCCESS') {
-          // Transaction succeeded - extract topic ID from entity_id
-          const topicId = transaction.entity_id;
-          
-          if (!topicId) {
-            throw new Error('Successful transaction but no entity_id found');
-          }
-
-          console.log(`✅ Transaction confirmed - Topic created: ${topicId}`);
-
-          // Update existing hcs_topics record with the HCS topic ID
+        if (matchedTransaction) {
+          // Update the topic record with the HCS topic ID
           const { error: updateError } = await supabase.from('hcs_topics')
             .update({
-              topic_id: topicId,
+              topic_id: matchedTransaction.entity_id,
               is_active: true,
-              description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - confirmed`,
+              description: `${topic.topic_type} topic${topic.market_id ? ` for market ${topic.market_id}` : ''} - confirmed via mirror node`,
               updated_at: new Date().toISOString()
             })
-            .eq('market_id', job.market_id)
-            .eq('topic_type', job.topic_type)
-            .is('topic_id', null);
+            .eq('id', topic.id);
           
           if (updateError) {
-            console.error(`❌ Failed to update topic ${topicId}:`, updateError);
-            // If update fails, try inserting (fallback for edge cases)
-            await supabase.from('hcs_topics').insert({
-              topic_id: topicId,
-              topic_type: job.topic_type,
-              market_id: job.market_id,
-              description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - fallback insert`,
-              is_active: true
-            });
+            console.error(`❌ Failed to update topic ${topic.id} with HCS ID ${matchedTransaction.entity_id}:`, updateError);
+            failedCount++;
+          } else {
+            console.log(`✅ Successfully confirmed topic ${topic.id} → HCS Topic: ${matchedTransaction.entity_id}`);
+            confirmedCount++;
+            
+            // Also update any related job if exists
+            await supabase.from('topic_creation_jobs')
+              .update({
+                status: 'confirmed',
+                topic_id: matchedTransaction.entity_id,
+                transaction_id: matchedTransaction.transaction_id,
+                completed_at: new Date().toISOString(),
+                mirror_node_checked_at: new Date().toISOString()
+              })
+              .eq('topic_type', topic.topic_type)
+              .eq('market_id', topic.market_id)
+              .in('status', ['submitted', 'submitted_checking']);
           }
-
-          // Update job status to confirmed
-          await supabase.from('topic_creation_jobs')
-            .update({
-              status: 'confirmed',
-              topic_id: topicId,
-              completed_at: new Date().toISOString(),
-              mirror_node_checked_at: new Date().toISOString()
-            })
-            .eq('id', job.id);
-
-          confirmedCount++;
-          console.log(`🎉 Job ${job.id} confirmed → Topic: ${topicId}`);
-
         } else {
-          // Transaction failed
-          console.log(`❌ Transaction failed with result: ${transaction.result}`);
+          console.log(`⏳ No matching transaction found yet for topic ${topic.id} (${expectedMemo})`);
+          stillPendingCount++;
           
-          await supabase.from('topic_creation_jobs')
-            .update({
-              status: 'failed',
-              error: `Hedera transaction failed: ${transaction.result}`,
-              completed_at: new Date().toISOString(),
-              mirror_node_checked_at: new Date().toISOString()
-            })
-            .eq('id', job.id);
-
-          failedCount++;
+          // Check if topic is too old (older than 1 hour)
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          const topicSubmittedAt = new Date(topic.submitted_at);
+          
+          if (topicSubmittedAt < oneHourAgo) {
+            console.log(`⚠️ Topic ${topic.id} is older than 1 hour, marking as potentially failed`);
+            await supabase.from('hcs_topics')
+              .update({
+                description: `${topic.topic_type} topic${topic.market_id ? ` for market ${topic.market_id}` : ''} - timeout waiting for confirmation`,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', topic.id);
+          }
         }
 
       } catch (err) {
-        console.error(`Error checking job ${job.id}:`, err);
-        
-        // Check if we should give up on this job
-        const retryCount = (job.mirror_node_retry_count || 0) + 1;
-        const maxRetries = 20; // Allow more retries since we're just polling
-        
-        if (retryCount >= maxRetries) {
-          await supabase.from('topic_creation_jobs')
-            .update({
-              status: 'failed',
-              error: `Mirror Node polling failed after ${maxRetries} attempts: ${(err as Error).message}`,
-              completed_at: new Date().toISOString(),
-              mirror_node_checked_at: new Date().toISOString(),
-              mirror_node_retry_count: retryCount
-            })
-            .eq('id', job.id);
-          
-          failedCount++;
-          console.log(`💀 Job ${job.id} failed after ${maxRetries} Mirror Node attempts`);
-        } else {
-          await supabase.from('topic_creation_jobs')
-            .update({
-              mirror_node_checked_at: new Date().toISOString(),
-              mirror_node_retry_count: retryCount
-            })
-            .eq('id', job.id);
-          
-          stillPendingCount++;
-        }
+        console.error(`Error processing topic ${topic.id}:`, err);
+        failedCount++;
       }
     }
 
     const summary = {
-      message: 'Enhanced Mirror Node polling complete',
-      total_checked: allJobs.length,
-      submitted_jobs: jobsToCheck?.length || 0,
-      stuck_jobs_recovered: allStuckJobs.length,
+      message: 'Mirror Node polling complete - searching for HCS topic IDs',
+      total_checked: unconfirmedTopics.length,
+      recent_transactions_found: recentTransactions.length,
       confirmed: confirmedCount,
       failed: failedCount,
       still_pending: stillPendingCount

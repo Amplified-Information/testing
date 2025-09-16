@@ -463,7 +463,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           market_id: string | null
-          topic_id: string
+          submitted_at: string | null
+          topic_id: string | null
           topic_type: string
           updated_at: string | null
         }
@@ -473,7 +474,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           market_id?: string | null
-          topic_id: string
+          submitted_at?: string | null
+          topic_id?: string | null
           topic_type: string
           updated_at?: string | null
         }
@@ -483,7 +485,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           market_id?: string | null
-          topic_id?: string
+          submitted_at?: string | null
+          topic_id?: string | null
           topic_type?: string
           updated_at?: string | null
         }

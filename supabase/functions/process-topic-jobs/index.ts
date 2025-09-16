@@ -245,7 +245,25 @@ serve(async () => {
             throw connectionError;
           }
 
-          // Update job status to 'submitting' 
+          // STEP 1: Write topic to database FIRST (before HCS submission)
+          console.log(`💾 Writing topic to database for job ${job.id} BEFORE HCS submission...`)
+          const { data: insertedTopic, error: insertError } = await supabase.from('hcs_topics').insert({
+            topic_type: job.topic_type,
+            market_id: job.market_id,
+            description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`,
+            is_active: false, // Mark as inactive until confirmed by mirror node
+            topic_id: null, // Will be updated when mirror node finds it
+            submitted_at: null // Will be updated after HCS submission
+          }).select().single();
+          
+          if (insertError) {
+            console.error(`❌ Failed to create topic record for job ${job.id}:`, insertError);
+            throw new Error(`Topic record creation failed: ${insertError.message}`);
+          }
+          
+          console.log(`✅ Topic record created in database with ID ${insertedTopic.id} for job ${job.id}`);
+
+          // STEP 2: Update job status to 'submitting' and submit to HCS
           await supabase.from('topic_creation_jobs')
             .update({
               status: 'submitting',
@@ -253,7 +271,7 @@ serve(async () => {
             })
             .eq('id', job.id)
 
-          console.log(`📤 Submitting ${job.topic_type} topic creation for job ${job.id}...`)
+          console.log(`📤 Submitting ${job.topic_type} topic creation to HCS for job ${job.id}...`)
           console.log(`🎯 Transaction parameters:`, {
             topicType: job.topic_type,
             marketId: job.market_id,
@@ -261,7 +279,6 @@ serve(async () => {
             operatorId: client.operatorAccountId?.toString()
           })
           
-          // Submit transaction and get transaction ID (not topic ID)
           const submissionStart = Date.now();
           let transactionId;
           try {
@@ -274,35 +291,28 @@ serve(async () => {
             )
             
             const submissionTime = Date.now() - submissionStart;
-            console.log(`✅ Transaction submitted successfully for job ${job.id} (${submissionTime}ms)`)
+            console.log(`✅ HCS transaction submitted successfully for job ${job.id} (${submissionTime}ms)`)
             console.log(`🆔 Transaction ID: ${transactionId}`)
             
             if (!transactionId) {
               throw new Error('createCLOBTopic returned null/undefined transaction ID')
             }
 
-            // Write topic to database immediately after submission (before getting HCS topic ID)
-            console.log(`💾 Writing submitted topic to database for job ${job.id}...`)
-            const { data: insertedTopic, error: insertError } = await supabase.from('hcs_topics').insert({
-              topic_type: job.topic_type,
-              market_id: job.market_id,
-              description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - submitted`,
-              is_active: false, // Mark as inactive until confirmed
-              topic_id: null // Will be updated when we get it from mirror node
-            }).select().single();
+            // STEP 3: Update the database record with submitted_at timestamp
+            await supabase.from('hcs_topics')
+              .update({ 
+                submitted_at: new Date().toISOString(),
+                description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - submitted to HCS`
+              })
+              .eq('id', insertedTopic.id);
             
-            if (insertError) {
-              console.error(`❌ Failed to insert topic for job ${job.id}:`, insertError);
-              throw new Error(`Topic insertion failed: ${insertError.message}`);
-            }
-            
-            console.log(`✅ Topic written to database with ID ${insertedTopic.id} for job ${job.id}`);
+            console.log(`✅ Topic record updated with submission timestamp for job ${job.id}`);
             
           } catch (submissionError) {
             const submissionTime = Date.now() - submissionStart;
             const errorMessage = submissionError.message;
             
-            console.error(`❌ Transaction submission failed for job ${job.id} after ${submissionTime}ms:`, {
+            console.error(`❌ HCS transaction submission failed for job ${job.id} after ${submissionTime}ms:`, {
               error: errorMessage,
               stack: submissionError.stack,
               name: submissionError.constructor.name,
@@ -313,30 +323,22 @@ serve(async () => {
               isNetworkError: errorMessage.includes('network') || errorMessage.includes('connection')
             })
             
-            // For timeout errors, mark as submitted and write to database
-            // The scheduled mirror poller will try to find the HCS topic ID by memo
+            // For timeout errors, mark as submitted and let mirror node poller handle it
             if (errorMessage.includes('timeout') || errorMessage.includes('DEADLINE') || errorMessage.includes('GRPC')) {
-              console.log(`⏰ Timeout error - writing topic to database for job ${job.id} and marking for mirror node polling`)
+              console.log(`⏰ Timeout error - marking topic as submitted for mirror node polling for job ${job.id}`)
               
-              // Write topic to database even on timeout
-              const { data: insertedTopic, error: insertError } = await supabase.from('hcs_topics').insert({
-                topic_type: job.topic_type,
-                market_id: job.market_id,
-                description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - timeout submission`,
-                is_active: false, // Mark as inactive until confirmed
-                topic_id: null // Will be updated when mirror node finds it
-              }).select().single();
-              
-              if (insertError) {
-                console.error(`❌ Failed to insert topic for timed out job ${job.id}:`, insertError);
-              } else {
-                console.log(`✅ Topic written to database with ID ${insertedTopic.id} for timed out job ${job.id}`);
-              }
+              // Update database record with submitted_at even on timeout
+              await supabase.from('hcs_topics')
+                .update({ 
+                  submitted_at: new Date().toISOString(),
+                  description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - timeout during HCS submission`
+                })
+                .eq('id', insertedTopic.id);
               
               await supabase.from('topic_creation_jobs')
                 .update({
                   status: 'submitted',
-                  error: `Timeout during submission: ${errorMessage}`,
+                  error: `Timeout during HCS submission: ${errorMessage}`,
                   submitted_at: new Date().toISOString(),
                   worker_id: workerId,
                 })
@@ -347,10 +349,10 @@ serve(async () => {
             throw submissionError;
           }
 
-          // Update job with transaction ID - status becomes 'submitted_checking'  
+          // STEP 4: Update job with transaction ID - status becomes 'submitted'  
           await supabase.from('topic_creation_jobs')
             .update({
-              status: 'submitted_checking',
+              status: 'submitted',
               transaction_id: transactionId,
               submitted_at: new Date().toISOString(),
               worker_id: workerId,
