@@ -93,7 +93,7 @@ export const useMarketDetail = (marketId: string) => {
           resolution_criteria: marketData.resolution_criteria,
           important_notes: marketData.important_notes,
           options: optionsData || [],
-          chartData: chartData
+          chartData: priceHistory || []
         };
 
         setMarket(transformedMarket);

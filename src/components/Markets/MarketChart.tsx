@@ -54,28 +54,32 @@ const MarketChart = ({ priceHistory, candidates, marketOptions }: MarketChartPro
     const timeGroups: { [key: string]: { [key: string]: string | number } } = {};
     
     priceHistory.forEach(point => {
-      const date = format(new Date(point.timestamp), 'yyyy-MM-dd');
-      
-      if (!timeGroups[date]) {
-        timeGroups[date] = { timestamp: date };
-      }
-      
-      // Find the option for this price point to get candidate info
-      const option = marketOptions.find(opt => opt.id === point.option_id);
-      console.log('MarketChart: Matching option for point', { 
-        pointOptionId: point.option_id, 
-        foundOption: option ? {
-          id: option.id,
-          optionName: option.option_name,
-          candidateName: option.candidate_name,
-          optionType: option.option_type
-        } : 'NOT FOUND'
-      });
-      
-      if (option && option.option_type === 'yes') { // Only show YES prices for candidates
-        const candidateName = option.candidate_name || option.option_name;
-        timeGroups[date][candidateName] = point.price * 100; // Convert to percentage
-        console.log('MarketChart: Adding data point', { date, candidateName, price: point.price * 100 });
+      try {
+        const date = format(new Date(point.timestamp), 'yyyy-MM-dd');
+        
+        if (!timeGroups[date]) {
+          timeGroups[date] = { timestamp: date };
+        }
+        
+        // Find the option for this price point to get candidate info
+        const option = marketOptions.find(opt => opt.id === point.option_id);
+        console.log('MarketChart: Matching option for point', { 
+          pointOptionId: point.option_id, 
+          foundOption: option ? {
+            id: option.id,
+            optionName: option.option_name,
+            candidateName: option.candidate_name,
+            optionType: option.option_type
+          } : 'NOT FOUND'
+        });
+        
+        if (option && option.option_type === 'yes') { // Only show YES prices for candidates
+          const candidateName = option.candidate_name || option.option_name;
+          timeGroups[date][candidateName] = point.price * 100; // Convert to percentage
+          console.log('MarketChart: Adding data point', { date, candidateName, price: point.price * 100 });
+        }
+      } catch (error) {
+        console.warn('Error processing price history point:', point, error);
       }
     });
 
@@ -148,7 +152,13 @@ const MarketChart = ({ priceHistory, candidates, marketOptions }: MarketChartPro
               dataKey="timestamp" 
               stroke="hsl(var(--muted-foreground))"
               fontSize={12}
-              tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+              tickFormatter={(value) => {
+                try {
+                  return format(new Date(value), 'MMM dd');
+                } catch {
+                  return value;
+                }
+              }}
             />
             <YAxis 
               stroke="hsl(var(--muted-foreground))"
@@ -158,7 +168,13 @@ const MarketChart = ({ priceHistory, candidates, marketOptions }: MarketChartPro
             />
             <ChartTooltip 
               content={<ChartTooltipContent />}
-              labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy')}
+              labelFormatter={(value) => {
+                try {
+                  return format(new Date(value), 'MMM dd, yyyy');
+                } catch {
+                  return value;
+                }
+              }}
               formatter={(value: any, name: string) => [`${Number(value).toFixed(1)}%`, name]}
             />
             {candidates.map((candidate) => (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ComposedChart, Bar } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
@@ -24,19 +24,59 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
   const [selectedRange, setSelectedRange] = useState('7d');
   const [showVolume, setShowVolume] = useState(true);
 
-  // Transform data to have consistent yes/no fields
-  const chartData = data.length > 0 ? data.map(item => ({
-    ...item,
-    yes: item.Yes || yesPrice * 100, // Use standardized "Yes" key from transformation
-    no: item.No || noPrice * 100,   // Use standardized "No" key from transformation
-    volume: volume * (0.1 + Math.random() * 0.1) // Add some volume variation
-  })) : [
-    { date: '2024-01-01', yes: yesPrice * 100, no: noPrice * 100, volume: volume * 0.1 },
-    { date: '2024-01-02', yes: (yesPrice + 0.02) * 100, no: (noPrice - 0.02) * 100, volume: volume * 0.15 },
-    { date: '2024-01-03', yes: (yesPrice - 0.01) * 100, no: (noPrice + 0.01) * 100, volume: volume * 0.12 },
-    { date: '2024-01-04', yes: (yesPrice + 0.03) * 100, no: (noPrice - 0.03) * 100, volume: volume * 0.18 },
-    { date: '2024-01-05', yes: yesPrice * 100, no: noPrice * 100, volume: volume * 0.14 },
-  ];
+  // Transform raw price history data to chart format for binary markets
+  const chartData = useMemo(() => {
+    if (!data || data.length === 0) {
+      // Return mock data if no real data
+      return [
+        { date: '2024-01-01', yes: yesPrice * 100, no: noPrice * 100, volume: volume * 0.1 },
+        { date: '2024-01-02', yes: (yesPrice + 0.02) * 100, no: (noPrice - 0.02) * 100, volume: volume * 0.15 },
+        { date: '2024-01-03', yes: (yesPrice - 0.01) * 100, no: (noPrice + 0.01) * 100, volume: volume * 0.12 },
+        { date: '2024-01-04', yes: (yesPrice + 0.03) * 100, no: (noPrice - 0.03) * 100, volume: volume * 0.18 },
+        { date: '2024-01-05', yes: yesPrice * 100, no: noPrice * 100, volume: volume * 0.14 },
+      ];
+    }
+
+    // If data already has the transformed format (date, yes, no), use it directly
+    if (data[0] && 'date' in data[0] && ('yes' in data[0] || 'Yes' in data[0])) {
+      return data.map(item => ({
+        ...item,
+        yes: item.Yes || item.yes || yesPrice * 100,
+        no: item.No || item.no || noPrice * 100,
+        volume: volume * (0.1 + Math.random() * 0.1)
+      }));
+    }
+
+    // Transform raw price history data
+    const groupedByDate = data.reduce((acc, record) => {
+      try {
+        const date = new Date(record.timestamp).toISOString().split('T')[0];
+        if (!acc[date]) {
+          acc[date] = { date, volume: volume * (0.1 + Math.random() * 0.1) };
+        }
+        
+        // Determine if this is a yes or no option based on option_type or option_name
+        const isYes = record.option_type?.toLowerCase() === 'yes' || 
+                     record.option_name?.toLowerCase().includes('yes');
+        const isNo = record.option_type?.toLowerCase() === 'no' || 
+                    record.option_name?.toLowerCase().includes('no');
+        
+        if (isYes) {
+          acc[date].yes = Number(record.price) * 100;
+        } else if (isNo) {
+          acc[date].no = Number(record.price) * 100;
+        }
+      } catch (error) {
+        console.warn('Error processing price history record:', record, error);
+      }
+      
+      return acc;
+    }, {});
+
+    return Object.values(groupedByDate).sort((a: any, b: any) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }, [data, yesPrice, noPrice, volume]);
 
   return (
     <Card className="w-full">
