@@ -9,8 +9,8 @@ export interface NodeHealth {
 
 export class NetworkHealthMonitor {
   private nodeHealth = new Map<string, NodeHealth>()
-  private readonly maxConsecutiveFailures = 2
-  private readonly unhealthyTimeoutMs = 60000 // 1 minute before retry
+  private readonly maxConsecutiveFailures = 3 // Increased from 2 for testnet tolerance
+  private readonly unhealthyTimeoutMs = 120000 // 2 minutes before retry (increased from 1)
   private readonly healthCheckIntervalMs = 300000 // 5 minutes between health checks
 
   constructor() {
@@ -89,9 +89,9 @@ export class NetworkHealthMonitor {
     const healthyNodes = this.getHealthyNodes()
     const healthRatio = healthyNodes.length / this.nodeHealth.size
     
-    // Skip if less than 30% of nodes are healthy
-    if (healthRatio < 0.3) {
-      console.warn(`🚨 Network unhealthy: ${healthyNodes.length}/${this.nodeHealth.size} nodes available`)
+    // Skip if less than 20% of nodes are healthy (reduced from 30% for testnet tolerance)
+    if (healthRatio < 0.2) {
+      console.warn(`🚨 Network critically unhealthy: ${healthyNodes.length}/${this.nodeHealth.size} nodes available`)
       return true
     }
     

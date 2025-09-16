@@ -15,28 +15,33 @@ export function createHederaClient(config: HederaClientConfig): Client {
   const network = config.network || 'testnet'
   const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet()
   
-  // Circuit Breaker Pattern: Aggressive configuration for submission-only operations
+  // Testnet-Optimized Configuration: Enhanced timeout settings for better reliability
   if (network === 'testnet') {
-    console.log('🔧 Configuring circuit breaker pattern for testnet submission...')
+    console.log('🔧 Configuring testnet-optimized timeouts for enhanced reliability...')
     
-    // Aggressive timeouts for submission-only (no receipt waiting)
-    const requestTimeout = 8000        // 8s max per node attempt (reduced from 30s)
-    const maxNodeAttempts = 7          // Try more nodes but faster
-    const minBackoff = 500             // Faster backoff for quick node switching
-    const maxBackoff = 2000            // Lower max backoff
+    // Testnet-optimized timeouts (increased for better reliability)
+    const requestTimeout = 20000       // 20s max per node (increased from 8s)
+    const maxNodeAttempts = 5          // Balanced node attempts
+    const minBackoff = 500             // 500ms min backoff  
+    const maxBackoff = 4000            // 4s max backoff (increased from 2s)
     
     client.setRequestTimeout(requestTimeout)
     client.setMaxNodeAttempts(maxNodeAttempts)
     client.setMinBackoff(minBackoff)
     client.setMaxBackoff(maxBackoff)
     
-    // More aggressive node management for circuit breaker
+    // Enhanced testnet node management
     if (typeof client.setMaxNodeReadmitTime === 'function') {
-      client.setMaxNodeReadmitTime(60000) // 1 minute readmit (reduced from 5 min)
+      client.setMaxNodeReadmitTime(120000) // 2 minute readmit (increased from 1 min)
     }
     
     if (typeof client.setCloseTimeout === 'function') {
-      client.setCloseTimeout(3000)   // 3s close timeout
+      client.setCloseTimeout(5000)   // 5s close timeout (increased from 3s)
+    }
+    
+    // Additional testnet-specific configurations
+    if (typeof client.setGrpcDeadline === 'function') {
+      client.setGrpcDeadline(15000) // 15s gRPC deadline (increased from default)
     }
     
     // Network health check
@@ -47,8 +52,8 @@ export function createHederaClient(config: HederaClientConfig): Client {
       console.warn('🚨 Circuit breaker OPEN - network too unhealthy for transactions')
     }
     
-    console.log('✅ Circuit breaker configuration applied')
-    console.log(`📊 Aggressive config: timeout=${requestTimeout}ms, maxAttempts=${maxNodeAttempts}`)
+    console.log('✅ Testnet-optimized configuration applied')
+    console.log(`📊 Enhanced config: timeout=${requestTimeout}ms, maxAttempts=${maxNodeAttempts}, gRPCDeadline=15s`)
   }
   
   const operatorAccountId = AccountId.fromString(config.operatorId)

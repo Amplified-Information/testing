@@ -6,10 +6,10 @@ import {
 } from 'npm:@hashgraph/sdk@2.72.0'
 import { networkHealth } from './networkHealth.ts'
 
-// Aggressive configuration for submission-only operations
-const SUBMISSION_TIMEOUT = 10000 // 10s max for submission (reduced from 60s)
-const MAX_FAST_RETRIES = 4 // Quick retry attempts  
-const FAST_RETRY_DELAY = 500 // 500ms base delay for fast switching
+// Testnet-optimized configuration for enhanced reliability
+const SUBMISSION_TIMEOUT = 20000 // 20s max for submission (increased from 10s)
+const MAX_FAST_RETRIES = 8 // More retry attempts for testnet (increased from 4)
+const FAST_RETRY_DELAY = 500 // 500ms base delay for progressive backoff
 
 // Timing utility for SDK operations
 const withTiming = async <T>(label: string, operation: () => Promise<T>): Promise<T> => {
@@ -71,22 +71,26 @@ const withCircuitBreakerRetry = async <T>(
         throw lastError
       }
       
-      // Fast retry for submission operations
+      // Enhanced retry logic for testnet reliability
       const isRetryableError = lastError.message?.includes('timeout') ||
                                lastError.message?.includes('TIMEOUT') ||
                                lastError.message?.includes('UNAVAILABLE') ||
                                lastError.message?.includes('DEADLINE_EXCEEDED') ||
+                               lastError.message?.includes('grpc deadline exceeded') ||
                                lastError.message?.includes('Code: 17') ||
-                               lastError.message?.includes('Code: 14')
+                               lastError.message?.includes('Code: 14') ||
+                               lastError.message?.includes('Code: 4') // DEADLINE_EXCEEDED
       
       if (!isRetryableError) {
         console.log(`Non-retryable error, failing immediately: ${lastError.message}`)
         throw lastError
       }
       
-      // Fast exponential backoff for quick node switching
-      const delay = FAST_RETRY_DELAY * Math.pow(1.5, attempt - 1)
-      console.log(`⚡ Fast retry in ${delay}ms (circuit breaker pattern)`)
+      // Progressive exponential backoff with jitter for testnet
+      const baseDelay = FAST_RETRY_DELAY * Math.pow(2, attempt - 1) // 500ms → 1s → 2s → 4s
+      const jitter = Math.random() * 500 // Add up to 500ms jitter
+      const delay = Math.min(baseDelay + jitter, 8000) // Cap at 8 seconds
+      console.log(`⚡ Enhanced retry in ${Math.round(delay)}ms (attempt ${attempt}/${maxRetries})`)
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
@@ -160,9 +164,9 @@ export async function createTopic(
           transaction.setAutoRenewPeriod(options.autoRenewPeriod || 7776000) // 90 days
         }
 
-        // Aggressive timeout settings
-        transaction.setTransactionValidDuration(30) // 30 seconds
-        transaction.setGrpcDeadline(6000) // 6 seconds
+        // Testnet-optimized timeout settings
+        transaction.setTransactionValidDuration(90) // 90 seconds (increased from 30)
+        transaction.setGrpcDeadline(15000) // 15 seconds (increased from 6)
 
         console.log('Executing transaction with circuit breaker...')
         const executeStart = Date.now()
@@ -216,9 +220,9 @@ export async function createCLOBTopic(
       const transaction = new TopicCreateTransaction()
         .setTopicMemo(memo);
 
-      // Aggressive timeout settings for submission-only operations
-      transaction.setTransactionValidDuration(30); // 30 seconds (reduced from 60)
-      transaction.setGrpcDeadline(6000); // 6 second gRPC timeout (reduced from 25s)
+      // Testnet-optimized timeout settings for submission
+      transaction.setTransactionValidDuration(90); // 90 seconds (increased from 30)
+      transaction.setGrpcDeadline(15000); // 15 second gRPC timeout (increased from 6s)
 
       if (operatorPrivateKey) {
         console.log('Auto-renew settings applied successfully');
