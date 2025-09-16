@@ -62,6 +62,16 @@ const MarketChart = ({ priceHistory, candidates, marketOptions }: MarketChartPro
       
       // Find the option for this price point to get candidate info
       const option = marketOptions.find(opt => opt.id === point.option_id);
+      console.log('MarketChart: Matching option for point', { 
+        pointOptionId: point.option_id, 
+        foundOption: option ? {
+          id: option.id,
+          optionName: option.option_name,
+          candidateName: option.candidate_name,
+          optionType: option.option_type
+        } : 'NOT FOUND'
+      });
+      
       if (option && option.option_type === 'yes') { // Only show YES prices for candidates
         const candidateName = option.candidate_name || option.option_name;
         timeGroups[date][candidateName] = point.price * 100; // Convert to percentage
