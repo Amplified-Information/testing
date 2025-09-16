@@ -231,6 +231,14 @@ const Markets = () => {
       }
     }
   }, [searchParams, categories]);
+
+  // Re-fetch subcategories when allMarkets data is available
+  useEffect(() => {
+    if (allMarkets.length > 0 && viewMode === 'subcategories' && selectedCategoryData?.fullData?.id) {
+      fetchSubcategories(selectedCategoryData.fullData.id);
+    }
+  }, [allMarkets, viewMode, selectedCategoryData]);
+
   const fetchSubcategories = async (categoryId: string) => {
     try {
       const {
