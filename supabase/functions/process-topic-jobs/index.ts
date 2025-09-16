@@ -247,10 +247,15 @@ serve(async () => {
 
           // STEP 1: Write topic to database FIRST (before HCS submission)
           console.log(`💾 Writing topic to database for job ${job.id} BEFORE HCS submission...`)
+          
+          // Create unique description with timestamp and job ID
+          const timestamp = new Date().toISOString();
+          const uniqueDescription = `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - created ${timestamp} (job: ${job.id})`;
+          
           const { data: insertedTopic, error: insertError } = await supabase.from('hcs_topics').insert({
             topic_type: job.topic_type,
             market_id: job.market_id,
-            description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`,
+            description: uniqueDescription,
             is_active: false, // Mark as inactive until confirmed by mirror node
             topic_id: null, // Will be updated when mirror node finds it
             submitted_at: null // Will be updated after HCS submission

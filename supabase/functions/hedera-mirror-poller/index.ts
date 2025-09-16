@@ -107,12 +107,12 @@ serve(async (req) => {
       try {
         console.log(`🔎 Looking for HCS topic ID for ${topic.topic_type} topic (DB ID: ${topic.id})`)
         
-        // Build expected memo pattern
-        const expectedMemo = topic.market_id 
-          ? `${topic.topic_type.toUpperCase()}_${topic.market_id}` 
-          : topic.topic_type.toUpperCase();
+        // Build expected memo pattern prefix (since memos now include timestamp and unique ID for uniqueness)
+        const expectedMemoPrefix = topic.market_id 
+          ? `${topic.topic_type.toUpperCase()}_${topic.market_id}_` 
+          : `${topic.topic_type.toUpperCase()}_`;
         
-        console.log(`🎯 Expected memo pattern: "${expectedMemo}"`)
+        console.log(`🎯 Expected memo prefix: "${expectedMemoPrefix}"`)
         
         // Find matching transaction by memo and timing
         let matchedTransaction = null;
@@ -127,8 +127,8 @@ serve(async (req) => {
             }
           }
           
-          // Check if memo matches our expected pattern
-          if (actualMemo === expectedMemo && tx.entity_id) {
+          // Check if memo starts with our expected pattern (since memos now include timestamp and unique ID)
+          if (actualMemo.startsWith(expectedMemoPrefix) && tx.entity_id) {
             // Additional timing check - transaction should be after topic's submitted_at
             const txTimestamp = new Date(parseFloat(tx.consensus_timestamp) * 1000);
             const topicSubmittedAt = new Date(topic.submitted_at);
@@ -179,7 +179,7 @@ serve(async (req) => {
               .in('status', ['submitted', 'submitted_checking']);
           }
         } else {
-          console.log(`⏳ No matching transaction found yet for topic ${topic.id} (${expectedMemo})`);
+          console.log(`⏳ No matching transaction found yet for topic ${topic.id} (prefix: ${expectedMemoPrefix})`);
           stillPendingCount++;
           
           // Check if topic is too old (older than 1 hour)

@@ -204,9 +204,13 @@ export async function createCLOBTopic(
   marketId?: string,
   operatorPrivateKey?: PrivateKey
 ): Promise<string> {
+  // Create unique memo with timestamp to avoid conflicts
+  const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp
+  const uniqueId = Math.random().toString(36).substring(2, 8); // Random 6-char string
+  
   const memo = marketId 
-    ? `${topicType.toUpperCase()}_${marketId}` 
-    : topicType.toUpperCase();
+    ? `${topicType.toUpperCase()}_${marketId}_${timestamp}_${uniqueId}` 
+    : `${topicType.toUpperCase()}_${timestamp}_${uniqueId}`;
   
   console.log(`🚀 Creating ${topicType} topic with circuit breaker pattern`);
   
