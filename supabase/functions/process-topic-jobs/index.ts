@@ -15,20 +15,43 @@ interface MirrorNodeResponse {
   transactions: MirrorNodeTransaction[];
 }
 
-// Progressive polling strategy for mirror node confirmation
+// Optimized polling strategy for mirror node confirmation
 async function pollMirrorNodeForJob(
   jobId: string,
   transactionId: string,
   supabase: any,
-  maxAttempts: number = 5
+  maxAttempts: number = 28
 ): Promise<{ success: boolean; topicId?: string; error?: string }> {
-  const delays = [2000, 3000, 5000, 8000, 12000]; // Progressive delays: 2s, 3s, 5s, 8s, 12s
+  // Multiple mirror nodes with fallback support
+  const mirrorNodes = [
+    'https://testnet.mirrornode.hedera.com',
+    'https://mainnet-public.mirrornode.hedera.com',
+    'https://hashio.io/api/testnet'
+  ];
+  
+  // Optimized polling intervals:
+  // Phase 1: 0-15s (15 attempts, 1s intervals) - covers typical 5-15s confirmation
+  // Phase 2: 15-25s (5 attempts, 2s intervals) - covers extended normal cases  
+  // Phase 3: 25-60s (8 attempts, 3-5s intervals) - covers worst-case scenarios
+  const delays = [
+    0, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, // Phase 1: 0-15s
+    2000, 2000, 2000, 2000, 2000, // Phase 2: 15-25s
+    3000, 3000, 5000, 5000, 5000, 5000, 5000, 5000 // Phase 3: 25-60s
+  ];
+  
+  let currentMirrorIndex = 0;
+  const failedNodes = new Set<number>();
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       console.log(`🔍 Mirror node check ${attempt + 1}/${maxAttempts} for transaction ${transactionId}`)
       
-      const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions/${transactionId}`;
+      // Select working mirror node with circuit breaker
+      while (failedNodes.has(currentMirrorIndex) && failedNodes.size < mirrorNodes.length) {
+        currentMirrorIndex = (currentMirrorIndex + 1) % mirrorNodes.length;
+      }
+      
+      const mirrorUrl = `${mirrorNodes[currentMirrorIndex]}/api/v1/transactions/${transactionId}`;
       const response = await fetch(mirrorUrl, {
         headers: { 'Accept': 'application/json' },
         signal: AbortSignal.timeout(8000)
@@ -79,16 +102,30 @@ async function pollMirrorNodeForJob(
       } else if (response.status === 404) {
         console.log(`⏳ Transaction ${transactionId} not yet visible in mirror node (attempt ${attempt + 1})`)
       } else {
-        console.log(`⚠️ Mirror node API error: ${response.status}`)
+        console.log(`⚠️ Mirror node API error: ${response.status} from ${mirrorNodes[currentMirrorIndex]}`)
+        // Mark this mirror node as failed and try next one
+        failedNodes.add(currentMirrorIndex);
+        currentMirrorIndex = (currentMirrorIndex + 1) % mirrorNodes.length;
       }
       
       // Wait before next attempt (except on last attempt)
       if (attempt < maxAttempts - 1) {
         await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+        
+        // Reset failed nodes after every 10 attempts to allow recovery
+        if ((attempt + 1) % 10 === 0) {
+          failedNodes.clear();
+          console.log(`🔄 Reset mirror node circuit breaker after ${attempt + 1} attempts`);
+        }
       }
       
     } catch (err) {
-      console.error(`Mirror node polling error (attempt ${attempt + 1}):`, err);
+      console.error(`Mirror node polling error (attempt ${attempt + 1}) from ${mirrorNodes[currentMirrorIndex]}:`, err);
+      
+      // Mark current mirror node as failed
+      failedNodes.add(currentMirrorIndex);
+      currentMirrorIndex = (currentMirrorIndex + 1) % mirrorNodes.length;
+      
       if (attempt < maxAttempts - 1) {
         await new Promise(resolve => setTimeout(resolve, delays[attempt]));
       }
@@ -104,7 +141,8 @@ async function pollMirrorNodeForJob(
     })
     .eq('id', jobId);
   
-  return { success: false, error: 'Timeout waiting for mirror node confirmation' };
+  console.log(`⏰ Mirror node polling timeout after ${maxAttempts} attempts over 60 seconds - background poller will continue`);
+  return { success: false, error: 'Timeout waiting for mirror node confirmation (60s)' };
 }
 
 const supabase = createClient(

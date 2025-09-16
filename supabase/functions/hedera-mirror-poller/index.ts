@@ -35,8 +35,8 @@ async function recoverStuckJobs(stuckJobs: any[], supabase: any) {
       
       // Search for transactions created around the time this job was last updated
       const jobTime = new Date(job.updated_at);
-      const searchStart = new Date(jobTime.getTime() - 5 * 60 * 1000); // 5 minutes before
-      const searchEnd = new Date(jobTime.getTime() + 10 * 60 * 1000); // 10 minutes after
+      const searchStart = new Date(jobTime.getTime() - 15 * 60 * 1000); // 15 minutes before
+      const searchEnd = new Date(jobTime.getTime() + 15 * 60 * 1000); // 15 minutes after
       
       const startTimestamp = (searchStart.getTime() / 1000).toFixed(9);
       const endTimestamp = (searchEnd.getTime() / 1000).toFixed(9);
@@ -196,16 +196,38 @@ serve(async (req) => {
       try {
         console.log(`🔎 Checking transaction ${job.transaction_id} for job ${job.id}`)
 
-        // Query Hedera Mirror Node
-        const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions/${job.transaction_id}`;
+        // Multiple mirror nodes with fallback support
+        const mirrorNodes = [
+          'https://testnet.mirrornode.hedera.com',
+          'https://mainnet-public.mirrornode.hedera.com', 
+          'https://hashio.io/api/testnet'
+        ];
         
-        const response = await fetch(mirrorUrl, {
-          headers: {
-            'Accept': 'application/json',
-          },
-          // 10 second timeout for each Mirror Node request
-          signal: AbortSignal.timeout(10000)
-        });
+        let response;
+        let lastError;
+        
+        // Try each mirror node until one succeeds
+        for (const mirrorNode of mirrorNodes) {
+          try {
+            const mirrorUrl = `${mirrorNode}/api/v1/transactions/${job.transaction_id}`;
+            response = await fetch(mirrorUrl, {
+              headers: { 'Accept': 'application/json' },
+              signal: AbortSignal.timeout(8000)
+            });
+            
+            if (response.ok || response.status === 404) {
+              break; // Success or expected 404, stop trying other nodes
+            }
+          } catch (err) {
+            lastError = err;
+            console.log(`⚠️ Mirror node ${mirrorNode} failed, trying next...`);
+            continue;
+          }
+        }
+        
+        if (!response) {
+          throw lastError || new Error('All mirror nodes failed');
+        }
 
         if (!response.ok) {
           if (response.status === 404) {
