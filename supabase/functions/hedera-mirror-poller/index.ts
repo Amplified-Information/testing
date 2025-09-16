@@ -71,13 +71,21 @@ async function recoverStuckJobs(stuckJobs: any[], supabase: any) {
             if (actualMemo === expectedMemo && tx.entity_id) {
               console.log(`🎯 Found matching transaction for stuck job ${job.id}: ${tx.transaction_id} → Topic: ${tx.entity_id}`);
               
-              // Insert into hcs_topics table
-              await supabase.from('hcs_topics').insert({
-                topic_id: tx.entity_id,
-                topic_type: job.topic_type,
-                market_id: job.market_id,
-                description: `${job.topic_type} topic recovered from stuck state`
-              });
+              // Update existing hcs_topics record with the HCS topic ID
+              const { error: updateError } = await supabase.from('hcs_topics')
+                .update({
+                  topic_id: tx.entity_id,
+                  is_active: true,
+                  description: `${job.topic_type} topic recovered from stuck state`,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('market_id', job.market_id)
+                .eq('topic_type', job.topic_type)
+                .is('topic_id', null);
+              
+              if (updateError) {
+                console.error(`❌ Failed to update recovered topic:`, updateError);
+              }
 
               // Update job status to confirmed
               await supabase.from('topic_creation_jobs')
@@ -283,13 +291,29 @@ serve(async (req) => {
 
           console.log(`✅ Transaction confirmed - Topic created: ${topicId}`);
 
-          // Insert into hcs_topics table
-          await supabase.from('hcs_topics').insert({
-            topic_id: topicId,
-            topic_type: job.topic_type,
-            market_id: job.market_id,
-            description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''}`
-          });
+          // Update existing hcs_topics record with the HCS topic ID
+          const { error: updateError } = await supabase.from('hcs_topics')
+            .update({
+              topic_id: topicId,
+              is_active: true,
+              description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - confirmed`,
+              updated_at: new Date().toISOString()
+            })
+            .eq('market_id', job.market_id)
+            .eq('topic_type', job.topic_type)
+            .is('topic_id', null);
+          
+          if (updateError) {
+            console.error(`❌ Failed to update topic ${topicId}:`, updateError);
+            // If update fails, try inserting (fallback for edge cases)
+            await supabase.from('hcs_topics').insert({
+              topic_id: topicId,
+              topic_type: job.topic_type,
+              market_id: job.market_id,
+              description: `${job.topic_type} topic${job.market_id ? ` for market ${job.market_id}` : ''} - fallback insert`,
+              is_active: true
+            });
+          }
 
           // Update job status to confirmed
           await supabase.from('topic_creation_jobs')
