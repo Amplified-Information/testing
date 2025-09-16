@@ -17,7 +17,8 @@ const mockMarkets = [
     volume: 125000,
     endDate: "Dec 31, 2024",
     liquidity: 50000,
-    change24h: 2.3
+    change24h: 2.3,
+    imageUrl: "https://cryptologos.cc/logos/bitcoin-btc-logo.png"
   },
   {
     id: "2", 
@@ -28,7 +29,8 @@ const mockMarkets = [
     volume: 89000,
     endDate: "Nov 15, 2024",
     liquidity: 35000,
-    change24h: -1.2
+    change24h: -1.2,
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Seal_of_the_United_States_Federal_Reserve_System.svg/512px-Seal_of_the_United_States_Federal_Reserve_System.svg.png"
   },
   {
     id: "3",
@@ -39,7 +41,8 @@ const mockMarkets = [
     volume: 45000,
     endDate: "Dec 31, 2024",
     liquidity: 28000,
-    change24h: 5.7
+    change24h: 5.7,
+    imageUrl: "https://cryptologos.cc/logos/hedera-hbar-logo.png"
   },
   {
     id: "4",
@@ -50,7 +53,8 @@ const mockMarkets = [
     volume: 67000,
     endDate: "Dec 31, 2025",
     liquidity: 40000,
-    change24h: 0.8
+    change24h: 0.8,
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Temperature_icon.svg/512px-Temperature_icon.svg.png"
   }
 ];
 
