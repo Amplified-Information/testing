@@ -192,7 +192,32 @@ serve(async () => {
             .eq('id', job.id)
 
           console.log(`🔌 Connecting to Hedera for job ${job.id}...`)
-          const { client, privateKey } = await getSystemHederaClientFromSecrets(supabase)
+          
+          let client, privateKey;
+          const connectionStart = Date.now();
+          try {
+            console.log(`🔐 Fetching Hedera credentials from secrets...`)
+            const credentials = await getSystemHederaClientFromSecrets(supabase)
+            client = credentials.client;
+            privateKey = credentials.privateKey;
+            
+            const connectionTime = Date.now() - connectionStart;
+            console.log(`✅ Hedera client connected successfully for job ${job.id} (${connectionTime}ms)`)
+            console.log(`🔑 Client details:`, {
+              operatorId: client.operatorAccountId?.toString(),
+              network: client._network?.constructor.name,
+              hasOperatorKey: !!client.operatorPublicKey,
+              privateKeyType: privateKey?.constructor.name
+            })
+          } catch (connectionError) {
+            const connectionTime = Date.now() - connectionStart;
+            console.error(`❌ Failed to connect to Hedera for job ${job.id} after ${connectionTime}ms:`, {
+              error: connectionError.message,
+              stack: connectionError.stack,
+              name: connectionError.constructor.name
+            })
+            throw connectionError;
+          }
 
           // Update job status to 'submitting' 
           await supabase.from('topic_creation_jobs')
@@ -203,13 +228,47 @@ serve(async () => {
             .eq('id', job.id)
 
           console.log(`📤 Submitting ${job.topic_type} topic creation for job ${job.id}...`)
+          console.log(`🎯 Transaction parameters:`, {
+            topicType: job.topic_type,
+            marketId: job.market_id,
+            jobId: job.id,
+            operatorId: client.operatorAccountId?.toString()
+          })
+          
           // Submit transaction and get transaction ID (not topic ID)
-          const transactionId = await createCLOBTopic(
-            client,
-            job.topic_type as 'orders' | 'batches' | 'oracle' | 'disputes',
-            job.market_id,
-            privateKey
-          )
+          const submissionStart = Date.now();
+          let transactionId;
+          try {
+            console.log(`🚀 Calling createCLOBTopic...`)
+            transactionId = await createCLOBTopic(
+              client,
+              job.topic_type as 'orders' | 'batches' | 'oracle' | 'disputes',
+              job.market_id,
+              privateKey
+            )
+            
+            const submissionTime = Date.now() - submissionStart;
+            console.log(`✅ Transaction submitted successfully for job ${job.id} (${submissionTime}ms)`)
+            console.log(`🆔 Transaction ID: ${transactionId}`)
+            
+            if (!transactionId) {
+              throw new Error('createCLOBTopic returned null/undefined transaction ID')
+            }
+            
+          } catch (submissionError) {
+            const submissionTime = Date.now() - submissionStart;
+            console.error(`❌ Transaction submission failed for job ${job.id} after ${submissionTime}ms:`, {
+              error: submissionError.message,
+              stack: submissionError.stack,
+              name: submissionError.constructor.name,
+              topicType: job.topic_type,
+              marketId: job.market_id,
+              isTimeoutError: submissionError.message.includes('timeout') || submissionError.message.includes('DEADLINE'),
+              isGrpcError: submissionError.message.includes('GRPC') || submissionError.message.includes('gRPC'),
+              isNetworkError: submissionError.message.includes('network') || submissionError.message.includes('connection')
+            })
+            throw submissionError;
+          }
 
           // Update job with transaction ID - status becomes 'submitted_checking'
           await supabase.from('topic_creation_jobs')
