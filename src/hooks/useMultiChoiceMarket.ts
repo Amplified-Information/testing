@@ -46,7 +46,7 @@ export const useMultiChoiceMarket = (marketId: string) => {
         const transformedMarket: MarketDetail = {
           ...marketData,
           options: optionsData || [],
-          chart_data: priceHistory || [],
+          chartData: priceHistory || [],
         };
 
         setMarket(transformedMarket);

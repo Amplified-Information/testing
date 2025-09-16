@@ -65,14 +65,13 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
               imageUrl={market.image_url}
             />
             
-            {market.chartData && market.chartData.length > 0 && (
-              <div className="bg-card rounded-lg border p-6">
-                <MarketChart 
-                  data={market.chartData}
-                  candidates={binaryCandidates}
-                />
-              </div>
-            )}
+            <div className="bg-card rounded-lg border p-6">
+              <MarketChart 
+                priceHistory={market.chartData || []}
+                candidates={binaryCandidates}
+                marketOptions={market.options}
+              />
+            </div>
             
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Candidates</h2>

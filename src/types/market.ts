@@ -32,6 +32,7 @@ export interface MarketDetail {
   resolution_status: 'open' | 'closed' | 'resolved' | 'cancelled';
   options: MarketOption[];
   chart_data?: any[];
+  chartData?: any[];
 }
 
 export interface MultiChoiceCandidate {

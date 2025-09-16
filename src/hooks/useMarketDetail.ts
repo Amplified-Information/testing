@@ -89,7 +89,7 @@ export const useMarketDetail = (marketId: string) => {
           market_structure: marketData.market_structure || 'binary',
           image_url: marketData.image_url,
           options: optionsData || [],
-          chartData
+          chartData: priceHistory || []
         };
 
         setMarket(transformedMarket);

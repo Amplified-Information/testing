@@ -1,5 +1,7 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { format } from "date-fns";
+import { useMemo } from "react";
 
 interface Candidate {
   id: string;
@@ -8,46 +10,105 @@ interface Candidate {
   percentage: number;
 }
 
-interface MarketChartProps {
-  data: any[];
-  candidates: Candidate[];
+interface PriceHistoryPoint {
+  id: string;
+  market_id: string;
+  option_id: string;
+  price: number;
+  volume: number;
+  timestamp: string;
 }
 
-const chartColors = {
-  "J.D. Vance": "hsl(var(--primary))",
-  "Gavin Newsom": "hsl(220, 70%, 50%)", 
-  "Alexandria Ocasio-Cortez": "hsl(280, 70%, 50%)"
+interface MarketChartProps {
+  priceHistory: PriceHistoryPoint[];
+  candidates: Candidate[];
+  marketOptions: any[];
+}
+
+// Generate distinct colors for candidates
+const generateColor = (index: number, total: number) => {
+  const hue = (index * 360) / total;
+  const saturation = 70;
+  const lightness = index % 2 === 0 ? 50 : 40; // Alternate lightness for better distinction
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
-const chartConfig = {
-  "J.D. Vance": {
-    label: "J.D. Vance",
-    color: "hsl(var(--primary))",
-  },
-  "Gavin Newsom": {
-    label: "Gavin Newsom", 
-    color: "hsl(220, 70%, 50%)",
-  },
-  "Alexandria Ocasio-Cortez": {
-    label: "Alexandria Ocasio-Cortez",
-    color: "hsl(280, 70%, 50%)",
-  },
-};
+const MarketChart = ({ priceHistory, candidates, marketOptions }: MarketChartProps) => {
+  // Transform price history data into chart format
+  const chartData = useMemo(() => {
+    if (!priceHistory || !marketOptions) return [];
 
-const MarketChart = ({ data, candidates }: MarketChartProps) => {
+    // Group price history by timestamp
+    const timeGroups: { [key: string]: { [key: string]: string | number } } = {};
+    
+    priceHistory.forEach(point => {
+      const date = format(new Date(point.timestamp), 'yyyy-MM-dd');
+      
+      if (!timeGroups[date]) {
+        timeGroups[date] = { timestamp: date };
+      }
+      
+      // Find the option for this price point to get candidate info
+      const option = marketOptions.find(opt => opt.id === point.option_id);
+      if (option && option.option_type === 'yes') { // Only show YES prices for candidates
+        const candidateName = option.candidate_name || option.option_name;
+        timeGroups[date][candidateName] = point.price * 100; // Convert to percentage
+      }
+    });
+
+    return Object.values(timeGroups).sort((a, b) => 
+      new Date(a.timestamp as string).getTime() - new Date(b.timestamp as string).getTime()
+    );
+  }, [priceHistory, marketOptions]);
+
+  // Generate colors and config for candidates
+  const candidateColors = useMemo(() => {
+    const colors: { [key: string]: string } = {};
+    candidates.forEach((candidate, index) => {
+      colors[candidate.name] = generateColor(index, candidates.length);
+    });
+    return colors;
+  }, [candidates]);
+
+  const chartConfig = useMemo(() => {
+    const config: { [key: string]: { label: string; color: string } } = {};
+    candidates.forEach(candidate => {
+      config[candidate.name] = {
+        label: candidate.name,
+        color: candidateColors[candidate.name],
+      };
+    });
+    return config;
+  }, [candidates, candidateColors]);
+
+  if (!chartData.length) {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Price History</h3>
+        <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+          No price history data available
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4">
         <h3 className="text-lg font-semibold">Price History</h3>
-        <div className="flex items-center gap-4 text-sm">
+        
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 text-sm">
           {candidates.map((candidate) => (
             <div key={candidate.id} className="flex items-center gap-2">
               <div 
                 className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: chartColors[candidate.name as keyof typeof chartColors] }}
+                style={{ backgroundColor: candidateColors[candidate.name] }}
               />
-              <span>{candidate.name}</span>
-              <span className="font-medium">{candidate.percentage}%</span>
+              <span className="font-medium">{candidate.name}</span>
+              <span className="text-muted-foreground">
+                {candidate.percentage}%
+              </span>
             </div>
           ))}
         </div>
@@ -55,37 +116,40 @@ const MarketChart = ({ data, candidates }: MarketChartProps) => {
       
       <ChartContainer config={chartConfig} className="h-[400px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis 
-              dataKey="date" 
+              dataKey="timestamp" 
               stroke="hsl(var(--muted-foreground))"
               fontSize={12}
+              tickFormatter={(value) => format(new Date(value), 'MMM dd')}
             />
             <YAxis 
               stroke="hsl(var(--muted-foreground))"
               fontSize={12}
-              domain={[0, 40]}
+              domain={[0, 100]}
+              tickFormatter={(value) => `${value}%`}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip 
+              content={<ChartTooltipContent />}
+              labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy')}
+              formatter={(value: any, name: string) => [`${Number(value).toFixed(1)}%`, name]}
+            />
             {candidates.map((candidate) => (
               <Line
                 key={candidate.id}
                 type="monotone"
                 dataKey={candidate.name}
-                stroke={chartColors[candidate.name as keyof typeof chartColors]}
+                stroke={candidateColors[candidate.name]}
                 strokeWidth={2}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
+                dot={{ r: 2 }}
+                activeDot={{ r: 4 }}
+                connectNulls={false}
               />
             ))}
           </LineChart>
         </ResponsiveContainer>
       </ChartContainer>
-      
-      <div className="text-sm text-muted-foreground">
-        <span>$1,646,084 vol</span>
-      </div>
     </div>
   );
 };
