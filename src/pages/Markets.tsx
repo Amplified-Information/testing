@@ -106,7 +106,8 @@ const Markets = () => {
           is_featured: market.is_featured,
           is_trending: market.is_trending,
           marketStructure: market.market_structure,
-          options: market.market_options || []
+          options: market.market_options || [],
+          imageUrl: market.image_url
         })) || [];
         setAllMarkets(formattedMarkets);
 
@@ -370,7 +371,8 @@ const Markets = () => {
         is_featured: market.is_featured,
         is_trending: market.is_trending,
         marketStructure: market.market_structure,
-        options: market.market_options || []
+        options: market.market_options || [],
+        imageUrl: market.image_url
       })) || [];
       setSearchResults(formattedResults);
       setHasSearched(true);
