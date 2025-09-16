@@ -4,6 +4,7 @@ import { Zap, Loader2, TestTube } from 'lucide-react';
 import { useAsyncHCS } from '@/hooks/useAsyncHCS';
 import { HCSJobMonitor } from '@/components/HCS/HCSJobMonitor';
 import { TimeoutTestPanel } from '@/components/HCS/TimeoutTestPanel';
+import { MirrorNodePoller } from '@/components/HCS/MirrorNodePoller';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function HCSTopicTest() {
@@ -26,10 +27,11 @@ export default function HCSTopicTest() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="basic">Basic Testing</TabsTrigger>
           <TabsTrigger value="timeout">Timeout Testing</TabsTrigger>
           <TabsTrigger value="monitor">Job Monitor</TabsTrigger>
+          <TabsTrigger value="mirror">Mirror Node</TabsTrigger>
         </TabsList>
         
         <TabsContent value="basic" className="space-y-6">
@@ -72,6 +74,10 @@ export default function HCSTopicTest() {
 
         <TabsContent value="monitor" className="space-y-6">
           <HCSJobMonitor showHistory={true} compact={false} />
+        </TabsContent>
+
+        <TabsContent value="mirror" className="space-y-6">
+          <MirrorNodePoller />
         </TabsContent>
       </Tabs>
     </div>
