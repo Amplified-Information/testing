@@ -7,9 +7,9 @@ import {
 import { networkHealth } from './networkHealth.ts'
 
 // Testnet-optimized configuration for enhanced reliability
-const SUBMISSION_TIMEOUT = 20000 // 20s max for submission (increased from 10s)
-const MAX_FAST_RETRIES = 8 // More retry attempts for testnet (increased from 4)
-const FAST_RETRY_DELAY = 500 // 500ms base delay for progressive backoff
+const SUBMISSION_TIMEOUT = 15000 // 15s max for submission
+const MAX_FAST_RETRIES = 3 // Reduced retries to prevent edge function timeouts  
+const FAST_RETRY_DELAY = 1000 // 1s base delay for progressive backoff
 
 // Timing utility for SDK operations
 const withTiming = async <T>(label: string, operation: () => Promise<T>): Promise<T> => {

@@ -279,16 +279,34 @@ serve(async () => {
             
           } catch (submissionError) {
             const submissionTime = Date.now() - submissionStart;
+            const errorMessage = submissionError.message;
+            
             console.error(`❌ Transaction submission failed for job ${job.id} after ${submissionTime}ms:`, {
-              error: submissionError.message,
+              error: errorMessage,
               stack: submissionError.stack,
               name: submissionError.constructor.name,
               topicType: job.topic_type,
               marketId: job.market_id,
-              isTimeoutError: submissionError.message.includes('timeout') || submissionError.message.includes('DEADLINE'),
-              isGrpcError: submissionError.message.includes('GRPC') || submissionError.message.includes('gRPC'),
-              isNetworkError: submissionError.message.includes('network') || submissionError.message.includes('connection')
+              isTimeoutError: errorMessage.includes('timeout') || errorMessage.includes('DEADLINE'),
+              isGrpcError: errorMessage.includes('GRPC') || errorMessage.includes('gRPC'),
+              isNetworkError: errorMessage.includes('network') || errorMessage.includes('connection')
             })
+            
+            // For timeout errors, mark as submitted with unknown transaction_id
+            // The scheduled mirror poller will try to find it by memo
+            if (errorMessage.includes('timeout') || errorMessage.includes('DEADLINE') || errorMessage.includes('GRPC')) {
+              console.log(`⏰ Timeout error - marking job ${job.id} as submitted for mirror node polling`)
+              await supabase.from('topic_creation_jobs')
+                .update({
+                  status: 'submitted',
+                  error: `Timeout during submission: ${errorMessage}`,
+                  submitted_at: new Date().toISOString(),
+                  worker_id: workerId,
+                })
+                .eq('id', job.id);
+              return; // Don't throw, let scheduled poller handle it
+            }
+            
             throw submissionError;
           }
 

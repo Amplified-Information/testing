@@ -152,14 +152,28 @@ serve(async (req) => {
       .not('transaction_id', 'is', null)
       .limit(10);
 
+    // Also check for jobs in 'submitted' status without transaction_id (timeout cases)
+    const { data: timeoutJobs, error: timeoutError } = await supabase
+      .from('topic_creation_jobs')
+      .select('*')
+      .eq('status', 'submitted')
+      .is('transaction_id', null)
+      .lt('updated_at', fiveMinutesAgo)
+      .limit(10);
+
     if (stuckError) {
       console.error('Error fetching stuck jobs:', stuckError);
+    }
+    
+    if (timeoutError) {
+      console.error('Error fetching timeout jobs:', timeoutError);
     }
 
     // Combine all jobs to check
     const allJobs = [...(jobsToCheck || []), ...(stuckJobs || [])];
+    const allStuckJobs = [...(stuckJobs || []), ...(timeoutJobs || [])];
     
-    if (fetchError && !stuckError) {
+    if (fetchError && !stuckError && !timeoutError) {
       console.error('Error fetching jobs:', fetchError)
       return new Response(
         JSON.stringify({ error: 'Failed to fetch jobs' }),
@@ -183,10 +197,10 @@ serve(async (req) => {
       )
     }
 
-    console.log(`📋 Found ${allJobs.length} jobs to check (${jobsToCheck?.length || 0} submitted/checking + ${stuckJobs?.length || 0} stuck)`)
+    console.log(`📋 Found ${allJobs.length} jobs to check (${jobsToCheck?.length || 0} submitted/checking + ${allStuckJobs.length} stuck/timeout)`)
     
     // First, try to recover stuck jobs by searching mirror node
-    await recoverStuckJobs(stuckJobs || [], supabase);
+    await recoverStuckJobs(allStuckJobs, supabase);
 
     let confirmedCount = 0;
     let failedCount = 0;
@@ -343,7 +357,7 @@ serve(async (req) => {
       message: 'Enhanced Mirror Node polling complete',
       total_checked: allJobs.length,
       submitted_jobs: jobsToCheck?.length || 0,
-      stuck_jobs_recovered: stuckJobs?.length || 0,
+      stuck_jobs_recovered: allStuckJobs.length,
       confirmed: confirmedCount,
       failed: failedCount,
       still_pending: stillPendingCount
