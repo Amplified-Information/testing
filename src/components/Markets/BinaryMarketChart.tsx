@@ -24,28 +24,13 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
   const [selectedRange, setSelectedRange] = useState('7d');
   const [showVolume, setShowVolume] = useState(true);
 
-  // Transform data to have consistent yes/no fields regardless of option names
-  const chartData = data.length > 0 ? data.map(item => {
-    // Find yes and no values from the data
-    let yesValue = yesPrice * 100;
-    let noValue = noPrice * 100;
-    
-    // Look for option fields that contain "Yes" or "No"
-    Object.keys(item).forEach(key => {
-      if (key.toLowerCase().includes('yes') || key.toLowerCase().includes('- yes')) {
-        yesValue = item[key];
-      } else if (key.toLowerCase().includes('no') || key.toLowerCase().includes('- no')) {
-        noValue = item[key];
-      }
-    });
-    
-    return {
-      ...item,
-      yes: yesValue,
-      no: noValue,
-      volume: volume * (0.1 + Math.random() * 0.1) // Add some volume variation
-    };
-  }) : [
+  // Transform data to have consistent yes/no fields
+  const chartData = data.length > 0 ? data.map(item => ({
+    ...item,
+    yes: item.Yes || yesPrice * 100, // Use standardized "Yes" key from transformation
+    no: item.No || noPrice * 100,   // Use standardized "No" key from transformation
+    volume: volume * (0.1 + Math.random() * 0.1) // Add some volume variation
+  })) : [
     { date: '2024-01-01', yes: yesPrice * 100, no: noPrice * 100, volume: volume * 0.1 },
     { date: '2024-01-02', yes: (yesPrice + 0.02) * 100, no: (noPrice - 0.02) * 100, volume: volume * 0.15 },
     { date: '2024-01-03', yes: (yesPrice - 0.01) * 100, no: (noPrice + 0.01) * 100, volume: volume * 0.12 },

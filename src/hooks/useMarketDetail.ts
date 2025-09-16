@@ -113,16 +113,32 @@ export const useMarketDetail = (marketId: string) => {
 };
 
 const transformPriceHistoryToChart = (priceHistory: any[], options: MarketOption[]) => {
+  if (!priceHistory || priceHistory.length === 0) {
+    return [];
+  }
+
   // Group price history by timestamp
   const groupedByDate = priceHistory.reduce((acc, record) => {
-    const date = new Date(record.timestamp).toISOString().split('T')[0];
-    if (!acc[date]) {
-      acc[date] = {};
-    }
-    
-    const option = options.find(opt => opt.id === record.option_id);
-    if (option) {
-      acc[date][option.option_name] = Number(record.price) * 100; // Convert to percentage
+    try {
+      const date = new Date(record.timestamp).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = {};
+      }
+      
+      const option = options.find(opt => opt.id === record.option_id);
+      if (option) {
+        // For binary markets, use consistent key names
+        if (option.option_type?.toLowerCase() === 'yes') {
+          acc[date]['Yes'] = Number(record.price) * 100;
+        } else if (option.option_type?.toLowerCase() === 'no') {
+          acc[date]['No'] = Number(record.price) * 100;
+        } else {
+          // Fallback to option name for multi-choice markets
+          acc[date][option.option_name] = Number(record.price) * 100;
+        }
+      }
+    } catch (error) {
+      console.warn('Error processing price history record:', record, error);
     }
     
     return acc;
