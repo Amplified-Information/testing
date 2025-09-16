@@ -23,6 +23,107 @@ interface MirrorNodeResponse {
   transactions: MirrorNodeTransaction[];
 }
 
+// Recovery mechanism for jobs stuck in 'submitting' status
+async function recoverStuckJobs(stuckJobs: any[], supabase: any) {
+  if (!stuckJobs.length) return;
+  
+  console.log(`🔧 Attempting to recover ${stuckJobs.length} stuck jobs`);
+  
+  for (const job of stuckJobs) {
+    try {
+      console.log(`🔧 Recovering stuck job ${job.id}, checking for transactions around ${job.updated_at}`);
+      
+      // Search for transactions created around the time this job was last updated
+      const jobTime = new Date(job.updated_at);
+      const searchStart = new Date(jobTime.getTime() - 5 * 60 * 1000); // 5 minutes before
+      const searchEnd = new Date(jobTime.getTime() + 10 * 60 * 1000); // 10 minutes after
+      
+      const startTimestamp = (searchStart.getTime() / 1000).toFixed(9);
+      const endTimestamp = (searchEnd.getTime() / 1000).toFixed(9);
+      
+      // Search Mirror Node for topic creation transactions in this timeframe
+      const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions?account.id=0.0.34&result=success&type=CONSENSUSCREATETOPIC&timestamp=gte:${startTimestamp}&timestamp=lte:${endTimestamp}&limit=50`;
+      
+      const response = await fetch(mirrorUrl, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.transactions && data.transactions.length > 0) {
+          // Look for transactions that match our job's memo pattern
+          const expectedMemo = job.market_id 
+            ? `${job.topic_type.toUpperCase()}_${job.market_id}` 
+            : job.topic_type.toUpperCase();
+          
+          for (const tx of data.transactions) {
+            let actualMemo = '';
+            if (tx.memo_base64) {
+              try {
+                actualMemo = atob(tx.memo_base64);
+              } catch (e) {
+                continue;
+              }
+            }
+            
+            if (actualMemo === expectedMemo && tx.entity_id) {
+              console.log(`🎯 Found matching transaction for stuck job ${job.id}: ${tx.transaction_id} → Topic: ${tx.entity_id}`);
+              
+              // Insert into hcs_topics table
+              await supabase.from('hcs_topics').insert({
+                topic_id: tx.entity_id,
+                topic_type: job.topic_type,
+                market_id: job.market_id,
+                description: `${job.topic_type} topic recovered from stuck state`
+              });
+
+              // Update job status to confirmed
+              await supabase.from('topic_creation_jobs')
+                .update({
+                  status: 'confirmed',
+                  topic_id: tx.entity_id,
+                  transaction_id: tx.transaction_id,
+                  completed_at: new Date().toISOString(),
+                  mirror_node_checked_at: new Date().toISOString()
+                })
+                .eq('id', job.id);
+              
+              console.log(`✅ Successfully recovered stuck job ${job.id}`);
+              break;
+            }
+          }
+        }
+      }
+      
+    } catch (err) {
+      console.error(`Error recovering stuck job ${job.id}:`, err);
+      
+      // Mark as failed after too many attempts
+      const retryCount = (job.retry_count || 0) + 1;
+      if (retryCount >= 8) {
+        await supabase.from('topic_creation_jobs')
+          .update({
+            status: 'failed',
+            error: `Failed to recover stuck job after ${retryCount} attempts: ${(err as Error).message}`,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', job.id);
+        
+        console.log(`💀 Marked stuck job ${job.id} as permanently failed`);
+      } else {
+        await supabase.from('topic_creation_jobs')
+          .update({
+            retry_count: retryCount,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', job.id);
+      }
+    }
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -32,14 +133,39 @@ serve(async (req) => {
   try {
     console.log('🔍 Mirror Node poller started')
 
-    // Get jobs that have been submitted but not yet confirmed
-    const { data: submittedJobs, error: fetchError } = await supabase
+    // Get jobs that have been submitted or are stuck in submitting status
+    const { data: jobsToCheck, error: fetchError } = await supabase
       .from('topic_creation_jobs')
       .select('*')
-      .eq('status', 'submitted')
+      .in('status', ['submitted', 'submitted_checking'])
       .not('transaction_id', 'is', null)
       .order('submitted_at', { ascending: true })
-      .limit(20); // Process up to 20 jobs at a time
+      .limit(30); // Process up to 30 jobs at a time
+
+    // Also check for jobs stuck in 'submitting' status for more than 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: stuckJobs, error: stuckError } = await supabase
+      .from('topic_creation_jobs')
+      .select('*')
+      .eq('status', 'submitting')
+      .lt('updated_at', fiveMinutesAgo)
+      .not('transaction_id', 'is', null)
+      .limit(10);
+
+    if (stuckError) {
+      console.error('Error fetching stuck jobs:', stuckError);
+    }
+
+    // Combine all jobs to check
+    const allJobs = [...(jobsToCheck || []), ...(stuckJobs || [])];
+    
+    if (fetchError && !stuckError) {
+      console.error('Error fetching jobs:', fetchError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch jobs' }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
 
     if (fetchError) {
       console.error('Error fetching submitted jobs:', fetchError)
@@ -49,21 +175,24 @@ serve(async (req) => {
       )
     }
 
-    if (!submittedJobs || submittedJobs.length === 0) {
-      console.log('No submitted jobs to check')
+    if (!allJobs || allJobs.length === 0) {
+      console.log('No jobs to check')
       return new Response(
-        JSON.stringify({ message: 'No submitted jobs to poll', checked: 0 }),
+        JSON.stringify({ message: 'No jobs to poll', checked: 0 }),
         { status: 200, headers: corsHeaders }
       )
     }
 
-    console.log(`📋 Found ${submittedJobs.length} jobs to check`)
+    console.log(`📋 Found ${allJobs.length} jobs to check (${jobsToCheck?.length || 0} submitted/checking + ${stuckJobs?.length || 0} stuck)`)
+    
+    // First, try to recover stuck jobs by searching mirror node
+    await recoverStuckJobs(stuckJobs || [], supabase);
 
     let confirmedCount = 0;
     let failedCount = 0;
     let stillPendingCount = 0;
 
-    for (const job of submittedJobs) {
+    for (const job of allJobs) {
       try {
         console.log(`🔎 Checking transaction ${job.transaction_id} for job ${job.id}`)
 
@@ -189,8 +318,10 @@ serve(async (req) => {
     }
 
     const summary = {
-      message: 'Mirror Node polling complete',
-      total_checked: submittedJobs.length,
+      message: 'Enhanced Mirror Node polling complete',
+      total_checked: allJobs.length,
+      submitted_jobs: jobsToCheck?.length || 0,
+      stuck_jobs_recovered: stuckJobs?.length || 0,
       confirmed: confirmedCount,
       failed: failedCount,
       still_pending: stillPendingCount

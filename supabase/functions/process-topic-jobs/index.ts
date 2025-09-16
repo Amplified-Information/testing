@@ -3,6 +3,110 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
 import { getSystemHederaClientFromSecrets } from '../_shared/hederaClient.ts'
 import { createCLOBTopic } from '../_shared/topicService.ts'
 
+interface MirrorNodeTransaction {
+  transaction_id: string;
+  result: string;
+  consensus_timestamp: string;
+  entity_id?: string;
+  memo_base64?: string;
+}
+
+interface MirrorNodeResponse {
+  transactions: MirrorNodeTransaction[];
+}
+
+// Progressive polling strategy for mirror node confirmation
+async function pollMirrorNodeForJob(
+  jobId: string,
+  transactionId: string,
+  supabase: any,
+  maxAttempts: number = 5
+): Promise<{ success: boolean; topicId?: string; error?: string }> {
+  const delays = [2000, 3000, 5000, 8000, 12000]; // Progressive delays: 2s, 3s, 5s, 8s, 12s
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      console.log(`🔍 Mirror node check ${attempt + 1}/${maxAttempts} for transaction ${transactionId}`)
+      
+      const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions/${transactionId}`;
+      const response = await fetch(mirrorUrl, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+
+      if (response.ok) {
+        const data: MirrorNodeResponse = await response.json();
+        
+        if (data.transactions && data.transactions.length > 0) {
+          const transaction = data.transactions[0];
+          
+          if (transaction.result === 'SUCCESS' && transaction.entity_id) {
+            const topicId = transaction.entity_id;
+            
+            // Insert into hcs_topics table
+            await supabase.from('hcs_topics').insert({
+              topic_id: topicId,
+              topic_type: (await supabase.from('topic_creation_jobs').select('topic_type, market_id').eq('id', jobId).single()).data.topic_type,
+              market_id: (await supabase.from('topic_creation_jobs').select('topic_type, market_id').eq('id', jobId).single()).data.market_id,
+              description: `Topic confirmed via mirror node polling`
+            });
+
+            // Update job status to confirmed
+            await supabase.from('topic_creation_jobs')
+              .update({
+                status: 'confirmed',
+                topic_id: topicId,
+                completed_at: new Date().toISOString(),
+                mirror_node_checked_at: new Date().toISOString()
+              })
+              .eq('id', jobId);
+
+            return { success: true, topicId };
+          } else if (transaction.result !== 'SUCCESS') {
+            // Transaction failed
+            await supabase.from('topic_creation_jobs')
+              .update({
+                status: 'failed',
+                error: `Hedera transaction failed: ${transaction.result}`,
+                completed_at: new Date().toISOString(),
+                mirror_node_checked_at: new Date().toISOString()
+              })
+              .eq('id', jobId);
+            
+            return { success: false, error: `Transaction failed: ${transaction.result}` };
+          }
+        }
+      } else if (response.status === 404) {
+        console.log(`⏳ Transaction ${transactionId} not yet visible in mirror node (attempt ${attempt + 1})`)
+      } else {
+        console.log(`⚠️ Mirror node API error: ${response.status}`)
+      }
+      
+      // Wait before next attempt (except on last attempt)
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+      }
+      
+    } catch (err) {
+      console.error(`Mirror node polling error (attempt ${attempt + 1}):`, err);
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+      }
+    }
+  }
+  
+  // Update status to submitted (will be picked up by scheduled poller)
+  await supabase.from('topic_creation_jobs')
+    .update({
+      status: 'submitted',
+      mirror_node_checked_at: new Date().toISOString(),
+      mirror_node_retry_count: maxAttempts
+    })
+    .eq('id', jobId);
+  
+  return { success: false, error: 'Timeout waiting for mirror node confirmation' };
+}
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -69,20 +173,27 @@ serve(async () => {
             privateKey
           )
 
-          const duration = Date.now() - startTime
-
-          // Update job with transaction ID - status becomes 'submitted'
+          // Update job with transaction ID - status becomes 'submitted_checking'
           await supabase.from('topic_creation_jobs')
             .update({
-              status: 'submitted',
+              status: 'submitted_checking',
               transaction_id: transactionId,
               submitted_at: new Date().toISOString(),
-              duration,
               worker_id: workerId,
             })
             .eq('id', job.id)
 
-          console.log(`🚀 Job ${job.id} submitted → Transaction: ${transactionId} (duration: ${duration}ms)`)
+          console.log(`🚀 Job ${job.id} submitted → Transaction: ${transactionId}, now checking mirror node...`)
+
+          // Start mirror node polling for this specific job
+          const pollResult = await pollMirrorNodeForJob(job.id, transactionId, supabase)
+          const duration = Date.now() - startTime
+
+          if (pollResult.success) {
+            console.log(`✅ Job ${job.id} confirmed via mirror node → Topic: ${pollResult.topicId} (duration: ${duration}ms)`)
+          } else {
+            console.log(`⏳ Job ${job.id} submitted but not yet confirmed, will be picked up by scheduled poller`)
+          }
 
         } catch (err) {
           const duration = Date.now() - startTime
