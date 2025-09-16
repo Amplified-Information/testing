@@ -117,11 +117,12 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
             {/* Market Rules */}
             <MarketRules
               marketId={market.id}
-              endDate={market.end_date}
               minimumBet={1}
               maximumBet={undefined}
               category={market.category}
               subcategory={market.subcategory}
+              resolutionCriteria={market.resolution_criteria}
+              importantNotes={market.important_notes}
             />
 
             {/* Market Resolution */}

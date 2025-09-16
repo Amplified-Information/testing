@@ -1,39 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Clock, DollarSign, Scale } from "lucide-react";
+import { AlertCircle, DollarSign, Scale } from "lucide-react";
 
 interface MarketRulesProps {
   marketId: string;
-  endDate: string;
   minimumBet?: number;
   maximumBet?: number;
   category?: string;
   subcategory?: string;
+  resolutionCriteria?: string;
+  importantNotes?: string;
 }
 
 const MarketRules = ({ 
   marketId, 
-  endDate, 
   minimumBet = 1, 
   maximumBet, 
   category = "Politics",
-  subcategory = "Elections"
+  subcategory = "Elections",
+  resolutionCriteria = "This market will resolve based on official results and credible news sources. Resolution typically occurs within 24-48 hours of the outcome being determined.",
+  importantNotes = "All trades are final. Market may be resolved early if outcome becomes certain before the close date. Fees apply to winning positions."
 }: MarketRulesProps) => {
   const rules = [
-    {
-      icon: Clock,
-      title: "Market Closes",
-      description: `This market will close on ${new Date(endDate).toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZoneName: 'short'
-      })}`,
-      type: "info"
-    },
     {
       icon: DollarSign,
       title: "Betting Limits",
@@ -43,13 +31,13 @@ const MarketRules = ({
     {
       icon: Scale,
       title: "Resolution Criteria",
-      description: "This market will resolve based on official results and credible news sources. Resolution typically occurs within 24-48 hours of the outcome being determined.",
+      description: resolutionCriteria,
       type: "warning"
     },
     {
       icon: AlertCircle,
       title: "Important Notes",
-      description: "All trades are final. Market may be resolved early if outcome becomes certain before the close date. Fees apply to winning positions.",
+      description: importantNotes,
       type: "destructive"
     }
   ];

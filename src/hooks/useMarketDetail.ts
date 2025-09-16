@@ -21,6 +21,8 @@ export interface MarketDetail {
   end_date: string;
   market_structure: string;
   image_url?: string;
+  resolution_criteria?: string;
+  important_notes?: string;
   options: MarketOption[];
   chartData: any[];
 }
@@ -88,6 +90,8 @@ export const useMarketDetail = (marketId: string) => {
           end_date: marketData.end_date,
           market_structure: marketData.market_structure || 'binary',
           image_url: marketData.image_url,
+          resolution_criteria: marketData.resolution_criteria,
+          important_notes: marketData.important_notes,
           options: optionsData || [],
           chartData: priceHistory || []
         };

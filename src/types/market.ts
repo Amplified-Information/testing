@@ -30,6 +30,8 @@ export interface MarketDetail {
   end_date: string;
   is_active: boolean;
   resolution_status: 'open' | 'closed' | 'resolved' | 'cancelled';
+  resolution_criteria?: string;
+  important_notes?: string;
   options: MarketOption[];
   chart_data?: any[];
   chartData?: any[];

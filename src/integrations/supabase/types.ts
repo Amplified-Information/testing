@@ -272,6 +272,7 @@ export type Database = {
             | null
           id: string
           image_url: string | null
+          important_notes: string | null
           is_active: boolean
           is_featured: boolean
           is_new: boolean
@@ -290,6 +291,7 @@ export type Database = {
           participants_count: number | null
           proposal_id: string | null
           relevance: string | null
+          resolution_criteria: string | null
           resolution_date: string | null
           resolution_notes: string | null
           resolution_status: Database["public"]["Enums"]["resolution_status"]
@@ -318,6 +320,7 @@ export type Database = {
             | null
           id?: string
           image_url?: string | null
+          important_notes?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_new?: boolean
@@ -336,6 +339,7 @@ export type Database = {
           participants_count?: number | null
           proposal_id?: string | null
           relevance?: string | null
+          resolution_criteria?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
           resolution_status?: Database["public"]["Enums"]["resolution_status"]
@@ -364,6 +368,7 @@ export type Database = {
             | null
           id?: string
           image_url?: string | null
+          important_notes?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_new?: boolean
@@ -382,6 +387,7 @@ export type Database = {
           participants_count?: number | null
           proposal_id?: string | null
           relevance?: string | null
+          resolution_criteria?: string | null
           resolution_date?: string | null
           resolution_notes?: string | null
           resolution_status?: Database["public"]["Enums"]["resolution_status"]
