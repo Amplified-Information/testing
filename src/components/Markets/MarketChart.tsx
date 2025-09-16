@@ -34,9 +34,21 @@ const generateColor = (index: number, total: number) => {
 };
 
 const MarketChart = ({ priceHistory, candidates, marketOptions }: MarketChartProps) => {
+  // Debug: Log the input data
+  console.log('MarketChart Debug:', {
+    priceHistoryCount: priceHistory?.length,
+    candidatesCount: candidates?.length,
+    marketOptionsCount: marketOptions?.length,
+    candidates: candidates?.map(c => c.name),
+    marketOptions: marketOptions?.map(o => ({ name: o.option_name, candidateName: o.candidate_name, type: o.option_type }))
+  });
+
   // Transform price history data into chart format
   const chartData = useMemo(() => {
-    if (!priceHistory || !marketOptions) return [];
+    if (!priceHistory || !marketOptions) {
+      console.log('MarketChart: Missing data', { priceHistory: !!priceHistory, marketOptions: !!marketOptions });
+      return [];
+    }
 
     // Group price history by timestamp
     const timeGroups: { [key: string]: { [key: string]: string | number } } = {};
@@ -53,12 +65,16 @@ const MarketChart = ({ priceHistory, candidates, marketOptions }: MarketChartPro
       if (option && option.option_type === 'yes') { // Only show YES prices for candidates
         const candidateName = option.candidate_name || option.option_name;
         timeGroups[date][candidateName] = point.price * 100; // Convert to percentage
+        console.log('MarketChart: Adding data point', { date, candidateName, price: point.price * 100 });
       }
     });
 
-    return Object.values(timeGroups).sort((a, b) => 
+    const result = Object.values(timeGroups).sort((a, b) => 
       new Date(a.timestamp as string).getTime() - new Date(b.timestamp as string).getTime()
     );
+    
+    console.log('MarketChart: Final chartData', result);
+    return result;
   }, [priceHistory, marketOptions]);
 
   // Generate colors and config for candidates
