@@ -24,8 +24,28 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
   const [selectedRange, setSelectedRange] = useState('7d');
   const [showVolume, setShowVolume] = useState(true);
 
-  // Mock data for demonstration - in real app this would be filtered based on selectedRange
-  const chartData = data.length > 0 ? data : [
+  // Transform data to have consistent yes/no fields regardless of option names
+  const chartData = data.length > 0 ? data.map(item => {
+    // Find yes and no values from the data
+    let yesValue = yesPrice * 100;
+    let noValue = noPrice * 100;
+    
+    // Look for option fields that contain "Yes" or "No"
+    Object.keys(item).forEach(key => {
+      if (key.toLowerCase().includes('yes') || key.toLowerCase().includes('- yes')) {
+        yesValue = item[key];
+      } else if (key.toLowerCase().includes('no') || key.toLowerCase().includes('- no')) {
+        noValue = item[key];
+      }
+    });
+    
+    return {
+      ...item,
+      yes: yesValue,
+      no: noValue,
+      volume: volume * (0.1 + Math.random() * 0.1) // Add some volume variation
+    };
+  }) : [
     { date: '2024-01-01', yes: yesPrice * 100, no: noPrice * 100, volume: volume * 0.1 },
     { date: '2024-01-02', yes: (yesPrice + 0.02) * 100, no: (noPrice - 0.02) * 100, volume: volume * 0.15 },
     { date: '2024-01-03', yes: (yesPrice - 0.01) * 100, no: (noPrice + 0.01) * 100, volume: volume * 0.12 },
@@ -91,7 +111,14 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
                 dataKey="date" 
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
-                tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                tickFormatter={(value) => {
+                  try {
+                    const date = new Date(value);
+                    return isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  } catch {
+                    return value;
+                  }
+                }}
               />
               <YAxis 
                 yAxisId="price"
@@ -111,7 +138,14 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
               )}
               <ChartTooltip 
                 content={<ChartTooltipContent />}
-                labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                labelFormatter={(value) => {
+                  try {
+                    const date = new Date(value);
+                    return isNaN(date.getTime()) ? value : date.toLocaleDateString();
+                  } catch {
+                    return value;
+                  }
+                }}
                 formatter={(value: any, name: string) => {
                   if (name === 'volume') return [`$${Math.round(value).toLocaleString()}`, 'Volume'];
                   return [`${Math.round(value)}¢`, name.toUpperCase()];
