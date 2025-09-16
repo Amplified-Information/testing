@@ -67,7 +67,7 @@ serve(async (req) => {
     
     console.log(`🔍 Searching for recent CONSENSUSCREATETOPIC transactions since ${thirtyMinutesAgo.toISOString()}`)
     
-    const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions?result=success&type=CONSENSUSCREATETOPIC&timestamp=gte:${startTimestamp}&order=desc&limit=100`;
+    const mirrorUrl = `https://testnet.mirrornode.hedera.com/api/v1/transactions?transactiontype=CONSENSUSCREATETOPIC&timestamp=gte:${startTimestamp}&order=desc&limit=100`;
     
     let recentTransactions = [];
     try {
