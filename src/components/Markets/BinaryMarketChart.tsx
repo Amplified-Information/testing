@@ -26,7 +26,15 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
 
   // Transform raw price history data to chart format for binary markets
   const chartData = useMemo(() => {
+    console.log('BinaryMarketChart: Raw data input', { 
+      data: data?.slice(0, 3), 
+      dataLength: data?.length, 
+      yesPrice, 
+      noPrice 
+    });
+
     if (!data || data.length === 0) {
+      console.log('BinaryMarketChart: No data, returning mock data');
       // Return mock data if no real data
       return [
         { date: '2024-01-01', yes: yesPrice * 100, no: noPrice * 100, volume: volume * 0.1 },
@@ -39,6 +47,7 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
 
     // If data already has the transformed format (date, yes, no), use it directly
     if (data[0] && 'date' in data[0] && ('yes' in data[0] || 'Yes' in data[0])) {
+      console.log('BinaryMarketChart: Data already transformed, using directly');
       return data.map(item => ({
         ...item,
         yes: item.Yes || item.yes || yesPrice * 100,
@@ -47,6 +56,7 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
       }));
     }
 
+    console.log('BinaryMarketChart: Transforming raw price history data');
     // Transform raw price history data
     const groupedByDate = data.reduce((acc, record) => {
       try {
@@ -61,6 +71,15 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
         const isNo = record.option_type?.toLowerCase() === 'no' || 
                     record.option_name?.toLowerCase().includes('no');
         
+        console.log('BinaryMarketChart: Processing record', {
+          date,
+          price: record.price,
+          option_type: record.option_type,
+          option_name: record.option_name,
+          isYes,
+          isNo
+        });
+        
         if (isYes) {
           acc[date].yes = Number(record.price) * 100;
         } else if (isNo) {
@@ -73,9 +92,12 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
       return acc;
     }, {});
 
-    return Object.values(groupedByDate).sort((a: any, b: any) => 
+    const result = Object.values(groupedByDate).sort((a: any, b: any) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
+    
+    console.log('BinaryMarketChart: Final chart data', result?.slice(0, 3));
+    return result;
   }, [data, yesPrice, noPrice, volume]);
 
   return (
@@ -124,6 +146,12 @@ const BinaryMarketChart = ({ data, yesPrice, noPrice, volume }: BinaryMarketChar
       </CardHeader>
       
       <CardContent>
+        {/* Debug info */}
+        <div className="mb-4 p-2 bg-muted rounded text-xs">
+          <div>Chart Data Length: {chartData.length}</div>
+          <div>Sample Data: {JSON.stringify(chartData.slice(0, 2), null, 2)}</div>
+        </div>
+
         <ChartContainer config={{
           yes: { label: "YES", color: "hsl(var(--primary))" },
           no: { label: "NO", color: "hsl(var(--destructive))" },
