@@ -24,3 +24,6 @@ verify_jwt = false
 
 [functions.scheduled-mirror-poller]
 verify_jwt = false
+
+[functions.hedera-connectivity-test]
+verify_jwt = false
