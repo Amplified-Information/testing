@@ -152,17 +152,17 @@ async function testHederaClientInit(): Promise<ConnectivityTestResult> {
     const { data: secrets, error } = await supabase
       .from('secrets')
       .select('name, value')
-      .in('name', ['HEDERA_OPERATOR_ID', 'HEDERA_OPERATOR_KEY']);
+      .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
 
     if (error || !secrets) {
-      throw new Error(`Failed to fetch Hedera credentials: ${error?.message}`);
+      throw new Error(`Failed to fetch CLOB system account credentials: ${error?.message}`);
     }
 
-    const operatorId = secrets.find(s => s.name === 'HEDERA_OPERATOR_ID')?.value;
-    const operatorKey = secrets.find(s => s.name === 'HEDERA_OPERATOR_KEY')?.value;
+    const operatorId = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_ID')?.value;
+    const operatorKey = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')?.value;
 
     if (!operatorId || !operatorKey) {
-      throw new Error('Missing Hedera credentials in secrets table');
+      throw new Error('Missing CLOB system account credentials in secrets table');
     }
 
     // Create Hedera client with aggressive timeout settings
@@ -206,17 +206,17 @@ async function testAccountBalanceQuery(): Promise<ConnectivityTestResult> {
     const { data: secrets, error } = await supabase
       .from('secrets')
       .select('name, value')
-      .in('name', ['HEDERA_OPERATOR_ID', 'HEDERA_OPERATOR_KEY']);
+      .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
 
     if (error || !secrets) {
-      throw new Error(`Failed to fetch Hedera credentials: ${error?.message}`);
+      throw new Error(`Failed to fetch CLOB system account credentials: ${error?.message}`);
     }
 
-    const operatorId = secrets.find(s => s.name === 'HEDERA_OPERATOR_ID')?.value;
-    const operatorKey = secrets.find(s => s.name === 'HEDERA_OPERATOR_KEY')?.value;
+    const operatorId = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_ID')?.value;
+    const operatorKey = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')?.value;
 
     if (!operatorId || !operatorKey) {
-      throw new Error('Missing Hedera credentials in secrets table');
+      throw new Error('Missing CLOB system account credentials in secrets table');
     }
 
     // Create Hedera client with very short timeouts
@@ -269,17 +269,17 @@ async function testTopicCreation(): Promise<ConnectivityTestResult> {
     const { data: secrets, error } = await supabase
       .from('secrets')
       .select('name, value')
-      .in('name', ['HEDERA_OPERATOR_ID', 'HEDERA_OPERATOR_KEY']);
+      .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
 
     if (error || !secrets) {
-      throw new Error(`Failed to fetch Hedera credentials: ${error?.message}`);
+      throw new Error(`Failed to fetch CLOB system account credentials: ${error?.message}`);
     }
 
-    const operatorId = secrets.find(s => s.name === 'HEDERA_OPERATOR_ID')?.value;
-    const operatorKey = secrets.find(s => s.name === 'HEDERA_OPERATOR_KEY')?.value;
+    const operatorId = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_ID')?.value;
+    const operatorKey = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')?.value;
 
     if (!operatorId || !operatorKey) {
-      throw new Error('Missing Hedera credentials in secrets table');
+      throw new Error('Missing CLOB system account credentials in secrets table');
     }
 
     // Create Hedera client with very short timeouts for testing

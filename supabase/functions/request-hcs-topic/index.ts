@@ -28,20 +28,20 @@ Deno.serve(async (req) => {
     const { data: secrets, error: secretsError } = await supabase
       .from('secrets')
       .select('name, value')
-      .in('name', ['HEDERA_OPERATOR_ID', 'HEDERA_OPERATOR_KEY']);
+      .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
 
     if (secretsError || !secrets || secrets.length !== 2) {
-      throw new Error('Failed to fetch Hedera credentials from secrets');
+      throw new Error('Failed to fetch CLOB system account credentials from secrets');
     }
 
-    const operatorId = secrets.find(s => s.name === 'HEDERA_OPERATOR_ID')?.value;
-    const operatorKey = secrets.find(s => s.name === 'HEDERA_OPERATOR_KEY')?.value;
+    const operatorId = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_ID')?.value;
+    const operatorKey = secrets.find(s => s.name === 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY')?.value;
 
     if (!operatorId || !operatorKey) {
-      throw new Error('Missing Hedera operator credentials');
+      throw new Error('Missing CLOB system account credentials');
     }
 
-    console.log('🔑 Retrieved Hedera credentials, operator:', operatorId);
+    console.log('🔑 Retrieved CLOB system account credentials, operator:', operatorId);
 
     // 1. Insert pending request
     const { data: request, error: insertError } = await supabase
