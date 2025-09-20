@@ -9,6 +9,7 @@ import { TimeoutTestPanel } from '@/components/HCS/TimeoutTestPanel';
 import { HCSJobMonitor } from '@/components/HCS/HCSJobMonitor';
 import { HederaConnectivityTest } from '@/components/HCS/HederaConnectivityTest';
 import { SimpleHCSTest } from '@/components/HCS/SimpleHCSTest';
+import HCSSystemMonitor from '@/components/HCS/HCSSystemMonitor';
 
 export default function HCSTimeoutTesting() {
   return (
@@ -51,8 +52,12 @@ export default function HCSTimeoutTesting() {
         </Card>
 
         {/* Main Testing Tabs */}
-        <Tabs defaultValue="simple" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="system" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              System Health
+            </TabsTrigger>
             <TabsTrigger value="simple" className="flex items-center gap-2">
               <TestTube className="h-4 w-4" />
               Simple Approach
@@ -70,6 +75,10 @@ export default function HCSTimeoutTesting() {
               Job Monitor
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="system" className="space-y-6">
+            <HCSSystemMonitor />
+          </TabsContent>
 
           <TabsContent value="simple" className="space-y-6">
             <SimpleHCSTest />

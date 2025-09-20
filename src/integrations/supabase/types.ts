@@ -1566,6 +1566,10 @@ export type Database = {
         Args: { wallet_id: string }
         Returns: boolean
       }
+      trigger_hcs_cleanup_monitor: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       trigger_scheduled_mirror_poller: {
         Args: Record<PropertyKey, never>
         Returns: undefined
