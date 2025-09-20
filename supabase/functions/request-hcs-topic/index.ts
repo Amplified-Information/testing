@@ -64,8 +64,7 @@ Deno.serve(async (req) => {
     const privateKey = PrivateKey.fromString(operatorKey);
     const client = Client.forTestnet()
       .setOperator(operatorId, privateKey)
-      .setRequestTimeout(30000) // 30 second timeout
-      .setGrpcDeadline(25000);  // 25 second gRPC deadline
+      .setRequestTimeout(30000); // 30 second timeout
 
     console.log('🌐 Initialized Hedera client');
 
