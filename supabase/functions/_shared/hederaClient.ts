@@ -39,10 +39,7 @@ export function createHederaClient(config: HederaClientConfig): Client {
       client.setCloseTimeout(5000)   // 5s close timeout (increased from 3s)
     }
     
-    // Additional testnet-specific configurations
-    if (typeof client.setGrpcDeadline === 'function') {
-      client.setGrpcDeadline(15000) // 15s gRPC deadline (increased from default)
-    }
+    // Additional testnet-specific configurations removed - using SDK defaults
     
     // Network health check
     const networkStatus = networkHealth.getNetworkStatus()

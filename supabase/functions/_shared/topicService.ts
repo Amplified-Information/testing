@@ -166,7 +166,6 @@ export async function createTopic(
 
         // Testnet-optimized timeout settings
         transaction.setTransactionValidDuration(90) // 90 seconds (increased from 30)
-        transaction.setGrpcDeadline(15000) // 15 seconds (increased from 6)
 
         console.log('Executing transaction with circuit breaker...')
         const executeStart = Date.now()
@@ -226,7 +225,6 @@ export async function createCLOBTopic(
 
       // Testnet-optimized timeout settings for submission
       transaction.setTransactionValidDuration(90); // 90 seconds (increased from 30)
-      transaction.setGrpcDeadline(15000); // 15 second gRPC timeout (increased from 6s)
 
       if (operatorPrivateKey) {
         console.log('Auto-renew settings applied successfully');
