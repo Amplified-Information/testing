@@ -33,3 +33,6 @@ verify_jwt = false
 
 [functions.poll-hcs-mirror]
 verify_jwt = false
+
+[functions.hcs-cleanup-monitor]
+verify_jwt = false
