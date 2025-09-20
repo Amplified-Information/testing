@@ -434,43 +434,6 @@ const DevNotesIndex = () => {
               </CardContent>
             </Card>
 
-            {/* HCS Timeout Testing */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-primary" />
-                      HCS Timeout Testing
-                    </CardTitle>
-                    <CardDescription>
-                      Test enhanced timeout configurations and retry mechanisms for improved reliability
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">Enhanced Testing</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Specialized testing suite for validating the enhanced HCS timeout configurations including 
-                    testnet-optimized settings, progressive retry mechanisms, and network health monitoring.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">Timeout Testing</Badge>
-                    <Badge variant="outline">Batch Stress Tests</Badge>
-                    <Badge variant="outline">Network Stats</Badge>
-                    <Badge variant="outline">Enhanced Configs</Badge>
-                  </div>
-                  <Link 
-                    to="/dev-notes/hcs-timeout-testing" 
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    Launch Timeout Tests <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* HCS Async Documentation */}
             <Card className="hover:shadow-lg transition-shadow">
