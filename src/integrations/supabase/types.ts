@@ -1306,6 +1306,7 @@ export type Database = {
           mirror_node_retry_count: number | null
           request_id: string
           retry_count: number
+          scheduled_for: string | null
           status: string
           submitted_at: string | null
           topic_id: string | null
@@ -1327,6 +1328,7 @@ export type Database = {
           mirror_node_retry_count?: number | null
           request_id: string
           retry_count?: number
+          scheduled_for?: string | null
           status?: string
           submitted_at?: string | null
           topic_id?: string | null
@@ -1348,6 +1350,7 @@ export type Database = {
           mirror_node_retry_count?: number | null
           request_id?: string
           retry_count?: number
+          scheduled_for?: string | null
           status?: string
           submitted_at?: string | null
           topic_id?: string | null
@@ -1474,6 +1477,7 @@ export type Database = {
           mirror_node_retry_count: number | null
           request_id: string
           retry_count: number
+          scheduled_for: string | null
           status: string
           submitted_at: string | null
           topic_id: string | null
