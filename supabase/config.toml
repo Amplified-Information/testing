@@ -13,6 +13,9 @@ verify_jwt = false
 [functions.hcs-manager]
 verify_jwt = false
 
+[functions.hcs-test]
+verify_jwt = false
+
 [functions.process-topic-jobs]
 verify_jwt = false
 
@@ -22,8 +25,14 @@ verify_jwt = false
 [functions.scheduled-mirror-poller]
 verify_jwt = false
 
+[functions.hedera-connectivity-test]
+verify_jwt = false
+
 [functions.request-hcs-topic]
 verify_jwt = false
 
 [functions.poll-hcs-mirror]
+verify_jwt = false
+
+[functions.hcs-cleanup-monitor]
 verify_jwt = false
