@@ -456,6 +456,39 @@ export type Database = {
         }
         Relationships: []
       }
+      hcs_requests: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: number
+          memo: string | null
+          mirror_confirmed_at: string | null
+          status: string | null
+          topic_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: never
+          memo?: string | null
+          mirror_confirmed_at?: string | null
+          status?: string | null
+          topic_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: never
+          memo?: string | null
+          mirror_confirmed_at?: string | null
+          status?: string | null
+          topic_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       hcs_topics: {
         Row: {
           created_at: string | null

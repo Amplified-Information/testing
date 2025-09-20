@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { TimeoutTestPanel } from '@/components/HCS/TimeoutTestPanel';
 import { HCSJobMonitor } from '@/components/HCS/HCSJobMonitor';
 import { HederaConnectivityTest } from '@/components/HCS/HederaConnectivityTest';
+import { SimpleHCSTest } from '@/components/HCS/SimpleHCSTest';
 
 export default function HCSTimeoutTesting() {
   return (
@@ -50,11 +51,15 @@ export default function HCSTimeoutTesting() {
         </Card>
 
         {/* Main Testing Tabs */}
-        <Tabs defaultValue="connectivity" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="simple" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="simple" className="flex items-center gap-2">
+              <TestTube className="h-4 w-4" />
+              Simple Approach
+            </TabsTrigger>
             <TabsTrigger value="connectivity" className="flex items-center gap-2">
               <Wifi className="h-4 w-4" />
-              Network Connectivity
+              Network Test
             </TabsTrigger>
             <TabsTrigger value="timeout" className="flex items-center gap-2">
               <Timer className="h-4 w-4" />
@@ -65,6 +70,10 @@ export default function HCSTimeoutTesting() {
               Job Monitor
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="simple" className="space-y-6">
+            <SimpleHCSTest />
+          </TabsContent>
 
           <TabsContent value="connectivity" className="space-y-6">
             <HederaConnectivityTest />
