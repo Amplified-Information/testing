@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { ErrorBoundary, WalletErrorBoundary } from "@/components/ErrorBoundary";
 // Import pages directly for now to fix dynamic import issues
-import Index from "./pages/Index";
+import TestIndex from "./pages/TestIndex";
 import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
 import Portfolio from "./pages/Portfolio";
@@ -60,7 +60,7 @@ const App = () => (
             <ErrorBoundary>
               <BrowserRouter>
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<TestIndex />} />
                   <Route path="/markets" element={<Markets />} />
                   <Route path="/create-market" element={<CreateMarket />} />
                   <Route path="/portfolio" element={<Portfolio />} />
