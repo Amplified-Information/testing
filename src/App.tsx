@@ -3,8 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { WalletProvider } from "@/contexts/WalletContext";
-import { ErrorBoundary, WalletErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 // Import pages directly for now to fix dynamic import issues
 import TestIndex from "./pages/TestIndex";
 import Markets from "./pages/Markets";
@@ -52,13 +51,11 @@ const queryClient = new QueryClient({
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <WalletErrorBoundary>
-        <WalletProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <ErrorBoundary>
-              <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <ErrorBoundary>
+          <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<TestIndex />} />
                   <Route path="/markets" element={<Markets />} />
@@ -81,11 +78,9 @@ const App = () => (
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-              </BrowserRouter>
-            </ErrorBoundary>
-          </TooltipProvider>
-        </WalletProvider>
-      </WalletErrorBoundary>
+          </BrowserRouter>
+        </ErrorBoundary>
+      </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );
