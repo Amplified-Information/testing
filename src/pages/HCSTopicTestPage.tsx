@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import HCSTopicTest from '@/components/HCS/HCSTopicTest';
+import SimpleHCSTopicTest from '@/components/HCS/SimpleHCSTopicTest';
 
 export default function HCSTopicTestPage() {
   return (
@@ -18,13 +18,13 @@ export default function HCSTopicTestPage() {
           
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Async HCS Topic Creation</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Simple HCS Topic Creation</h1>
               <p className="text-lg text-muted-foreground mt-2">
-                Test asynchronous Hedera Consensus Service topic creation with real-time processing
+                Test Hedera Consensus Service topic creation with simple, direct approach
               </p>
             </div>
             <Badge variant="outline" className="px-3 py-1">
-              Async Testing
+              Simple Testing
             </Badge>
           </div>
         </div>
@@ -32,7 +32,7 @@ export default function HCSTopicTestPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Test Interface */}
           <div className="lg:col-span-2">
-            <HCSTopicTest />
+            <SimpleHCSTopicTest />
           </div>
 
           {/* Methodology & Info */}
@@ -45,7 +45,7 @@ export default function HCSTopicTestPage() {
                   Test Methodology
                 </CardTitle>
                 <CardDescription>
-                  Async job processing workflow
+                  Simple direct processing workflow
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -55,8 +55,8 @@ export default function HCSTopicTestPage() {
                       1
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Job Creation</p>
-                      <p className="text-xs text-muted-foreground">Queue topic creation request</p>
+                      <p className="font-medium text-sm">Direct Request</p>
+                      <p className="text-xs text-muted-foreground">Call edge function directly</p>
                     </div>
                   </div>
                   
@@ -65,8 +65,8 @@ export default function HCSTopicTestPage() {
                       2
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Worker Processing</p>
-                      <p className="text-xs text-muted-foreground">Database trigger starts worker</p>
+                      <p className="font-medium text-sm">Topic Creation</p>
+                      <p className="text-xs text-muted-foreground">Edge function creates HCS topic</p>
                     </div>
                   </div>
                   
@@ -75,8 +75,8 @@ export default function HCSTopicTestPage() {
                       3
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Topic Creation</p>
-                      <p className="text-xs text-muted-foreground">Worker creates HCS topic</p>
+                      <p className="font-medium text-sm">Mirror Polling</p>
+                      <p className="text-xs text-muted-foreground">Confirm creation via mirror node</p>
                     </div>
                   </div>
                   
@@ -85,8 +85,8 @@ export default function HCSTopicTestPage() {
                       4
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Real-time Updates</p>
-                      <p className="text-xs text-muted-foreground">Status updates via database</p>
+                      <p className="font-medium text-sm">Direct Response</p>
+                      <p className="text-xs text-muted-foreground">Immediate status return</p>
                     </div>
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export default function HCSTopicTestPage() {
                   </div>
                   <div>
                     <p className="font-medium">Processing</p>
-                    <p className="text-muted-foreground">Database trigger + worker</p>
+                    <p className="text-muted-foreground">Direct edge function</p>
                   </div>
                   <div>
                     <p className="font-medium">Credentials</p>
@@ -135,15 +135,15 @@ export default function HCSTopicTestPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Zap className="h-4 w-4 text-muted-foreground" />
-                    <span>Instant job creation</span>
+                    <span>Direct topic creation</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Database className="h-4 w-4 text-muted-foreground" />
-                    <span>Real-time updates</span>
+                    <span>Simple status tracking</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span>Error recovery</span>
+                    <span>Clear error messages</span>
                   </div>
                 </div>
               </CardContent>
