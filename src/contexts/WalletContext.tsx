@@ -178,7 +178,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     enabled: wallet.isConnected,
   });
 
-  // Function to save wallet to database after connection - auto-creates user if needed
+  // Function to save wallet to database after connection - links directly to existing tokens
   const saveConnectedWallet = useCallback(async (accountId: string, publicKey: string | null) => {
     try {
       debug.log('Saving connected wallet to database', { accountId });
@@ -191,70 +191,82 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
       
       if (existingWallet?.user_id) {
-        debug.log('Wallet already exists with user, authenticating as that user', existingWallet);
+        debug.log('Wallet already exists, updating connection time', existingWallet);
         
-        // For now, create a new anonymous session but we should ideally 
-        // authenticate as the existing user. Since we can't do that directly,
-        // we'll create a new user and transfer ownership
-        if (!currentUser) {
-          const { error: signInError } = await supabase.auth.signInAnonymously();
-          if (signInError) {
-            debug.error('Failed to create anonymous user', signInError);
-            return;
-          }
-          
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            // Update tokens and other data to belong to the new user
-            await supabase.from('user_token_balances').update({ user_id: user.id }).eq('user_id', existingWallet.user_id);
-            await supabase.from('market_proposals').update({ proposer_id: user.id }).eq('proposer_id', existingWallet.user_id);
-            await supabase.from('proposal_votes').update({ voter_id: user.id }).eq('voter_id', existingWallet.user_id);
-            await supabase.from('staking_positions').update({ user_id: user.id }).eq('user_id', existingWallet.user_id);
-            await supabase.from('voting_power_snapshots').update({ user_id: user.id }).eq('user_id', existingWallet.user_id);
-            
-            // Update the wallet to point to the new user
-            await supabase
-              .from('hedera_wallets')
-              .update({ 
-                user_id: user.id,
-                last_connected_at: new Date().toISOString(),
-                public_key: publicKey 
-              })
-              .eq('account_id', accountId);
-            
-            debug.log('Transferred data ownership to new user', { oldUserId: existingWallet.user_id, newUserId: user.id });
-          }
-        }
+        // Update the existing wallet's connection time
+        await supabase
+          .from('hedera_wallets')
+          .update({ 
+            last_connected_at: new Date().toISOString(),
+            public_key: publicKey 
+          })
+          .eq('account_id', accountId);
+        
+        debug.log('Updated existing wallet connection');
         return;
       }
       
-      // If no existing user, create anonymous user
-      if (!currentUser) {
-        debug.log('No authenticated user, creating anonymous user for wallet');
+      // Check if there are tokens without an associated wallet (user ID: ccbb2f32-37a8-4c93-862a-eb1f1fbcb6f4)
+      const { data: unlinkedTokens } = await supabase
+        .from('user_token_balances')
+        .select('user_id')
+        .eq('user_id', 'ccbb2f32-37a8-4c93-862a-eb1f1fbcb6f4')
+        .maybeSingle();
+      
+      if (unlinkedTokens) {
+        debug.log('Found unlinked tokens, linking to wallet', { accountId, userId: unlinkedTokens.user_id });
         
-        const { data, error: authError } = await supabase.auth.signInAnonymously();
-        if (authError) {
-          debug.error('Failed to create anonymous user', authError);
-          throw authError;
+        // Create wallet entry linked to existing token balance
+        const { error: insertError } = await supabase
+          .from('hedera_wallets')
+          .insert({
+            account_id: accountId,
+            public_key: publicKey,
+            user_id: unlinkedTokens.user_id,
+            wallet_name: `Hedera Wallet ${accountId}`,
+            is_primary: true,
+            last_connected_at: new Date().toISOString(),
+          });
+        
+        if (insertError) {
+          debug.error('Failed to create wallet entry', insertError);
+          return;
         }
         
-        debug.log('Created anonymous user', { userId: data.user?.id });
-        // The auth state change will trigger and set currentUser
-        // We'll continue with saving the wallet
+        debug.log('Successfully linked wallet to existing tokens');
+        toast({
+          title: "Wallet Connected",
+          description: `Connected ${accountId} to your governance tokens!`,
+        });
+        return;
       }
       
-      // Save the wallet (will be called again via auth state change if user was just created)
-      await saveWalletMutation.mutateAsync({
-        accountId,
-        publicKey,
-        isPrimary: true, // Make newly connected wallet primary by default
+      // If no existing tokens, create new wallet entry without user_id for now
+      const { error: insertError } = await supabase
+        .from('hedera_wallets')
+        .insert({
+          account_id: accountId,
+          public_key: publicKey,
+          wallet_name: `Hedera Wallet ${accountId}`,
+          is_primary: true,
+          last_connected_at: new Date().toISOString(),
+        });
+      
+      if (insertError) {
+        debug.error('Failed to create wallet entry', insertError);
+        return;
+      }
+      
+      debug.log('Created new wallet entry');
+      toast({
+        title: "Wallet Connected",
+        description: `Connected ${accountId}. No governance tokens found yet.`,
       });
       
     } catch (error) {
       debug.error('Failed to save wallet to database', error);
-      // Don't throw error - connection should still work even if save fails
     }
-  }, [currentUser, saveWalletMutation, debug]);
+  }, [debug]);
 
   // Function to load primary wallet for authenticated user
   const loadPrimaryWallet = useCallback(async () => {

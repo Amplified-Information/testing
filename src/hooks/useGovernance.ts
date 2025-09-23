@@ -16,17 +16,25 @@ export const useGovernance = () => {
   const { wallet } = useWallet();
   const queryClient = useQueryClient();
 
-  // Get user's voting power
+  // Get user's voting power by Hedera account ID
   const { data: userBalance, isLoading: isLoadingBalance } = useQuery({
-    queryKey: ['user-token-balance'],
+    queryKey: ['user-token-balance', wallet.accountId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!wallet.accountId) return null;
+      
+      // First, find the wallet entry to get the linked user_id
+      const { data: walletData } = await supabase
+        .from('hedera_wallets')
+        .select('user_id')
+        .eq('account_id', wallet.accountId)
+        .maybeSingle();
+      
+      if (!walletData?.user_id) return null;
       
       const { data, error } = await supabase
         .from('user_token_balances')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', walletData.user_id)
         .maybeSingle();
 
       if (error) {
@@ -35,7 +43,7 @@ export const useGovernance = () => {
       
       return data as UserTokenBalance | null;
     },
-    enabled: wallet.isConnected,
+    enabled: wallet.isConnected && !!wallet.accountId,
   });
 
   // Get governance settings
@@ -66,55 +74,81 @@ export const useGovernance = () => {
     },
   });
 
-  // Get user's proposals
+  // Get user's proposals by Hedera account ID
   const { data: userProposals } = useQuery({
-    queryKey: ['user-proposals'],
+    queryKey: ['user-proposals', wallet.accountId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!wallet.accountId) return [];
+      
+      // Find the wallet entry to get the linked user_id
+      const { data: walletData } = await supabase
+        .from('hedera_wallets')
+        .select('user_id')
+        .eq('account_id', wallet.accountId)
+        .maybeSingle();
+      
+      if (!walletData?.user_id) return [];
       
       const { data, error } = await supabase
         .from('market_proposals')
         .select('*')
-        .eq('proposer_id', user.id)
+        .eq('proposer_id', walletData.user_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as MarketProposal[];
     },
-    enabled: wallet.isConnected,
+    enabled: wallet.isConnected && !!wallet.accountId,
   });
 
-  // Get user's votes
+  // Get user's votes by Hedera account ID
   const { data: userVotes } = useQuery({
-    queryKey: ['user-votes'],
+    queryKey: ['user-votes', wallet.accountId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!wallet.accountId) return [];
+      
+      // Find the wallet entry to get the linked user_id
+      const { data: walletData } = await supabase
+        .from('hedera_wallets')
+        .select('user_id')
+        .eq('account_id', wallet.accountId)
+        .maybeSingle();
+      
+      if (!walletData?.user_id) return [];
       
       const { data, error } = await supabase
         .from('proposal_votes')
         .select('*')
-        .eq('voter_id', user.id);
+        .eq('voter_id', walletData.user_id);
 
       if (error) throw error;
       return data as ProposalVote[];
     },
-    enabled: wallet.isConnected,
+    enabled: wallet.isConnected && !!wallet.accountId,
   });
 
   // Create proposal mutation
   const createProposalMutation = useMutation({
     mutationFn: async (proposalData: CreateProposalData) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
+      if (!wallet.accountId) {
+        throw new Error('Wallet not connected');
+      }
+      
+      // Find the wallet entry to get the linked user_id
+      const { data: walletData } = await supabase
+        .from('hedera_wallets')
+        .select('user_id')
+        .eq('account_id', wallet.accountId)
+        .maybeSingle();
+      
+      if (!walletData?.user_id) {
+        throw new Error('Wallet not linked to governance account');
       }
 
       const { data, error } = await supabase
         .from('market_proposals')
         .insert({
-          proposer_id: user.id,
+          proposer_id: walletData.user_id,
           proposal_type: 'market_creation',
           title: proposalData.title,
           description: proposalData.description,
@@ -182,19 +216,29 @@ export const useGovernance = () => {
       voteChoice: VoteChoice; 
       isProposalPhase?: boolean;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !userBalance) {
-        throw new Error('User not authenticated or no voting power');
+      if (!wallet.accountId || !userBalance) {
+        throw new Error('Wallet not connected or no voting power');
+      }
+      
+      // Find the wallet entry to get the linked user_id
+      const { data: walletData } = await supabase
+        .from('hedera_wallets')
+        .select('user_id')
+        .eq('account_id', wallet.accountId)
+        .maybeSingle();
+      
+      if (!walletData?.user_id) {
+        throw new Error('Wallet not linked to governance account');
       }
 
       // Create a simple signature for now (would be replaced with actual wallet signature)
-      const signature = `${user.id}-${proposalId}-${voteChoice}-${Date.now()}`;
+      const signature = `${wallet.accountId}-${proposalId}-${voteChoice}-${Date.now()}`;
 
       const { data, error } = await supabase
         .from('proposal_votes')
         .insert({
           proposal_id: proposalId,
-          voter_id: user.id,
+          voter_id: walletData.user_id,
           vote_choice: voteChoice,
           voting_power: userBalance.total_voting_power,
           is_proposal_phase: isProposalPhase,
