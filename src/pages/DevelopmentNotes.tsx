@@ -52,7 +52,7 @@ const DevelopmentNotes = () => {
   // Database Infrastructure Status
   const databaseComponents = [
     { name: 'Governance Enums', status: 'completed', description: 'governance_status, proposal_type, vote_choice, oracle_type' },
-    { name: 'User Token Balances', status: 'completed', description: 'Track PROTOCOL_TOKEN holdings and voting power' },
+    { name: 'User Token Balances', status: 'completed', description: 'Track protocol token holdings and voting power (TODO: PROTOCOL_TOKEN TBD)' },
     { name: 'Staking Positions', status: 'completed', description: 'Enhanced voting power through staking' },
     { name: 'Market Proposals', status: 'completed', description: 'Core proposal data and voting tracking' },
     { name: 'Proposal Votes', status: 'completed', description: 'Individual vote records with HCS integration' },
@@ -212,7 +212,7 @@ const DevelopmentNotes = () => {
                       <ol className="space-y-2 text-sm">
                         <li className="flex items-center gap-2">
                           <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">1</span>
-                          Proposal Creation (100K PROTOCOL_TOKEN minimum)
+                          Proposal Creation (100K voting power minimum) {/* TODO: Define PROTOCOL_TOKEN */}
                         </li>
                         <li className="flex items-center gap-2">
                           <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">2</span>
@@ -314,7 +314,7 @@ const DevelopmentNotes = () => {
                     <div>
                       <h4 className="font-semibold mb-3">Core Tables</h4>
                       <ul className="space-y-2 text-sm">
-                        <li><code className="bg-muted px-1 rounded">user_token_balances</code> - PROTOCOL_TOKEN tracking</li>
+                        <li><code className="bg-muted px-1 rounded">user_token_balances</code> - Protocol token tracking (TODO: PROTOCOL_TOKEN TBD)</li>
                         <li><code className="bg-muted px-1 rounded">staking_positions</code> - Enhanced voting power</li>
                         <li><code className="bg-muted px-1 rounded">market_proposals</code> - Proposal lifecycle management</li>
                         <li><code className="bg-muted px-1 rounded">proposal_votes</code> - Individual vote records</li>

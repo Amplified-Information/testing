@@ -104,8 +104,9 @@ const ProposalForm = () => {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              You need at least {required.toLocaleString()} PROTOCOL_TOKEN voting power to create proposals. 
+              You need at least {required.toLocaleString()} voting power to create proposals. 
               You currently have {current.toLocaleString()} voting power.
+              {/* TODO: Replace with actual PROTOCOL_TOKEN name when implemented */}
             </AlertDescription>
           </Alert>
         </CardContent>
