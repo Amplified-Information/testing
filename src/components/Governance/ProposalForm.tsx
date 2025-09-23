@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Check, FileText, Calendar, DollarSign, Eye } from "lucide-react";
+import { AlertCircle, Check, FileText, Calendar, DollarSign, Eye, Plus, X, Upload, Image } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useGovernance } from "@/hooks/useGovernance";
 import { useWallet } from "@/contexts/WalletContext";
 import type { CreateProposalData } from "@/types/governance";
@@ -42,6 +43,11 @@ const ProposalForm = () => {
     collateral_type: 'HBAR',
   });
 
+  const [marketType, setMarketType] = useState<'binary' | 'multiple-choice'>('binary');
+  const [marketImage, setMarketImage] = useState<File | null>(null);
+  const [outcomeImages, setOutcomeImages] = useState<{[key: string]: File | null}>({});
+  const [multiChoiceOutcomes, setMultiChoiceOutcomes] = useState<string[]>(['Option A', 'Option B', 'Option C']);
+
   const updateFormData = (updates: Partial<CreateProposalData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
   };
@@ -61,7 +67,7 @@ const ProposalForm = () => {
   const isStepValid = (step: number) => {
     switch (step) {
       case 1:
-        return formData.title && formData.description && formData.market_title && formData.market_description;
+        return formData.title && formData.description && formData.market_title && formData.market_description && marketType;
       case 2:
         return formData.resolution_date && formData.oracle_type;
       case 3:
@@ -71,6 +77,28 @@ const ProposalForm = () => {
       default:
         return false;
     }
+  };
+
+  const handleImageUpload = (file: File, type: 'market' | 'outcome', outcomeKey?: string) => {
+    if (type === 'market') {
+      setMarketImage(file);
+    } else if (type === 'outcome' && outcomeKey) {
+      setOutcomeImages(prev => ({ ...prev, [outcomeKey]: file }));
+    }
+  };
+
+  const addOutcome = () => {
+    setMultiChoiceOutcomes(prev => [...prev, `Option ${prev.length + 1}`]);
+  };
+
+  const removeOutcome = (index: number) => {
+    if (multiChoiceOutcomes.length > 2) {
+      setMultiChoiceOutcomes(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateOutcome = (index: number, value: string) => {
+    setMultiChoiceOutcomes(prev => prev.map((outcome, i) => i === index ? value : outcome));
   };
 
   if (!wallet.isConnected) {
@@ -169,6 +197,19 @@ const ProposalForm = () => {
               </div>
 
               <div>
+                <Label>Market Type</Label>
+                <Select value={marketType} onValueChange={(value: 'binary' | 'multiple-choice') => setMarketType(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select market type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="binary">Binary Market (Yes/No)</SelectItem>
+                    <SelectItem value="multiple-choice">Multiple Choice Market</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <Label htmlFor="market_title">Market Question</Label>
                 <Input
                   id="market_title"
@@ -190,37 +231,169 @@ const ProposalForm = () => {
               </div>
 
               <div>
-                <Label>Market Outcomes</Label>
-                <div className="space-y-2 mt-2">
-                  <div>
-                    <Label htmlFor="yes_outcome">Yes Outcome</Label>
-                    <Input
-                      id="yes_outcome"
-                      value={formData.market_outcomes.yes}
-                      onChange={(e) => updateFormData({ 
-                        market_outcomes: { 
-                          ...formData.market_outcomes, 
-                          yes: e.target.value 
-                        }
-                      })}
-                      placeholder="Yes"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="no_outcome">No Outcome</Label>
-                    <Input
-                      id="no_outcome"
-                      value={formData.market_outcomes.no}
-                      onChange={(e) => updateFormData({ 
-                        market_outcomes: { 
-                          ...formData.market_outcomes, 
-                          no: e.target.value 
-                        }
-                      })}
-                      placeholder="No"
-                    />
-                  </div>
+                <Label>Market Image</Label>
+                <div className="mt-2">
+                  <Label htmlFor="market_image_upload" className="cursor-pointer">
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 hover:border-muted-foreground/50 transition-colors">
+                      <div className="flex flex-col items-center space-y-2">
+                        <Image className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {marketImage ? marketImage.name : "Upload market image"}
+                        </span>
+                      </div>
+                    </div>
+                  </Label>
+                  <input
+                    id="market_image_upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'market');
+                    }}
+                  />
                 </div>
+              </div>
+
+              <div>
+                <Label>Market Outcomes</Label>
+                {marketType === 'binary' ? (
+                  <div className="space-y-4 mt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="yes_outcome">Yes Outcome</Label>
+                        <Input
+                          id="yes_outcome"
+                          value={formData.market_outcomes.yes}
+                          onChange={(e) => updateFormData({ 
+                            market_outcomes: { 
+                              ...formData.market_outcomes, 
+                              yes: e.target.value 
+                            }
+                          })}
+                          placeholder="Yes"
+                        />
+                        <div className="mt-2">
+                          <Label htmlFor="yes_image" className="cursor-pointer">
+                            <div className="border border-muted rounded p-3 hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center space-x-2">
+                                <Upload className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">
+                                  {outcomeImages.yes ? outcomeImages.yes.name : "Upload Yes image"}
+                                </span>
+                              </div>
+                            </div>
+                          </Label>
+                          <input
+                            id="yes_image"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, 'outcome', 'yes');
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="no_outcome">No Outcome</Label>
+                        <Input
+                          id="no_outcome"
+                          value={formData.market_outcomes.no}
+                          onChange={(e) => updateFormData({ 
+                            market_outcomes: { 
+                              ...formData.market_outcomes, 
+                              no: e.target.value 
+                            }
+                          })}
+                          placeholder="No"
+                        />
+                        <div className="mt-2">
+                          <Label htmlFor="no_image" className="cursor-pointer">
+                            <div className="border border-muted rounded p-3 hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center space-x-2">
+                                <Upload className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">
+                                  {outcomeImages.no ? outcomeImages.no.name : "Upload No image"}
+                                </span>
+                              </div>
+                            </div>
+                          </Label>
+                          <input
+                            id="no_image"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, 'outcome', 'no');
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 mt-2">
+                    {multiChoiceOutcomes.map((outcome, index) => (
+                      <div key={index} className="flex items-end space-x-3">
+                        <div className="flex-1">
+                          <Label htmlFor={`outcome_${index}`}>Outcome {index + 1}</Label>
+                          <Input
+                            id={`outcome_${index}`}
+                            value={outcome}
+                            onChange={(e) => updateOutcome(index, e.target.value)}
+                            placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                          />
+                          <div className="mt-2">
+                            <Label htmlFor={`outcome_image_${index}`} className="cursor-pointer">
+                              <div className="border border-muted rounded p-2 hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center space-x-2">
+                                  <Upload className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {outcomeImages[`outcome_${index}`] ? outcomeImages[`outcome_${index}`]?.name : "Upload image"}
+                                  </span>
+                                </div>
+                              </div>
+                            </Label>
+                            <input
+                              id={`outcome_image_${index}`}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file, 'outcome', `outcome_${index}`);
+                              }}
+                            />
+                          </div>
+                        </div>
+                        {multiChoiceOutcomes.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeOutcome(index)}
+                            className="mb-8"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addOutcome}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Outcome
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
