@@ -1,39 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Hexagon, Menu, User } from "lucide-react";
+import { TrendingUp, Hexagon, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import WalletButton from "@/components/Wallet/WalletButton";
-import SignUpDialog from "@/components/Auth/SignUpDialog";
 import { useWallet } from "@/contexts/WalletContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 const Header = () => {
   const { wallet } = useWallet();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  
-  useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
   
   const handlePortfolioClick = (e: React.MouseEvent) => {
     if (!wallet.isConnected) {
@@ -137,36 +115,9 @@ const Header = () => {
             Testnet
           </Badge>
           
-          {user ? (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
-          ) : (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setAuthDialogOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Login</span>
-            </Button>
-          )}
-          
           <WalletButton />
         </div>
       </div>
-      
-      <SignUpDialog 
-        open={authDialogOpen} 
-        onOpenChange={setAuthDialogOpen} 
-      />
     </header>
   );
 };
