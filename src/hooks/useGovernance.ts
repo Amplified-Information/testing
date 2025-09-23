@@ -18,23 +18,24 @@ export const useGovernance = () => {
 
   // Get user's voting power
   const { data: userBalance, isLoading: isLoadingBalance } = useQuery({
-    queryKey: ['user-token-balance', wallet.accountId],
+    queryKey: ['user-token-balance'],
     queryFn: async () => {
-      if (!wallet.accountId) return null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
       
       const { data, error } = await supabase
         .from('user_token_balances')
         .select('*')
-        .eq('user_id', wallet.accountId)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error;
       }
       
       return data as UserTokenBalance | null;
     },
-    enabled: wallet.isConnected && !!wallet.accountId,
+    enabled: wallet.isConnected,
   });
 
   // Get governance settings
@@ -67,50 +68,53 @@ export const useGovernance = () => {
 
   // Get user's proposals
   const { data: userProposals } = useQuery({
-    queryKey: ['user-proposals', wallet.accountId],
+    queryKey: ['user-proposals'],
     queryFn: async () => {
-      if (!wallet.accountId) return [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
       
       const { data, error } = await supabase
         .from('market_proposals')
         .select('*')
-        .eq('proposer_id', wallet.accountId)
+        .eq('proposer_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as MarketProposal[];
     },
-    enabled: wallet.isConnected && !!wallet.accountId,
+    enabled: wallet.isConnected,
   });
 
   // Get user's votes
   const { data: userVotes } = useQuery({
-    queryKey: ['user-votes', wallet.accountId],
+    queryKey: ['user-votes'],
     queryFn: async () => {
-      if (!wallet.accountId) return [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
       
       const { data, error } = await supabase
         .from('proposal_votes')
         .select('*')
-        .eq('voter_id', wallet.accountId);
+        .eq('voter_id', user.id);
 
       if (error) throw error;
       return data as ProposalVote[];
     },
-    enabled: wallet.isConnected && !!wallet.accountId,
+    enabled: wallet.isConnected,
   });
 
   // Create proposal mutation
   const createProposalMutation = useMutation({
     mutationFn: async (proposalData: CreateProposalData) => {
-      if (!wallet.accountId) {
-        throw new Error('Wallet not connected');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
       const { data, error } = await supabase
         .from('market_proposals')
         .insert({
-          proposer_id: wallet.accountId,
+          proposer_id: user.id,
           proposal_type: 'market_creation',
           title: proposalData.title,
           description: proposalData.description,
@@ -178,18 +182,19 @@ export const useGovernance = () => {
       voteChoice: VoteChoice; 
       isProposalPhase?: boolean;
     }) => {
-      if (!wallet.accountId || !userBalance) {
-        throw new Error('Wallet not connected or no voting power');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !userBalance) {
+        throw new Error('User not authenticated or no voting power');
       }
 
       // Create a simple signature for now (would be replaced with actual wallet signature)
-      const signature = `${wallet.accountId}-${proposalId}-${voteChoice}-${Date.now()}`;
+      const signature = `${user.id}-${proposalId}-${voteChoice}-${Date.now()}`;
 
       const { data, error } = await supabase
         .from('proposal_votes')
         .insert({
           proposal_id: proposalId,
-          voter_id: wallet.accountId,
+          voter_id: user.id,
           vote_choice: voteChoice,
           voting_power: userBalance.total_voting_power,
           is_proposal_phase: isProposalPhase,
