@@ -4,9 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, DollarSign, Users, BarChart3, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMarketStats } from "@/hooks/useMarketStats";
+import { useWallet } from "@/contexts/WalletContext";
+import { useToast } from "@/hooks/use-toast";
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  const {
+    wallet,
+    connect
+  } = useWallet();
+  const {
+    toast
+  } = useToast();
   const {
     stats: marketStats,
     loading,
@@ -51,7 +60,24 @@ const HeroSection = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="trading" size="xl" onClick={() => navigate('/markets')} className="text-slate-50">
+              <Button variant="trading" size="xl" onClick={async () => {
+              if (wallet.isConnected) {
+                // Already connected, navigate directly to markets
+                navigate('/markets');
+              } else {
+                // Not connected, connect first then navigate
+                try {
+                  await connect();
+                  navigate('/markets');
+                } catch (error) {
+                  toast({
+                    title: "Connection Failed",
+                    description: "Failed to connect wallet. Please try again.",
+                    variant: "destructive"
+                  });
+                }
+              }
+            }} className="text-slate-50">
                 Start Trading
               </Button>
               <Button variant="outline" size="xl" asChild>

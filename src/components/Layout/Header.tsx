@@ -2,13 +2,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Hexagon, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
+import WalletButton from "@/components/Wallet/WalletButton";
+import { useWallet } from "@/contexts/WalletContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 
 const Header = () => {
+  const { wallet } = useWallet();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const handlePortfolioClick = (e: React.MouseEvent) => {
+    if (!wallet.isConnected) {
+      e.preventDefault();
+    }
+  };
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -33,7 +42,15 @@ const Header = () => {
           <Link to="/create-market" className="text-sm font-medium hover:text-primary transition-colors">
             Create Market
           </Link>
-          <Link to="/portfolio" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link 
+            to="/portfolio" 
+            onClick={handlePortfolioClick}
+            className={`text-sm font-medium transition-colors ${
+              wallet.isConnected 
+                ? 'hover:text-primary' 
+                : 'text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
+          >
             Portfolio
           </Link>
           <Link to="/dev-notes" className="text-sm font-medium hover:text-primary transition-colors">
@@ -68,8 +85,15 @@ const Header = () => {
                 </Link>
                 <Link 
                   to="/portfolio" 
-                  className="text-lg font-medium hover:text-primary transition-colors py-2"
-                  onClick={closeMobileMenu}
+                  onClick={(e) => {
+                    handlePortfolioClick(e);
+                    if (wallet.isConnected) closeMobileMenu();
+                  }}
+                  className={`text-lg font-medium transition-colors py-2 ${
+                    wallet.isConnected 
+                      ? 'hover:text-primary' 
+                      : 'text-muted-foreground cursor-not-allowed opacity-50'
+                  }`}
                 >
                   Portfolio
                 </Link>
@@ -91,7 +115,7 @@ const Header = () => {
             Testnet
           </Badge>
           
-          <Button variant="outline">Connect Wallet</Button>
+          <WalletButton />
         </div>
       </div>
     </header>
