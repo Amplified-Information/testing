@@ -88,10 +88,7 @@ const ProposalForm = () => {
     );
   }
 
-  // Development mode: Allow proposal creation when PROTOCOL_TOKEN isn't implemented
-  const isDevelopmentMode = !userBalance && wallet.isConnected;
-  
-  if (!canCreateProposal() && !isDevelopmentMode) {
+  if (!canCreateProposal()) {
     const required = getVotingPowerRequirement();
     const current = userBalance?.total_voting_power || 0;
     
@@ -112,21 +109,6 @@ const ProposalForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Development mode notice */}
-      {isDevelopmentMode && (
-        <Card>
-          <CardContent className="pt-6">
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
-                <strong>Development Mode:</strong> PROTOCOL_TOKEN is not yet implemented. 
-                Proposal creation is enabled for testing purposes. In production, users will need voting power to create proposals.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Progress indicator */}
       <Card>
         <CardContent className="pt-6">
