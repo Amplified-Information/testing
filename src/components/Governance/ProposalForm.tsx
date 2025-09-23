@@ -1,63 +1,57 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertCircle, Check, FileText, Calendar, DollarSign, Eye } from "lucide-react";
 import { useGovernance } from "@/hooks/useGovernance";
 import { useWallet } from "@/contexts/WalletContext";
-import { CheckCircle, AlertCircle, Clock, FileText, Settings, Gavel } from "lucide-react";
-import type { CreateProposalData, OracleType } from "@/types/governance";
+import type { CreateProposalData } from "@/types/governance";
 
 const STEPS = [
-  { id: 1, title: "Market Details", icon: FileText },
-  { id: 2, title: "Resolution Parameters", icon: Settings },
-  { id: 3, title: "Economic Parameters", icon: Gavel },
-  { id: 4, title: "Review & Submit", icon: CheckCircle },
+  { title: "Market Details", icon: FileText },
+  { title: "Resolution Parameters", icon: Calendar },
+  { title: "Economic Parameters", icon: DollarSign },
+  { title: "Review & Submit", icon: Eye },
 ];
 
 const ProposalForm = () => {
-  const { wallet } = useWallet();
   const { 
-    userBalance, 
+    createProposal, 
+    isCreatingProposal, 
     canCreateProposal, 
     getVotingPowerRequirement,
-    createProposal, 
-    isCreatingProposal 
+    userBalance 
   } = useGovernance();
+  const { wallet } = useWallet();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<CreateProposalData>({
-    title: "",
-    description: "",
-    market_title: "",
-    market_description: "",
-    market_outcomes: { yes: "", no: "" },
-    resolution_date: "",
-    oracle_type: "api_endpoint" as OracleType,
+    title: '',
+    description: '',
+    market_title: '',
+    market_description: '',
+    market_outcomes: { yes: 'Yes', no: 'No' },
+    resolution_date: '',
+    oracle_type: 'manual',
     oracle_config: {},
-    initial_liquidity: 100,
-    collateral_type: "HBAR",
+    initial_liquidity: 1000,
+    collateral_type: 'HBAR',
   });
 
-  const updateFormData = (field: keyof CreateProposalData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateFormData = (updates: Partial<CreateProposalData>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
   };
 
   const nextStep = () => {
-    if (currentStep < STEPS.length) {
-      setCurrentStep(currentStep + 1);
-    }
+    if (currentStep < 4) setCurrentStep(currentStep + 1);
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
   const handleSubmit = () => {
@@ -67,7 +61,7 @@ const ProposalForm = () => {
   const isStepValid = (step: number) => {
     switch (step) {
       case 1:
-        return formData.market_title && formData.market_description;
+        return formData.title && formData.description && formData.market_title && formData.market_description;
       case 2:
         return formData.resolution_date && formData.oracle_type;
       case 3:
@@ -94,7 +88,10 @@ const ProposalForm = () => {
     );
   }
 
-  if (!canCreateProposal()) {
+  // Development mode: Allow proposal creation when PROTOCOL_TOKEN isn't implemented
+  const isDevelopmentMode = !userBalance && wallet.isConnected;
+  
+  if (!canCreateProposal() && !isDevelopmentMode) {
     const required = getVotingPowerRequirement();
     const current = userBalance?.total_voting_power || 0;
     
@@ -106,7 +103,6 @@ const ProposalForm = () => {
             <AlertDescription>
               You need at least {required.toLocaleString()} voting power to create proposals. 
               You currently have {current.toLocaleString()} voting power.
-              {/* TODO: Replace with actual PROTOCOL_TOKEN name when implemented */}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -116,193 +112,179 @@ const ProposalForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Development mode notice */}
+      {isDevelopmentMode && (
+        <Card>
+          <CardContent className="pt-6">
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <strong>Development Mode:</strong> PROTOCOL_TOKEN is not yet implemented. 
+                Proposal creation is enabled for testing purposes. In production, users will need voting power to create proposals.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Progress indicator */}
       <Card>
-        <CardHeader>
-          <CardTitle>Create Market Proposal</CardTitle>
-          <CardDescription>
-            Submit a new event market for DAO voting and approval
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-6">
-            {STEPS.map((step) => {
-              const Icon = step.icon;
-              const isActive = step.id === currentStep;
-              const isCompleted = step.id < currentStep;
-              const isValid = isStepValid(step.id);
-              
-              return (
-                <div key={step.id} className="flex items-center">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                    isCompleted ? 'bg-primary border-primary text-primary-foreground' :
-                    isActive ? 'border-primary text-primary' :
-                    'border-muted text-muted-foreground'
-                  }`}>
-                    {isCompleted ? (
-                      <CheckCircle className="h-5 w-5" />
-                    ) : (
-                      <Icon className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div className="ml-2">
-                    <p className={`text-sm font-medium ${
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    }`}>
-                      {step.title}
-                    </p>
-                  </div>
-                  {step.id < STEPS.length && (
-                    <div className={`w-16 h-0.5 mx-4 ${
-                      isCompleted ? 'bg-primary' : 'bg-muted'
-                    }`} />
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-4">
+            {STEPS.map((step, index) => (
+              <div key={index} className="flex items-center">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                  currentStep === index + 1 
+                    ? 'bg-primary text-primary-foreground' 
+                    : currentStep > index + 1 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-muted text-muted-foreground'
+                }`}>
+                  {currentStep > index + 1 ? (
+                    <Check className="h-5 w-5" />
+                  ) : (
+                    <step.icon className="h-5 w-5" />
                   )}
                 </div>
-              );
-            })}
+                {index < STEPS.length - 1 && (
+                  <div className={`w-16 h-0.5 ${
+                    currentStep > index + 1 ? 'bg-green-500' : 'bg-muted'
+                  }`} />
+                )}
+              </div>
+            ))}
           </div>
-          
-          <Progress value={(currentStep / STEPS.length) * 100} className="mb-6" />
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold">{STEPS[currentStep - 1].title}</h3>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Step content */}
+      {/* Form Content */}
       <Card>
         <CardContent className="pt-6">
           {currentStep === 1 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Market Details</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="proposal-title">Proposal Title</Label>
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="title">Proposal Title</Label>
                 <Input
-                  id="proposal-title"
-                  placeholder="Brief title for the governance proposal..."
+                  id="title"
                   value={formData.title}
-                  onChange={(e) => updateFormData('title', e.target.value)}
+                  onChange={(e) => updateFormData({ title: e.target.value })}
+                  placeholder="Brief title for your proposal"
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="proposal-description">Proposal Description</Label>
+              
+              <div>
+                <Label htmlFor="description">Proposal Description</Label>
                 <Textarea
-                  id="proposal-description"
-                  placeholder="Detailed description of why this market should be created..."
-                  rows={4}
+                  id="description"
                   value={formData.description}
-                  onChange={(e) => updateFormData('description', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="market-title">Market Question</Label>
-                <Input
-                  id="market-title"
-                  placeholder="e.g., Will Bitcoin reach $100K by Dec 31, 2025?"
-                  value={formData.market_title}
-                  onChange={(e) => updateFormData('market_title', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="market-description">Market Description</Label>
-                <Textarea
-                  id="market-description"
-                  placeholder="Detailed information about this prediction market..."
+                  onChange={(e) => updateFormData({ description: e.target.value })}
+                  placeholder="Explain why this market should be created"
                   rows={4}
-                  value={formData.market_description}
-                  onChange={(e) => updateFormData('market_description', e.target.value)}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="yes-outcome">YES Outcome</Label>
-                  <Input
-                    id="yes-outcome"
-                    placeholder="Description of YES outcome..."
-                    value={formData.market_outcomes.yes}
-                    onChange={(e) => updateFormData('market_outcomes', { 
-                      ...formData.market_outcomes, 
-                      yes: e.target.value 
-                    })}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="no-outcome">NO Outcome</Label>
-                  <Input
-                    id="no-outcome"
-                    placeholder="Description of NO outcome..."
-                    value={formData.market_outcomes.no}
-                    onChange={(e) => updateFormData('market_outcomes', { 
-                      ...formData.market_outcomes, 
-                      no: e.target.value 
-                    })}
-                  />
+              <div>
+                <Label htmlFor="market_title">Market Question</Label>
+                <Input
+                  id="market_title"
+                  value={formData.market_title}
+                  onChange={(e) => updateFormData({ market_title: e.target.value })}
+                  placeholder="e.g., Will Bitcoin reach $100,000 by end of 2024?"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="market_description">Market Description</Label>
+                <Textarea
+                  id="market_description"
+                  value={formData.market_description}
+                  onChange={(e) => updateFormData({ market_description: e.target.value })}
+                  placeholder="Detailed description of the market and conditions"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label>Market Outcomes</Label>
+                <div className="space-y-2 mt-2">
+                  <div>
+                    <Label htmlFor="yes_outcome">Yes Outcome</Label>
+                    <Input
+                      id="yes_outcome"
+                      value={formData.market_outcomes.yes}
+                      onChange={(e) => updateFormData({ 
+                        market_outcomes: { 
+                          ...formData.market_outcomes, 
+                          yes: e.target.value 
+                        }
+                      })}
+                      placeholder="Yes"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="no_outcome">No Outcome</Label>
+                    <Input
+                      id="no_outcome"
+                      value={formData.market_outcomes.no}
+                      onChange={(e) => updateFormData({ 
+                        market_outcomes: { 
+                          ...formData.market_outcomes, 
+                          no: e.target.value 
+                        }
+                      })}
+                      placeholder="No"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
           {currentStep === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Resolution Parameters</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="resolution-date">Resolution Date</Label>
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="resolution_date">Resolution Date</Label>
                 <Input
-                  id="resolution-date"
+                  id="resolution_date"
                   type="datetime-local"
                   value={formData.resolution_date}
-                  onChange={(e) => updateFormData('resolution_date', e.target.value)}
+                  onChange={(e) => updateFormData({ resolution_date: e.target.value })}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="oracle-type">Oracle Type</Label>
-                <Select 
-                  value={formData.oracle_type} 
-                  onValueChange={(value: OracleType) => updateFormData('oracle_type', value)}
+              <div>
+                <Label htmlFor="oracle_type">Oracle Type</Label>
+                <Select
+                  value={formData.oracle_type}
+                  onValueChange={(value) => updateFormData({ oracle_type: value as any })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select oracle type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="chainlink">Chainlink Oracle</SelectItem>
-                    <SelectItem value="supra">SUPRA Oracle</SelectItem>
-                    <SelectItem value="api_endpoint">API Endpoint</SelectItem>
                     <SelectItem value="manual">Manual Resolution</SelectItem>
+                    <SelectItem value="api_endpoint">API Oracle</SelectItem>
+                    <SelectItem value="consensus">Consensus Oracle</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {formData.oracle_type === 'api_endpoint' && (
-                <div className="space-y-2">
-                  <Label htmlFor="api-endpoint">API Endpoint</Label>
+                <div>
+                  <Label htmlFor="api_endpoint">API Endpoint</Label>
                   <Input
-                    id="api-endpoint"
+                    id="api_endpoint"
+                    value={formData.oracle_config?.api_endpoint || ''}
+                    onChange={(e) => updateFormData({ 
+                      oracle_config: { 
+                        ...formData.oracle_config, 
+                        api_endpoint: e.target.value 
+                      }
+                    })}
                     placeholder="https://api.example.com/data"
-                    value={formData.oracle_config.endpoint || ''}
-                    onChange={(e) => updateFormData('oracle_config', { 
-                      ...formData.oracle_config, 
-                      endpoint: e.target.value 
-                    })}
-                  />
-                </div>
-              )}
-
-              {formData.oracle_type === 'chainlink' && (
-                <div className="space-y-2">
-                  <Label htmlFor="chainlink-address">Chainlink Contract Address</Label>
-                  <Input
-                    id="chainlink-address"
-                    placeholder="0x..."
-                    value={formData.oracle_config.contractAddress || ''}
-                    onChange={(e) => updateFormData('oracle_config', { 
-                      ...formData.oracle_config, 
-                      contractAddress: e.target.value 
-                    })}
                   />
                 </div>
               )}
@@ -310,99 +292,89 @@ const ProposalForm = () => {
           )}
 
           {currentStep === 3 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Economic Parameters</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="initial-liquidity">Initial Liquidity</Label>
-                  <Input
-                    id="initial-liquidity"
-                    type="number"
-                    placeholder="100"
-                    min="1"
-                    value={formData.initial_liquidity}
-                    onChange={(e) => updateFormData('initial_liquidity', Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="collateral-type">Collateral Type</Label>
-                  <Select 
-                    value={formData.collateral_type} 
-                    onValueChange={(value) => updateFormData('collateral_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select collateral" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="HBAR">HBAR</SelectItem>
-                      <SelectItem value="USDC">USDC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="initial_liquidity">Initial Liquidity (HBAR)</Label>
+                <Input
+                  id="initial_liquidity"
+                  type="number"
+                  value={formData.initial_liquidity}
+                  onChange={(e) => updateFormData({ initial_liquidity: parseFloat(e.target.value) || 0 })}
+                  placeholder="1000"
+                  min="0"
+                  step="100"
+                />
               </div>
 
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  The initial liquidity will be provided by the DAO treasury upon market deployment.
-                  Market creators are not required to provide initial liquidity themselves.
-                </AlertDescription>
-              </Alert>
+              <div>
+                <Label htmlFor="collateral_type">Collateral Type</Label>
+                <Select
+                  value={formData.collateral_type}
+                  onValueChange={(value) => updateFormData({ collateral_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select collateral type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HBAR">HBAR</SelectItem>
+                    <SelectItem value="USDC">USDC</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
           {currentStep === 4 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Review & Submit</h3>
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold mb-4">Review Your Proposal</h3>
               
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium">Proposal Title</h4>
-                  <p className="text-muted-foreground">{formData.title}</p>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium">Market Question</h4>
-                  <p className="text-muted-foreground">{formData.market_title}</p>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium">Resolution Date</h4>
-                  <p className="text-muted-foreground">
-                    {new Date(formData.resolution_date).toLocaleString()}
+                  <h4 className="font-medium">Proposal Details</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>Title:</strong> {formData.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Description:</strong> {formData.description}
                   </p>
                 </div>
-                
+
                 <div>
-                  <h4 className="font-medium">Oracle Type</h4>
-                  <Badge variant="outline">{formData.oracle_type}</Badge>
+                  <h4 className="font-medium">Market Configuration</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>Question:</strong> {formData.market_title}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Description:</strong> {formData.market_description}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Outcomes:</strong> {formData.market_outcomes.yes} / {formData.market_outcomes.no}
+                  </p>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium">Initial Liquidity</h4>
-                    <p className="text-muted-foreground">{formData.initial_liquidity} {formData.collateral_type}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Collateral</h4>
-                    <Badge variant="outline">{formData.collateral_type}</Badge>
-                  </div>
+
+                <div>
+                  <h4 className="font-medium">Resolution Parameters</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>Resolution Date:</strong> {new Date(formData.resolution_date).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Oracle Type:</strong> {formData.oracle_type}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium">Economic Parameters</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>Initial Liquidity:</strong> {formData.initial_liquidity} {formData.collateral_type}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Collateral Type:</strong> {formData.collateral_type}
+                  </p>
                 </div>
               </div>
-
-              <Alert>
-                <Clock className="h-4 w-4" />
-                <AlertDescription>
-                  After submission, your proposal will be stored as a draft. You can then submit it for 
-                  the proposal phase, which lasts 24 hours and requires 5M voting power quorum.
-                </AlertDescription>
-              </Alert>
             </div>
           )}
 
-          {/* Navigation buttons */}
           <div className="flex justify-between pt-6">
             <Button 
               variant="outline" 
@@ -411,8 +383,8 @@ const ProposalForm = () => {
             >
               Previous
             </Button>
-            
-            {currentStep < STEPS.length ? (
+
+            {currentStep < 4 ? (
               <Button 
                 onClick={nextStep}
                 disabled={!isStepValid(currentStep)}
