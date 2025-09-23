@@ -10,12 +10,12 @@ const DevNotesIndex = () => {
       <Header />
       <main className="container py-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Development Notes</h1>
-            <p className="text-muted-foreground text-lg">
-              Technical documentation and development progress for HashyMarket
-            </p>
-          </div>
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-4">Development Notes</h1>
+              <p className="text-muted-foreground text-lg">
+                Technical documentation and development progress for HashyMarket
+              </p>
+            </div>
 
           {/* Quick Stats */}
           <div className="grid md:grid-cols-3 gap-4">
