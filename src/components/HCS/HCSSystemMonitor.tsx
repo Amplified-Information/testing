@@ -61,7 +61,7 @@ export default function HCSSystemMonitor() {
     try {
       // Get recent health checks
       const { data: healthData, error: healthError } = await supabase
-        .from('hcs_system_health')
+        .from('hcs_system_health' as any)
         .select('*')
         .order('check_timestamp', { ascending: false })
         .limit(10);
@@ -69,7 +69,7 @@ export default function HCSSystemMonitor() {
       if (healthError) {
         console.error('Error fetching health data:', healthError);
       } else {
-        setHealthHistory(healthData || []);
+        setHealthHistory((healthData as unknown as SystemHealth[]) || []);
       }
 
       // Get current job statistics
@@ -118,7 +118,7 @@ export default function HCSSystemMonitor() {
       // Store health record in database
       if (data.stats) {
         const { error: insertError } = await supabase
-          .from('hcs_system_health')
+          .from('hcs_system_health' as any)
           .insert({
             health_status: data.stats.health_status,
             total_pending: data.stats.total_pending,

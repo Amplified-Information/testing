@@ -489,6 +489,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hcs_system_health: {
+        Row: {
+          check_timestamp: string
+          created_at: string
+          health_status: string
+          id: string
+          recommendations: Json
+          stuck_jobs_cleaned: number
+          success_rate_24h: number
+          total_failed_24h: number
+          total_pending: number
+        }
+        Insert: {
+          check_timestamp?: string
+          created_at?: string
+          health_status?: string
+          id?: string
+          recommendations?: Json
+          stuck_jobs_cleaned?: number
+          success_rate_24h?: number
+          total_failed_24h?: number
+          total_pending?: number
+        }
+        Update: {
+          check_timestamp?: string
+          created_at?: string
+          health_status?: string
+          id?: string
+          recommendations?: Json
+          stuck_jobs_cleaned?: number
+          success_rate_24h?: number
+          total_failed_24h?: number
+          total_pending?: number
+        }
+        Relationships: []
+      }
       hcs_topics: {
         Row: {
           created_at: string | null
