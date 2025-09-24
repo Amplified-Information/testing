@@ -405,6 +405,7 @@ const ProposalForm = () => {
                 <Input
                   id="resolution_date"
                   type="datetime-local"
+                  step="1"
                   value={formData.resolution_date}
                   onChange={(e) => updateFormData({ resolution_date: e.target.value })}
                 />
