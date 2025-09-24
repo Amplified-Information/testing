@@ -8,127 +8,148 @@ import { useWallet } from "@/contexts/WalletContext";
 import { useToast } from "@/hooks/use-toast";
 
 const HeroSection = () => {
-  const navigate = useNavigate();
-  const {
-    wallet,
-    connect
-  } = useWallet();
-  const {
-    toast
-  } = useToast();
-  const {
-    stats: marketStats,
-    loading,
-    error
-  } = useMarketStats();
-  const stats = [{
-    label: "Total Volume",
-    value: loading ? "..." : marketStats.totalVolume,
-    icon: DollarSign
-  }, {
-    label: "Active Event Prediction Markets",
-    value: loading ? "..." : marketStats.activeMarkets.toString(),
-    icon: BarChart3
-  }, {
-    label: "Traders",
-    value: loading ? "..." : marketStats.totalTraders,
-    icon: Users
-  }, {
-    label: "24h Volume",
-    value: loading ? "..." : marketStats.volume24h,
-    icon: TrendingUp
-  }];
-  return (
-    <div className="relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
-      
-      <div className="relative container py-16 lg:py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Content */}
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-4xl lg:text-6xl font-bold tracking-tight">
-                Predict the Future,
-                <span className="block text-transparent bg-gradient-to-r from-primary to-primary-glow bg-clip-text">
-                  Trade with Confidence
-                </span>
-              </h1>
+  console.log('🎨 HeroSection component rendering...');
+  
+  try {
+    const navigate = useNavigate();
+    const {
+      wallet,
+      connect
+    } = useWallet();
+    console.log('📧 Wallet state in HeroSection:', wallet);
+    const {
+      toast
+    } = useToast();
+    const {
+      stats: marketStats,
+      loading,
+      error
+    } = useMarketStats();
+    
+    console.log('📊 Market stats:', { marketStats, loading, error });
+    
+    const stats = [{
+      label: "Total Volume",
+      value: loading ? "..." : marketStats.totalVolume,
+      icon: DollarSign
+    }, {
+      label: "Active Event Prediction Markets",
+      value: loading ? "..." : marketStats.activeMarkets.toString(),
+      icon: BarChart3
+    }, {
+      label: "Traders",
+      value: loading ? "..." : marketStats.totalTraders,
+      icon: Users
+    }, {
+      label: "24h Volume",
+      value: loading ? "..." : marketStats.volume24h,
+      icon: TrendingUp
+    }];
+    
+    console.log('📈 Stats array prepared:', stats);
+    
+    return (
+      <div className="relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
+        
+        <div className="relative container py-16 lg:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Content */}
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h1 className="text-4xl lg:text-6xl font-bold tracking-tight">
+                  Predict the Future,
+                  <span className="block text-transparent bg-gradient-to-r from-primary to-primary bg-clip-text">
+                    Trade with Confidence
+                  </span>
+                </h1>
+                
+                <p className="text-xl text-muted-foreground max-w-lg">
+                  Trade on real-world events using Hedera Hashgraph. A decentralized prediction protocol for the next generation of Web3 users.
+                </p>
+              </div>
               
-              <p className="text-xl text-muted-foreground max-w-lg">
-                Trade on real-world events using Hedera Hashgraph. A decentralized prediction protocol for the next generation of Web3 users.
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                variant="trading" 
-                size="xl" 
-                onClick={async () => {
-                  if (wallet.isConnected) {
-                    // Already connected, navigate directly to markets
-                    navigate('/markets');
-                  } else {
-                    // Not connected, connect first then navigate
-                    try {
-                      await connect();
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  variant="trading" 
+                  size="xl" 
+                  onClick={async () => {
+                    if (wallet.isConnected) {
+                      // Already connected, navigate directly to markets
                       navigate('/markets');
-                    } catch (error) {
-                      toast({
-                        title: "Connection Failed",
-                        description: "Failed to connect wallet. Please try again.",
-                        variant: "destructive"
-                      });
+                    } else {
+                      // Not connected, connect first then navigate
+                      try {
+                        await connect();
+                        navigate('/markets');
+                      } catch (error) {
+                        toast({
+                          title: "Connection Failed",
+                          description: "Failed to connect wallet. Please try again.",
+                          variant: "destructive"
+                        });
+                      }
                     }
-                  }
-                }} 
-                className="text-slate-50"
-              >
-                Start Trading
-              </Button>
-              <Button variant="outline" size="xl" asChild>
-                <Link to="/markets">
-                  Explore Event Prediction Markets
-                </Link>
-              </Button>
+                  }} 
+                  className="text-slate-50"
+                >
+                  Start Trading
+                </Button>
+                <Button variant="outline" size="xl" asChild>
+                  <Link to="/markets">
+                    Explore Event Prediction Markets
+                  </Link>
+                </Button>
+              </div>
+
+              {/* Trust indicators */}
+              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  <span>Live on Hedera Testnet</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full" />
+                  <span>Instant Settlements</span>
+                </div>
+              </div>
             </div>
 
-            {/* Trust indicators */}
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                <span>Live on Hedera Testnet</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-up rounded-full" />
-                <span>Instant Settlements</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-4">
-            {stats.map((stat, index) => (
-              <Card key={index} className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {stat.label}
-                      </p>
-                      <p className="text-2xl font-bold mt-1">
-                        {stat.value}
-                      </p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {stats.map((stat, index) => (
+                <Card key={index} className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {stat.label}
+                        </p>
+                        <p className="text-2xl font-bold mt-1">
+                          {stat.value}
+                        </p>
+                      </div>
+                      <stat.icon className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
                     </div>
-                    <stat.icon className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error('❌ Error in HeroSection:', error);
+    return (
+      <div className="relative overflow-hidden">
+        <div className="container py-16 text-center">
+          <h1 className="text-4xl font-bold text-foreground">Error Loading Hero Section</h1>
+          <p className="text-muted-foreground mt-4">Please check console for details</p>
+        </div>
+      </div>
+    );
+  }
 };
 export default HeroSection;
