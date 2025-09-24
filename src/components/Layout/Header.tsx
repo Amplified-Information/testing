@@ -37,7 +37,7 @@ const Header = () => {
         {/* Navigation */}
         <nav className="hidden md:flex items-center space-x-6 ml-8">
           <Link to="/markets" className="text-sm font-medium hover:text-primary transition-colors">
-            Event Markets
+            Explore Markets
           </Link>
           <Link to="/create-market" className="text-sm font-medium hover:text-primary transition-colors">
             Create Market
@@ -74,7 +74,7 @@ const Header = () => {
                   className="text-lg font-medium hover:text-primary transition-colors py-2"
                   onClick={closeMobileMenu}
                 >
-                  Event Markets
+                  Explore Markets
                 </Link>
                 <Link 
                   to="/create-market" 
