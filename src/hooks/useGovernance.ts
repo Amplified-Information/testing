@@ -270,6 +270,33 @@ export const useGovernance = () => {
         .single();
 
       if (error) throw error;
+
+      // Update proposal vote counts
+      const fieldPrefix = isProposalPhase ? 'proposal' : 'election';
+      const voteCountField = `${fieldPrefix}_votes_${voteChoice === 'yes' ? 'for' : voteChoice === 'no' ? 'against' : 'abstain'}`;
+      const votingPowerField = `${fieldPrefix}_voting_power_${voteChoice === 'yes' ? 'for' : voteChoice === 'no' ? 'against' : 'abstain'}`;
+
+      // Get current proposal data
+      const { data: proposalData } = await supabase
+        .from('market_proposals')
+        .select(voteCountField + ', ' + votingPowerField)
+        .eq('id', proposalId)
+        .single();
+
+      if (proposalData) {
+        const currentVoteCount = proposalData[voteCountField] || 0;
+        const currentVotingPower = proposalData[votingPowerField] || 0;
+        
+        // Update the proposal with new counts
+        await supabase
+          .from('market_proposals')
+          .update({
+            [voteCountField]: currentVoteCount + 1,
+            [votingPowerField]: currentVotingPower + userBalance.total_voting_power,
+          })
+          .eq('id', proposalId);
+      }
+
       return data;
     },
     onSuccess: () => {
