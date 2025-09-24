@@ -61,7 +61,7 @@ const ProposalForm = () => {
   };
 
   const handleSubmit = () => {
-    createProposal(formData);
+    createProposal({ ...formData, marketImage });
   };
 
   const isStepValid = (step: number) => {

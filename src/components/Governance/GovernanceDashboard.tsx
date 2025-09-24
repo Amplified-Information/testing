@@ -170,6 +170,15 @@ const GovernanceDashboard = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {proposal.image_url && (
+                      <div className="w-full h-32 overflow-hidden rounded-lg">
+                        <img 
+                          src={proposal.image_url} 
+                          alt={proposal.market_title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       {proposal.market_description}
                     </p>
@@ -298,6 +307,15 @@ const GovernanceDashboard = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {proposal.image_url && (
+                    <div className="w-full h-32 overflow-hidden rounded-lg mb-4">
+                      <img 
+                        src={proposal.image_url} 
+                        alt={proposal.market_title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground mb-4">
                     Created: {new Date(proposal.created_at).toLocaleString()}
                   </p>

@@ -41,6 +41,7 @@ export interface MarketProposal {
     yes: string;
     no: string;
   };
+  image_url?: string;
   resolution_date?: string;
   oracle_type?: OracleType;
   oracle_config?: Record<string, any>;
@@ -137,4 +138,5 @@ export interface CreateProposalData {
   oracle_config: Record<string, any>;
   initial_liquidity: number;
   collateral_type: string;
+  marketImage?: File;
 }

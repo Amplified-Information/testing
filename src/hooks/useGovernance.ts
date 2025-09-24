@@ -145,6 +145,27 @@ export const useGovernance = () => {
         throw new Error('Wallet not linked to governance account');
       }
 
+      let imageUrl = null;
+      
+      // Upload image if provided
+      if (proposalData.marketImage) {
+        const fileExt = proposalData.marketImage.name.split('.').pop();
+        const fileName = `${walletData.user_id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('images')
+          .upload(fileName, proposalData.marketImage);
+          
+        if (uploadError) {
+          console.warn('Image upload failed:', uploadError);
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('images')
+            .getPublicUrl(fileName);
+          imageUrl = publicUrl;
+        }
+      }
+
       const { data, error } = await supabase
         .from('market_proposals')
         .insert({
@@ -161,12 +182,13 @@ export const useGovernance = () => {
           initial_liquidity: proposalData.initial_liquidity,
           collateral_type: proposalData.collateral_type,
           governance_status: 'draft',
+          image_url: imageUrl,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as MarketProposal;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-proposals'] });
