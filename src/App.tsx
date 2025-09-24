@@ -58,30 +58,30 @@ const App = () => (
             <Toaster />
             <Sonner />
             <ErrorBoundary>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/markets" element={<Markets />} />
-              <Route path="/create-market" element={<CreateMarket />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/dev-notes" element={<DevNotesIndex />} />
-              <Route path="/dev-notes/technical-docs" element={<Documentation />} />
-              <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
-              <Route path="/dev-notes/security" element={<SecurityNotes />} />
-              <Route path="/dev-notes/wallet-security" element={<WalletSecurityImplementation />} />
-              <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
-              <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
-              <Route path="/dev-notes/system-config" element={<SystemConfigManagement />} />
-              <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
-              <Route path="/dev-notes/hcs-test" element={<HCSTopicTestPage />} />
-              <Route path="/dev-notes/clob-test" element={<CLOBTest />} />
-              <Route path="/dev-notes/hcs-architecture" element={<HCSArchitectureGuidance />} />
-              <Route path="/dev-notes/image-management" element={<ImageManagement />} />
-              <Route path="/market/:id" element={<MarketDetail />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/markets" element={<Markets />} />
+                  <Route path="/create-market" element={<CreateMarket />} />
+                  <Route path="/portfolio" element={<Portfolio />} />
+                  <Route path="/dev-notes" element={<DevNotesIndex />} />
+                  <Route path="/dev-notes/technical-docs" element={<Documentation />} />
+                  <Route path="/dev-notes/development-status" element={<DevelopmentNotes />} />
+                  <Route path="/dev-notes/security" element={<SecurityNotes />} />
+                  <Route path="/dev-notes/wallet-security" element={<WalletSecurityImplementation />} />
+                  <Route path="/dev-notes/wallet-connection" element={<WalletConnectionNotes />} />
+                  <Route path="/dev-notes/wallet-storage" element={<WalletStorageImplementation />} />
+                  <Route path="/dev-notes/system-config" element={<SystemConfigManagement />} />
+                  <Route path="/dev-notes/clob-architecture" element={<CLOBArchitecture />} />
+                  <Route path="/dev-notes/hcs-test" element={<HCSTopicTestPage />} />
+                  <Route path="/dev-notes/clob-test" element={<CLOBTest />} />
+                  <Route path="/dev-notes/hcs-architecture" element={<HCSArchitectureGuidance />} />
+                  <Route path="/dev-notes/image-management" element={<ImageManagement />} />
+                  <Route path="/market/:id" element={<MarketDetail />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </BrowserRouter>
             </ErrorBoundary>
           </TooltipProvider>
         </WalletProvider>
