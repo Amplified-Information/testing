@@ -1565,6 +1565,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      recalculate_proposal_vote_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       set_primary_wallet: {
         Args: { wallet_id: string }
         Returns: boolean
