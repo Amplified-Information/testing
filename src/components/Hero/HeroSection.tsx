@@ -38,7 +38,8 @@ const HeroSection = () => {
     value: loading ? "..." : marketStats.volume24h,
     icon: TrendingUp
   }];
-  return <div className="relative overflow-hidden">
+  return (
+    <div className="relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
       
@@ -54,30 +55,35 @@ const HeroSection = () => {
                 </span>
               </h1>
               
-                 <p className="text-xl text-muted-foreground max-w-lg">
+              <p className="text-xl text-muted-foreground max-w-lg">
                 Trade on real-world events using Hedera Hashgraph. A decentralized prediction protocol for the next generation of Web3 users.
               </p>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="trading" size="xl" onClick={async () => {
-              if (wallet.isConnected) {
-                // Already connected, navigate directly to markets
-                navigate('/markets');
-              } else {
-                // Not connected, connect first then navigate
-                try {
-                  await connect();
-                  navigate('/markets');
-                } catch (error) {
-                  toast({
-                    title: "Connection Failed",
-                    description: "Failed to connect wallet. Please try again.",
-                    variant: "destructive"
-                  });
-                }
-              }
-            }} className="text-slate-50">
+              <Button 
+                variant="trading" 
+                size="xl" 
+                onClick={async () => {
+                  if (wallet.isConnected) {
+                    // Already connected, navigate directly to markets
+                    navigate('/markets');
+                  } else {
+                    // Not connected, connect first then navigate
+                    try {
+                      await connect();
+                      navigate('/markets');
+                    } catch (error) {
+                      toast({
+                        title: "Connection Failed",
+                        description: "Failed to connect wallet. Please try again.",
+                        variant: "destructive"
+                      });
+                    }
+                  }
+                }} 
+                className="text-slate-50"
+              >
                 Start Trading
               </Button>
               <Button variant="outline" size="xl" asChild>
@@ -102,7 +108,8 @@ const HeroSection = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 gap-4">
-            {stats.map((stat, index) => <Card key={index} className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50">
+            {stats.map((stat, index) => (
+              <Card key={index} className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -116,10 +123,12 @@ const HeroSection = () => {
                     <stat.icon className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
                   </div>
                 </CardContent>
-              </Card>)}
+              </Card>
+            ))}
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 export default HeroSection;
