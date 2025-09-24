@@ -36,7 +36,7 @@ const ProposalForm = () => {
     market_title: '',
     market_description: '',
     market_outcomes: { yes: 'Yes', no: 'No' },
-    resolution_date: '',
+    resolution_date: new Date(Date.now() + 24*60*60*1000).toISOString().slice(0, 19), // Default to tomorrow with seconds
     oracle_type: 'manual',
     oracle_config: {},
     initial_liquidity: 1000,
@@ -405,6 +405,7 @@ const ProposalForm = () => {
                 <Input
                   id="resolution_date"
                   type="datetime-local"
+                  step="1"
                   value={formData.resolution_date}
                   onChange={(e) => updateFormData({ resolution_date: e.target.value })}
                 />
