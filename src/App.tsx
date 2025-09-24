@@ -49,7 +49,10 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
+const App = () => {
+  console.log('🎯 App component rendering...');
+  
+  return (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <WalletErrorBoundary>
@@ -88,6 +91,7 @@ const App = () => (
       </WalletErrorBoundary>
     </QueryClientProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

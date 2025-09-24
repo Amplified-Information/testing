@@ -47,4 +47,6 @@ window.process = process;
 
 console.log('🚀 Initializing app with enhanced WalletConnect protection...');
 
+console.log('📦 Creating React root...');
 createRoot(document.getElementById("root")!).render(<App />);
+console.log('✅ React app rendered successfully');
