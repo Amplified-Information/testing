@@ -26,6 +26,8 @@ const GovernanceDashboard = () => {
     userVotes,
     vote,
     isVoting,
+    submitProposal,
+    isSubmittingProposal,
     getProposalQuorum,
     getElectionQuorum,
   } = useGovernance();
@@ -301,8 +303,12 @@ const GovernanceDashboard = () => {
                   </p>
                   
                   {proposal.governance_status === 'draft' && (
-                    <Button size="sm">
-                      Submit for Voting
+                    <Button 
+                      size="sm"
+                      onClick={() => submitProposal(proposal.id)}
+                      disabled={isSubmittingProposal}
+                    >
+                      {isSubmittingProposal ? 'Submitting...' : 'Submit for Voting'}
                     </Button>
                   )}
                 </CardContent>
