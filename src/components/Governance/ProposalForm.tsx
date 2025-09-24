@@ -415,15 +415,22 @@ const ProposalForm = () => {
                 <Label htmlFor="oracle_type">Oracle Type</Label>
                 <Select
                   value={formData.oracle_type}
-                  onValueChange={(value) => updateFormData({ oracle_type: value as any })}
+                  onValueChange={(value: 'manual' | 'api_endpoint' | 'chainlink' | 'supra') => updateFormData({ oracle_type: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select oracle type" />
+                    <SelectValue>
+                      {formData.oracle_type === 'manual' && 'Manual Resolution'}
+                      {formData.oracle_type === 'api_endpoint' && 'API Oracle'}  
+                      {formData.oracle_type === 'chainlink' && 'Chainlink Oracle'}
+                      {formData.oracle_type === 'supra' && 'Supra Oracle'}
+                      {!formData.oracle_type && 'Select oracle type'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manual">Manual Resolution</SelectItem>
                     <SelectItem value="api_endpoint">API Oracle</SelectItem>
-                    <SelectItem value="consensus">Consensus Oracle</SelectItem>
+                    <SelectItem value="chainlink">Chainlink Oracle</SelectItem>
+                    <SelectItem value="supra">Supra Oracle</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
