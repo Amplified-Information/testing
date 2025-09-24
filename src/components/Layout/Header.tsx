@@ -40,7 +40,7 @@ const Header = () => {
             Explore Markets
           </Link>
           <Link to="/create-market" className="text-sm font-medium hover:text-primary transition-colors">
-            Create Market
+            Create Markets
           </Link>
           <Link 
             to="/portfolio" 
