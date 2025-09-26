@@ -4,19 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, ThumbsUp, ThumbsDown, Reply, Flag } from "lucide-react";
+import { MessageSquare, ThumbsUp, ThumbsDown, Reply, Flag, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-
-interface Comment {
-  id: string;
-  author: string;
-  content: string;
-  timestamp: Date;
-  likes: number;
-  dislikes: number;
-  replies?: Comment[];
-  position?: 'YES' | 'NO' | null;
-}
+import { useMarketComments, Comment } from "@/hooks/useMarketComments";
 
 interface DiscussionBoardProps {
   marketId: string;
@@ -25,56 +15,29 @@ interface DiscussionBoardProps {
 const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<'YES' | 'NO' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock data - in real app this would come from API
-  const [comments] = useState<Comment[]>([
-    {
-      id: "1",
-      author: "PredictionMaster",
-      content: "Looking at the latest polling data, I think YES is undervalued here. The fundamentals are strong and there's been positive momentum in recent weeks.",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      likes: 12,
-      dislikes: 3,
-      position: 'YES',
-      replies: [
-        {
-          id: "1-1",
-          author: "SkepticalTrader",
-          content: "I disagree. The polls can be misleading and there are several risk factors not being priced in properly.",
-          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-          likes: 8,
-          dislikes: 1,
-          position: 'NO'
-        }
-      ]
-    },
-    {
-      id: "2",
-      author: "DataAnalyst99",
-      content: "Has anyone done a proper technical analysis on the price movement? I'm seeing some interesting patterns in the volume data.",
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      likes: 6,
-      dislikes: 0,
-      position: null
-    },
-    {
-      id: "3",
-      author: "MarketMover",
-      content: "Just placed a large YES position. The risk/reward here is excellent given the current odds.",
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      likes: 15,
-      dislikes: 7,
-      position: 'YES'
-    }
-  ]);
+  const { comments, loading, error, addComment, toggleReaction } = useMarketComments(marketId);
 
-  const handleSubmitComment = () => {
-    if (!newComment.trim()) return;
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() || isSubmitting) return;
     
-    // In real app, this would submit to API
-    console.log("Submitting comment:", newComment);
-    setNewComment("");
-    setReplyingTo(null);
+    try {
+      setIsSubmitting(true);
+      await addComment(newComment, selectedPosition, replyingTo);
+      setNewComment("");
+      setReplyingTo(null);
+      setSelectedPosition(null);
+    } catch (error) {
+      // Error is handled in the hook
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReaction = async (commentId: string, reactionType: 'like' | 'dislike') => {
+    await toggleReaction(commentId, reactionType);
   };
 
   const renderComment = (comment: Comment, isReply = false) => (
@@ -105,11 +68,17 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
           <p className="text-sm leading-relaxed">{comment.content}</p>
           
           <div className="flex items-center gap-4 pt-1">
-            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+            <button 
+              onClick={() => handleReaction(comment.id, 'like')}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
               <ThumbsUp className="h-3 w-3" />
               {comment.likes}
             </button>
-            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors">
+            <button 
+              onClick={() => handleReaction(comment.id, 'dislike')}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+            >
               <ThumbsDown className="h-3 w-3" />
               {comment.dislikes}
             </button>
@@ -135,7 +104,12 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
                 className="min-h-[80px]"
               />
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleSubmitComment}>
+                <Button 
+                  size="sm" 
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim() || isSubmitting}
+                >
+                  {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Post Reply
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setReplyingTo(null)}>
@@ -174,27 +148,49 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
           />
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant={selectedPosition === 'YES' ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setSelectedPosition(selectedPosition === 'YES' ? null : 'YES')}
+              >
                 <Badge variant="default" className="mr-1">YES</Badge>
                 Position
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant={selectedPosition === 'NO' ? "destructive" : "outline"} 
+                size="sm"
+                onClick={() => setSelectedPosition(selectedPosition === 'NO' ? null : 'NO')}
+              >
                 <Badge variant="destructive" className="mr-1">NO</Badge>
                 Position
               </Button>
             </div>
-            <Button onClick={handleSubmitComment} disabled={!newComment.trim()}>
+            <Button 
+              onClick={handleSubmitComment} 
+              disabled={!newComment.trim() || isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Post Comment
             </Button>
           </div>
         </div>
         
         {/* Comments List */}
-        <div className="space-y-4">
-          {comments.map(comment => renderComment(comment))}
-        </div>
-        
-        {comments.length === 0 && (
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
+            <p className="text-muted-foreground">Loading comments...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 text-destructive">
+            <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>{error}</p>
+          </div>
+        ) : comments.length > 0 ? (
+          <div className="space-y-4">
+            {comments.map(comment => renderComment(comment))}
+          </div>
+        ) : (
           <div className="text-center py-8 text-muted-foreground">
             <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No comments yet. Be the first to start the discussion!</p>

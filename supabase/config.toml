@@ -24,3 +24,12 @@ verify_jwt = false
 
 [functions.poll-hcs-mirror]
 verify_jwt = false
+
+[functions.get-market-comments]
+verify_jwt = false
+
+[functions.create-comment]
+verify_jwt = false
+
+[functions.toggle-reaction]
+verify_jwt = false

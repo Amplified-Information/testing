@@ -257,6 +257,93 @@ export type Database = {
           },
         ]
       }
+      comment_reactions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          user_id: string | null
+          wallet_id: string | null
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          reaction_type?: Database["public"]["Enums"]["reaction_type"]
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "market_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_reports: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          reason: string
+          reporter_user_id: string | null
+          reporter_wallet_id: string | null
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_user_id?: string | null
+          reporter_wallet_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_user_id?: string | null
+          reporter_wallet_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "market_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_reports_reporter_user_id_fkey"
+            columns: ["reporter_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_markets: {
         Row: {
           category_id: string
@@ -667,6 +754,67 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      market_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          market_id: string
+          parent_comment_id: string | null
+          position: Database["public"]["Enums"]["comment_position"] | null
+          updated_at: string
+          user_id: string | null
+          wallet_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          market_id: string
+          parent_comment_id?: string | null
+          position?: Database["public"]["Enums"]["comment_position"] | null
+          updated_at?: string
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          market_id?: string
+          parent_comment_id?: string | null
+          position?: Database["public"]["Enums"]["comment_position"] | null
+          updated_at?: string
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_comments_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "event_markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "market_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       market_deployment_queue: {
         Row: {
@@ -1594,6 +1742,7 @@ export type Database = {
       }
     }
     Enums: {
+      comment_position: "YES" | "NO"
       governance_status:
         | "draft"
         | "proposal"
@@ -1608,6 +1757,8 @@ export type Database = {
         | "market_amendment"
         | "liquidity_incentive"
         | "governance_parameter"
+      reaction_type: "like" | "dislike"
+      report_status: "pending" | "reviewed" | "resolved"
       resolution_status: "open" | "closed" | "resolved" | "cancelled"
       vote_choice: "yes" | "no" | "abstain"
     }
@@ -1737,6 +1888,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      comment_position: ["YES", "NO"],
       governance_status: [
         "draft",
         "proposal",
@@ -1753,6 +1905,8 @@ export const Constants = {
         "liquidity_incentive",
         "governance_parameter",
       ],
+      reaction_type: ["like", "dislike"],
+      report_status: ["pending", "reviewed", "resolved"],
       resolution_status: ["open", "closed", "resolved", "cancelled"],
       vote_choice: ["yes", "no", "abstain"],
     },
