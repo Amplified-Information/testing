@@ -17,6 +17,7 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: (date: Date) => boolean;
   className?: string;
+  modifiers?: Record<string, (date: Date) => boolean>;
 }
 
 export function DatePicker({
@@ -24,7 +25,8 @@ export function DatePicker({
   onSelect,
   placeholder = "Pick a date",
   disabled,
-  className
+  className,
+  modifiers
 }: DatePickerProps) {
   return (
     <Popover>
@@ -47,6 +49,10 @@ export function DatePicker({
           selected={date}
           onSelect={onSelect}
           disabled={disabled}
+          modifiers={modifiers}
+          modifiersClassNames={{
+            validRange: "bg-primary/10 border-primary/20 border-2 rounded-md"
+          }}
           initialFocus
           className={cn("p-3 pointer-events-auto")}
         />

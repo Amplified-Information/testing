@@ -253,6 +253,18 @@ const ProposalForm = () => {
                              isAfter(date, maxDate) || 
                              (resolutionDate && isAfter(date, resolutionDate));
                     }}
+                    modifiers={{
+                      validRange: (date) => {
+                        const minDate = addDays(new Date(), 1);
+                        const maxDate = addDays(new Date(), 14);
+                        const resolutionDate = formData.resolution_date ? new Date(formData.resolution_date) : null;
+                        
+                        const inValidRange = !isBefore(date, minDate) && !isAfter(date, maxDate);
+                        const beforeResolution = !resolutionDate || !isAfter(date, resolutionDate);
+                        
+                        return inValidRange && beforeResolution;
+                      }
+                    }}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
