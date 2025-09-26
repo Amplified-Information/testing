@@ -867,6 +867,7 @@ export type Database = {
           proposal_voting_power_against: number
           proposal_voting_power_for: number
           proposer_id: string
+          proposer_wallet_id: string | null
           resolution_date: string | null
           title: string
           updated_at: string
@@ -908,6 +909,7 @@ export type Database = {
           proposal_voting_power_against?: number
           proposal_voting_power_for?: number
           proposer_id: string
+          proposer_wallet_id?: string | null
           resolution_date?: string | null
           title: string
           updated_at?: string
@@ -949,6 +951,7 @@ export type Database = {
           proposal_voting_power_against?: number
           proposal_voting_power_for?: number
           proposer_id?: string
+          proposer_wallet_id?: string | null
           resolution_date?: string | null
           title?: string
           updated_at?: string
@@ -1131,6 +1134,7 @@ export type Database = {
           vote_choice: Database["public"]["Enums"]["vote_choice"]
           voter_id: string
           voting_power: number
+          wallet_id: string | null
           wallet_signature: string
         }
         Insert: {
@@ -1142,6 +1146,7 @@ export type Database = {
           vote_choice: Database["public"]["Enums"]["vote_choice"]
           voter_id: string
           voting_power: number
+          wallet_id?: string | null
           wallet_signature: string
         }
         Update: {
@@ -1153,6 +1158,7 @@ export type Database = {
           vote_choice?: Database["public"]["Enums"]["vote_choice"]
           voter_id?: string
           voting_power?: number
+          wallet_id?: string | null
           wallet_signature?: string
         }
         Relationships: [
@@ -1304,6 +1310,7 @@ export type Database = {
           updated_at: string
           user_id: string
           voting_power_multiplier: number
+          wallet_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1316,6 +1323,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           voting_power_multiplier?: number
+          wallet_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1328,6 +1336,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           voting_power_multiplier?: number
+          wallet_id?: string | null
         }
         Relationships: []
       }
@@ -1409,6 +1418,7 @@ export type Database = {
           token_balance: number
           total_voting_power: number
           user_id: string
+          wallet_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1418,6 +1428,7 @@ export type Database = {
           token_balance?: number
           total_voting_power?: number
           user_id: string
+          wallet_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1427,6 +1438,7 @@ export type Database = {
           token_balance?: number
           total_voting_power?: number
           user_id?: string
+          wallet_id?: string | null
         }
         Relationships: []
       }
@@ -1440,6 +1452,7 @@ export type Database = {
           token_balance: number
           total_voting_power: number
           user_id: string
+          wallet_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1450,6 +1463,7 @@ export type Database = {
           token_balance: number
           total_voting_power: number
           user_id: string
+          wallet_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1460,6 +1474,7 @@ export type Database = {
           token_balance?: number
           total_voting_power?: number
           user_id?: string
+          wallet_id?: string | null
         }
         Relationships: [
           {
