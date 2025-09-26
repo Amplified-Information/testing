@@ -239,34 +239,15 @@ const ProposalForm = () => {
                   <DatePicker
                     date={formData.proposal_end_date ? new Date(formData.proposal_end_date) : undefined}
                     onSelect={(date) => {
+                      console.log('Date selected:', date);
                       if (date) {
                         updateFormData({ proposal_end_date: date.toISOString().split('T')[0] + 'T23:59:59' });
                       }
                     }}
                     placeholder="Select proposal voting end date"
                     disabled={(date) => {
-                      const minDate = addDays(new Date(), 1);
-                      const maxDate = addDays(new Date(), 14);
-                      const resolutionDate = formData.resolution_date ? new Date(formData.resolution_date) : null;
-                      
-                      return isBefore(date, minDate) || 
-                             isAfter(date, maxDate) || 
-                             (resolutionDate && isAfter(date, resolutionDate));
-                    }}
-                    modifiers={{
-                      validRange: (date) => {
-                        const minDate = addDays(new Date(), 1);
-                        const maxDate = addDays(new Date(), 14);
-                        const resolutionDate = formData.resolution_date ? new Date(formData.resolution_date) : null;
-                        
-                        const inValidRange = !isBefore(date, minDate) && !isAfter(date, maxDate);
-                        const beforeResolution = !resolutionDate || !isAfter(date, resolutionDate);
-                        
-                        return inValidRange && beforeResolution;
-                      }
-                    }}
-                    modifiersClassNames={{
-                      validRange: "bg-primary/10 border-primary/30 border rounded-md shadow-sm"
+                      // Simplified logic - only disable past dates
+                      return isBefore(date, new Date());
                     }}
                   />
                 </div>

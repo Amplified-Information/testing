@@ -45,16 +45,17 @@ export function DatePicker({
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+      <PopoverContent className="w-auto p-0 z-50" align="start">
         <Calendar
           mode="single"
           selected={date}
-          onSelect={onSelect}
+          onSelect={(selectedDate) => {
+            console.log('Calendar onSelect called:', selectedDate);
+            onSelect?.(selectedDate);
+          }}
           disabled={disabled}
           modifiers={modifiers}
-          modifiersClassNames={modifiersClassNames || {
-            validRange: "bg-primary/10 border-primary/20 border-2 rounded-md"
-          }}
+          modifiersClassNames={modifiersClassNames}
           initialFocus
         />
       </PopoverContent>
