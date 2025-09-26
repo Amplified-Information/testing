@@ -10,13 +10,25 @@ export const useGovernanceTokenBalance = () => {
   const { data: governanceTokenId } = useQuery({
     queryKey: ['governance-token-id'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('governance_settings')
-        .select('setting_value')
-        .eq('setting_key', 'governance_token_id')
-        .maybeSingle();
-      
-      return data?.setting_value ? (typeof data.setting_value === 'string' ? JSON.parse(data.setting_value) : data.setting_value) : '0.0.6890168';
+      try {
+        const { data, error } = await supabase
+          .from('governance_settings')
+          .select('setting_value')
+          .eq('setting_key', 'governance_token_id')
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching governance token ID:', error);
+          return '0.0.6890168';
+        }
+        
+        const tokenId = data?.setting_value ? String(data.setting_value) : '0.0.6890168';
+        console.log('Governance token ID retrieved:', tokenId);
+        return tokenId;
+      } catch (error) {
+        console.error('Error in governance token ID query:', error);
+        return '0.0.6890168';
+      }
     },
   });
 
