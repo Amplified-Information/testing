@@ -28,11 +28,13 @@ const Header = () => {
         <Link to="/" className="flex items-center space-x-2">
           <TrendingUp className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold">HashyMarket</span>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 ml-3 flex items-center gap-2">
-            <span className="hidden lg:inline">Powered by</span>
-            <img src="https://bfenuvdwsgzglhhjbrql.supabase.co/storage/v1/object/public/images/uploads/1758864965179_1p4b5jtrdp7.JPG" alt="Hedera Hashgraph" className="h-4 ml-1" />
-            <span className="text-blue-600 font-medium">Hedera Hashgraph</span>
-          </Badge>
+          <a href="https://hedera.com/" target="_blank" rel="noopener noreferrer">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 ml-3 flex items-center gap-2 hover:bg-primary/20 transition-colors cursor-pointer">
+              <span className="hidden lg:inline">Powered by</span>
+              <img src="https://bfenuvdwsgzglhhjbrql.supabase.co/storage/v1/object/public/images/uploads/1758864965179_1p4b5jtrdp7.JPG" alt="Hedera Hashgraph" className="h-4 ml-1" />
+              <span className="text-blue-600 font-medium">Hedera Hashgraph</span>
+            </Badge>
+          </a>
         </Link>
 
         {/* Navigation */}
