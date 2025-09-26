@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { AlertCircle, Check, FileText, Calendar, DollarSign, Eye, Plus, X, Upload, Image } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useGovernance } from "@/hooks/useGovernance";
 import { useWallet } from "@/contexts/WalletContext";
+import { addDays, isBefore, isAfter } from "date-fns";
 import type { CreateProposalData } from "@/types/governance";
 
 const STEPS = [
@@ -36,6 +38,7 @@ const ProposalForm = () => {
     market_title: '',
     market_description: '',
     market_outcomes: { yes: 'Yes', no: 'No' },
+    proposal_end_date: addDays(new Date(), 1).toISOString().slice(0, 19), // Default to 1 day from now
     resolution_date: new Date(Date.now() + 24*60*60*1000).toISOString().slice(0, 19), // Default to tomorrow with seconds
     oracle_type: 'manual',
     oracle_config: {},
@@ -67,7 +70,7 @@ const ProposalForm = () => {
   const isStepValid = (step: number) => {
     switch (step) {
       case 1:
-        return formData.title && formData.description && formData.market_title && formData.market_description && marketType;
+        return formData.title && formData.description && formData.market_title && formData.market_description && formData.proposal_end_date && marketType;
       case 2:
         return formData.resolution_date && formData.oracle_type;
       case 3:
@@ -228,6 +231,33 @@ const ProposalForm = () => {
                   placeholder="Detailed description of the market and conditions"
                   rows={3}
                 />
+              </div>
+
+              <div>
+                <Label>Proposal Voting End Date</Label>
+                <div className="mt-1">
+                  <DatePicker
+                    date={formData.proposal_end_date ? new Date(formData.proposal_end_date) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        updateFormData({ proposal_end_date: date.toISOString().slice(0, 19) });
+                      }
+                    }}
+                    placeholder="Select proposal voting end date"
+                    disabled={(date) => {
+                      const minDate = addDays(new Date(), 1);
+                      const maxDate = addDays(new Date(), 14);
+                      const resolutionDate = formData.resolution_date ? new Date(formData.resolution_date) : null;
+                      
+                      return isBefore(date, minDate) || 
+                             isAfter(date, maxDate) || 
+                             (resolutionDate && isAfter(date, resolutionDate));
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Proposal voting must end between 1-14 days from now and before the market resolution date.
+                </p>
               </div>
 
               <div>

@@ -133,6 +133,7 @@ export interface CreateProposalData {
     yes: string;
     no: string;
   };
+  proposal_end_date: string;
   resolution_date: string;
   oracle_type: OracleType;
   oracle_config: Record<string, any>;
