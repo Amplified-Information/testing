@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useWallet } from '@/contexts/WalletContext';
 
 export interface Comment {
   id: string;
@@ -18,6 +19,7 @@ export const useMarketComments = (marketId: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { wallet } = useWallet();
 
   const fetchComments = async () => {
     try {
@@ -48,7 +50,7 @@ export const useMarketComments = (marketId: string) => {
     try {
       // Get current user or wallet info
       const { data: { user } } = await supabase.auth.getUser();
-      const walletId = localStorage.getItem('wallet_account_id'); // Assuming wallet info is stored here
+      const walletId = wallet.accountId; // Get wallet ID from context
 
       const { data, error } = await supabase.functions.invoke('create-comment', {
         body: {
@@ -86,7 +88,7 @@ export const useMarketComments = (marketId: string) => {
   const toggleReaction = async (commentId: string, reactionType: 'like' | 'dislike') => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const walletId = localStorage.getItem('wallet_account_id');
+      const walletId = wallet.accountId;
 
       const { data, error } = await supabase.functions.invoke('toggle-reaction', {
         body: {
