@@ -45,7 +45,7 @@ export function DatePicker({
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
         <Calendar
           mode="single"
           selected={date}
@@ -56,7 +56,6 @@ export function DatePicker({
             validRange: "bg-primary/10 border-primary/20 border-2 rounded-md"
           }}
           initialFocus
-          className={cn("p-3 pointer-events-auto")}
         />
       </PopoverContent>
     </Popover>
