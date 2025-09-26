@@ -211,7 +211,6 @@ export const useGovernance = () => {
         .from('proposal_votes')
         .insert({
           proposal_id: proposalId,
-          voter_id: wallet.accountId, // Temporary backward compatibility 
           wallet_id: wallet.accountId,
           vote_choice: voteChoice,
           voting_power: userBalance.total_voting_power,
