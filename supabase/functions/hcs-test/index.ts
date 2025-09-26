@@ -37,7 +37,7 @@ serve(async (req) => {
       .in('name', ['CLOB_SYSTEM_ACCOUNT_ID', 'CLOB_SYSTEM_ACCOUNT_PRIVATE_KEY']);
 
     if (error) {
-      throw new Error(`Failed to fetch credentials: ${error.message}`);
+      throw new Error(`Failed to fetch credentials: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     if (!secrets || secrets.length < 2) {

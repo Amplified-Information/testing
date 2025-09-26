@@ -114,7 +114,7 @@ class OrderMatcher {
       })
 
     if (insertError) {
-      throw new Error(`Failed to insert order: ${insertError.message}`)
+      throw new Error(`Failed to insert order: ${insertError instanceof Error ? insertError.message : String(insertError)}`)
     }
 
     // Get current order book for matching
@@ -127,7 +127,7 @@ class OrderMatcher {
       .order('created_at', { ascending: true })
 
     if (ordersError) {
-      throw new Error(`Failed to fetch order book: ${ordersError.message}`)
+      throw new Error(`Failed to fetch order book: ${ordersError instanceof Error ? ordersError.message : String(ordersError)}`)
     }
 
     // Find matching orders
@@ -234,7 +234,7 @@ class OrderMatcher {
         .insert(trades)
 
       if (tradesError) {
-        throw new Error(`Failed to insert trades: ${tradesError.message}`)
+        throw new Error(`Failed to insert trades: ${tradesError instanceof Error ? tradesError.message : String(tradesError)}`)
       }
       
       console.log(`Executed ${trades.length} trades for order ${incomingOrder.order_id}`)

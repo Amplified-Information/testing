@@ -33,8 +33,6 @@ export function createHederaClient(config: HederaClientConfig): Client {
     // Enhanced testnet node management - using available SDK methods
     client.setNodeWaitTime(120000) // 2 minute wait time for node readmission
     
-    // Additional testnet-specific configurations removed - using SDK defaults
-    
     // Network health check
     const networkStatus = networkHealth.getNetworkStatus()
     console.log(`🏥 Network health: ${networkStatus.healthy}/${networkStatus.total} nodes, avg: ${networkStatus.avgResponseTime}ms`)
@@ -80,7 +78,7 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
   
   if (error) {
     console.error('Failed to read secrets from database:', error)
-    throw new Error(`Failed to read secrets: ${error.message}`)
+    throw new Error(`Failed to read secrets: ${error instanceof Error ? error.message : String(error)}`)
   }
   
   if (!secrets || secrets.length !== 2) {
