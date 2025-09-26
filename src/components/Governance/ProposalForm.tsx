@@ -239,15 +239,16 @@ const ProposalForm = () => {
                   <DatePicker
                     date={formData.proposal_end_date ? new Date(formData.proposal_end_date) : undefined}
                     onSelect={(date) => {
-                      console.log('Date selected:', date);
                       if (date) {
                         updateFormData({ proposal_end_date: date.toISOString().split('T')[0] + 'T23:59:59' });
                       }
                     }}
                     placeholder="Select proposal voting end date"
                     disabled={(date) => {
-                      // Simplified logic - only disable past dates
-                      return isBefore(date, new Date());
+                      const today = new Date();
+                      const fourteenDaysFromNow = new Date();
+                      fourteenDaysFromNow.setDate(today.getDate() + 14);
+                      return date <= today || date > fourteenDaysFromNow;
                     }}
                   />
                 </div>
@@ -428,12 +429,20 @@ const ProposalForm = () => {
             <div className="space-y-6">
               <div>
                 <Label htmlFor="resolution_date">Resolution Date</Label>
-                <Input
-                  id="resolution_date"
-                  type="datetime-local"
-                  step="1"
-                  value={formData.resolution_date}
-                  onChange={(e) => updateFormData({ resolution_date: e.target.value })}
+                <DatePicker
+                  date={formData.resolution_date ? new Date(formData.resolution_date) : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      updateFormData({ resolution_date: date.toISOString().split('T')[0] + 'T23:59:59' });
+                    }
+                  }}
+                  placeholder="Select resolution date"
+                  disabled={(date) => {
+                    const today = new Date();
+                    const fourteenDaysFromNow = new Date();
+                    fourteenDaysFromNow.setDate(today.getDate() + 14);
+                    return date <= today || date > fourteenDaysFromNow;
+                  }}
                 />
               </div>
 
