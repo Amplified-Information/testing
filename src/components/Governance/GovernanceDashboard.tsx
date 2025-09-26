@@ -78,7 +78,9 @@ const GovernanceDashboard = () => {
   const hasUserVoted = (proposalId: string, isElection: boolean = false) => {
     return userVotes?.some(vote => 
       vote.proposal_id === proposalId && 
-      vote.is_proposal_phase !== isElection
+      vote.is_proposal_phase !== isElection &&
+      // Check both wallet_id (new) and fallback to voter_id match for backward compatibility
+      ((vote as any).wallet_id === wallet.accountId || vote.voter_id === wallet.accountId)
     );
   };
 

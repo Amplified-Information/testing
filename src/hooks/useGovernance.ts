@@ -54,59 +54,47 @@ export const useGovernance = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as MarketProposal[];
+      return data as unknown as MarketProposal[];
     },
   });
 
-  // Get user's proposals by Hedera account ID
+  // Get user's proposals by wallet_id directly
   const { data: userProposals } = useQuery({
     queryKey: ['user-proposals', wallet.accountId],
     queryFn: async () => {
       if (!wallet.accountId) return [];
       
-      // Find the wallet entry to get the linked user_id
-      const { data: walletData } = await supabase
-        .from('hedera_wallets')
-        .select('user_id')
-        .eq('account_id', wallet.accountId)
-        .maybeSingle();
-      
-      if (!walletData?.user_id) return [];
-      
       const { data, error } = await supabase
         .from('market_proposals')
         .select('*')
-        .eq('proposer_id', walletData.user_id)
+        .eq('proposer_wallet_id', wallet.accountId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as MarketProposal[];
+      if (error) {
+        console.error('Error fetching wallet proposals:', error);
+        return [];
+      }
+      return data as unknown as MarketProposal[];
     },
     enabled: wallet.isConnected && !!wallet.accountId,
   });
 
-  // Get user's votes by Hedera account ID
+  // Get user's votes by wallet_id directly
   const { data: userVotes } = useQuery({
     queryKey: ['user-votes', wallet.accountId],
     queryFn: async () => {
       if (!wallet.accountId) return [];
       
-      // Find the wallet entry to get the linked user_id
-      const { data: walletData } = await supabase
-        .from('hedera_wallets')
-        .select('user_id')
-        .eq('account_id', wallet.accountId)
-        .maybeSingle();
-      
-      if (!walletData?.user_id) return [];
-      
       const { data, error } = await supabase
         .from('proposal_votes')
         .select('*')
-        .eq('voter_id', walletData.user_id);
+        .eq('wallet_id', wallet.accountId);
 
-      if (error) throw error;
-      return data as ProposalVote[];
+      if (error) {
+        console.error('Error fetching wallet votes:', error);
+        return [];
+      }
+      return data as unknown as ProposalVote[];
     },
     enabled: wallet.isConnected && !!wallet.accountId,
   });
@@ -117,24 +105,13 @@ export const useGovernance = () => {
       if (!wallet.accountId) {
         throw new Error('Wallet not connected');
       }
-      
-      // Find the wallet entry to get the linked user_id
-      const { data: walletData } = await supabase
-        .from('hedera_wallets')
-        .select('user_id')
-        .eq('account_id', wallet.accountId)
-        .maybeSingle();
-      
-      if (!walletData?.user_id) {
-        throw new Error('Wallet not linked to governance account');
-      }
 
       let imageUrl = null;
       
       // Upload image if provided
       if (proposalData.marketImage) {
         const fileExt = proposalData.marketImage.name.split('.').pop();
-        const fileName = `${walletData.user_id}/${Date.now()}.${fileExt}`;
+        const fileName = `${wallet.accountId}/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('images')
@@ -153,7 +130,8 @@ export const useGovernance = () => {
       const { data, error } = await supabase
         .from('market_proposals')
         .insert({
-          proposer_id: walletData.user_id,
+          proposer_id: wallet.accountId, // Temporary backward compatibility 
+          proposer_wallet_id: wallet.accountId,
           proposal_type: 'market_creation',
           title: proposalData.title,
           description: proposalData.description,
@@ -172,7 +150,7 @@ export const useGovernance = () => {
         .single();
 
       if (error) throw error;
-      return data as MarketProposal;
+      return data as unknown as MarketProposal;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-proposals'] });
@@ -225,17 +203,6 @@ export const useGovernance = () => {
       if (!wallet.accountId || !userBalance) {
         throw new Error('Wallet not connected or no voting power');
       }
-      
-      // Find the wallet entry to get the linked user_id
-      const { data: walletData } = await supabase
-        .from('hedera_wallets')
-        .select('user_id')
-        .eq('account_id', wallet.accountId)
-        .maybeSingle();
-      
-      if (!walletData?.user_id) {
-        throw new Error('Wallet not linked to governance account');
-      }
 
       // Create a simple signature for now (would be replaced with actual wallet signature)
       const signature = `${wallet.accountId}-${proposalId}-${voteChoice}-${Date.now()}`;
@@ -244,7 +211,8 @@ export const useGovernance = () => {
         .from('proposal_votes')
         .insert({
           proposal_id: proposalId,
-          voter_id: walletData.user_id,
+          voter_id: wallet.accountId, // Temporary backward compatibility 
+          wallet_id: wallet.accountId,
           vote_choice: voteChoice,
           voting_power: userBalance.total_voting_power,
           is_proposal_phase: isProposalPhase,
