@@ -31,9 +31,10 @@ export function DatePicker({
   modifiersClassNames
 }: DatePickerProps) {
   return (
-    <Popover>
+    <Popover modal={false}>
       <PopoverTrigger asChild>
         <Button
+          type="button"
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
@@ -45,19 +46,28 @@ export function DatePicker({
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 z-50" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={(selectedDate) => {
-            console.log('Calendar onSelect called:', selectedDate);
-            onSelect?.(selectedDate);
+      <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={4}>
+        <div 
+          className="bg-background border rounded-lg shadow-lg" 
+          style={{ zIndex: 1000, position: 'relative' }}
+          onClick={(e) => {
+            console.log('Calendar container clicked');
+            e.stopPropagation();
           }}
-          disabled={disabled}
-          modifiers={modifiers}
-          modifiersClassNames={modifiersClassNames}
-          initialFocus
-        />
+        >
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(selectedDate) => {
+              console.log('Calendar onSelect called:', selectedDate);
+              onSelect?.(selectedDate);
+            }}
+            disabled={disabled}
+            modifiers={modifiers}
+            modifiersClassNames={modifiersClassNames}
+            initialFocus
+          />
+        </div>
       </PopoverContent>
     </Popover>
   )
