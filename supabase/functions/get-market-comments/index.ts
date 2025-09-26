@@ -22,8 +22,17 @@ serve(async (req) => {
       }
     );
 
-    const url = new URL(req.url);
-    const marketId = url.searchParams.get('marketId');
+    let marketId: string;
+
+    if (req.method === 'GET') {
+      // Handle GET request with query parameter
+      const url = new URL(req.url);
+      marketId = url.searchParams.get('marketId') || '';
+    } else {
+      // Handle POST request with body
+      const body = await req.json();
+      marketId = body.marketId || '';
+    }
 
     if (!marketId) {
       return new Response(
