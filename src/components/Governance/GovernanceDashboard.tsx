@@ -229,7 +229,7 @@ const GovernanceDashboard = () => {
                     </div>
 
                     {/* Voting buttons */}
-                    {!userVoted && (
+                    {!userVoted && getProposalStatus(proposal) !== 'Proposal Phase Ended' && getProposalStatus(proposal) !== 'Election Ended' && (
                       <div className="flex gap-2">
                         <Button
                           size="sm"
