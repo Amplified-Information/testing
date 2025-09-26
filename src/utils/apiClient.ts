@@ -94,6 +94,27 @@ class ApiClient {
       { maxRetries: 2, baseDelay: 500 }
     );
   }
+
+  async getHederaTokenBalance(accountId: string, tokenId: string): Promise<number> {
+    const mirrorNodeUrl = import.meta.env.VITE_MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com/api/v1';
+    try {
+      const accountData: any = await this.fetchWithRetry(
+        `${mirrorNodeUrl}/accounts/${accountId}`,
+        {},
+        { maxRetries: 2, baseDelay: 500 }
+      );
+      
+      // Find the specific token balance
+      const tokenBalance = accountData.balance?.tokens?.find(
+        (token: any) => token.token_id === tokenId
+      );
+      
+      return tokenBalance ? parseInt(tokenBalance.balance) : 0;
+    } catch (error) {
+      appDebugger.log('warn', `Failed to get token balance for ${accountId}:${tokenId}`, error);
+      return 0;
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

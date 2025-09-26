@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWallet } from '@/contexts/WalletContext';
+import { useGovernanceTokenBalance } from './useGovernanceTokenBalance';
 import { toast } from 'sonner';
 import type { 
   MarketProposal, 
@@ -15,36 +15,20 @@ import type {
 export const useGovernance = () => {
   const { wallet } = useWallet();
   const queryClient = useQueryClient();
+  
+  // Get real-time token balance from Hedera
+  const { tokenBalance, votingPower, isLoading: isLoadingBalance } = useGovernanceTokenBalance();
 
-  // Get user's voting power by Hedera account ID
-  const { data: userBalance, isLoading: isLoadingBalance } = useQuery({
-    queryKey: ['user-token-balance', wallet.accountId],
-    queryFn: async () => {
-      if (!wallet.accountId) return null;
-      
-      // First, find the wallet entry to get the linked user_id
-      const { data: walletData } = await supabase
-        .from('hedera_wallets')
-        .select('user_id')
-        .eq('account_id', wallet.accountId)
-        .maybeSingle();
-      
-      if (!walletData?.user_id) return null;
-      
-      const { data, error } = await supabase
-        .from('user_token_balances')
-        .select('*')
-        .eq('user_id', walletData.user_id)
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-      
-      return data as UserTokenBalance | null;
-    },
-    enabled: wallet.isConnected && !!wallet.accountId,
-  });
+  // Create a mock userBalance object for compatibility
+  const userBalance = tokenBalance !== undefined ? {
+    id: wallet.accountId || '',
+    user_id: wallet.accountId || '',
+    token_balance: tokenBalance,
+    staked_balance: 0, // Could be extended later
+    total_voting_power: votingPower,
+    last_updated: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  } : null;
 
   // Get governance settings
   const { data: governanceSettings } = useQuery({
@@ -312,28 +296,28 @@ export const useGovernance = () => {
   // Helper functions
   const canCreateProposal = () => {
     const minVotingPower = governanceSettings?.find(
-      s => s.setting_key === 'min_proposal_voting_power'
-    )?.setting_value || 100000;
+      s => s.setting_key === 'voting_power_requirement'
+    )?.setting_value || 1000;
     
-    return userBalance && userBalance.total_voting_power >= Number(minVotingPower);
+    return votingPower >= Number(minVotingPower);
   };
 
   const getVotingPowerRequirement = () => {
     return governanceSettings?.find(
-      s => s.setting_key === 'min_proposal_voting_power'
-    )?.setting_value || 100000;
+      s => s.setting_key === 'voting_power_requirement'
+    )?.setting_value || 1000;
   };
 
   const getProposalQuorum = () => {
     return governanceSettings?.find(
-      s => s.setting_key === 'proposal_quorum_voting_power'
-    )?.setting_value || 5000000;
+      s => s.setting_key === 'proposal_quorum'
+    )?.setting_value || 10000;
   };
 
   const getElectionQuorum = () => {
     return governanceSettings?.find(
-      s => s.setting_key === 'election_quorum_voting_power'
-    )?.setting_value || 10000000;
+      s => s.setting_key === 'election_quorum'
+    )?.setting_value || 15000;
   };
 
   return {
