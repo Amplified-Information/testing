@@ -1132,7 +1132,7 @@ export type Database = {
           is_proposal_phase: boolean
           proposal_id: string
           vote_choice: Database["public"]["Enums"]["vote_choice"]
-          voter_id: string
+          voter_id: string | null
           voting_power: number
           wallet_id: string | null
           wallet_signature: string
@@ -1144,7 +1144,7 @@ export type Database = {
           is_proposal_phase?: boolean
           proposal_id: string
           vote_choice: Database["public"]["Enums"]["vote_choice"]
-          voter_id: string
+          voter_id?: string | null
           voting_power: number
           wallet_id?: string | null
           wallet_signature: string
@@ -1156,7 +1156,7 @@ export type Database = {
           is_proposal_phase?: boolean
           proposal_id?: string
           vote_choice?: Database["public"]["Enums"]["vote_choice"]
-          voter_id?: string
+          voter_id?: string | null
           voting_power?: number
           wallet_id?: string | null
           wallet_signature?: string
