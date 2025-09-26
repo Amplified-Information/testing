@@ -30,7 +30,7 @@ const Header = () => {
           <span className="text-xl font-bold">HashyMarket</span>
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 ml-3 flex items-center gap-2">
             <span className="hidden lg:inline">Powered by</span>
-            <img src="/src/assets/hedera-logo.png" alt="Hedera Hashgraph" className="h-4 ml-1" />
+            <img src="/hedera-logo.png" alt="Hedera Hashgraph" className="h-4 ml-1" />
           </Badge>
         </Link>
 
