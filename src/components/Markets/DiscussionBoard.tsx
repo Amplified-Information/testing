@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, ThumbsUp, ThumbsDown, Reply, Flag, Loader2 } from "lucide-react";
+import { MessageSquare, ThumbsUp, ThumbsDown, Reply, Flag, Loader2, Wallet } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useMarketComments, Comment } from "@/hooks/useMarketComments";
+import { useWallet } from "@/contexts/WalletContext";
 
 interface DiscussionBoardProps {
   marketId: string;
@@ -17,11 +18,20 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<'YES' | 'NO' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
+  const { wallet, connect, isLoading: walletLoading } = useWallet();
   const { comments, loading, error, addComment, toggleReaction } = useMarketComments(marketId);
 
+  const handleConnectWallet = async () => {
+    try {
+      await connect();
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+    }
+  };
+
   const handleSubmitComment = async () => {
-    if (!newComment.trim() || isSubmitting) return;
+    if (!newComment.trim() || isSubmitting || !wallet.isConnected) return;
     
     try {
       setIsSubmitting(true);
@@ -37,6 +47,7 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
   };
 
   const handleReaction = async (commentId: string, reactionType: 'like' | 'dislike') => {
+    if (!wallet.isConnected) return;
     await toggleReaction(commentId, reactionType);
   };
 
@@ -70,21 +81,36 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
           <div className="flex items-center gap-4 pt-1">
             <button 
               onClick={() => handleReaction(comment.id, 'like')}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              className={`flex items-center gap-1 text-xs transition-colors ${
+                wallet.isConnected 
+                  ? 'text-muted-foreground hover:text-primary cursor-pointer' 
+                  : 'text-muted-foreground/50 cursor-not-allowed'
+              }`}
+              disabled={!wallet.isConnected}
             >
               <ThumbsUp className="h-3 w-3" />
               {comment.likes}
             </button>
             <button 
               onClick={() => handleReaction(comment.id, 'dislike')}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+              className={`flex items-center gap-1 text-xs transition-colors ${
+                wallet.isConnected 
+                  ? 'text-muted-foreground hover:text-destructive cursor-pointer' 
+                  : 'text-muted-foreground/50 cursor-not-allowed'
+              }`}
+              disabled={!wallet.isConnected}
             >
               <ThumbsDown className="h-3 w-3" />
               {comment.dislikes}
             </button>
             <button 
-              onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              onClick={() => wallet.isConnected && setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+              className={`flex items-center gap-1 text-xs transition-colors ${
+                wallet.isConnected 
+                  ? 'text-muted-foreground hover:text-primary cursor-pointer' 
+                  : 'text-muted-foreground/50 cursor-not-allowed'
+              }`}
+              disabled={!wallet.isConnected}
             >
               <Reply className="h-3 w-3" />
               Reply
@@ -95,7 +121,7 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
             </button>
           </div>
           
-          {replyingTo === comment.id && (
+          {replyingTo === comment.id && wallet.isConnected && (
             <div className="mt-3 space-y-2">
               <Textarea
                 placeholder="Write a reply..."
@@ -138,42 +164,65 @@ const DiscussionBoard = ({ marketId }: DiscussionBoardProps) => {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* New Comment Form */}
-        <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
-          <Textarea
-            placeholder="Share your thoughts, analysis, or ask questions about this market..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-[100px]"
-          />
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
+        {/* Connect Wallet or New Comment Form */}
+        {!wallet.isConnected ? (
+          <div className="space-y-3 p-6 rounded-lg border bg-muted/30 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <Wallet className="h-8 w-8 text-muted-foreground" />
+              <div>
+                <h3 className="font-medium text-lg mb-1">Connect Your Wallet</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  You need to connect your wallet to participate in discussions and react to comments.
+                </p>
+              </div>
               <Button 
-                variant={selectedPosition === 'YES' ? "default" : "outline"} 
-                size="sm"
-                onClick={() => setSelectedPosition(selectedPosition === 'YES' ? null : 'YES')}
+                onClick={handleConnectWallet}
+                disabled={walletLoading}
+                className="min-w-[140px]"
               >
-                <Badge variant="default" className="mr-1">YES</Badge>
-                Position
-              </Button>
-              <Button 
-                variant={selectedPosition === 'NO' ? "destructive" : "outline"} 
-                size="sm"
-                onClick={() => setSelectedPosition(selectedPosition === 'NO' ? null : 'NO')}
-              >
-                <Badge variant="destructive" className="mr-1">NO</Badge>
-                Position
+                {walletLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                <Wallet className="h-4 w-4 mr-2" />
+                Connect Wallet
               </Button>
             </div>
-            <Button 
-              onClick={handleSubmitComment} 
-              disabled={!newComment.trim() || isSubmitting}
-            >
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Post Comment
-            </Button>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+            <Textarea
+              placeholder="Share your thoughts, analysis, or ask questions about this market..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="min-h-[100px]"
+            />
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button 
+                  variant={selectedPosition === 'YES' ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setSelectedPosition(selectedPosition === 'YES' ? null : 'YES')}
+                >
+                  <Badge variant="default" className="mr-1">YES</Badge>
+                  Position
+                </Button>
+                <Button 
+                  variant={selectedPosition === 'NO' ? "destructive" : "outline"} 
+                  size="sm"
+                  onClick={() => setSelectedPosition(selectedPosition === 'NO' ? null : 'NO')}
+                >
+                  <Badge variant="destructive" className="mr-1">NO</Badge>
+                  Position
+                </Button>
+              </div>
+              <Button 
+                onClick={handleSubmitComment} 
+                disabled={!newComment.trim() || isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Post Comment
+              </Button>
+            </div>
+          </div>
+        )}
         
         {/* Comments List */}
         {loading ? (
