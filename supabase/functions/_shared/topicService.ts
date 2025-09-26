@@ -188,12 +188,15 @@ export async function createTopic(
     )
   } catch (error) {
     console.error('Error creating topic:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorName = error instanceof Error ? error.name : 'UnknownError'
+    const errorStack = error instanceof Error ? error.stack?.split('\n')[0] : undefined
     console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack?.split('\n')[0]
+      name: errorName,
+      message: errorMessage,
+      stack: errorStack
     })
-    throw new Error(`Topic creation failed: ${error.message}`)
+    throw new Error(`Topic creation failed: ${errorMessage}`)
   }
 }
 

@@ -84,7 +84,7 @@ class OrderMatcher {
           .from('order_queue')
           .update({ 
             status: 'FAILED',
-            error_message: error.message 
+            error_message: error instanceof Error ? error.message : String(error) 
           })
           .eq('id', queueOrder.id)
       }
@@ -389,7 +389,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Order matching failed', 
-        details: error.message 
+        details: error instanceof Error ? error.message : String(error) 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

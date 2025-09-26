@@ -30,14 +30,8 @@ export function createHederaClient(config: HederaClientConfig): Client {
     client.setMinBackoff(minBackoff)
     client.setMaxBackoff(maxBackoff)
     
-    // Enhanced testnet node management
-    if (typeof client.setMaxNodeReadmitTime === 'function') {
-      client.setMaxNodeReadmitTime(120000) // 2 minute readmit (increased from 1 min)
-    }
-    
-    if (typeof client.setCloseTimeout === 'function') {
-      client.setCloseTimeout(5000)   // 5s close timeout (increased from 3s)
-    }
+    // Enhanced testnet node management - using available SDK methods
+    client.setNodeWaitTime(120000) // 2 minute wait time for node readmission
     
     // Additional testnet-specific configurations removed - using SDK defaults
     
@@ -94,7 +88,7 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
     throw new Error('Required Hedera credentials not found in secrets table')
   }
   
-  const secretsMap = secrets.reduce((acc: Record<string, string>, secret) => {
+  const secretsMap = secrets.reduce((acc: Record<string, string>, secret: any) => {
     acc[secret.name] = secret.value
     return acc
   }, {})
@@ -148,12 +142,13 @@ export async function getSystemHederaClientFromSecrets(supabase: any): Promise<{
     console.error('Private key format (first 10 chars):', systemAccountPrivateKey.substring(0, 10))
     
     // Enhanced error categorization
-    if (error.message?.includes('invalid private key') || error.message?.includes('invalid account')) {
-      throw new Error(`Invalid Hedera credentials: ${error.message}`)
-    } else if (error.message?.includes('network') || error.message?.includes('nodes')) {
-      throw new Error(`Network connectivity issue: ${error.message}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage.includes('invalid private key') || errorMessage.includes('invalid account')) {
+      throw new Error(`Invalid Hedera credentials: ${errorMessage}`)
+    } else if (errorMessage.includes('network') || errorMessage.includes('nodes')) {
+      throw new Error(`Network connectivity issue: ${errorMessage}`)
     } else {
-      throw new Error(`Hedera client initialization failed: ${error.message}`)
+      throw new Error(`Hedera client initialization failed: ${errorMessage}`)
     }
   }
 }

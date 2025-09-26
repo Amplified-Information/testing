@@ -52,7 +52,8 @@ async function testDNSResolution(): Promise<ConnectivityTestResult> {
         console.log(`✅ DNS resolved for ${hostname}`);
       } catch (error) {
         results[node.id] = false;
-        console.log(`❌ DNS failed for ${node.endpoint}: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.log(`❌ DNS failed for ${node.endpoint}: ${errorMessage}`);
       }
     }
     
@@ -72,7 +73,7 @@ async function testDNSResolution(): Promise<ConnectivityTestResult> {
       status: 'failure',
       duration: Date.now() - startTime,
       details: {},
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -111,9 +112,10 @@ async function testNodeConnectivity(): Promise<ConnectivityTestResult> {
         nodeResults.push({
           nodeId: node.id,
           reachable: false,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
-        console.log(`❌ Node ${node.id} unreachable: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.log(`❌ Node ${node.id} unreachable: ${errorMessage}`);
       }
     }
     
@@ -133,7 +135,7 @@ async function testNodeConnectivity(): Promise<ConnectivityTestResult> {
       status: 'failure',
       duration: Date.now() - startTime,
       details: {},
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -187,7 +189,7 @@ async function testHederaClientInit(): Promise<ConnectivityTestResult> {
       status: 'failure',
       duration: Date.now() - startTime,
       details: {},
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -250,7 +252,7 @@ async function testAccountBalanceQuery(): Promise<ConnectivityTestResult> {
       status: 'failure',
       duration: Date.now() - startTime,
       details: {},
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -317,13 +319,16 @@ async function testTopicCreation(): Promise<ConnectivityTestResult> {
       }
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorName = error instanceof Error ? error.name : 'UnknownError'
+    const errorStack = error instanceof Error ? error.stack?.substring(0, 500) : undefined
     const errorDetails = {
-      message: error.message,
-      name: error.name,
-      stack: error.stack?.substring(0, 500), // Truncate stack trace
-      timeout: error.message?.includes('timeout'),
-      grpc: error.message?.includes('grpc') || error.message?.includes('GRPC'),
-      network: error.message?.includes('network') || error.message?.includes('connection')
+      message: errorMessage,
+      name: errorName,
+      stack: errorStack,
+      timeout: errorMessage.includes('timeout'),
+      grpc: errorMessage.includes('grpc') || errorMessage.includes('GRPC'),
+      network: errorMessage.includes('network') || errorMessage.includes('connection')
     };
     
     return {
@@ -331,7 +336,7 @@ async function testTopicCreation(): Promise<ConnectivityTestResult> {
       status: 'failure',
       duration: Date.now() - startTime,
       details: errorDetails,
-      error: error.message
+      error: errorMessage
     };
   }
 }
@@ -361,13 +366,14 @@ async function runFullConnectivityTest(): Promise<ConnectivityTestResult[]> {
         break;
       }
     } catch (error) {
-      console.error(`💥 Test crashed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`💥 Test crashed: ${errorMessage}`);
       results.push({
         test: 'Unknown Test',
         status: 'failure',
         duration: 0,
         details: {},
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   }
@@ -408,7 +414,7 @@ serve(async (req) => {
     console.error('💥 Connectivity test failed:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
     }), {
       status: 500,
