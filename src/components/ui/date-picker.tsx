@@ -18,6 +18,7 @@ interface DatePickerProps {
   disabled?: (date: Date) => boolean;
   className?: string;
   modifiers?: Record<string, (date: Date) => boolean>;
+  modifiersClassNames?: Record<string, string>;
 }
 
 export function DatePicker({
@@ -26,7 +27,8 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled,
   className,
-  modifiers
+  modifiers,
+  modifiersClassNames
 }: DatePickerProps) {
   return (
     <Popover>
@@ -50,7 +52,7 @@ export function DatePicker({
           onSelect={onSelect}
           disabled={disabled}
           modifiers={modifiers}
-          modifiersClassNames={{
+          modifiersClassNames={modifiersClassNames || {
             validRange: "bg-primary/10 border-primary/20 border-2 rounded-md"
           }}
           initialFocus

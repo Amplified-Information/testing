@@ -240,7 +240,7 @@ const ProposalForm = () => {
                     date={formData.proposal_end_date ? new Date(formData.proposal_end_date) : undefined}
                     onSelect={(date) => {
                       if (date) {
-                        updateFormData({ proposal_end_date: date.toISOString().slice(0, 19) });
+                        updateFormData({ proposal_end_date: date.toISOString().split('T')[0] + 'T23:59:59' });
                       }
                     }}
                     placeholder="Select proposal voting end date"
@@ -264,6 +264,9 @@ const ProposalForm = () => {
                         
                         return inValidRange && beforeResolution;
                       }
+                    }}
+                    modifiersClassNames={{
+                      validRange: "bg-primary/10 border-primary/30 border rounded-md shadow-sm"
                     }}
                   />
                 </div>
