@@ -30,8 +30,10 @@ export function DatePicker({
   modifiers,
   modifiersClassNames
 }: DatePickerProps) {
+  const [open, setOpen] = React.useState(false);
+
   return (
-    <Popover modal={false}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -51,7 +53,6 @@ export function DatePicker({
           className="bg-background border rounded-lg shadow-lg" 
           style={{ zIndex: 1000, position: 'relative' }}
           onClick={(e) => {
-            console.log('Calendar container clicked');
             e.stopPropagation();
           }}
         >
@@ -59,8 +60,8 @@ export function DatePicker({
             mode="single"
             selected={date}
             onSelect={(selectedDate) => {
-              console.log('Calendar onSelect called:', selectedDate);
               onSelect?.(selectedDate);
+              setOpen(false); // Close the popover after selection
             }}
             disabled={disabled}
             modifiers={modifiers}
