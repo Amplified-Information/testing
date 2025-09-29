@@ -242,6 +242,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           .eq('account_id', accountId);
         
         debug.log('Updated existing wallet connection');
+        
+        // Check if user needs avatar generation
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', existingWallet.user_id)
+          .maybeSingle();
+        
+        if (!profile?.avatar_url) {
+          debug.log('Existing user has no avatar, generating one');
+          generateAvatarForWallet(accountId, existingWallet.user_id);
+        }
+        
         return;
       }
       
