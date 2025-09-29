@@ -553,7 +553,7 @@ const Markets = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-2xl font-bold">{platformStats.totalValueLocked}</p>
-              <p className="text-xs text-muted-foreground">Across {platformStats.totalMarkets} Markets</p>
+              <p className="text-xs text-primary">Across {platformStats.totalMarkets} Markets</p>
             </CardContent>
           </Card>
         </div>
