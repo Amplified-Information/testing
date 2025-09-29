@@ -543,7 +543,7 @@ const Markets = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-2xl font-bold">{platformStats.activeTraders}</p>
-              <p className="text-xs text-up">Estimated based on markets</p>
+              <p className="text-xs text-up">Estimated based on unique traders</p>
             </CardContent>
           </Card>
 
