@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Users, BarChart3, Loader2 } from "lucide-react";
+import { TrendingUp, DollarSign, Users, Target, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMarketStats } from "@/hooks/useMarketStats";
 import { useWallet } from "@/contexts/WalletContext";
@@ -28,7 +28,7 @@ const HeroSection = () => {
   }, {
     label: "Active Event Prediction Markets",
     value: loading ? "..." : marketStats.activeMarkets.toString(),
-    icon: BarChart3
+    icon: Target
   }, {
     label: "Traders",
     value: loading ? "..." : marketStats.totalTraders,

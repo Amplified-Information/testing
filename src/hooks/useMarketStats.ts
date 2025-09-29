@@ -54,6 +54,11 @@ export const useMarketStats = () => {
           }
         };
 
+        // Format 24h volume with commas
+        const format24hVolume = (value: number) => {
+          return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+        };
+
         // For now, use calculated values for total volume and estimates for traders and 24h volume
         // In a real app, you'd have separate tables/calculations for these
         const estimatedTraders = Math.floor(totalVolumeSum / 200); // Rough estimate based on volume
@@ -63,7 +68,7 @@ export const useMarketStats = () => {
           activeMarkets: activeMarketsCount || 0,
           totalVolume: formatVolume(totalVolumeSum),
           totalTraders: formatVolume(estimatedTraders).replace('$', ''),
-          volume24h: formatVolume(estimated24hVolume)
+          volume24h: format24hVolume(estimated24hVolume)
         });
       } catch (err) {
         console.error('Error fetching market stats:', err);
