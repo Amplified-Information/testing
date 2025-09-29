@@ -301,28 +301,6 @@ const ProposalForm = () => {
                           })}
                           placeholder="Yes"
                         />
-                        <div className="mt-2">
-                          <Label htmlFor="yes_image" className="cursor-pointer">
-                            <div className="border border-muted rounded p-3 hover:bg-muted/50 transition-colors">
-                              <div className="flex items-center space-x-2">
-                                <Upload className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                  {outcomeImages.yes ? outcomeImages.yes.name : "Upload Yes image"}
-                                </span>
-                              </div>
-                            </div>
-                          </Label>
-                          <input
-                            id="yes_image"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageUpload(file, 'outcome', 'yes');
-                            }}
-                          />
-                        </div>
                       </div>
                       <div>
                         <Label htmlFor="no_outcome">No Outcome</Label>
@@ -337,28 +315,6 @@ const ProposalForm = () => {
                           })}
                           placeholder="No"
                         />
-                        <div className="mt-2">
-                          <Label htmlFor="no_image" className="cursor-pointer">
-                            <div className="border border-muted rounded p-3 hover:bg-muted/50 transition-colors">
-                              <div className="flex items-center space-x-2">
-                                <Upload className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                  {outcomeImages.no ? outcomeImages.no.name : "Upload No image"}
-                                </span>
-                              </div>
-                            </div>
-                          </Label>
-                          <input
-                            id="no_image"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageUpload(file, 'outcome', 'no');
-                            }}
-                          />
-                        </div>
                       </div>
                     </div>
                   </div>
