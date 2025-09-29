@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
-import { Search, Filter, TrendingUp, Calendar, DollarSign, Trophy, Zap, Globe, Briefcase, Gamepad2, Activity, Heart, TreePine, Building2, Microscope, Stethoscope, MapPin, ArrowLeft, ChevronRight, Users, Clock, Target, Droplets, Plus, Star, Landmark } from "lucide-react";
+import { Search, Filter, TrendingUp, Calendar, DollarSign, Trophy, Zap, Globe, Briefcase, Gamepad2, Activity, Heart, TreePine, Building2, Microscope, Stethoscope, MapPin, ArrowLeft, ChevronRight, Users, Clock, Store, Droplets, Plus, Star, Landmark } from "lucide-react";
 import Header from "@/components/Layout/Header";
 import SmartMarketCard from "@/components/Markets/SmartMarketCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -422,7 +422,7 @@ const Markets = () => {
 
     return {
       totalMarkets,
-      totalVolume: totalVolume > 1000 ? `$${(totalVolume / 1000).toFixed(0)}K` : `$${totalVolume.toFixed(0)}`,
+      totalVolume: `$${totalVolume.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
       activeTraders: activeTraders > 1000 ? `${(activeTraders / 1000).toFixed(1)}K` : activeTraders.toString(),
       avgResolution: `${avgResolutionDays} days`
     };
@@ -802,7 +802,7 @@ const Markets = () => {
                   <div className="grid grid-cols-4 gap-3 mb-6">
                     <div className="text-center p-3 bg-background/30 rounded-lg">
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                        <Target className="h-3 w-3" />
+                        <Store className="h-3 w-3" />
                         Accuracy
                       </div>
                       <p className="font-bold">{selectedCategoryData.successRate}%</p>
