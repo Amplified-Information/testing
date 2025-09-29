@@ -84,7 +84,7 @@ const Markets = () => {
             market_categories(name),
             market_subcategories(name),
             market_options(*)
-          `).eq('is_active', true).order('created_at', {
+          `).eq('is_active', true).order('sort_order', { ascending: true }).order('created_at', {
           ascending: false
         });
         if (marketsError) throw marketsError;
@@ -334,7 +334,7 @@ const Markets = () => {
           market_categories(name),
           market_subcategories(name),
           market_options(*)
-        `).eq('is_active', true).or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`).order('created_at', {
+        `).eq('is_active', true).or(`name.ilike.%${query}%,market_categories.name.ilike.%${query}%,market_subcategories.name.ilike.%${query}%`).order('sort_order', { ascending: true }).order('created_at', {
         ascending: false
       });
 
@@ -349,7 +349,7 @@ const Markets = () => {
           market_categories(name),
           market_subcategories(name),
           market_options!inner(*)
-        `).eq('is_active', true).or(`market_options.option_name.ilike.%${query}%,market_options.candidate_name.ilike.%${query}%`).order('created_at', {
+        `).eq('is_active', true).or(`market_options.option_name.ilike.%${query}%,market_options.candidate_name.ilike.%${query}%`).order('sort_order', { ascending: true }).order('created_at', {
         ascending: false
       });
 
