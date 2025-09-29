@@ -512,7 +512,7 @@ const Markets = () => {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium text-muted-foreground">Total Markets</h4>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Store className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent className="pt-0">
