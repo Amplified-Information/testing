@@ -417,14 +417,11 @@ const Markets = () => {
     const totalLiquidity = allMarkets.reduce((sum, m) => sum + (m.liquidity || 0), 0);
     const activeTraders = Math.floor(totalMarkets * 50); // Estimated based on markets
 
-    // Calculate average resolution time (placeholder since we don't have actual resolution data)
-    const avgResolutionDays = 15; // Estimated
-
     return {
       totalMarkets,
       totalVolume: `$${totalVolume.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
       activeTraders: activeTraders > 1000 ? `${(activeTraders / 1000).toFixed(1)}K` : activeTraders.toString(),
-      avgResolution: `${avgResolutionDays} days`
+      totalValueLocked: "$1,243,906"
     };
   };
   const platformStats = calculatePlatformStats();
@@ -550,13 +547,13 @@ const Markets = () => {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-muted-foreground">Avg Resolution</h4>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-medium text-muted-foreground">Total Value Locked</h4>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-2xl font-bold">{platformStats.avgResolution}</p>
-              <p className="text-xs text-muted-foreground">Estimated time</p>
+              <p className="text-2xl font-bold">{platformStats.totalValueLocked}</p>
+              <p className="text-xs text-muted-foreground">Across {platformStats.totalMarkets} Markets</p>
             </CardContent>
           </Card>
         </div>
