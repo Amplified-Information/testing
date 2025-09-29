@@ -43,15 +43,9 @@ export const useMarketStats = () => {
         // Calculate total volume
         const totalVolumeSum = volumeData?.reduce((sum, market) => sum + (Number(market.volume) || 0), 0) || 0;
         
-        // Format volume numbers
+        // Format volume numbers with full numbers and commas
         const formatVolume = (value: number) => {
-          if (value >= 1000000) {
-            return `$${(value / 1000000).toFixed(1)}M`;
-          } else if (value >= 1000) {
-            return `$${(value / 1000).toFixed(0)}K`;
-          } else {
-            return `$${value.toFixed(0)}`;
-          }
+          return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
         };
 
         // Format 24h volume with commas
