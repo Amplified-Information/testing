@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { useDebugger } from "@/hooks/useDebugger";
 import { supabase } from "@/integrations/supabase/client";
 import { useSaveWallet, usePrimaryWallet } from "@/hooks/useHederaWallets";
+import { generateWalletAvatar, getExistingWalletAvatar, updateUserAvatar } from "@/lib/avatarGenerator";
 
 // Helper function to extract account ID from session
 function getAccountIdFromSession(session: any): string | null {
@@ -178,6 +179,44 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     enabled: wallet.isConnected,
   });
 
+  // Function to generate avatar for new wallet users
+  const generateAvatarForWallet = useCallback(async (accountId: string, userId?: string) => {
+    try {
+      debug.log('Checking if avatar generation needed for wallet', { accountId, userId });
+      
+      // Check if user already has an avatar
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        if (profile?.avatar_url) {
+          debug.log('User already has avatar, skipping generation');
+          return;
+        }
+      }
+      
+      // Generate avatar for this wallet
+      debug.log('Generating new avatar for wallet', accountId);
+      const avatarUrl = await generateWalletAvatar(accountId);
+      
+      if (avatarUrl && userId) {
+        const success = await updateUserAvatar(userId, avatarUrl);
+        if (success) {
+          debug.log('Avatar generated and updated successfully');
+          toast({
+            title: "Welcome!",
+            description: "A unique avatar has been generated for your wallet.",
+          });
+        }
+      }
+    } catch (error) {
+      debug.error('Failed to generate avatar for wallet', error);
+    }
+  }, [debug]);
+
   // Function to save wallet to database after connection - links directly to existing tokens
   const saveConnectedWallet = useCallback(async (accountId: string, publicKey: string | null) => {
     try {
@@ -234,6 +273,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         }
         
         debug.log('Successfully linked wallet to existing tokens');
+        
+        // Generate avatar for this user if they don't have one
+        generateAvatarForWallet(accountId, unlinkedTokens.user_id);
+        
         toast({
           title: "Wallet Connected",
           description: `Connected ${accountId} to your governance tokens!`,
@@ -266,7 +309,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       debug.error('Failed to save wallet to database', error);
     }
-  }, [debug]);
+  }, [debug, generateAvatarForWallet]);
 
   // Function to load primary wallet for authenticated user
   const loadPrimaryWallet = useCallback(async () => {
