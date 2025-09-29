@@ -289,32 +289,16 @@ const ProposalForm = () => {
                   <div className="space-y-4 mt-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="yes_outcome">Yes Outcome</Label>
-                        <Input
-                          id="yes_outcome"
-                          value={formData.market_outcomes.yes}
-                          onChange={(e) => updateFormData({ 
-                            market_outcomes: { 
-                              ...formData.market_outcomes, 
-                              yes: e.target.value 
-                            }
-                          })}
-                          placeholder="Yes"
-                        />
+                        <Label>Yes Outcome</Label>
+                        <div className="p-3 bg-muted rounded-md">
+                          <span className="text-sm font-medium">Yes</span>
+                        </div>
                       </div>
                       <div>
-                        <Label htmlFor="no_outcome">No Outcome</Label>
-                        <Input
-                          id="no_outcome"
-                          value={formData.market_outcomes.no}
-                          onChange={(e) => updateFormData({ 
-                            market_outcomes: { 
-                              ...formData.market_outcomes, 
-                              no: e.target.value 
-                            }
-                          })}
-                          placeholder="No"
-                        />
+                        <Label>No Outcome</Label>
+                        <div className="p-3 bg-muted rounded-md">
+                          <span className="text-sm font-medium">No</span>
+                        </div>
                       </div>
                     </div>
                   </div>
