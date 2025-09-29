@@ -514,7 +514,7 @@ const Markets = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-2xl font-bold">{platformStats.totalMarkets}</p>
-              <p className="text-xs text-primary">Total of all Active Markets</p>
+              <p className="text-xs text-primary">Total Number of Active Markets</p>
             </CardContent>
           </Card>
           
