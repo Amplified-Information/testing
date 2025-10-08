@@ -149,13 +149,19 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                   <Label>Price (¢)</Label>
                   <Input
                     type="number"
-                    placeholder="0.00"
+                    placeholder="50"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    min="0.01"
-                    max="0.99"
-                    step="0.01"
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (e.target.value === '' || (val >= 1 && val <= 99.9)) {
+                        setPrice(e.target.value);
+                      }
+                    }}
+                    min="1"
+                    max="99.9"
+                    step="0.1"
                   />
+                  <p className="text-xs text-muted-foreground">1¢ = $0.01, Max 99.9¢ = $0.999</p>
                 </div>
 
                 {/* Quantity Input */}
@@ -195,18 +201,18 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                     </div>
                     <div className="flex justify-between">
                       <span>Share Price:</span>
-                      <span className="font-mono">${parseFloat(price).toFixed(2)}</span>
+                      <span className="font-mono">${(parseFloat(price) / 100).toFixed(3)}</span>
                     </div>
                     <div className="flex justify-between font-semibold pt-1 border-t">
                       <span>Total Cost (USDC):</span>
                       <span className="font-mono">
-                        ${(parseFloat(price) * parseInt(quantity)).toFixed(2)}
+                        ${((parseFloat(price) / 100) * parseInt(quantity)).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Trade Fee (1%):</span>
                       <span className="font-mono">
-                        ${((parseFloat(price) * parseInt(quantity)) * 0.01).toFixed(4)} USDC
+                        ${(((parseFloat(price) / 100) * parseInt(quantity)) * 0.01).toFixed(4)} USDC
                       </span>
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -227,7 +233,7 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                 >
                   {submitOrderMutation.isPending 
                     ? 'Signing Order...' 
-                    : `${side} ${quantity || '0'} shares at $${price || '0.00'}`
+                    : `${side} ${quantity || '0'} shares at ${price || '0'}¢`
                   }
                 </Button>
                 
