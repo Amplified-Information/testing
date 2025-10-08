@@ -30,18 +30,68 @@ export class CLOBService {
   }
 
   /**
-   * Submit a signed order to the CLOB system
+   * Submit a signed order to the CLOB system with smart contract integration
    */
-  async submitOrder(order: CLOBOrder): Promise<string> {
+  async submitOrder(order: CLOBOrder, walletConnector?: any, useSmartContract: boolean = false): Promise<string> {
     try {
-      this.log('Submitting CLOB order to queue', { orderId: order.orderId, marketId: order.marketId });
+      this.log('Submitting CLOB order', { 
+        orderId: order.orderId, 
+        marketId: order.marketId,
+        useSmartContract 
+      });
 
       // Validate order signature and structure
       if (!this.validateOrder(order)) {
         throw new Error('Invalid order structure or signature');
       }
 
-      // Add order to processing queue instead of direct insertion
+      // If smart contract integration is enabled, submit to contract first
+      if (useSmartContract && walletConnector) {
+        try {
+          const { hederaContractService } = await import('./hederaContract');
+          
+          // Get contract ID for this market (stored in secrets or config)
+          const { data: contractConfig } = await supabase
+            .from('secrets')
+            .select('value')
+            .eq('name', 'CLOB_CONTRACT_ID')
+            .maybeSingle();
+          
+          if (!contractConfig?.value) {
+            this.log('No smart contract configured, falling back to database-only mode');
+          } else {
+            this.log('Submitting order to smart contract', { contractId: contractConfig.value });
+            
+            const contractResult = await hederaContractService.submitLimitOrder(
+              walletConnector,
+              contractConfig.value,
+              {
+                marketId: order.marketId!,
+                side: order.side,
+                price: order.priceTicks / 100, // Convert ticks back to decimal
+                quantity: order.qty,
+                maker: order.maker
+              }
+            );
+
+            if (!contractResult.success) {
+              throw new Error(contractResult.error || 'Smart contract execution failed');
+            }
+
+            this.log('Order submitted to smart contract successfully', {
+              transactionId: contractResult.transactionId
+            });
+
+            // Store transaction ID with order
+            order.signature = `${order.signature}|tx:${contractResult.transactionId}`;
+          }
+        } catch (contractError: any) {
+          this.error('Smart contract submission failed, falling back to database', contractError);
+          // Continue with database submission as fallback
+        }
+      }
+
+      // Add order to processing queue (for off-chain matching or as backup)
       const { data: queueData, error: queueError } = await supabase
         .from('order_queue')
         .insert({
@@ -69,19 +119,21 @@ export class CLOBService {
 
       this.log('Order queued successfully', { orderId: order.orderId, queueId: queueData.id });
 
-      // Trigger order matching worker
-      try {
-        const { data: matcherResponse, error: matcherError } = await supabase.functions.invoke('order-matcher', {
-          body: { trigger: 'new_order', orderId: order.orderId }
-        });
+      // Trigger order matching worker (only if not using smart contract)
+      if (!useSmartContract) {
+        try {
+          const { data: matcherResponse, error: matcherError } = await supabase.functions.invoke('order-matcher', {
+            body: { trigger: 'new_order', orderId: order.orderId }
+          });
 
-        if (matcherError) {
-          this.log('Order matcher trigger failed, will be processed in next cycle', matcherError);
-        } else {
-          this.log('Order matcher triggered successfully', matcherResponse);
+          if (matcherError) {
+            this.log('Order matcher trigger failed, will be processed in next cycle', matcherError);
+          } else {
+            this.log('Order matcher triggered successfully', matcherResponse);
+          }
+        } catch (matcherError) {
+          this.log('Order matcher unavailable, will be processed in next cycle', matcherError);
         }
-      } catch (matcherError) {
-        this.log('Order matcher unavailable, will be processed in next cycle', matcherError);
       }
 
       return order.orderId!;

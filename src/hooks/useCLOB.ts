@@ -131,18 +131,22 @@ export const useCLOBMarketStats = (marketId: string) => {
   });
 };
 
-export const useSubmitCLOBOrder = () => {
+export const useSubmitCLOBOrder = (walletConnector?: any, useSmartContract: boolean = false) => {
   const queryClient = useQueryClient();
   const debug = useDebugger('useSubmitCLOBOrder');
 
   return useMutation({
     mutationFn: async (order: CLOBOrder) => {
-      debug.log('Submitting CLOB order', { orderId: order.orderId });
-      return clobService.submitOrder(order);
+      debug.log('Submitting CLOB order', { orderId: order.orderId, useSmartContract });
+      return clobService.submitOrder(order, walletConnector, useSmartContract);
     },
     onSuccess: (orderId, order) => {
-      debug.log('CLOB order submitted successfully', { orderId });
-      toast.success(`Order ${orderId.slice(0, 8)}... submitted successfully`);
+      const message = useSmartContract 
+        ? `Order ${orderId.slice(0, 8)}... submitted to smart contract` 
+        : `Order ${orderId.slice(0, 8)}... submitted successfully`;
+      
+      debug.log('CLOB order submitted successfully', { orderId, useSmartContract });
+      toast.success(message);
       
       // Invalidate related queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['clob-orderbook', order.marketId] });
