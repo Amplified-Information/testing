@@ -104,11 +104,27 @@ class EIP712SigningService {
       // The wallet will show a message signing prompt (no gas fees)
       const messageToSign = `Sign CLOB Order\n\nMarket: ${order.marketId}\nSide: ${order.side}\nPrice: ${order.priceTicks / 100}\nQuantity: ${order.qty}\nNonce: ${order.nonce}`;
 
-      // Sign the message using wallet connector
-      const signature = await walletConnector.signMessage(messageToSign);
+      // Convert message to base64 for Hedera signing
+      const messageBytes = new TextEncoder().encode(messageToSign);
+      const base64Message = btoa(String.fromCharCode(...messageBytes));
+
+      // Sign using Hedera WalletConnect request method
+      const result = await walletConnector.request({
+        method: 'hedera_signMessage',
+        params: {
+          message: base64Message,
+          signerAccountId: order.maker,
+        },
+      });
+
+      const signature = result?.signatureMap || result?.signature || result;
+
+      if (!signature) {
+        throw new Error('No signature returned from wallet');
+      }
 
       return {
-        signature,
+        signature: typeof signature === 'string' ? signature : JSON.stringify(signature),
         msgHash,
       };
     } catch (error) {
