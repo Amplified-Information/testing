@@ -16,6 +16,9 @@ interface Trade {
   quantity: number;
   market_id: string;
   created_at: string;
+  buyer_fee?: number;
+  seller_fee?: number;
+  total_fee?: number;
 }
 
 Deno.serve(async (req) => {
@@ -126,8 +129,14 @@ Deno.serve(async (req) => {
         buyer: t.buyer_account_id,
         seller: t.seller_account_id,
         amount: t.quantity,
-        price: t.price_ticks / 100
+        price: t.price_ticks / 100,
+        buyerFee: t.buyer_fee || 0,
+        totalFee: t.total_fee || 0
       })));
+      
+      // Calculate total fees collected in this batch
+      const totalFeesCollected = trades.reduce((sum, t) => sum + (t.total_fee || 0), 0);
+      console.log(`💰 Total platform fees in batch: ${totalFeesCollected} tinybars (${(totalFeesCollected / 100_000_000).toFixed(4)} HBAR)`);
 
       // Simulate settlement delay
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -145,6 +154,16 @@ Deno.serve(async (req) => {
         console.error(`❌ Failed to update batch status:`, statusError);
       } else {
         console.log(`✅ Batch ${batch.id} marked as SUBMITTED`);
+      }
+      
+      // Update platform fees settlement status
+      const { error: feeStatusError } = await supabase
+        .from('platform_fees')
+        .update({ settlement_status: 'SUBMITTED' })
+        .in('trade_id', tradeIds);
+      
+      if (feeStatusError) {
+        console.error(`❌ Failed to update fee settlement status:`, feeStatusError);
       }
 
       batchResults.push({

@@ -43,6 +43,9 @@ export interface CLOBTrade {
   qty: number;
   tradeId?: string;
   timestamp?: number;
+  buyerFee?: number;
+  sellerFee?: number;
+  totalFee?: number;
 }
 
 export interface CLOBBatch {
@@ -171,6 +174,9 @@ export interface CLOBTradeRow {
   seller_account_id: string;
   trade_timestamp: number;
   created_at: string;
+  buyer_fee?: number;
+  seller_fee?: number;
+  total_fee?: number;
 }
 
 export interface CLOBPositionRow {

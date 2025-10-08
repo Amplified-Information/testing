@@ -186,7 +186,15 @@ class OrderMatcher {
     for (const match of matches) {
       const tradeId = `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       
-      // Create trade record
+      // Calculate 1% trade fee
+      // Trade value = (price_ticks / 100) * quantity (convert ticks to HBAR)
+      // Fee = trade value * 0.01
+      const tradeValueInHbar = (match.price * match.quantity) / 100
+      const totalFee = Math.ceil(tradeValueInHbar * 0.01) // Round up to nearest tinybar
+      const buyerFee = totalFee // Buyer pays the fee (taker fee model)
+      const sellerFee = 0 // Seller doesn't pay (maker gets rebate)
+      
+      // Create trade record with fees
       const trade = {
         trade_id: tradeId,
         market_id: incomingOrder.market_id,
@@ -196,8 +204,13 @@ class OrderMatcher {
         seller_account_id: incomingOrder.side === 'SELL' ? incomingOrder.maker_account_id : match.order.maker_account_id,
         quantity: match.quantity,
         price_ticks: match.price,
-        trade_timestamp: Date.now() * 1000 // microseconds
+        trade_timestamp: Date.now() * 1000, // microseconds
+        buyer_fee: buyerFee,
+        seller_fee: sellerFee,
+        total_fee: totalFee
       }
+      
+      console.log(`Trade fee calculated: ${totalFee} tinybars (${(totalFee / 100_000_000).toFixed(4)} HBAR) on trade value ${tradeValueInHbar.toFixed(2)} HBAR`)
       
       trades.push(trade)
       totalFilled += match.quantity
@@ -229,12 +242,36 @@ class OrderMatcher {
 
     // Insert all trades
     if (trades.length > 0) {
-      const { error: tradesError } = await this.supabase
+      const { data: insertedTrades, error: tradesError } = await this.supabase
         .from('clob_trades')
         .insert(trades)
+        .select()
 
       if (tradesError) {
         throw new Error(`Failed to insert trades: ${tradesError instanceof Error ? tradesError.message : String(tradesError)}`)
+      }
+      
+      // Record platform fees for each trade
+      const platformFeeRecords = insertedTrades.map((trade: any) => ({
+        trade_id: trade.id,
+        market_id: trade.market_id,
+        fee_amount: trade.total_fee,
+        fee_currency: 'HBAR',
+        collected_from: 'buyer',
+        settlement_status: 'PENDING'
+      }))
+      
+      if (platformFeeRecords.length > 0) {
+        const { error: feesError } = await this.supabase
+          .from('platform_fees')
+          .insert(platformFeeRecords)
+        
+        if (feesError) {
+          console.error('Failed to record platform fees:', feesError)
+          // Don't throw - trade execution is more important
+        } else {
+          console.log(`Recorded ${platformFeeRecords.length} platform fees`)
+        }
       }
       
       console.log(`Executed ${trades.length} trades for order ${incomingOrder.order_id}`)

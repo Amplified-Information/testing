@@ -205,6 +205,7 @@ export type Database = {
           batch_id: string | null
           buy_order_id: string
           buyer_account_id: string
+          buyer_fee: number | null
           created_at: string | null
           id: string
           market_id: string | null
@@ -212,9 +213,11 @@ export type Database = {
           quantity: number
           sell_order_id: string
           seller_account_id: string
+          seller_fee: number | null
           settled_at: string | null
           settlement_status: string | null
           settlement_tx_hash: string | null
+          total_fee: number | null
           trade_id: string
           trade_timestamp: number
         }
@@ -222,6 +225,7 @@ export type Database = {
           batch_id?: string | null
           buy_order_id: string
           buyer_account_id: string
+          buyer_fee?: number | null
           created_at?: string | null
           id?: string
           market_id?: string | null
@@ -229,9 +233,11 @@ export type Database = {
           quantity: number
           sell_order_id: string
           seller_account_id: string
+          seller_fee?: number | null
           settled_at?: string | null
           settlement_status?: string | null
           settlement_tx_hash?: string | null
+          total_fee?: number | null
           trade_id: string
           trade_timestamp: number
         }
@@ -239,6 +245,7 @@ export type Database = {
           batch_id?: string | null
           buy_order_id?: string
           buyer_account_id?: string
+          buyer_fee?: number | null
           created_at?: string | null
           id?: string
           market_id?: string | null
@@ -246,9 +253,11 @@ export type Database = {
           quantity?: number
           sell_order_id?: string
           seller_account_id?: string
+          seller_fee?: number | null
           settled_at?: string | null
           settlement_status?: string | null
           settlement_tx_hash?: string | null
+          total_fee?: number | null
           trade_id?: string
           trade_timestamp?: number
         }
@@ -1226,6 +1235,50 @@ export type Database = {
           time_in_force?: string
         }
         Relationships: []
+      }
+      platform_fees: {
+        Row: {
+          collected_at: string | null
+          collected_from: string
+          created_at: string | null
+          fee_amount: number
+          fee_currency: string | null
+          id: string
+          market_id: string
+          settlement_status: string | null
+          trade_id: string | null
+        }
+        Insert: {
+          collected_at?: string | null
+          collected_from: string
+          created_at?: string | null
+          fee_amount: number
+          fee_currency?: string | null
+          id?: string
+          market_id: string
+          settlement_status?: string | null
+          trade_id?: string | null
+        }
+        Update: {
+          collected_at?: string | null
+          collected_from?: string
+          created_at?: string | null
+          fee_amount?: number
+          fee_currency?: string | null
+          id?: string
+          market_id?: string
+          settlement_status?: string | null
+          trade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_fees_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "clob_trades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

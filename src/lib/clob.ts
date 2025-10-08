@@ -454,7 +454,10 @@ export class CLOBService {
       sellOrderId: row.sell_order_id,
       priceTicks: row.price_ticks,
       qty: row.quantity,
-      timestamp: row.trade_timestamp
+      timestamp: row.trade_timestamp,
+      buyerFee: row.buyer_fee,
+      sellerFee: row.seller_fee,
+      totalFee: row.total_fee,
     };
   }
 

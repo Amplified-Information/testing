@@ -190,9 +190,21 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                 {price && quantity && (
                   <div className="border rounded-lg p-3 bg-muted/30 text-sm space-y-1">
                     <div className="flex justify-between">
-                      <span>Total Cost:</span>
+                      <span>Order Value:</span>
                       <span className="font-mono">
                         ${(parseFloat(price) * parseInt(quantity)).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Trade Fee (1%):</span>
+                      <span className="font-mono">
+                        ${((parseFloat(price) * parseInt(quantity)) * 0.01).toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-semibold pt-1 border-t">
+                      <span>Total Cost:</span>
+                      <span className="font-mono">
+                        ${((parseFloat(price) * parseInt(quantity)) * 1.01).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
