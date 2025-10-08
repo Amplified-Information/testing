@@ -104,15 +104,14 @@ class EIP712SigningService {
       // The wallet will show a message signing prompt (no gas fees)
       const messageToSign = `Sign CLOB Order\n\nMarket: ${order.marketId}\nSide: ${order.side}\nPrice: ${order.priceTicks / 100}\nQuantity: ${order.qty}\nNonce: ${order.nonce}`;
 
-      // Convert message to base64 for Hedera signing
-      const messageBytes = new TextEncoder().encode(messageToSign);
-      const base64Message = btoa(String.fromCharCode(...messageBytes));
+      console.log('Signing message:', messageToSign);
 
       // Sign using Hedera WalletConnect request method
+      // HashPack expects plain string message, not base64 encoded
       const result = await walletConnector.request({
         method: 'hedera_signMessage',
         params: {
-          message: base64Message,
+          message: messageToSign,
           signerAccountId: order.maker,
         },
       });
