@@ -18,16 +18,15 @@ interface CLOBTradingInterfaceProps {
 }
 
 const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps) => {
-  const { wallet, connect, walletConnector } = useWallet();
+  const { wallet, connect } = useWallet();
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
   const [orderType, setOrderType] = useState<'LIMIT' | 'MARKET'>('LIMIT');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [timeInForce, setTimeInForce] = useState<'GTC' | 'IOC' | 'FOK'>('GTC');
-  const [useSmartContract, setUseSmartContract] = useState(true); // Default to smart contract
 
   const { buildOrder } = useCLOBOrderBuilder();
-  const submitOrderMutation = useSubmitCLOBOrder(walletConnector, useSmartContract);
+  const submitOrderMutation = useSubmitCLOBOrder();
   const { data: positions } = useCLOBPositions(wallet.accountId, marketId);
 
   const isConnected = wallet.isConnected && wallet.accountId;
@@ -117,25 +116,6 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
               </div>
             )}
 
-            {/* Smart Contract Toggle */}
-            <div className="flex items-center justify-between border rounded-lg p-3 bg-muted/30">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="smart-contract-toggle" className="cursor-pointer">
-                  Smart Contract Execution
-                </Label>
-                <Badge variant={useSmartContract ? "default" : "secondary"} className="text-xs">
-                  {useSmartContract ? "ON" : "OFF"}
-                </Badge>
-              </div>
-              <input
-                id="smart-contract-toggle"
-                type="checkbox"
-                checked={useSmartContract}
-                onChange={(e) => setUseSmartContract(e.target.checked)}
-                className="w-4 h-4 cursor-pointer"
-              />
-            </div>
-
             {/* Order Form */}
             <Tabs value={side} onValueChange={(value) => setSide(value as 'BUY' | 'SELL')}>
               <TabsList className="grid w-full grid-cols-2">
@@ -215,12 +195,10 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                         ${(parseFloat(price) * parseInt(quantity)).toFixed(2)}
                       </span>
                     </div>
-                    {useSmartContract && (
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Execution:</span>
-                        <span>On-Chain (Hedera Smart Contract)</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Gas Fees:</span>
+                      <span>FREE (Operator pays settlement)</span>
+                    </div>
                   </div>
                 )}
 
@@ -234,18 +212,14 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                   )}
                 >
                   {submitOrderMutation.isPending 
-                    ? useSmartContract 
-                      ? 'Signing Transaction...' 
-                      : 'Submitting...' 
-                    : `${side} ${quantity || '0'} shares`
+                    ? 'Signing Order...' 
+                    : `${side} ${quantity || '0'} shares at $${price || '0.00'}`
                   }
                 </Button>
                 
-                {useSmartContract && (
-                  <p className="text-xs text-center text-muted-foreground">
-                    You'll be asked to sign the transaction in your wallet
-                  </p>
-                )}
+                <p className="text-xs text-center text-muted-foreground">
+                  You'll sign a message (no gas fees) to place your order
+                </p>
               </TabsContent>
             </Tabs>
           </>

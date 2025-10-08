@@ -131,22 +131,18 @@ export const useCLOBMarketStats = (marketId: string) => {
   });
 };
 
-export const useSubmitCLOBOrder = (walletConnector?: any, useSmartContract: boolean = false) => {
+export const useSubmitCLOBOrder = () => {
   const queryClient = useQueryClient();
   const debug = useDebugger('useSubmitCLOBOrder');
 
   return useMutation({
     mutationFn: async (order: CLOBOrder) => {
-      debug.log('Submitting CLOB order', { orderId: order.orderId, useSmartContract });
-      return clobService.submitOrder(order, walletConnector, useSmartContract);
+      debug.log('Submitting CLOB order', { orderId: order.orderId });
+      return clobService.submitOrder(order);
     },
     onSuccess: (orderId, order) => {
-      const message = useSmartContract 
-        ? `Order ${orderId.slice(0, 8)}... submitted to smart contract` 
-        : `Order ${orderId.slice(0, 8)}... submitted successfully`;
-      
-      debug.log('CLOB order submitted successfully', { orderId, useSmartContract });
-      toast.success(message);
+      debug.log('CLOB order submitted successfully', { orderId });
+      toast.success(`Order ${orderId.slice(0, 8)}... submitted`);
       
       // Invalidate related queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['clob-orderbook', order.marketId] });
@@ -192,7 +188,7 @@ export const useCancelCLOBOrder = () => {
 
 // Utility hook to create orders with proper signing
 export const useCLOBOrderBuilder = () => {
-  const { wallet } = useWallet();
+  const { wallet, walletConnector } = useWallet();
   const debug = useDebugger('useCLOBOrderBuilder');
 
   const buildOrder = async (params: {
@@ -206,6 +202,10 @@ export const useCLOBOrderBuilder = () => {
   }): Promise<CLOBOrder> => {
     if (!wallet.accountId) {
       throw new Error('Wallet not connected');
+    }
+
+    if (!walletConnector) {
+      throw new Error('Wallet connector not available');
     }
 
     const nonce = Date.now().toString();
@@ -239,10 +239,26 @@ export const useCLOBOrderBuilder = () => {
     // Simple hash for orderId (in production, use proper keccak256)
     order.orderId = 'order_' + btoa(orderContent).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
     
-    // TODO: Implement proper EIP-712 signing with wallet
-    // For now, create a mock signature
-    order.signature = 'mock_signature_' + order.orderId;
-    order.msgHash = 'mock_hash_' + order.orderId;
+    // Import EIP-712 signing service
+    const { eip712SigningService } = await import('@/lib/eip712Signing');
+    
+    // Validate order before signing
+    const validation = eip712SigningService.validateOrderBeforeSigning(order);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    // Sign order using EIP-712
+    try {
+      const { signature, msgHash } = await eip712SigningService.signOrder(order, walletConnector);
+      order.signature = signature;
+      order.msgHash = msgHash;
+      
+      debug.log('Order signed successfully', { orderId: order.orderId, msgHash });
+    } catch (error) {
+      debug.error('Failed to sign order', error);
+      throw new Error('Failed to sign order: ' + (error as Error).message);
+    }
 
     debug.log('Built CLOB order', { orderId: order.orderId, marketId: params.marketId });
     return order;
