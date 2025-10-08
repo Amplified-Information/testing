@@ -40,6 +40,41 @@ export class HederaContractService {
   }
 
   /**
+   * Extract signer from DAppConnector wallet
+   */
+  private async getSigner(walletConnector: any) {
+    if (!walletConnector?.walletConnectClient) {
+      throw new Error('WalletConnect client not initialized');
+    }
+
+    // Get active session
+    const sessions = walletConnector.walletConnectClient.session?.getAll() || [];
+    if (sessions.length === 0) {
+      throw new Error('No active wallet session found');
+    }
+
+    const session = sessions[0];
+    this.log('Using session', { topic: session.topic });
+
+    // Get account ID from session
+    const accounts = session.namespaces?.hedera?.accounts || [];
+    if (accounts.length === 0) {
+      throw new Error('No accounts found in session');
+    }
+
+    const accountId = accounts[0].split(':')[2];
+    this.log('Extracted account ID', { accountId });
+
+    // Get signer for the session
+    const signers = await walletConnector.getSigner(session.topic);
+    if (!signers || signers.length === 0) {
+      throw new Error('Failed to get signer from session');
+    }
+
+    return signers[0];
+  }
+
+  /**
    * Submit a limit order to the CLOB smart contract
    */
   async submitLimitOrder(
@@ -50,9 +85,10 @@ export class HederaContractService {
     try {
       this.log('Submitting limit order to smart contract', { contractId, params });
 
-      if (!walletConnector?.signers?.[0]) {
-        throw new Error('Wallet not connected or signer not available');
-      }
+      // Get signer from wallet connector
+      const signer = await this.getSigner(walletConnector);
+      
+      this.log('Signer obtained', { accountId: signer.getAccountId().toString() });
 
       // Create contract call parameters
       const functionParams = new ContractFunctionParameters()
@@ -65,14 +101,13 @@ export class HederaContractService {
       // Create contract execution transaction
       const transaction = new ContractExecuteTransaction()
         .setContractId(ContractId.fromString(contractId))
-        .setGas(300000) // Adjust gas limit as needed
+        .setGas(300000)
         .setFunction('submitLimitOrder', functionParams)
-        .setMaxTransactionFee(new Hbar(2)); // Max 2 HBAR fee
+        .setMaxTransactionFee(new Hbar(2));
 
       this.log('Executing contract transaction via wallet');
 
-      // Execute transaction through wallet connector
-      const signer = walletConnector.signers[0];
+      // Execute transaction through signer
       const txResponse = await transaction.executeWithSigner(signer) as TransactionResponse;
       
       this.log('Transaction submitted', { transactionId: txResponse.transactionId.toString() });
@@ -113,9 +148,8 @@ export class HederaContractService {
     try {
       this.log('Cancelling order on smart contract', { contractId, orderId, accountId });
 
-      if (!walletConnector?.signers?.[0]) {
-        throw new Error('Wallet not connected or signer not available');
-      }
+      // Get signer from wallet connector
+      const signer = await this.getSigner(walletConnector);
 
       const functionParams = new ContractFunctionParameters()
         .addString(orderId)
@@ -127,7 +161,6 @@ export class HederaContractService {
         .setFunction('cancelOrder', functionParams)
         .setMaxTransactionFee(new Hbar(1));
 
-      const signer = walletConnector.signers[0];
       const txResponse = await transaction.executeWithSigner(signer) as TransactionResponse;
       
       this.log('Cancel transaction submitted', { transactionId: txResponse.transactionId.toString() });
@@ -161,9 +194,8 @@ export class HederaContractService {
     try {
       this.log('Fetching order details from contract', { contractId, orderId });
 
-      if (!walletConnector?.signers?.[0]) {
-        throw new Error('Wallet not connected');
-      }
+      // Get signer from wallet connector
+      const signer = await this.getSigner(walletConnector);
 
       const functionParams = new ContractFunctionParameters()
         .addString(orderId);
@@ -174,7 +206,6 @@ export class HederaContractService {
         .setFunction('getOrder', functionParams)
         .setMaxTransactionFee(new Hbar(0.5));
 
-      const signer = walletConnector.signers[0];
       const txResponse = await transaction.executeWithSigner(signer) as TransactionResponse;
       const receipt = await txResponse.getReceipt(signer.getAccountId().client);
 
@@ -199,9 +230,8 @@ export class HederaContractService {
     try {
       this.log('Fetching account collateral from contract', { contractId, accountId });
 
-      if (!walletConnector?.signers?.[0]) {
-        throw new Error('Wallet not connected');
-      }
+      // Get signer from wallet connector
+      const signer = await this.getSigner(walletConnector);
 
       const functionParams = new ContractFunctionParameters()
         .addString(accountId);
@@ -212,7 +242,6 @@ export class HederaContractService {
         .setFunction('getCollateral', functionParams)
         .setMaxTransactionFee(new Hbar(0.5));
 
-      const signer = walletConnector.signers[0];
       const txResponse = await transaction.executeWithSigner(signer) as TransactionResponse;
       const receipt = await txResponse.getReceipt(signer.getAccountId().client);
 

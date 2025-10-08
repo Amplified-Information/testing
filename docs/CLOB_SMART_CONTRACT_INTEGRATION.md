@@ -52,6 +52,8 @@ interface ICLOBContract {
 }
 ```
 
+**Note**: The provided `HederaClobExchange` contract uses a different approach with `settleOrder()` for operator-based settlement. For user order submission, add a function like `submitLimitOrder()` shown above.
+
 ### 2. Store Contract ID
 
 After deploying the contract, store its ID in Supabase secrets:
@@ -89,13 +91,29 @@ In the CLOB Trading interface, users can toggle "Smart Contract Execution" on/of
 
 ### Transaction Signing
 
-Orders are signed using the user's connected Hedera wallet (HashPack, Blade, etc.) via WalletConnect:
+Orders are signed using the user's connected Hedera wallet (HashPack, Blade, etc.) via WalletConnect.
+
+**Fixed Implementation** - Properly extracts signer from DAppConnector:
 
 ```typescript
-const signer = walletConnector.signers[0];
+// Get active session
+const sessions = walletConnector.walletConnectClient.session?.getAll() || [];
+if (sessions.length === 0) {
+  throw new Error('No active wallet session found');
+}
+
+const session = sessions[0];
+
+// Get signer for the session topic
+const signers = await walletConnector.getSigner(session.topic);
+const signer = signers[0];
+
+// Execute transaction
 const txResponse = await transaction.executeWithSigner(signer);
 const receipt = await txResponse.getReceipt(signer.getAccountId().client);
 ```
+
+This ensures wallet pairing strings are properly sent to the wallet for user approval.
 
 ### Gas and Fees
 
@@ -161,21 +179,30 @@ event OrderMatched(string buyOrderId, string sellOrderId, uint256 price, uint256
 
 ## Troubleshooting
 
-### "Wallet not connected"
+### "Wallet not connected" or "No signer available"
 - Ensure HashPack or compatible wallet is installed
-- Check WalletConnect session is active
+- Check WalletConnect session is active in your wallet app
 - Try disconnecting and reconnecting wallet
+- **Fixed**: Signer extraction now properly retrieves from session topic
 
 ### "Smart contract execution failed"
 - Verify contract ID is correct in secrets table
 - Check account has sufficient HBAR for gas
 - Ensure contract is deployed on correct network (testnet/mainnet)
+- Verify contract has the expected functions (`submitLimitOrder`, etc.)
 - Check browser console for detailed error messages
 
 ### "Transaction timeout"
 - Hedera network may be congested
 - Try increasing max transaction fee
 - Check transaction status on HashScan
+- Ensure wallet is unlocked and responsive
+
+### "No active wallet session found"
+- Wallet needs to be connected before placing orders
+- Click "Connect Wallet" button first
+- Accept the connection in your wallet app
+- Session expires after 20 minutes of inactivity
 
 ## Resources
 
