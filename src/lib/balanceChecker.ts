@@ -37,10 +37,16 @@ class BalanceCheckerService {
 
       const data = await response.json();
       
-      // TODO: Replace with actual USDC token ID for Hedera testnet
-      // For now, use HBAR balance as proxy (should be HTS token balance)
-      const balanceInTinybars = parseInt(data.balance?.balance || '0');
-      const balanceInUsdc = balanceInTinybars / 100_000_000; // Convert to USDC (6 decimals for USDC)
+      // USDC token ID on Hedera testnet
+      const USDC_TOKEN_ID = '0.0.5869722';
+      
+      // Find USDC token balance in the account's token balances
+      const usdcToken = data.balance?.tokens?.find(
+        (token: any) => token.token_id === USDC_TOKEN_ID
+      );
+      
+      const balanceInSmallestUnits = parseInt(usdcToken?.balance || '0');
+      const balanceInUsdc = balanceInSmallestUnits / 1_000_000; // Convert to USDC (6 decimals)
 
       return {
         hasBalance: balanceInUsdc >= requiredAmount,
