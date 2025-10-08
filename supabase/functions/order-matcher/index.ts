@@ -187,10 +187,10 @@ class OrderMatcher {
       const tradeId = `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       
       // Calculate 1% trade fee
-      // Trade value = (price_ticks / 100) * quantity (convert ticks to HBAR)
+      // Trade value = (price_ticks / 100) * quantity (convert ticks to USDC)
       // Fee = trade value * 0.01
-      const tradeValueInHbar = (match.price * match.quantity) / 100
-      const totalFee = Math.ceil(tradeValueInHbar * 0.01) // Round up to nearest tinybar
+      const tradeValueInUsdc = (match.price * match.quantity) / 100
+      const totalFee = Math.ceil(tradeValueInUsdc * 0.01 * 1_000_000) // Convert to smallest USDC units (6 decimals)
       const buyerFee = totalFee // Buyer pays the fee (taker fee model)
       const sellerFee = 0 // Seller doesn't pay (maker gets rebate)
       
@@ -210,7 +210,7 @@ class OrderMatcher {
         total_fee: totalFee
       }
       
-      console.log(`Trade fee calculated: ${totalFee} tinybars (${(totalFee / 100_000_000).toFixed(4)} HBAR) on trade value ${tradeValueInHbar.toFixed(2)} HBAR`)
+      console.log(`Trade fee calculated: ${totalFee} smallest units (${(totalFee / 1_000_000).toFixed(4)} USDC) on trade value ${tradeValueInUsdc.toFixed(2)} USDC`)
       
       trades.push(trade)
       totalFilled += match.quantity

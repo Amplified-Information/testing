@@ -190,7 +190,15 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                 {price && quantity && (
                   <div className="border rounded-lg p-3 bg-muted/30 text-sm space-y-1">
                     <div className="flex justify-between">
-                      <span>Order Value:</span>
+                      <span>Number of Shares:</span>
+                      <span className="font-mono">{parseInt(quantity)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Share Price:</span>
+                      <span className="font-mono">${parseFloat(price).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold pt-1 border-t">
+                      <span>Total Cost (USDC):</span>
                       <span className="font-mono">
                         ${(parseFloat(price) * parseInt(quantity)).toFixed(2)}
                       </span>
@@ -198,18 +206,12 @@ const CLOBTradingInterface = ({ marketId, className }: CLOBTradingInterfaceProps
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Trade Fee (1%):</span>
                       <span className="font-mono">
-                        ${((parseFloat(price) * parseInt(quantity)) * 0.01).toFixed(4)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between font-semibold pt-1 border-t">
-                      <span>Total Cost:</span>
-                      <span className="font-mono">
-                        ${((parseFloat(price) * parseInt(quantity)) * 1.01).toFixed(2)}
+                        ${((parseFloat(price) * parseInt(quantity)) * 0.01).toFixed(4)} USDC
                       </span>
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Gas Fees:</span>
-                      <span>FREE (Operator pays settlement)</span>
+                      <span>FREE (Operator pays)</span>
                     </div>
                   </div>
                 )}

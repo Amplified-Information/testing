@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
       
       // Calculate total fees collected in this batch
       const totalFeesCollected = trades.reduce((sum, t) => sum + (t.total_fee || 0), 0);
-      console.log(`💰 Total platform fees in batch: ${totalFeesCollected} tinybars (${(totalFeesCollected / 100_000_000).toFixed(4)} HBAR)`);
+      console.log(`💰 Total platform fees in batch: ${totalFeesCollected} smallest units (${(totalFeesCollected / 1_000_000).toFixed(4)} USDC)`);
 
       // Simulate settlement delay
       await new Promise(resolve => setTimeout(resolve, 100));

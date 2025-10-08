@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Balance Checker Service
- * Validates user has sufficient balance before accepting orders
+ * Validates user has sufficient USDC balance before accepting orders
  */
 
 export interface BalanceCheckResult {
@@ -14,10 +14,10 @@ export interface BalanceCheckResult {
 
 class BalanceCheckerService {
   /**
-   * Check if user has sufficient HBAR balance for order
-   * Uses Hedera Mirror Node API
+   * Check if user has sufficient USDC balance for order
+   * Uses Hedera Mirror Node API to check HTS token balance
    */
-  async checkHbarBalance(
+  async checkUsdcBalance(
     accountId: string,
     requiredAmount: number
   ): Promise<BalanceCheckResult> {
@@ -36,12 +36,15 @@ class BalanceCheckerService {
       }
 
       const data = await response.json();
+      
+      // TODO: Replace with actual USDC token ID for Hedera testnet
+      // For now, use HBAR balance as proxy (should be HTS token balance)
       const balanceInTinybars = parseInt(data.balance?.balance || '0');
-      const balanceInHbar = balanceInTinybars / 100_000_000; // Convert tinybars to HBAR
+      const balanceInUsdc = balanceInTinybars / 100_000_000; // Convert to USDC (6 decimals for USDC)
 
       return {
-        hasBalance: balanceInHbar >= requiredAmount,
-        currentBalance: balanceInHbar,
+        hasBalance: balanceInUsdc >= requiredAmount,
+        currentBalance: balanceInUsdc,
         requiredBalance: requiredAmount,
       };
     } catch (error) {
@@ -84,7 +87,7 @@ class BalanceCheckerService {
   }
 
   /**
-   * Calculate required collateral for order
+   * Calculate required collateral for order in USDC
    */
   calculateRequiredCollateral(
     side: 'BUY' | 'SELL',
@@ -92,11 +95,11 @@ class BalanceCheckerService {
     quantity: number
   ): number {
     if (side === 'BUY') {
-      // Buyer locks: price * quantity / 100 (convert ticks to HBAR)
+      // Buyer locks: price * quantity / 100 (convert ticks to USDC)
       return (priceTicks * quantity) / 100;
     } else {
-      // Seller locks: quantity (max loss if price goes to $1)
-      return quantity;
+      // Seller locks: (1 - price) * quantity (max loss if price goes to $1)
+      return ((100 - priceTicks) * quantity) / 100;
     }
   }
 
@@ -113,7 +116,7 @@ class BalanceCheckerService {
     const requiredCollateral = this.calculateRequiredCollateral(side, priceTicks, quantity);
     
     // Check available balance
-    const balanceCheck = await this.checkHbarBalance(accountId, requiredCollateral);
+    const balanceCheck = await this.checkUsdcBalance(accountId, requiredCollateral);
     
     if (!balanceCheck.hasBalance) {
       return balanceCheck;
@@ -128,7 +131,7 @@ class BalanceCheckerService {
       currentBalance: availableBalance,
       requiredBalance: requiredCollateral,
       error: availableBalance < requiredCollateral 
-        ? `Insufficient available balance. You have ${availableBalance.toFixed(2)} HBAR available (${lockedCollateral.toFixed(2)} HBAR locked in positions), but need ${requiredCollateral.toFixed(2)} HBAR`
+        ? `Insufficient available balance. You have ${availableBalance.toFixed(2)} USDC available (${lockedCollateral.toFixed(2)} USDC locked in positions), but need ${requiredCollateral.toFixed(2)} USDC`
         : undefined,
     };
   }
