@@ -30,72 +30,65 @@ export class CLOBService {
   }
 
   /**
-   * Submit a signed order to the CLOB system with smart contract integration
+   * Submit a signed order to the CLOB (Off-chain, Polymarket-style)
    */
-  async submitOrder(order: CLOBOrder, walletConnector?: any, useSmartContract: boolean = false): Promise<string> {
+  async submitOrder(order: CLOBOrder): Promise<string> {
     try {
-      this.log('Submitting CLOB order', { 
+      this.log('Submitting CLOB order (Polymarket-style)', { 
         orderId: order.orderId, 
-        marketId: order.marketId,
-        useSmartContract 
+        marketId: order.marketId
       });
 
-      // Validate order signature and structure
-      if (!this.validateOrder(order)) {
-        throw new Error('Invalid order structure or signature');
+      // Validate order structure
+      if (!order.orderId || !order.marketId || !order.maker) {
+        throw new Error('Invalid order: missing required fields');
       }
 
-      // If smart contract integration is enabled, submit to contract first
-      if (useSmartContract && walletConnector) {
-        try {
-          const { hederaContractService } = await import('./hederaContract');
-          
-          // Get contract ID for this market (stored in secrets or config)
-          const { data: contractConfig } = await supabase
-            .from('secrets')
-            .select('value')
-            .eq('name', 'CLOB_CONTRACT_ID')
-            .maybeSingle();
-          
-          if (!contractConfig?.value) {
-            this.log('No smart contract configured, falling back to database-only mode');
-          } else {
-            this.log('Submitting order to smart contract', { contractId: contractConfig.value });
-            
-            const contractResult = await hederaContractService.submitLimitOrder(
-              walletConnector,
-              contractConfig.value,
-              {
-                marketId: order.marketId!,
-                side: order.side,
-                price: order.priceTicks / 100, // Convert ticks back to decimal
-                quantity: order.qty,
-                maker: order.maker
-              }
-            );
-
-            if (!contractResult.success) {
-              throw new Error(contractResult.error || 'Smart contract execution failed');
-            }
-
-            this.log('Order submitted to smart contract successfully', {
-              transactionId: contractResult.transactionId
-            });
-
-            // Store transaction ID with order
-            order.signature = `${order.signature}|tx:${contractResult.transactionId}`;
-          }
-        } catch (contractError: any) {
-          this.error('Smart contract submission failed, falling back to database', contractError);
-          // Continue with database submission as fallback
-        }
+      if (!order.signature || !order.msgHash) {
+        throw new Error('Order must be signed before submission');
       }
 
-      // Add order to processing queue (for off-chain matching or as backup)
+      // Import services
+      const { eip712SigningService } = await import('./eip712Signing');
+      const { balanceChecker } = await import('./balanceChecker');
+
+      // Validate signature
+      const isValidSignature = eip712SigningService.verifySignature(
+        order,
+        order.signature,
+        order.maker
+      );
+
+      if (!isValidSignature) {
+        throw new Error('Invalid order signature');
+      }
+
+      // Check balance before accepting order
+      console.log('💰 [CLOB] Checking balance for order...');
+      const balanceCheck = await balanceChecker.validateOrderCollateral(
+        order.maker,
+        order.marketId,
+        order.side,
+        order.priceTicks,
+        order.qty
+      );
+
+      if (!balanceCheck.hasBalance) {
+        throw new Error(balanceCheck.error || 'Insufficient balance');
+      }
+
+      console.log('✅ [CLOB] Balance check passed', {
+        available: balanceCheck.currentBalance.toFixed(2),
+        required: balanceCheck.requiredBalance.toFixed(2)
+      });
+
+      // Direct database submission (Polymarket-style: off-chain only)
+      console.log('💾 [CLOB] Submitting order to database queue...');
+      
       const { data: queueData, error: queueError } = await supabase
         .from('order_queue')
         .insert({
-          order_id: order.orderId!,
+          order_id: order.orderId,
           market_id: order.marketId,
           maker_account_id: order.maker,
           side: order.side,
@@ -105,38 +98,34 @@ export class CLOBService {
           time_in_force: order.tif,
           expiry_timestamp: order.expiry,
           nonce: parseInt(order.nonce),
-          order_signature: order.signature!,
-          status: 'QUEUED',
-          priority_score: Date.now() * 1000 // microsecond precision for ordering
+          order_signature: order.signature,
+          msg_hash: order.msgHash,
+          status: 'QUEUED'
         })
         .select()
         .single();
 
       if (queueError) {
-        this.error('Failed to queue order', queueError);
+        console.error('❌ [CLOB] Failed to insert order into queue', queueError);
         throw queueError;
       }
 
-      this.log('Order queued successfully', { orderId: order.orderId, queueId: queueData.id });
+      console.log('✅ [CLOB] Order queued successfully', { 
+        orderId: order.orderId, 
+        queueId: queueData.id
+      });
 
-      // Trigger order matching worker (only if not using smart contract)
-      if (!useSmartContract) {
-        try {
-          const { data: matcherResponse, error: matcherError } = await supabase.functions.invoke('order-matcher', {
-            body: { trigger: 'new_order', orderId: order.orderId }
-          });
-
-          if (matcherError) {
-            this.log('Order matcher trigger failed, will be processed in next cycle', matcherError);
-          } else {
-            this.log('Order matcher triggered successfully', matcherResponse);
-          }
-        } catch (matcherError) {
-          this.log('Order matcher unavailable, will be processed in next cycle', matcherError);
-        }
+      // Trigger order matcher
+      console.log('🎯 [CLOB] Triggering order matcher...');
+      try {
+        await supabase.functions.invoke('order-matcher', {
+          body: { trigger: 'new_order', orderId: order.orderId }
+        });
+      } catch (matcherError) {
+        console.warn('⚠️ [CLOB] Failed to trigger matcher, will be picked up by scheduled worker', matcherError);
       }
 
-      return order.orderId!;
+      return order.orderId;
 
     } catch (error) {
       this.error('Failed to submit CLOB order', error);

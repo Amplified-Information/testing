@@ -36,3 +36,9 @@ verify_jwt = false
 
 [functions.generate-avatar]
 verify_jwt = false
+
+[functions.order-matcher]
+verify_jwt = false
+
+[functions.batch-settlement-worker]
+verify_jwt = false

@@ -87,6 +87,7 @@ export type Database = {
           maker_account_id: string
           market_id: string | null
           max_collateral: number
+          msg_hash: string | null
           nonce: number
           order_id: string
           order_signature: string
@@ -107,6 +108,7 @@ export type Database = {
           maker_account_id: string
           market_id?: string | null
           max_collateral: number
+          msg_hash?: string | null
           nonce: number
           order_id: string
           order_signature: string
@@ -127,6 +129,7 @@ export type Database = {
           maker_account_id?: string
           market_id?: string | null
           max_collateral?: number
+          msg_hash?: string | null
           nonce?: number
           order_id?: string
           order_signature?: string
@@ -209,6 +212,9 @@ export type Database = {
           quantity: number
           sell_order_id: string
           seller_account_id: string
+          settled_at: string | null
+          settlement_status: string | null
+          settlement_tx_hash: string | null
           trade_id: string
           trade_timestamp: number
         }
@@ -223,6 +229,9 @@ export type Database = {
           quantity: number
           sell_order_id: string
           seller_account_id: string
+          settled_at?: string | null
+          settlement_status?: string | null
+          settlement_tx_hash?: string | null
           trade_id: string
           trade_timestamp: number
         }
@@ -237,6 +246,9 @@ export type Database = {
           quantity?: number
           sell_order_id?: string
           seller_account_id?: string
+          settled_at?: string | null
+          settlement_status?: string | null
+          settlement_tx_hash?: string | null
           trade_id?: string
           trade_timestamp?: number
         }
@@ -1159,6 +1171,7 @@ export type Database = {
           maker_account_id: string
           market_id: string
           max_collateral: number
+          msg_hash: string | null
           nonce: number
           order_id: string
           order_signature: string
@@ -1179,6 +1192,7 @@ export type Database = {
           maker_account_id: string
           market_id: string
           max_collateral: number
+          msg_hash?: string | null
           nonce: number
           order_id: string
           order_signature: string
@@ -1199,6 +1213,7 @@ export type Database = {
           maker_account_id?: string
           market_id?: string
           max_collateral?: number
+          msg_hash?: string | null
           nonce?: number
           order_id?: string
           order_signature?: string
@@ -1650,6 +1665,7 @@ export type Database = {
           maker_account_id: string
           market_id: string
           max_collateral: number
+          msg_hash: string | null
           nonce: number
           order_id: string
           order_signature: string
