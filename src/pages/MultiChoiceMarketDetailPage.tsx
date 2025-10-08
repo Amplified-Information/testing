@@ -142,9 +142,6 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
-              {/* Order Book */}
-              <OrderBookDisplay marketId={market.id} />
-
               {/* Trading Interface */}
               <Tabs defaultValue="clob" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -163,6 +160,9 @@ const MultiChoiceMarketDetailPage = ({ market }: MultiChoiceMarketDetailPageProp
                   />
                 </TabsContent>
               </Tabs>
+
+              {/* Order Book */}
+              <OrderBookDisplay marketId={market.id} />
               
               {/* Order History */}
               {wallet.accountId && (
