@@ -1,73 +1,54 @@
-# Welcome to your Lovable project
+# HashyMarket – Decentralized Prediction Market on Hedera
 
-## Project info
+**HashyMarket** is a fully decentralized prediction market protocol built on the Hedera network, designed to enable users to trade on the outcome of future events in a transparent, censorship-resistant, and scalable way.
 
-**URL**: https://lovable.dev/projects/4ea8e794-6df5-4a71-95a4-aab83845ba4f
+## What is HashyMarket?
 
-## How can I edit this code?
+HashyMarket allows users to:
+- Create markets for real-world events
+- Buy and sell shares representing possible outcomes
+- Earn profits by accurately forecasting events
+- Participate in decentralized governance and resolution mechanisms
 
-There are several ways of editing your application.
+Powered by Hedera's high-speed, low-cost, carbon-negative infrastructure, HashyMarket provides a superior alternative to traditional forecasting tools and centralized betting platforms.
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4ea8e794-6df5-4a71-95a4-aab83845ba4f) and start prompting.
+- Fast & Scalable – Leveraging Hedera’s unique consensus for real-time market updates
+- Secure & Transparent – All trades and outcomes are recorded immutably on-chain
+- Market Creation – Anyone can propose and launch new markets
+- Liquidity Rewards – Incentives for market makers to provide tight bid/ask spreads
+- Decentralized Resolution – Community-driven dispute and outcome verification
+- Open & Composable – Built with interoperability and developer extensibility in mind
 
-Changes made via Lovable will be committed automatically to this repo.
+## Built With
 
-**Use your preferred IDE**
+- Vite – Fast build tool and development server
+- TypeScript – Strongly-typed JavaScript for scalable app development
+- React – Component-based frontend framework
+- shadcn/ui – Modern, accessible component library for React
+- Tailwind CSS – Utility-first CSS framework for responsive and consistent styling
+- Hedera Smart Contracts (EVM-compatible)
+- Hedera Token Service (HTS)
+- Hedera Mirror Node APIs
+- Supabase – Open-source backend for real-time data and analytics
+- Custom Orderbook Matching Engine (off-chain)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## MVP Scope
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+HashyMarket's MVP will include:
+- On-chain Market Creation
+- Orderbook-based Trading Engine
+- Off-chain Matching + Signature Verification (EIP-712)
+- Liquidity Incentives and Scoring
+- Market Resolution Mechanism
+- Frontend DApp with real-time stats and analytics
 
-Follow these steps:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Join the Movement
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+HashyMarket is more than a prediction market — it’s a new way to crowdsource truth and align incentives in a decentralized world.
 
-# Step 3: Install the necessary dependencies.
-npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/4ea8e794-6df5-4a71-95a4-aab83845ba4f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
