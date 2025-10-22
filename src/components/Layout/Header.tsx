@@ -43,7 +43,7 @@ const Header = () => {
             Explore Markets
           </Link>
           <Link to="/create-market" className="text-sm font-medium hover:text-primary transition-colors">
-            Create Markets
+            Market Factory
           </Link>
           <Link 
             to="/portfolio" 
@@ -84,7 +84,7 @@ const Header = () => {
                   className="text-lg font-medium hover:text-primary transition-colors py-2"
                   onClick={closeMobileMenu}
                 >
-                  Create Market
+                  Market Factory
                 </Link>
                 <Link 
                   to="/portfolio" 
