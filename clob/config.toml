@@ -1,0 +1,8 @@
+# CLOB configuration file
+
+tokio_channel_capacity = 100
+
+book_depth_default = 10
+
+grpc_host = "0.0.0.0"
+grpc_port = 50051

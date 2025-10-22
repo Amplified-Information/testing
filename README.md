@@ -1,54 +1,101 @@
-# HashyMarket – Decentralized Prediction Market on Hedera
+# Hedera-based prediction market
 
-**HashyMarket** is a fully decentralized prediction market protocol built on the Hedera network, designed to enable users to trade on the outcome of future events in a transparent, censorship-resistant, and scalable way.
+This project is divided into a number of folders:
 
-## What is HashyMarket?
+- `scs`: on-chain smart contracts
+- `clob`: an off-chain CLOB to manage buy/sell orders
+- `infra`: infrastructure-as-code (platform agnostic)
+- `web`: a web front-end
+- `web.eng`: an engineering front-end
+- `api`: a public backend for `web`
+- `proxy`: a proxy to marshall traffice
+- `eventbus`: event bus for pub/sub message communication
 
-HashyMarket allows users to:
-- Create markets for real-world events
-- Buy and sell shares representing possible outcomes
-- Earn profits by accurately forecasting events
-- Participate in decentralized governance and resolution mechanisms
+## Docker container registry
 
-Powered by Hedera's high-speed, low-cost, carbon-negative infrastructure, HashyMarket provides a superior alternative to traditional forecasting tools and centralized betting platforms.
+ghcr (Github container registry)
 
-## Features
+```bash
+export PAT=<personal_access_token>
+echo $PAT | docker login ghcr.io --username MuzanHash --password-stdin
 
-- Fast & Scalable – Leveraging Hedera’s unique consensus for real-time market updates
-- Secure & Transparent – All trades and outcomes are recorded immutably on-chain
-- Market Creation – Anyone can propose and launch new markets
-- Liquidity Rewards – Incentives for market makers to provide tight bid/ask spreads
-- Decentralized Resolution – Community-driven dispute and outcome verification
-- Open & Composable – Built with interoperability and developer extensibility in mind
+# example push:
+docker push ghcr.io/NAMESPACE/IMAGE_NAME:v0.0.3
+```
 
-## Built With
+All (tagged) images should be pushed to this location
 
-- Vite – Fast build tool and development server
-- TypeScript – Strongly-typed JavaScript for scalable app development
-- React – Component-based frontend framework
-- shadcn/ui – Modern, accessible component library for React
-- Tailwind CSS – Utility-first CSS framework for responsive and consistent styling
-- Hedera Smart Contracts (EVM-compatible)
-- Hedera Token Service (HTS)
-- Hedera Mirror Node APIs
-- Supabase – Open-source backend for real-time data and analytics
-- Custom Orderbook Matching Engine (off-chain)
+## Releases
 
-## MVP Scope
+All releases **must** be recorded in `release-manifest.yaml`
 
-HashyMarket's MVP will include:
-- On-chain Market Creation
-- Orderbook-based Trading Engine
-- Off-chain Matching + Signature Verification (EIP-712)
-- Liquidity Incentives and Scoring
-- Market Resolution Mechanism
-- Frontend DApp with real-time stats and analytics
+[Semantic versioning](https://semver.org/) **must** be used.
 
+There is an **intentional separation** between **configuration** (`.config.ENV`) and **secrets** (`secrets.ENV`):
 
-## Join the Movement
+Create the following files (use `.config.ENV.example` and `.secrets.ENV.example` for reference):
 
-HashyMarket is more than a prediction market — it’s a new way to crowdsource truth and align incentives in a decentralized world.
+```bash
+.config.local
+.config.dev
+.config.prod
 
+.secrets.local
+.secrets.dev
+.secrets.prod
+```
 
+### local
 
+```bash
+source .config.local
+source .secrets.local
+./release-deploy.sh v0.0.1 local
+```
 
+### dev
+
+Login to dev box. Run:
+
+```bash
+source .config.dev
+source .secrets.dev
+./release-deploy.sh v0.0.1 dev
+```
+
+### prod
+
+Login to prod box. Run:
+
+```bash
+source .config.prod
+source .secrets.prod
+./release-deploy.sh v0.0.1 prod
+```
+
+### kubernetes
+
+*Note: in the future, we may move to k8s*
+
+The deployment prodecure would change in this case.
+
+## hts
+
+[Hedera Token Service](https://hedera.com/token-service) (hts) offers many potential advantages:
+
+Potential advantages:
+
+- near-zero tx fees (there may be interesting economic effects flowing from this)
+- security: fewer lines of smart contract code (native tokens are at the protocol level, smart contract interfaces built rigorously by Hedera)
+- ability to "pre-approve" funds up to a certain amount (as opposed to user having to "deposit" funds)
+- no token association UX flow needed
+- small dollar txs may encourage bots! (there may be a SPAM issue with this though...)
+- etc.
+
+Potential disadvantages:
+
+- UI experience for the user due to [hts] token association requirements
+- cluttering of user wallet with tokens (possible to use a single Fungible/NFT token?)
+- ERC20-style smart contracts may cost more
+- ERC20-style smart contracts may be incompatible with ed25519 key
+- etc.

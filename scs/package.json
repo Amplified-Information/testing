@@ -1,0 +1,22 @@
+{
+  "name": "scs",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "solcjs ./contracts/PredictionMarket.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done",
+    "deploy": "ts-node ./scripts/0_deploy.ts"
+  },
+  "dependencies": {
+    "@gnosis.pm/conditional-tokens-contracts": "^1.0.3",
+    "@openzeppelin/contracts": "^5.4.0"
+  },
+  "devDependencies": {
+    "@hashgraph/sdk": "^2.75.0",
+    "@types/node": "^22.18.10",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.8.0",
+    "viem": "^2.38.2"
+  }
+}

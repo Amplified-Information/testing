@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = "api/gen;api";
+
+import "validate/validate.proto"; // PGV
+// import "google/protobuf/wrappers.proto"; // this is installed in protoc include path `ls /usr/include/google/protobuf/`
+
+service ApiService {
+  rpc Health(Empty) returns (StdResponse);
+  rpc PredictIntent(PredictionIntentRequest) returns (StdResponse);
+}
+
+message Empty {}
+
+message PredictionIntentRequest {
+  // Strict RFC-9562-compliant UUIDv7
+  string txid = 1                         [(validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}];
+   // UTC ISO 8601 (Zulu time only)
+  string utc = 2                          [(validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"}];
+  // Hedera account ID (no leading zeros)
+  string accountId = 3                    [(validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"}];
+  // google.protobuf.BoolValue buySell = 2   [(validate.rules).message.required = true];
+  bool buySell = 4;
+  fixed32 price = 5                       [(validate.rules).fixed32 = {gt: 0}];
+  string sigHex = 6                       [(validate.rules).string = {pattern: "^[0-9a-fA-F]{10,50}$"}];
+}
+
+message StdResponse {
+  string message = 1;
+}
