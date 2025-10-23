@@ -6,9 +6,9 @@ const PROTO_PATH = '../proto/clob.proto'
 const SERVER = 'localhost:50051'
 const BASE_PRICE = 50
 const PRICE_VOL = 2
-const AMOUNT_MEAN = 1.5
-const AMOUNT_STD = 2
-const ORDERS_PER_SEC = 5
+const AMOUNT_MEAN = 3.5
+const AMOUNT_STD = 4
+const ORDERS_PER_SEC = 2
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,

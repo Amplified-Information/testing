@@ -1,6 +1,6 @@
-import { networksAvailable } from "../constants"
-import { useAppContext } from "../AppProvider"
-import { useEffect, useState } from "react"
+import { networksAvailable } from '../constants'
+import { useAppContext } from '../AppProvider'
+import { useEffect, useState } from 'react'
 const NetworkSelector = () => {
   const { networkSelected, setNetworkSelected } = useAppContext()
   const [ networkSelectedIdx, setNetworkSelectedIdx ] = useState(0)
@@ -13,12 +13,11 @@ const NetworkSelector = () => {
   return (
     <>
       <select value={networkSelectedIdx} onChange={(evt) => {
-          const selectedNetwork = networksAvailable[Number(evt.target.value)]
-          console.log(selectedNetwork.toString())
-          setNetworkSelectedIdx(Number(evt.target.value))
-          setNetworkSelected(selectedNetwork)
-          
-        }}>
+        const indx = Number(evt.target.value)
+        const selectedNetwork = networksAvailable[indx]
+        setNetworkSelectedIdx(indx)
+        setNetworkSelected(selectedNetwork)
+      }}>
         {
           networksAvailable.map((network, ii) => (
             <option key={ii} value={ii}>

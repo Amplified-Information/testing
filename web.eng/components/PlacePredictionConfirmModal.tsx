@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAppContext } from '../AppProvider'
-import { PredictionIntentRequest } from '../gen/api'
 
 const PlacePredictionConfirmModal = ({ open, onClose, params }: { open: boolean, onClose: () => void, params: { buySell: boolean} }) => {
   const { book, setBook } = useAppContext()

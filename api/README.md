@@ -7,7 +7,7 @@ echo $GOPATH
 # make sure Go version is >1.22
 go version
 
-cd api_go
+cd api
 go mod init api # module name is 'api'
 go mod tidy
 

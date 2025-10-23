@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from 'react'
 import { BookSnapshot } from './gen/clob'
 import { LedgerId } from '@hashgraph/sdk'
-import { DAppConnector } from '@hashgraph/hedera-wallet-connect'
+import { DAppConnector, DAppSigner } from '@hashgraph/hedera-wallet-connect'
 
 // 1. Define a type for your context
 interface AppContextType {
@@ -11,12 +11,14 @@ interface AppContextType {
   setNetworkSelected: React.Dispatch<React.SetStateAction<LedgerId>>
   dAppConnector: DAppConnector | undefined
   setDappConnector: React.Dispatch<React.SetStateAction<DAppConnector | undefined>>
+  signerZero: DAppSigner | undefined
+  setSignerZero: React.Dispatch<React.SetStateAction<DAppSigner | undefined>>
   isToggled: boolean[]
   setIsToggled: React.Dispatch<React.SetStateAction<boolean[]>>
   book: BookSnapshot
   setBook: React.Dispatch<React.SetStateAction<BookSnapshot>>
-  spenderAllowance: number
-  setSpenderAllowance: React.Dispatch<React.SetStateAction<number>>
+  spenderAllowanceUsd: number
+  setSpenderAllowanceUsd: React.Dispatch<React.SetStateAction<number>>
 }
 
 // 2. Create the context with `undefined` (so we can inject real values later)
@@ -33,9 +35,10 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [networkSelected, setNetworkSelected] = useState<LedgerId>(LedgerId.TESTNET)
   const [dAppConnector, setDappConnector] = useState<DAppConnector | undefined>(undefined)
+  const [signerZero, setSignerZero] = useState<DAppSigner | undefined>(undefined)
   const [isToggled, setIsToggled] = useState<boolean[]>(Array(4).fill(false))
   const [book, setBook] = useState<BookSnapshot>({ bids: [], asks: [] })
-  const [spenderAllowance, setSpenderAllowance] = useState<number>(0)
+  const [spenderAllowanceUsd, setSpenderAllowanceUsd] = useState<number>(0)
 
   return (
     <AppContext.Provider
@@ -46,12 +49,14 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setNetworkSelected,
         dAppConnector,
         setDappConnector,
+        signerZero,
+        setSignerZero,
         isToggled,
         setIsToggled,
         book,
         setBook,
-        spenderAllowance,
-        setSpenderAllowance
+        spenderAllowanceUsd,
+        setSpenderAllowanceUsd
       }}
     >
       {children}

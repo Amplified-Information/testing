@@ -1,162 +1,118 @@
-import { SessionTypes } from '@walletconnect/types'
 import { PredictionIntentRequest } from '../gen/api'
 import { useEffect, useState } from 'react'
-import { genUUIDv7, uint8ToHex } from '../lib/utils'
+import { uint8ToBase64 } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
-import { smartContractId } from '../constants'
-
-const defaultRequest: PredictionIntentRequest = {
-  txid: genUUIDv7(),
-  utc: new Date().toISOString(),
-  accountId: '0.0.1234',
-  buySell: false,
-  price: 5000,
-  sigHex: ''
-}
+import { defaultPredictionIntentRequest, usdcDecimals } from '../constants'
+import ButtonAmount from './ButtonAmount'
 
 const Signer = () => {
-  // const [sessions, setSessions] = useState<SessionTypes.Struct>()
-  const [sigHex, setSigHex] = useState<string>('')
-  const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>(defaultRequest)
+  const [sig, setSig] = useState<string>('')
+  const [buySell, setBuySell] = useState<boolean>(false)
+  const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>(defaultPredictionIntentRequest)
   const [thinger, setThinger] = useState<boolean>(false)
-  const { spenderAllowance, dAppConnector } = useAppContext()
-
-  // const stringToUint8Array = (str: string): Uint8Array => {
-  //   return new TextEncoder().encode(str);
-  // }
+  const { signerZero, spenderAllowanceUsd } = useAppContext()
+  const [amountUsd, setAmountUsd] = useState<number>(0)
 
   useEffect(() => {
-    console.log(dAppConnector)
+    setPredictionIntentRequest(constructPredictionIntentRequest())
+  }, [])
 
-    // if (dAppConnector.signers.length > 0) {
-    //   // retrieve spender allowance for this account
-    //   console.log(`Retrieving spender allowance for accountId ${dAppConnector.signers[0].getAccountId().toString()} on smart contract ${smartContractId}`)
-    //   console.log(dAppConnector.signers[0].getAccountId().toString())
-    // }
-  }, []) 
+  useEffect(() => {
+    setPredictionIntentRequest(constructPredictionIntentRequest())
+  }, [sig, amountUsd, buySell, signerZero])
+
+  const constructPredictionIntentRequest = (): PredictionIntentRequest => {
+    return {
+      ...predictionIntentRequest,
+      accountId: signerZero ? signerZero.getAccountId().toString() : '0.0.0',
+      amount: amountUsd * (10 ** usdcDecimals),
+      buySell,
+      sig
+    }
+  }
 
   return (
-    <>
-      {!dAppConnector ? (
-        <div>
-          DAppConnector not initialized
-        </div>
-      ) : (
-        <div>
-          
+    <div>
+      <code>
+        {
+        <div
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(predictionIntentRequest, null, 2)
+              .replaceAll('\n', '<br/>')
+              .replaceAll(' ', '&nbsp;'),
+          }}
+        />
+        }
+      </code>
+
+      <ButtonAmount value={amountUsd} onChange={(value) => {
+        setAmountUsd(value)
+        setPredictionIntentRequest({ ...predictionIntentRequest, amount: value * (10 ** usdcDecimals) })
+        setSig('')
+      }} max={spenderAllowanceUsd}/>
+
+
+
+      <br/>
+      <br/>
+      Limit price: <input className='border border-gray-300 rounded px-3 py-2 w-24' type="number" value={predictionIntentRequest.price} onChange={(e) => {
+        setPredictionIntentRequest({ ...predictionIntentRequest, price: Number(e.target.value)})
+      }} />
+
+      <br/>
+      <br/>
+
+      <button className='btn green' disabled={!signerZero || thinger} title={!signerZero ? 'Wallet not connected' : sig.length === 0 ? 'Message not signed' : ''} onClick={async () => {
+        setThinger(true)
+        console.log('Signing OrderIntent...')
+        console.log(signerZero)
+
+        try {
+          const bytes: Uint8Array = new TextEncoder().encode(JSON.stringify(predictionIntentRequest))
+          const multiSig = await signerZero!.sign([bytes], { encoding: 'utf-8' })
+
+          const sig = multiSig[0].signature // reckon most of the time just one sig
+          setSig(uint8ToBase64(sig))
+          setPredictionIntentRequest({ ...predictionIntentRequest, sig: uint8ToBase64(sig) })
+          console.log('Signature: ', uint8ToBase64(sig))
+        } catch (e) {
+          console.error('Error signing OrderIntent: ', e)
+          console.error(e)
+        } finally {
+          setThinger(false)
+        }
+      }}>
+        Sign
+      </button>
+      <br/>
+      <br/>
+
       
-          <code>
-            {
-            <div
-              dangerouslySetInnerHTML={{
-                __html: JSON.stringify(predictionIntentRequest, null, 2)
-                  .replaceAll('\n', '<br/>')
-                  .replaceAll(' ', '&nbsp;'),
-              }}
-            />
-            }
-          </code>
+      <button className={`btn orange`} disabled={!signerZero || thinger || sig.length === 0} title={!signerZero ? 'Wallet not connected' : ''} onClick={ async () => {
+        setThinger(true)
+        console.log('Submitting order intent to backend API...')
 
-          {/* <button className='btn'
-              onClick={async () => {
-                // await initWallet()
+        // grpc call to backend
+        // grpcurl -plaintext -import-path ./proto -proto api.proto -d '{"accountId": "0.0.7090546", "buySell": false, "sig": "xxxxxxxxxxxxxxx", "price": 14}' localhost:8888 api.ApiService.PredictIntent
+        try {
+          console.log(predictionIntentRequest)
+          const result = await apiClient.predictIntent(predictionIntentRequest)
+          console.log('PredictIntent response:', result)
+        } catch (e) {
+          console.error('PredictIntent error:', e)
+        } finally {
+          setThinger(false)
+        }
+      }}>
+        Submit order intent
+      </button>
 
-                // const x = await dAppConnector.init()
-
-                if (dAppConnector.signers.length === 0) {
-                  const _sessions = await dAppConnector.openModal()
-                  console.log('sessions')
-                  console.log(_sessions)
-                  _sessions.self.publicKey
-                  setSessions(_sessions)
-                } else {
-                  console.log('Already connected sessions:')
-                  console.log(dAppConnector.signers)
-                }
-              }}
-            >
-              Connect
-            </button> */}
-          <button className='btn green' onClick={async () => {
-                // if (!sessions) {
-                //   console.error('No session available')
-                //   return
-                // }
-
-                // await dAppConnector.() // prevents the flash!
-                
-                const signer = await dAppConnector.getSigner(dAppConnector.signers[0].getAccountId())
-                console.log(signer)
-
-                const bytes: Uint8Array = new TextEncoder().encode(JSON.stringify(predictionIntentRequest))
-                const multiSig = await signer.sign([bytes], { encoding: 'utf-8' })
-
-                const sig = multiSig[0].signature // reckon most of the time just one sig
-                setSigHex(uint8ToHex(sig))
-                setPredictionIntentRequest({ ...predictionIntentRequest, sigHex: uint8ToHex(sig) })
-                console.log('Signature: ', uint8ToHex(sig))
-                
-
-                
-                // console.log(dAppConnector)
-                // console.log(dAppConnector.signers[0].getAccountId().toString())
-                // const toBeSigned: SignMessageParams = {
-                //   signerAccountId: dAppConnector.signers[0].getAccountId().toString(),
-                //   message: JSON.stringify(data, (key, value) => { typeof value === 'bigint' ? value.toString() : value })
-                // }
-                // const toBeSigned: SignMessageParams = {
-                //   signerAccountId: dAppConnector.signers[0].getAccountId().toString(),
-                //   message: 'Hello Hedera!'
-                // }
-                
-                // const result = await dAppConnector.signMessage(toBeSigned)
-                // console.log('Signed message result:', result)
-          }}>Sign</button>
-          <br/>
-          <br/>
-
-          {dAppConnector.signers.length > 0 &&
-            <>
-              Current USD Coin allowance for <code>{dAppConnector.signers[0].getAccountId().toString()}</code> is ${spenderAllowance.toFixed(2)}.
-            </>
-          }
-
-          <br/>
-          <br/>
-
-          <button className='btn orange' onClick={() => {
-            console.log('Current spender allowance:', spenderAllowance)
-
-
-          }}>
-            Set a $10 USD Coin allowance
-          </button>
-
-
-          <br/>
-          <br/>
-          <button className={`btn orange`} disabled={thinger} onClick={ async () => {
-            setThinger(true)
-            console.log('Submitting order intent to backend API...')
-
-            // grpc call to backend
-            // grpcurl -plaintext -import-path ./proto -proto api.proto -d '{"accountId": "0.0.7090546", "buySell": false, "sig": "xxxxxxxxxxxxxxx", "price": 14}' localhost:8888 api.ApiService.PredictIntent
-            try {
-              
-              const result = await apiClient.predictIntent(predictionIntentRequest)
-              console.log('PredictIntent response:', result)
-            } catch (e) {
-              console.error('PredictIntent error:', e)
-            } finally {
-              setThinger(false)
-            }
-          }}>
-            Submit order intent
-          </button>
-          </div>
-        )}
-    </>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+    </div>
   )
 }
 

@@ -1,17 +1,17 @@
 releases:
   #  Upcoming release (uncomment when ready)
   - version: "v0.0.1"
-    timestamp: "2025-10-22T10:00:00Z"
+    timestamp: "2025-10-23T00:00:00Z"
     notes: "Initial release"
     services:
-      - name: "db"
-        version: "v1.0.0"
-        image: "my-registry/db:v1.0.0"
-        dependencies: []
-      - name: "eventbus"
-        version: "v1.0.0"
-        image: "my-registry/eventbus:v1.0.0"
-        dependencies: []
+      # - name: "db"
+      #   version: "v1.0.0"
+      #   image: "my-registry/db:v1.0.0"
+      #   dependencies: []
+      # - name: "eventbus"
+      #   version: "v1.0.0"
+      #   image: "my-registry/eventbus:v1.0.0"
+      #   dependencies: []
       - name: "api"
         version: "v1.0.0"
         image: "my-registry/api:v1.0.0"
@@ -20,22 +20,22 @@ releases:
         version: "v1.0.0"
         image: "my-registry/clob:v1.0.0"
         dependencies: []
-      - name: "scs"
-        version: "v1.0.0"
-        image: "my-registry/scs:v1.0.0"
-        dependencies: []
+      # - name: "scs"
+      #   version: "v1.0.0"
+      #   image: "my-registry/scs:v1.0.0"
+      #   dependencies: []
       - name: "proxy"
         version: "v1.0.0"
         image: "my-registry/proxy:v1.0.0"
         dependencies: []
-      - name: "web"
+      - name: "web.eng"
         version: "v0.0.1"
-        image: "my-registry/web:v1.0.0"
+        image: "my-registry/web.eng:v1.0.0"
         dependencies: []
-      - name: "infra"
-        version: "v1.0.0"
-        image: "my-registry/infra:v1.0.0"
-        dependencies: []
+      # - name: "infra"
+      #   version: "v1.0.0"
+      #   image: "my-registry/infra:v1.0.0"
+      #   dependencies: []
 
   # Example release:
   # - version: "v1.1.0"

@@ -1,3 +1,4 @@
+import { LedgerId } from '@hashgraph/sdk'
 import { useAppContext } from '../AppProvider'
 import { networksAvailable } from '../constants'
 import Wallet from './Wallet'
@@ -7,10 +8,10 @@ const Header = () => {
   const { dAppConnector } = useAppContext()
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
+    <header className={`${networkSelected === LedgerId.TESTNET ? 'bg-orange-300' : networkSelected === LedgerId.PREVIEWNET ? 'bg-purple-300' : 'bg-green-400'} flex items-center justify-between px-4 py-2 border-b border-gray-200`}>
       <div className="flex items-center gap-2">
-        <img src='../img/logo.svg' />
-        <span className="font-semibold">Predict</span>
+      <img src='../img/logo.svg' />
+      <span className="font-semibold">Predict</span>
       </div>
       
       <Wallet />

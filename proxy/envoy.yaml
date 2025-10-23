@@ -27,9 +27,9 @@ static_resources:
                   - name: service_routes
                     domains: ["*"]
                     routes:
-                      # Route gRPC requests (identified by content-type: application/grpc)
+                      # Route gRPC requests (identified by content-type: application/grpc) 
                       - match:
-                          prefix: "/"
+                          prefix: "/clob."   # proto package 'clob'
                           headers:
                             - name: "content-type"
                               string_match:
@@ -39,15 +39,37 @@ static_resources:
                           timeout: 0s
                           max_stream_duration:
                             grpc_timeout_header_max: 0s
+                      - match:
+                          prefix: "/api."   # proto package 'api'
+                          headers:
+                            - name: "content-type"
+                              string_match:
+                                prefix: "application/grpc"
+                        route:
+                          cluster: api_service
+                          timeout: 0s
+                          max_stream_duration:
+                            grpc_timeout_header_max: 0s
                       # Route gRPC-Web requests
                       - match:
-                          prefix: "/"
+                          prefix: "/clob."   # proto package 'clob'
                           headers:
                             - name: "content-type"
                               string_match:
                                 prefix: "application/grpc-web"
                         route:
                           cluster: clob_service
+                          timeout: 0s
+                          max_stream_duration:
+                            grpc_timeout_header_max: 0s
+                      - match:
+                          prefix: "/api."   # proto package 'api'
+                          headers:
+                            - name: "content-type"
+                              string_match:
+                                prefix: "application/grpc-web"
+                        route:
+                          cluster: api_service
                           timeout: 0s
                           max_stream_duration:
                             grpc_timeout_header_max: 0s
@@ -89,6 +111,20 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 50051
+    - name: api_service
+      connect_timeout: 1s
+      type: logical_dns
+      http2_protocol_options: {}
+      lb_policy: round_robin
+      load_assignment:
+        cluster_name: api_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
+                      port_value: 8888
     - name: web_service
       connect_timeout: 1s
       type: logical_dns

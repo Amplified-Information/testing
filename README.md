@@ -3,17 +3,17 @@
 This project is divided into a number of folders:
 
 - `scs`: on-chain smart contracts
-- `clob`: an off-chain CLOB to manage buy/sell orders
+- `clob`: an off-chain CLOB to manage cryptographically signed buy/sell order intents
 - `infra`: infrastructure-as-code (platform agnostic)
 - `web`: a web front-end
 - `web.eng`: an engineering front-end
 - `api`: a public backend for `web`
-- `proxy`: a proxy to marshall traffice
+- `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication
 
 ## Docker container registry
 
-ghcr (Github container registry)
+Please use ghcr (Github container registry) only for images.
 
 ```bash
 export PAT=<personal_access_token>
@@ -23,7 +23,9 @@ echo $PAT | docker login ghcr.io --username MuzanHash --password-stdin
 docker push ghcr.io/NAMESPACE/IMAGE_NAME:v0.0.3
 ```
 
-All (tagged) images should be pushed to this location
+All (tagged) images should be pushed to this location.
+
+All images **must** use [semantic versioning](https://semver.org/).
 
 ## Releases
 

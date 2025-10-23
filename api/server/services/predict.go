@@ -9,7 +9,16 @@ import (
 )
 
 func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
-	// 1. validate the key
+
+	// validate accountId
+	// x validation uuiv7
+	// x validate timestamp is valid
+	// validate timestamp within last 5 minutes
+	// x validate amount > 0
+
+	// validate the signature
+	// x validate sig
+
 	accountId := req.AccountId
 
 	// Look up the Hedera accountId against the mirror node
@@ -18,8 +27,6 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 		return "", fmt.Errorf("failed to get public key: %v", err)
 	}
 
-	// validate the signature
-	
 	log.Printf("Mirror node response for account %s: %s %s", accountId, keyObj.Key, keyObj.KeyType)
 
 	// Optionally, parse the response body if needed

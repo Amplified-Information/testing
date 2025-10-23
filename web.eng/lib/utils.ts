@@ -9,11 +9,11 @@ const uint8ToBase64 = (bytes: Uint8Array): string => {
   return btoa(binary);
 }
 
-const uint8ToHex = (bytes: Uint8Array): string => {
-  return Array.from(bytes)
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
+// const uint8ToHex = (bytes: Uint8Array): string => {
+//   return Array.from(bytes)
+//     .map((byte) => byte.toString(16).padStart(2, '0'))
+//     .join('');
+// }
 
 const genUUIDv7 = (): string => {
   return uuidv7()
@@ -21,6 +21,6 @@ const genUUIDv7 = (): string => {
 
 export {
   uint8ToBase64,
-  uint8ToHex,
+  // uint8ToHex,
   genUUIDv7
 }

@@ -23,8 +23,11 @@ message PredictionIntentRequest {
   string accountId = 3                    [(validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"}];
   // google.protobuf.BoolValue buySell = 2   [(validate.rules).message.required = true];
   bool buySell = 4;
-  fixed32 price = 5                       [(validate.rules).fixed32 = {gt: 0}];
-  string sigHex = 6                       [(validate.rules).string = {pattern: "^[0-9a-fA-F]{10,50}$"}];
+  // market order => 0
+  uint32 price = 5                        [(validate.rules).uint32 = {gt: 0}];
+  uint32 amount = 6                       [(validate.rules).uint32 = {gt: 0}];
+  // base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars)
+  string sig = 7                          [(validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"}];
 }
 
 message StdResponse {
