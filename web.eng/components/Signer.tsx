@@ -26,7 +26,7 @@ const Signer = () => {
     return {
       ...predictionIntentRequest,
       accountId: signerZero ? signerZero.getAccountId().toString() : '0.0.0',
-      amount: amountUsd * (10 ** usdcDecimals),
+      nShares: amountUsd * (10 ** usdcDecimals),
       buySell,
       sig
     }
@@ -48,7 +48,7 @@ const Signer = () => {
 
       <ButtonAmount value={amountUsd} onChange={(value) => {
         setAmountUsd(value)
-        setPredictionIntentRequest({ ...predictionIntentRequest, amount: value * (10 ** usdcDecimals) })
+        setPredictionIntentRequest({ ...predictionIntentRequest, nShares: value * (10 ** usdcDecimals) })
         setSig('')
       }} max={spenderAllowanceUsd}/>
 
@@ -56,8 +56,8 @@ const Signer = () => {
 
       <br/>
       <br/>
-      Limit price: <input className='border border-gray-300 rounded px-3 py-2 w-24' type="number" value={predictionIntentRequest.price} onChange={(e) => {
-        setPredictionIntentRequest({ ...predictionIntentRequest, price: Number(e.target.value)})
+      Limit price: <input className='border border-gray-300 rounded px-3 py-2 w-24' type="number" value={predictionIntentRequest.priceUsd} onChange={(e) => {
+        setPredictionIntentRequest({ ...predictionIntentRequest, priceUsd: Number(e.target.value)})
       }} />
 
       <br/>

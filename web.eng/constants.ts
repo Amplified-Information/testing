@@ -20,11 +20,12 @@ const walletMetaData = {
 
 const defaultPredictionIntentRequest: PredictionIntentRequest = {
   txid: genUUIDv7(),
+  marketId: genUUIDv7(),
   utc: new Date().toISOString(),
   accountId: '0.0.1',
   buySell: false,
-  price: 0,
-  amount: 0,
+  priceUsd: 0,
+  nShares: 0,
   sig: ''
 }
 

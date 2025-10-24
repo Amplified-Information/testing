@@ -34,10 +34,73 @@ protoc --proto_path=proto --proto_path=proto/validate --go_out=gen --go_opt=path
 
 # run the server:
 go run ./server/
+```
 
+```bash
 # Now do a gRPC call:
-grpcurl -plaintext -import-path ./proto -proto api.proto -d '{"txid": "00000000-0000-7000-80Bb-0000000000Aa", "accountId": "0.0.7090546", "buySell": false, "sig": "xxxxxxxxxxxxxxx", "price": 14, "sig": "aabbccddeeffgghhiijjkkllmmnn"}' localhost:8888 api.ApiService.PredictIntent
+PRICE_USD=0.42
+N_SHARES=22.2
+UTC=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+ACCOUNT_ID=0.0.7090546
+BUYSELL=false
+SIG=xxxxxxxxxxxxxxxxxxxxx
+UUID7=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
+  $(( $(date +%s%3N) >> 16 )) \
+  $(( $(date +%s%3N) & 0xFFFF )) \
+  $(( $(date +%s%3N) & 0x0FFF )) \
+  $(( 8 + RANDOM % 4 )) \
+  $(( RANDOM & 0x0FFF )) \
+  $(( RANDOM<<24 | RANDOM<<12 | RANDOM )) )
+```
+
+```bash
+grpcurl -plaintext -import-path ./proto -proto api.proto -d '{"txid": "'$UUID7'", "accountId": "'$ACCOUNT_ID'", "buySell": '$BUYSELL', "sig": "'$SIG'", "priceUsd": '$PRICE_USD', "nShares": '$N_SHARES', "sig": "'$SIG'", "utc": "'$UTC'"}' localhost:8888 api.ApiService.PredictIntent
 # notice how the validation takes place!
 
+```
 
+## Database migrations
+
+Use golang-migrate cli tool
+
+`brew install golang-migrate` (Mac)
+
+To install the cli tool on Linux:
+
+```bash
+curl -L https://github.com/golang-migrate/migrate/releases/download/v4.19.0/migrate.linux-amd64.tar.gz | tar xvz
+sudo mv migrate /usr/local/bin/
+migrate -version
+```
+
+### new migration
+
+`migrate create -ext sql -dir db/migrations -seq first_table` # sequential numbering (not default date-based)
+
+### migration up
+
+```bash
+cd api
+ENV=local
+source ./.config.$ENV
+source ./.secrets.$ENV
+DB_URL=postgres://$DB_HOST:$DB_PORT/$DB_NAME
+migrate -database $DB_URL -path db/migrations up
+```
+
+### migration down
+
+Ty and make your migrations idempotent!
+
+Please test the up/downs in lower envs!
+
+[Best practices](https://github.com/golang-migrate/migrate/blob/master/MIGRATIONS.md)
+
+```bash
+cd api
+ENV=local
+source ./.config.$ENV
+source ./.secrets.$ENV
+DB_URL=postgres://$DB_HOST:$DB_PORT/$DB_NAME
+migrate -database $DB_URL -path db/migrations down
 ```

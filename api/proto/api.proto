@@ -17,17 +17,19 @@ message Empty {}
 message PredictionIntentRequest {
   // Strict RFC-9562-compliant UUIDv7
   string txid = 1                         [(validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}];
-   // UTC ISO 8601 (Zulu time only)
-  string utc = 2                          [(validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"}];
+  // Strict RFC-9562-compliant UUIDv7
+  string marketId = 2                     [(validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}];
+  // UTC ISO 8601 (Zulu time only)
+  string utc = 3                          [(validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"}];
   // Hedera account ID (no leading zeros)
-  string accountId = 3                    [(validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"}];
-  // google.protobuf.BoolValue buySell = 2   [(validate.rules).message.required = true];
-  bool buySell = 4;
-  // market order => 0
-  uint32 price = 5                        [(validate.rules).uint32 = {gt: 0}];
-  uint32 amount = 6                       [(validate.rules).uint32 = {gt: 0}];
+  string accountId = 4                    [(validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"}];
+  // buy = false, sell = true
+  bool buySell = 5;
+  // still have 15 digits of decimal precision between 0.0 and 1.0
+  double priceUsd = 6                     [(validate.rules).double = {gt: 0.0, lt: 1.0}];
+  double nShares = 7                      [(validate.rules).double = {gt: 0.0}];
   // base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars)
-  string sig = 7                          [(validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"}];
+  string sig = 8                          [(validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"}];
 }
 
 message StdResponse {

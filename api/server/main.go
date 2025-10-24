@@ -31,8 +31,13 @@ func (s *server) PredictIntent(ctx context.Context, req *pb.PredictionIntentRequ
 }
 
 func main() {
-	if err := godotenv.Load(".env", ".secrets"); err != nil { // Load environment variables from .env and .secrets
-		log.Printf("Warning: Could not load .env file: %v", err)
+	result := os.Getenv("ENV")
+	if result == "" {
+		log.Fatalf("Failed to start api. ENV {local, dev, prod} must be set.")
+	}
+
+	if err := godotenv.Load(fmt.Sprintf(".config.%s", os.Getenv("ENV")), fmt.Sprintf(".secrets.%s", os.Getenv("ENV"))); err != nil { // Load environment variables from .config.ENV and .secrets.ENV
+		log.Printf("Warning: Could not load .config/.secrets file: %v", err)
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", os.Getenv("PORT")))

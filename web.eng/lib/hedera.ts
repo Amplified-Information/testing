@@ -24,7 +24,7 @@ const grantAllowanceUsd = async (signerZero: DAppSigner, contractId: string, amo
   console.log(ContractId.fromString(contractId).toEvmAddress())
   const approveTx = await new ContractExecuteTransaction()
     .setContractId(usdcAddress)
-    .setGas(10_000_000)
+    .setGas(10_000_000) // TODO: this is coming up as infinity HBAR?
     .setFunction('approve', new ContractFunctionParameters()
       .addAddress(ContractId.fromString(contractId).toEvmAddress())
       .addUint256(amountUsd * (10 ** usdcDecimals)))

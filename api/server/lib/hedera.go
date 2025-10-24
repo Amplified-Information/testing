@@ -22,30 +22,43 @@ import (
 // message (string): 	hello
 // signature (utf-8): NsiQSJWWx+SrZK3OsxdbIgNgxch//+RoRk6BZG5gsrJy1NoE7d1OKW/d4/Jo5lu/amkPp8zWzTB4PKTi1BRSZw==
 // signature (base64): 2e//YBNUI73pfAnY3Eoh+sAGV8naXuCjfj8+JjByVGFwckhE2ICgs9YYoapxVuR2Qnq+4yxheLSSfa4TXObT+A==
-const ecdsaPublicKeyPreamble = "302d300706052b8104000a032200"
+// const ecdsaPublicKeyPreamble = "302d300706052b8104000a032200"
 
-func hashpackMessageBytes(message string) []byte {
-	prefix := fmt.Sprintf("\x19Hedera Signed Message:\n%d", len(message))
-	return []byte(prefix + message)
-}
+// func hashpackMessageBytes(message string) []byte {
+// 	prefix := fmt.Sprintf("\x19Hedera Signed Message:\n%d", len(message))
+// 	return []byte(prefix + message)
+// }
 
-func Test2() {
-	pubKeyHex := "03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787"
-	message := "aGVsbG8="
-	sigBase64 := "2e//YBNUI73pfAnY3Eoh+sAGV8naXuCjfj8+JjByVGFwckhE2ICgs9YYoapxVuR2Qnq+4yxheLSSfa4TXObT+A=="
+// func Test2() {
+// 	pubKeyHex := "03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787"
+// 	message := "aGVsbG8="
+// 	sigBase64 := "2e//YBNUI73pfAnY3Eoh+sAGV8naXuCjfj8+JjByVGFwckhE2ICgs9YYoapxVuR2Qnq+4yxheLSSfa4TXObT+A=="
 
-	ok, err := VerifyHashPackSignature(pubKeyHex, message, sigBase64)
+// 	ok, err := VerifyHashPackSignature(pubKeyHex, message, sigBase64)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	fmt.Printf("verified: %b\n", ok)
+// }
+
+func VerifySignature(pubKeyHex string, message64 string, sigBase64 string) (bool, error) {
+	// pubKeyHex := "03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787"
+	// message := "aGVsbG8=" // hello
+	// sigBase64 := "2e//YBNUI73pfAnY3Eoh+sAGV8naXuCjfj8+JjByVGFwckhE2ICgs9YYoapxVuR2Qnq+4yxheLSSfa4TXObT+A=="
+
+	isSigValid, err := VerifyHashPackSignature(pubKeyHex, message64, sigBase64)
 	if err != nil {
-		panic(err)
+		return false, err
 	}
-	fmt.Printf("verified: %b\n", ok)
+	// fmt.Printf("verified: %b\n", ok)
+	return isSigValid, nil
 }
 
 // VerifyHashPackSignature verifies a HashPack signature for a given message and ECDSA public key
 // pubKeyHex: compressed Hedera ECDSA public key (33 bytes, hex string)
 // message: the original message that was signed
 // sigBase64: the Base64 R||S signature from HashPack
-func VerifyHashPackSignature(pubKeyHex, message, sigBase64 string) (bool, error) {
+func VerifyHashPackSignature(pubKeyHex string, message string, sigBase64 string) (bool, error) {
 	// Decode Base64 signature
 	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
 	if err != nil {
@@ -105,48 +118,48 @@ func VerifyHashPackSignature(pubKeyHex, message, sigBase64 string) (bool, error)
 
 // }
 
-func Test() {
-	// publicKey, err := hiero.PublicKeyFromStringECDSA("302d300706052b8104000a0322000298c5d6efb814ead640467934b5ef9a02b81d3c483719675cb261cc5fde3edd57")
-	// if err != nil {
-	// 	fmt.Printf("Error parsing public key: %v\n", err)
-	// 	return
-	// }
+// func Test() {
+// 	// publicKey, err := hiero.PublicKeyFromStringECDSA("302d300706052b8104000a0322000298c5d6efb814ead640467934b5ef9a02b81d3c483719675cb261cc5fde3edd57")
+// 	// if err != nil {
+// 	// 	fmt.Printf("Error parsing public key: %v\n", err)
+// 	// 	return
+// 	// }
 
-	// fmt.Printf("Public key: %v\n", publicKey)
+// 	// fmt.Printf("Public key: %v\n", publicKey)
 
-	// key, err := hiero.PrivateKeyGenerateEcdsa()
+// 	// key, err := hiero.PrivateKeyGenerateEcdsa()
 
-	// publicKey1 := key.PublicKey()
-	// publicKey2, err := hiero.PublicKeyFromStringECDSA(publicKey1.String())
+// 	// publicKey1 := key.PublicKey()
+// 	// publicKey2, err := hiero.PublicKeyFromStringECDSA(publicKey1.String())
 
-	// fmt.Printf("publicKey1: %s\n", publicKey1)
-	// fmt.Printf("publicKey2: %s\n", publicKey2)
+// 	// fmt.Printf("publicKey1: %s\n", publicKey1)
+// 	// fmt.Printf("publicKey2: %s\n", publicKey2)
 
-	// testMsg1 := []byte("aGVsbG8=")
-	testMsg2 := []byte("hello")
+// 	// testMsg1 := []byte("aGVsbG8=")
+// 	testMsg2 := []byte("hello")
 
-	privateKey3, err := hiero.PrivateKeyFromStringECDSA("1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d")
-	fmt.Printf("privateKey3: %s\n", privateKey3)
-	publicKey3, err := hiero.PublicKeyFromStringECDSA("03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787")
-	fmt.Printf("publicKey3: %s\n", publicKey3)
-	fmt.Printf("publicKey3: %s\n", privateKey3.PublicKey())
+// 	privateKey3, err := hiero.PrivateKeyFromStringECDSA("1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d")
+// 	fmt.Printf("privateKey3: %s\n", privateKey3)
+// 	publicKey3, err := hiero.PublicKeyFromStringECDSA("03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787")
+// 	fmt.Printf("publicKey3: %s\n", publicKey3)
+// 	fmt.Printf("publicKey3: %s\n", privateKey3.PublicKey())
 
-	// sig1 := privateKey3.Sign(testMsg1)
-	// fmt.Printf("sig1: %s\n", base64.StdEncoding.EncodeToString(sig1))
-	sig2 := privateKey3.Sign(testMsg2)
-	fmt.Printf("sig2: %s\n", base64.StdEncoding.EncodeToString(sig2))
+// 	// sig1 := privateKey3.Sign(testMsg1)
+// 	// fmt.Printf("sig1: %s\n", base64.StdEncoding.EncodeToString(sig1))
+// 	sig2 := privateKey3.Sign(testMsg2)
+// 	fmt.Printf("sig2: %s\n", base64.StdEncoding.EncodeToString(sig2))
 
-	sig3 := "NsiQSJWWx+SrZK3OsxdbIgNgxch//+RoRk6BZG5gsrJy1NoE7d1OKW/d4/Jo5lu/amkPp8zWzTB4PKTi1BRSZw=="
-	fmt.Printf("sig3: %s\n", sig3)
-	sigBytes, err := base64.StdEncoding.DecodeString(sig3)
-	if err != nil {
-		fmt.Printf("Error decoding signature: %v\n", err)
-		return
-	}
+// 	sig3 := "NsiQSJWWx+SrZK3OsxdbIgNgxch//+RoRk6BZG5gsrJy1NoE7d1OKW/d4/Jo5lu/amkPp8zWzTB4PKTi1BRSZw=="
+// 	fmt.Printf("sig3: %s\n", sig3)
+// 	sigBytes, err := base64.StdEncoding.DecodeString(sig3)
+// 	if err != nil {
+// 		fmt.Printf("Error decoding signature: %v\n", err)
+// 		return
+// 	}
 
-	verified := publicKey3.VerifySignedMessage(testMsg2, sigBytes)
-	fmt.Printf("Signature verified: %v\n", verified)
-}
+// 	verified := publicKey3.VerifySignedMessage(testMsg2, sigBytes)
+// 	fmt.Printf("Signature verified: %v\n", verified)
+// }
 
 type PublicKey struct {
 	KeyType string
@@ -164,8 +177,6 @@ type PublicKey struct {
 // }
 
 func GetPublicKey(accountId string) (PublicKey, error) {
-	Test2()
-
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", os.Getenv("HEDERA_NETWORK_SELECTED"), accountId)
 	resp, err := Fetch(GET, mirrorNodeURL, nil)
 
@@ -189,6 +200,43 @@ func GetPublicKey(accountId string) (PublicKey, error) {
 	}
 
 	return PublicKey{KeyType: result.Key.Type_, Key: result.Key.Key}, nil
+}
+
+
+func GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.AccountID, usdcDecimals int) (float64, error) {
+	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
+	
+	resp, err := Fetch(GET, mirrorNodeURL, nil)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching allowance: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return 0, fmt.Errorf("network response was not ok: status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Allowances []struct {
+			Amount int64 `json:"amount"`
+		} `json:"allowances"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return 0, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if len(result.Allowances) == 0 {
+		return 0, nil
+	}
+
+	// Convert to float64 and apply decimals
+	divisor := 1
+	for i := 0; i < usdcDecimals; i++ {
+		divisor *= 10
+	}
+	amount := float64(result.Allowances[0].Amount) / float64(divisor)
+	return amount, nil
 }
 
 // // https://github.com/hiero-ledger/hiero-sdk-go/blob/7052a2a5cffcf0a6df57336584c50138738ab9b5/sdk/crypto_unit_test.go#L245
