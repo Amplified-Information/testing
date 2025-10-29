@@ -28,11 +28,13 @@ mkdir -p proto/google
 
 
 # now generate the interface
-rm -rf gen && mkdir gen
-protoc --proto_path=proto --proto_path=proto/validate --go_out=gen --go_opt=paths=source_relative   --go-grpc_out=gen --go-grpc_opt=paths=source_relative --validate_out="lang=go,paths=source_relative:gen" proto/api.proto
+cd api
+./genProto.sh
+
 
 
 # run the server:
+cd api
 go run ./server/
 ```
 
@@ -42,7 +44,7 @@ PRICE_USD=0.42
 N_SHARES=22.2
 UTC=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
 ACCOUNT_ID=0.0.7090546
-BUYSELL=false
+BUYSELL=0
 SIG=xxxxxxxxxxxxxxxxxxxxx
 UUID7=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
   $(( $(date +%s%3N) >> 16 )) \
@@ -53,10 +55,27 @@ UUID7=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
   $(( RANDOM<<24 | RANDOM<<12 | RANDOM )) )
 ```
 
+Create `SIG`:
+
+Ensure openssl and jq are available:
+
+`which openssl jq`
+
 ```bash
-grpcurl -plaintext -import-path ./proto -proto api.proto -d '{"txid": "'$UUID7'", "accountId": "'$ACCOUNT_ID'", "buySell": '$BUYSELL', "sig": "'$SIG'", "priceUsd": '$PRICE_USD', "nShares": '$N_SHARES', "sig": "'$SIG'", "utc": "'$UTC'"}' localhost:8888 api.ApiService.PredictIntent
+grpcurl -plaintext -import-path ./proto -proto api.proto -d '{"txid": "'$UUID7'", "marketId": "'$UUID7'", "accountId": "'$ACCOUNT_ID'", "buySell": '$BUYSELL', "sig": "'$SIG'", "priceUsd": '$PRICE_USD', "nShares": '$N_SHARES', "sig": "'$SIG'", "utc": "'$UTC'"}' localhost:8888 api.ApiService.PredictIntent
 # notice how the validation takes place!
 
+```
+
+Or...
+
+Grab the JSON.stringified payload from the console.log:
+
+```bash
+export PORT=8888
+export PAYLOAD='{"txid":"019a2bc2-d729-7407-acb7-fff6e81daa11","marketId":"019a2bc2-d729-7407-acb8-003b2e4fe475","utc":"2025-10-28T16:59:40.713Z","accountId":"0.0.7090546","buySell":"buy","priceUsd":0.5,"nShares":10,"sig":""}'
+
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.PredictIntent
 ```
 
 ## Database migrations

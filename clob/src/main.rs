@@ -14,6 +14,8 @@ use chrono::{DateTime, Utc};
 
 use tokio::sync::broadcast;
 
+use clob::nats::initialize_nats;
+
 pub struct MyClobService {
     engine: Arc<Engine>,
     book_depth: usize,
@@ -27,9 +29,9 @@ fn proto_to_engine_order_request(req: OrderRequest) -> Result<EngineOrderRequest
     ).ok_or(Status::invalid_argument("invalid timestamp"))?;
     Ok(EngineOrderRequest {
         owner: req.owner,
-        is_buy: req.is_buy,
-        price: req.price,
-        amount: req.amount,
+        buy_sell: req.buy_sell,
+        price: req.price.into(),
+        amount: req.amount.into(),
         timestamp_ns: ts,
         tx_hash: if req.tx_hash.is_empty() { None } else { Some(req.tx_hash) },
     })
@@ -71,8 +73,8 @@ impl Clob for MyClobService {
         };
         let (bids, asks) = self.engine.snapshot_top(depth).await;
         Ok(Response::new(BookSnapshot {
-            bids: bids.into_iter().map(|(price, count)| PriceLevel { price, count: count as u32 }).collect(),
-            asks: asks.into_iter().map(|(price, count)| PriceLevel { price, count: count as u32 }).collect(),
+            bids: bids.into_iter().map(|(price, count)| PriceLevel { price: price.into_inner(), count: count as u32 }).collect(),
+            asks: asks.into_iter().map(|(price, count)| PriceLevel { price: price.into_inner(), count: count as u32 }).collect(),
         }))
     }
 
@@ -92,8 +94,8 @@ impl Clob for MyClobService {
                 let _ = rx.recv().await;
                 let (bids, asks) = engine.snapshot_top(depth).await;
                 yield Ok(BookSnapshot {
-                    bids: bids.iter().map(|(price, count)| PriceLevel { price: *price, count: *count as u32 }).collect(),
-                    asks: asks.iter().map(|(price, count)| PriceLevel { price: *price, count: *count as u32 }).collect(),
+                    bids: bids.iter().map(|(price, count)| PriceLevel { price: price.into_inner(), count: *count as u32 }).collect(),
+                    asks: asks.iter().map(|(price, count)| PriceLevel { price: price.into_inner(), count: *count as u32 }).collect(),
                 });
             }
         };
@@ -112,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     // Read config
-    let config_str = fs::read_to_string("config.toml").unwrap_or_default();
+    let config_str = fs::read_to_string("config.toml").unwrap_or_default(); // TODO - change to .config.local and .secrets.local
     let config: Value = toml::from_str(&config_str).unwrap_or(Value::Table(Default::default()));
     
     let tokio_channel_capacity: usize = config.get("tokio_channel_capacity").and_then(|v| v.as_integer()).unwrap() as usize;
@@ -126,6 +128,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let clob_service = MyClobService::new(engine, book_depth, book_update_tx.clone());
     
     tracing::info!("{} <{}> {}", Utc::now(), "LISTENING", format!("{}:{}", grpc_host, grpc_port));
+
+    // NATS setup
+    let nats_host = config.get("nats_host").and_then(|v| v.as_str()).unwrap_or("127.0.0.1");
+    let nats_port = config.get("nats_port").and_then(|v| v.as_integer()).unwrap_or(4222) as u16;
+    
+    // NATS connection
+    let nats = initialize_nats(nats_host, nats_port).await?;
+    // authenticated nats:
+    // let client = initialize_nats_with_auth(nats_host, nats_port, Some("myuser"), Some("mypass")).await?;
+    
+    // Setup NATS order processing
+    clob::nats::setup_order_processing(nats, "clob.orders".into()).await?;
     
     Server::builder()
         .add_service(ClobServer::new(clob_service))

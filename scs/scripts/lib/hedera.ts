@@ -3,7 +3,7 @@ import dotenv from 'dotenv'
 import { __dirname } from './utils.ts'
 import type { HederaKeyType, HederaNetwork } from './types.d.ts'
 
-dotenv.config({ path: __dirname + '/../../../shared/.env' }) // Load environment variables from .env file
+dotenv.config({ path: __dirname + '/../../.secrets.local' }) // Load environment variables from .env file
 
 /**
  * Initialise a Hedera Client with safe operator key + network handling

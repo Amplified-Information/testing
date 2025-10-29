@@ -23,8 +23,8 @@ message PredictionIntentRequest {
   string utc = 3                          [(validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"}];
   // Hedera account ID (no leading zeros)
   string accountId = 4                    [(validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"}];
-  // buy = false, sell = true
-  bool buySell = 5;
+  // buy = "buy", sell = "sell"
+  string buySell = 5                      [(validate.rules).string = {in: ["buy", "sell"]}];
   // still have 15 digits of decimal precision between 0.0 and 1.0
   double priceUsd = 6                     [(validate.rules).double = {gt: 0.0, lt: 1.0}];
   double nShares = 7                      [(validate.rules).double = {gt: 0.0}];

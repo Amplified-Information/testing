@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useAppContext } from '../AppProvider'
 import { clobClient } from '../grpcClient'
 
-const DEPTH = 20
+const DEPTH = 10
 
 const OrderBook = () => {
   const { book, setBook } = useAppContext()
@@ -31,11 +31,11 @@ const OrderBook = () => {
       <ul>
         {(book?.bids ?? []).slice().reverse().map((bid, idx) => (
           <li key={`bid-${idx}`} style={{ color: 'green' }}>
-            Buy: {bid.price} @ {bid.count}
+            {bid.count} {bid.price}
           </li>
         ))}  {book?.asks?.map((ask, idx) => (
           <li key={`ask-${idx}`} style={{ color: 'red' }}>
-            Sell: {ask.price} @ {ask.count}
+            {ask.count} {ask.price}
           </li>
         ))}
       </ul>

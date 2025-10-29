@@ -1,9 +1,11 @@
 mod types;
+pub mod nats;
 pub use types::*;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 use chrono::Utc;
+use ordered_float::OrderedFloat;
 
 impl Engine {
 	pub fn new() -> Self {
@@ -45,7 +47,7 @@ impl Engine {
         let mut ask_order = ask_level.pop_front().unwrap();
 
         // Step 3: Determine trade
-        let trade_amount = std::cmp::min(bid_order.amount, ask_order.amount);
+        let trade_amount = bid_order.amount.min(ask_order.amount);
         let trade_price = best_ask_price;
 
         let trade = Trade {
@@ -61,10 +63,10 @@ impl Engine {
         ask_order.amount -= trade_amount;
 
         // Step 5: Put orders back if partially filled
-        if bid_order.amount > 0 {
+        if bid_order.amount > OrderedFloat(0.0) {
             bid_level.push_front(bid_order);
         }
-        if ask_order.amount > 0 {
+        if ask_order.amount > OrderedFloat(0.0) {
             ask_level.push_front(ask_order);
         }
 
@@ -100,7 +102,7 @@ impl Engine {
 		Order {
 			id: Uuid::new_v4(),
 			owner: req.owner,
-			is_buy: req.is_buy,
+			buy_sell: req.buy_sell,
 			price: req.price,
 			amount: req.amount,
 			timestamp_ns: req.timestamp_ns,

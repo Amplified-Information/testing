@@ -4,9 +4,6 @@ old
 
 .vscode
 
-.config
-.config.*
-!.config.ENV.example
 .secrets
 .secrets.*
 !.secrets.ENV.example

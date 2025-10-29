@@ -5,14 +5,15 @@ use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use ordered_float::OrderedFloat;
 
-pub type Price = u64;
-pub type Quantity = u64;
+pub type Price = OrderedFloat<f64>;
+pub type Quantity = OrderedFloat<f64>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderRequest {
     pub owner: String,
-    pub is_buy: bool,
+    pub buy_sell: String,
     pub price: Price,
     pub amount: Quantity,
     #[serde(with = "chrono::serde::ts_nanoseconds")]
@@ -24,7 +25,7 @@ pub struct OrderRequest {
 pub struct Order {
     pub id: Uuid,
     pub owner: String,
-    pub is_buy: bool,
+    pub buy_sell: String,
     pub price: Price,
     pub amount: Quantity,
     pub timestamp_ns: DateTime<Utc>,
@@ -86,10 +87,12 @@ impl OrderBook {
     pub fn new() -> Self { Self::default() }
 
     pub fn insert_order(&mut self, order: Order) {
-        if order.is_buy {
+        if order.buy_sell == "sell" {
             self.bids.entry(order.price).or_default().push(order);
-        } else {
+        } else if order.buy_sell == "buy" {
             self.asks.entry(order.price).or_default().push(order);
+        } else {
+            tracing::error!("Invalid buy_sell value: {}", order.buy_sell);
         }
     }
 

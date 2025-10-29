@@ -3,33 +3,37 @@ import { useEffect, useState } from 'react'
 import { uint8ToBase64 } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
-import { defaultPredictionIntentRequest, usdcDecimals } from '../constants'
+import { defaultPredictionIntentRequest } from '../constants'
 import ButtonAmount from './ButtonAmount'
 
 const Signer = () => {
-  const [sig, setSig] = useState<string>('')
-  const [buySell, setBuySell] = useState<boolean>(false)
   const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>(defaultPredictionIntentRequest)
   const [thinger, setThinger] = useState<boolean>(false)
-  const { signerZero, spenderAllowanceUsd } = useAppContext()
-  const [amountUsd, setAmountUsd] = useState<number>(0)
-
+  const { signerZero, spenderAllowanceUsd, book } = useAppContext()
+  const [ isMarketOrder, setIsMarketOrder ] = useState<boolean>(false)
+  
   useEffect(() => {
-    setPredictionIntentRequest(constructPredictionIntentRequest())
+    setPredictionIntentRequest({
+      ...predictionIntentRequest,
+      accountId: signerZero ? signerZero.getAccountId().toString() : '0.0.0',
+    })
   }, [])
 
   useEffect(() => {
-    setPredictionIntentRequest(constructPredictionIntentRequest())
-  }, [sig, amountUsd, buySell, signerZero])
-
-  const constructPredictionIntentRequest = (): PredictionIntentRequest => {
-    return {
+    setPredictionIntentRequest({
       ...predictionIntentRequest,
       accountId: signerZero ? signerZero.getAccountId().toString() : '0.0.0',
-      nShares: amountUsd * (10 ** usdcDecimals),
-      buySell,
-      sig
-    }
+    })
+  }, [signerZero])
+
+  useEffect(() => {
+    // TODO - remove this
+    console.log(JSON.stringify(predictionIntentRequest))
+  }, [predictionIntentRequest])
+
+  const getMidPrice = (): number => {
+    if (book.bids.length === 0 || book.asks.length === 0) return 0.5
+    return ((book.asks[0].price + book.bids[0].price) / 2)
   }
 
   return (
@@ -46,38 +50,55 @@ const Signer = () => {
         }
       </code>
 
-      <ButtonAmount value={amountUsd} onChange={(value) => {
-        setAmountUsd(value)
-        setPredictionIntentRequest({ ...predictionIntentRequest, nShares: value * (10 ** usdcDecimals) })
-        setSig('')
+      <br/>
+      Amount to bet:
+      <br/>
+      <ButtonAmount value={predictionIntentRequest.nShares * predictionIntentRequest.priceUsd} onChange={(value) => {
+        setPredictionIntentRequest({ ...predictionIntentRequest, nShares: value/predictionIntentRequest.priceUsd })
+        // setSig('')
       }} max={spenderAllowanceUsd}/>
 
 
 
       <br/>
       <br/>
-      Limit price: <input className='border border-gray-300 rounded px-3 py-2 w-24' type="number" value={predictionIntentRequest.priceUsd} onChange={(e) => {
-        setPredictionIntentRequest({ ...predictionIntentRequest, priceUsd: Number(e.target.value)})
-      }} />
+      Limit price: <input min={0} max={1.0} className='border border-gray-300 rounded px-3 py-2 w-24 disabled:opacity-50 disabled:bg-gray-300'
+        type="number" 
+        value={isMarketOrder ? getMidPrice().toFixed(4) : predictionIntentRequest.priceUsd} 
+        onChange={(e) => {
+          setPredictionIntentRequest({ ...predictionIntentRequest, priceUsd: Number(e.target.value)})
+        }} 
+        disabled={isMarketOrder}
+      />
+      <br/>
+      <input type="checkbox" checked={isMarketOrder} onClick={() => { setIsMarketOrder(!isMarketOrder) } } /> Market order
+      {!isMarketOrder &&
+        <button className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-1 px-2 rounded text-sm mx-2" onClick={() => {
+          setPredictionIntentRequest({ ...predictionIntentRequest, priceUsd: getMidPrice() })
+        }}>mid-price</button>
+      }
+     
 
       <br/>
       <br/>
 
-      <button className='btn green' disabled={!signerZero || thinger} title={!signerZero ? 'Wallet not connected' : sig.length === 0 ? 'Message not signed' : ''} onClick={async () => {
+      <button className='btn green' disabled={!signerZero || thinger} title={!signerZero ? 'Wallet not connected' : predictionIntentRequest.sig.length === 0 ? 'Message not signed' : ''} onClick={async () => {
         setThinger(true)
         console.log('Signing OrderIntent...')
         console.log(signerZero)
 
         try {
-          const bytes: Uint8Array = new TextEncoder().encode(JSON.stringify(predictionIntentRequest))
+          const predictionIntentRequestSansSig = JSON.parse(JSON.stringify(predictionIntentRequest)) // deep clone
+          delete predictionIntentRequestSansSig.sig // remove sig field before signing/serializing!
+          const bytes: Uint8Array = new TextEncoder().encode(JSON.stringify(predictionIntentRequestSansSig))
+          // const bytes: Uint8Array = new TextEncoder().encode("hello")
           const multiSig = await signerZero!.sign([bytes], { encoding: 'utf-8' })
 
-          const sig = multiSig[0].signature // reckon most of the time just one sig
-          setSig(uint8ToBase64(sig))
-          setPredictionIntentRequest({ ...predictionIntentRequest, sig: uint8ToBase64(sig) })
-          console.log('Signature: ', uint8ToBase64(sig))
+          const sigUint8 = multiSig[0].signature // reckon most of the time just one sig
+          setPredictionIntentRequest({ ...predictionIntentRequest, sig: uint8ToBase64(sigUint8) })
+          console.log('Signature: ', uint8ToBase64(sigUint8))
         } catch (e) {
-          console.error('Error signing OrderIntent: ', e)
+          console.error('Error signing predictionIntentRequest: ', e)
           console.error(e)
         } finally {
           setThinger(false)
@@ -89,7 +110,7 @@ const Signer = () => {
       <br/>
 
       
-      <button className={`btn orange`} disabled={!signerZero || thinger || sig.length === 0} title={!signerZero ? 'Wallet not connected' : ''} onClick={ async () => {
+      <button className={`btn orange`} disabled={!signerZero || thinger || predictionIntentRequest.sig.length === 0} title={!signerZero ? 'Wallet not connected' : ''} onClick={ async () => {
         setThinger(true)
         console.log('Submitting order intent to backend API...')
 
