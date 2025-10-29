@@ -73,8 +73,8 @@ function randomOrder() {
   const owner = `0.0.${Math.floor(Math.random() * 90000 + 10000)}`
   const timestamp_ns = Date.now() * 1_000_000
   const tx_hash = uuidv4()
-  
-  return { owner, is_buy, price, amount, timestamp_ns, tx_hash }
+
+  return { owner, buy_sell: is_buy ? "buy" : "sell", price, amount, timestamp_ns, tx_hash }
 }
 
 function main() {
@@ -93,8 +93,7 @@ function main() {
       if (err) {
         console.error('Error:', err)
       } else {
-        const side = order.is_buy ? 'BUY' : 'SELL'
-        console.log(`${side} ${order.amount.toFixed(2)} @ ${order.price.toFixed(DECIMAL_PLACES)} | Mid: ${currentPrice.toFixed(DECIMAL_PLACES)} | Status: ${response.status}`)
+        console.log(`${order.buy_sell} ${order.amount.toFixed(2)} @ ${order.price.toFixed(DECIMAL_PLACES)} | Mid: ${currentPrice.toFixed(DECIMAL_PLACES)} | Status: ${response.status}`)
       }
     })
   }, 1000 / ORDERS_PER_SEC)
