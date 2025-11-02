@@ -10,8 +10,8 @@ const Signer = () => {
   const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>(defaultPredictionIntentRequest)
   const [thinger, setThinger] = useState<boolean>(false)
   const { signerZero, spenderAllowanceUsd, book } = useAppContext()
-  const [ isMarketOrder, setIsMarketOrder ] = useState<boolean>(false)
-  
+  const [buySell, setBuySell] = useState<"buy" | "sell">("buy")
+
   useEffect(() => {
     setPredictionIntentRequest({
       ...predictionIntentRequest,
@@ -33,7 +33,8 @@ const Signer = () => {
 
   const getMidPrice = (): number => {
     if (book.bids.length === 0 || book.asks.length === 0) return 0.5
-    return ((book.asks[0].price + book.bids[0].price) / 2)
+    console.log(book.asks[0].price, " ", book.bids[0].price)
+    return (((0 - book.asks[0].price) + book.bids[0].price) / 2)
   }
 
   return (
@@ -64,19 +65,51 @@ const Signer = () => {
       <br/>
       Limit price: <input min={0} max={1.0} className='border border-gray-300 rounded px-3 py-2 w-24 disabled:opacity-50 disabled:bg-gray-300'
         type="number" 
-        value={isMarketOrder ? getMidPrice().toFixed(4) : predictionIntentRequest.priceUsd} 
+        value={predictionIntentRequest.priceUsd} 
+        step={0.01}
         onChange={(e) => {
-          setPredictionIntentRequest({ ...predictionIntentRequest, priceUsd: Number(e.target.value)})
+          setPredictionIntentRequest({ 
+            ...predictionIntentRequest,
+            priceUsd: predictionIntentRequest.marketLimit === "market" ? Number(e.target.value) : getMidPrice(),
+            marketLimit: predictionIntentRequest.marketLimit === "market" ? "market" : "limit"
+          })
         }} 
-        disabled={isMarketOrder}
+        disabled={predictionIntentRequest.marketLimit === "market"}
       />
       <br/>
-      <input type="checkbox" checked={isMarketOrder} onClick={() => { setIsMarketOrder(!isMarketOrder) } } /> Market order
-      {!isMarketOrder &&
+      <input type="checkbox" checked={predictionIntentRequest.marketLimit === "market"} onClick={() => {
+        setPredictionIntentRequest({ 
+          ...predictionIntentRequest,
+          marketLimit: predictionIntentRequest.marketLimit === "market" ? "limit" : "market"
+        })
+      } } /> Market order
+
+      {predictionIntentRequest.marketLimit === "limit" &&
         <button className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-1 px-2 rounded text-sm mx-2" onClick={() => {
           setPredictionIntentRequest({ ...predictionIntentRequest, priceUsd: getMidPrice() })
         }}>mid-price</button>
       }
+
+      <br/>
+      <div>
+        <input 
+          type="radio" 
+          id="buy" 
+          name="buySell" 
+          checked={buySell === "buy"} 
+          onChange={() => setBuySell("buy")}
+        />
+        <label htmlFor="buy" className="ml-1 mr-4">Buy</label>
+        
+        <input 
+          type="radio" 
+          id="sell" 
+          name="buySell" 
+          checked={buySell === "sell"} 
+          onChange={() => setBuySell("sell")}
+        />
+        <label htmlFor="sell" className="ml-1">Sell</label>
+      </div>
      
 
       <br/>

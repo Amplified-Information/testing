@@ -3,7 +3,6 @@ pub mod nats;
 pub use types::*;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 use chrono::Utc;
 use ordered_float::OrderedFloat;
 
@@ -30,12 +29,15 @@ impl Engine {
             Some(&p) => p,
             None => break,
         };
-        let best_ask_price = match book.asks.keys().find(|&p| !book.asks[p].queue.is_empty()) {
+        // For asks (negative prices), we want the highest negative number (closest to zero = lowest ask price)
+        let best_ask_price = match book.asks.keys().rev().find(|&p| !book.asks[p].queue.is_empty()) {
             Some(&p) => p,
             None => break,
         };
 
-        if best_bid_price < best_ask_price {
+        // With signed prices: bids are positive (willing to pay), asks are negative (willing to receive)
+        // Match when bid price >= |ask price| (absolute value of negative ask price)
+        if best_bid_price < OrderedFloat(best_ask_price.abs()) {
             break;
         }
 
@@ -47,26 +49,26 @@ impl Engine {
         let mut ask_order = ask_level.pop_front().unwrap();
 
         // Step 3: Determine trade
-        let trade_amount = bid_order.amount.min(ask_order.amount);
+        let trade_amount = bid_order.n_shares.min(ask_order.n_shares);
         let trade_price = best_ask_price;
 
         let trade = Trade {
-            buyer: bid_order.owner.clone(),
-            seller: ask_order.owner.clone(),
+            buyer: bid_order.account_id.clone(),
+            seller: ask_order.account_id.clone(),
             price: trade_price,
             amount: trade_amount,
             timestamp: Utc::now(),
         };
 
         // Step 4: Reduce quantities
-        bid_order.amount -= trade_amount;
-        ask_order.amount -= trade_amount;
+        bid_order.n_shares -= trade_amount;
+        ask_order.n_shares -= trade_amount;
 
         // Step 5: Put orders back if partially filled
-        if bid_order.amount > OrderedFloat(0.0) {
+        if bid_order.n_shares > OrderedFloat(0.0) {
             bid_level.push_front(bid_order);
         }
-        if ask_order.amount > OrderedFloat(0.0) {
+        if ask_order.n_shares > OrderedFloat(0.0) {
             ask_level.push_front(ask_order);
         }
 
@@ -100,13 +102,10 @@ impl Engine {
 
 	pub fn create_order_from_request(&self, req: OrderRequest) -> Order {
 		Order {
-			id: Uuid::new_v4(),
-			owner: req.owner,
-			buy_sell: req.buy_sell,
-			price: req.price,
-			amount: req.amount,
-			timestamp_ns: req.timestamp_ns,
-			tx_hash: req.tx_hash,
+			txid: req.txid,
+			account_id: req.account_id,
+			price_usd: req.price_usd,
+			n_shares: req.n_shares,
 		}
 	}
 }

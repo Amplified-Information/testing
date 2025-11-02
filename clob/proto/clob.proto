@@ -1,3 +1,4 @@
+// Use lower_snake_case for field names (Google Protobuf Style Guide)
 syntax = "proto3";
 
 package clob;
@@ -9,12 +10,12 @@ service Clob {
 }
 
 message OrderRequest {
-  string owner = 1;
-  string buy_sell = 2;
-  double price = 3;
-  double amount = 4;
-  int64 timestamp_ns = 5; // Hedera nanoseconds since epoch
-  string tx_hash = 6;
+  string tx_id = 1;
+  string market_id = 2;
+  string account_id = 3;
+  string market_limit = 4;
+  double price_usd = 5;
+  double n_shares = 6;
 }
 
 // message PredictionIntentRequest {

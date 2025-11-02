@@ -29,15 +29,27 @@ const OrderBook = () => {
     <div>
       OrderBook
       <ul>
+        {/* {book?.bids?.map((bid, idx) => (
+          <li key={`bid-${idx}`} style={{ color: 'green' }}>
+            {bid.count} {bid.price}
+          </li>
+        ))} */}
         {(book?.bids ?? []).slice().reverse().map((bid, idx) => (
           <li key={`bid-${idx}`} style={{ color: 'green' }}>
             {bid.count} {bid.price}
           </li>
-        ))}  {book?.asks?.map((ask, idx) => (
+        ))} 
+        {(book?.asks ?? []).slice().reverse().map((ask, idx) => (
           <li key={`ask-${idx}`} style={{ color: 'red' }}>
             {ask.count} {ask.price}
           </li>
-        ))}
+        ))} 
+        
+        {/* {book?.asks?.map((ask, idx) => (
+          <li key={`ask-${idx}`} style={{ color: 'red' }}>
+            {ask.count} {ask.price}
+          </li>
+        ))} */}
       </ul>
     </div>
   )

@@ -31,7 +31,7 @@ const PlacePrediction = () => {
       <button className='btn red' onClick={() => { 
         setBuySell(true)
         setIsModalShowing(true)
-      }}>Sell {book.asks[0]?.price}</button>
+      }}>Sell {(1 + book.asks[0]?.price).toFixed(3)}</button>
 
       <PlacePredictionConfirmModal open={isModalShowing} onClose={() => { setIsModalShowing(false) }} params={{ buySell }} />
     </div>

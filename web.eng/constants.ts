@@ -23,7 +23,7 @@ const defaultPredictionIntentRequest: PredictionIntentRequest = {
   marketId: genUUIDv7(),
   utc: new Date().toISOString(),
   accountId: '0.0.1',
-  buySell: "buy",
+  marketLimit: 'limit',
   priceUsd: 0,
   nShares: 0,
   sig: ''

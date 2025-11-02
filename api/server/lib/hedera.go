@@ -189,6 +189,7 @@ type PublicKey struct {
 // }
 
 func GetPublicKey(accountId hiero.AccountID) (PublicKey, error) {
+	// TODO... may get rate limited here...
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", os.Getenv("HEDERA_NETWORK_SELECTED"), accountId)
 	resp, err := Fetch(GET, mirrorNodeURL, nil)
 

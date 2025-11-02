@@ -10,7 +10,7 @@ pub mod clob_proto {
 use clob_proto::clob_server::{Clob, ClobServer};
 use clob_proto::*;
 use clob::{Engine, OrderRequest as EngineOrderRequest};
-use chrono::{DateTime, Utc};
+use chrono::{Utc};
 
 use tokio::sync::broadcast;
 
@@ -23,17 +23,11 @@ pub struct MyClobService {
 }
 
 fn proto_to_engine_order_request(req: OrderRequest) -> Result<EngineOrderRequest, Status> {
-    let ts = DateTime::<Utc>::from_timestamp(
-        req.timestamp_ns / 1_000_000_000,
-        (req.timestamp_ns % 1_000_000_000) as u32,
-    ).ok_or(Status::invalid_argument("invalid timestamp"))?;
     Ok(EngineOrderRequest {
-        owner: req.owner,
-        buy_sell: req.buy_sell,
-        price: req.price.into(),
-        amount: req.amount.into(),
-        timestamp_ns: ts,
-        tx_hash: if req.tx_hash.is_empty() { None } else { Some(req.tx_hash) },
+        txid: req.tx_id,
+        account_id: req.account_id,
+        price_usd: req.price_usd.into(),
+        n_shares: req.n_shares.into(),
     })
 }
 
@@ -52,7 +46,7 @@ impl Clob for MyClobService {
         tracing::info!("{} <{}> {:?}", Utc::now(), "ORDER_CREATED", order);
 
         let trades = self.engine.try_match(Some(order)).await;
-        let status = if trades.is_empty() { "accepted" } else { "matched" };
+        let status = if trades.is_empty() { "ACCEPTED" } else { "MATCHED" };
 
         // Notify all stream_book subscribers
         let _ = self.book_update_tx.send(());

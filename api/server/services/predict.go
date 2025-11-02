@@ -80,9 +80,11 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 
 	isValidSig, err := lib.VerifySignature(publicKey.Key, deserializedMessageUTF8, req.Sig)
 	if err != nil {
+		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
 	}
 	if !isValidSig {
+		log.Printf("Invalid signature for account %s", req.AccountId)
 		return "", fmt.Errorf("invalid signature")
 	}
 
@@ -116,26 +118,20 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	}
 
 	/// OK - now you can put the order on the CLOB
-	var isBuy bool
-	if req.BuySell == "buy" {
-		isBuy = false
-	} else {
-		isBuy = true
-	}
 	clobRequest := &clob.OrderRequest{
-		Owner:       req.AccountId,
-		IsBuy:       isBuy,
-		Price:       req.PriceUsd,
-		Amount:      req.NShares,
-		TimestampNs: timestamp.UnixNano(),
-		TxHash:      "", // TODO: Add transaction hash if needed
+		Txid:        req.Txid,
+		Marketid:    req.MarketId,
+		AccountId:   req.AccountId,
+		MarketLimit: req.MarketLimit,
+		PriceUsd:    req.PriceUsd,
+		NShares:     req.NShares,
 	}
 
 	// TODO: Implement CLOB client connection and call
 	// This would typically involve creating a gRPC client to the CLOB service
 	// and calling the PlaceOrder method with the clobRequest
-	log.Printf("Would place order on CLOB: owner=%s, is_buy=%t, price=%.2f, amount=%.2f",
-		clobRequest.Owner, clobRequest.IsBuy, clobRequest.Price, clobRequest.Amount)
+	log.Printf("Would place order on CLOB: txid=%s, marketid=%s, accountId=%s, marketLimit=%s, price=%.2f, nShares=%.2f",
+		clobRequest.Txid, clobRequest.Marketid, clobRequest.AccountId, clobRequest.MarketLimit, clobRequest.PriceUsd, clobRequest.NShares)
 
 	// Publish to NATS
 	natsConn, err := lib.GetNATSConnection()

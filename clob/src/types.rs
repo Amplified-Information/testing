@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use ordered_float::OrderedFloat;
 
@@ -12,29 +11,23 @@ pub type Quantity = OrderedFloat<f64>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderRequest {
-    pub owner: String,
-    pub buy_sell: String,
-    pub price: Price,
-    pub amount: Quantity,
-    #[serde(with = "chrono::serde::ts_nanoseconds")]
-    pub timestamp_ns: DateTime<Utc>,
-    pub tx_hash: Option<String>,
+    pub txid: String,
+    pub account_id: String,
+    pub price_usd: Price,
+    pub n_shares: Quantity,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Order {
-    pub id: Uuid,
-    pub owner: String,
-    pub buy_sell: String,
-    pub price: Price,
-    pub amount: Quantity,
-    pub timestamp_ns: DateTime<Utc>,
-    pub tx_hash: Option<String>,
+    pub txid: String,
+    pub account_id: String,
+    pub price_usd: Price,
+    pub n_shares: Quantity,
 }
 
 impl PartialEq for Order {
     fn eq(&self, other: &Self) -> bool {
-        self.price == other.price && self.timestamp_ns == other.timestamp_ns && self.tx_hash == other.tx_hash
+        self.price_usd == other.price_usd && self.txid == other.txid
     }
 }
 
@@ -48,15 +41,16 @@ impl PartialOrd for Order {
 
 impl Ord for Order {
     fn cmp(&self, other: &Self) -> Ordering {
-        let price_cmp = self.price.cmp(&other.price);
+        let price_cmp = self.price_usd.cmp(&other.price_usd);
         if price_cmp != Ordering::Equal {
             return price_cmp;
         }
-        let ts_cmp = self.timestamp_ns.cmp(&other.timestamp_ns);
-        if ts_cmp != Ordering::Equal {
-            return ts_cmp;
-        }
-        self.tx_hash.cmp(&other.tx_hash)
+        //// timestamp-based ordering
+        // let ts_cmp = self.timestamp_ns.cmp(&other.timestamp_ns);
+        // if ts_cmp != Ordering::Equal {
+        //     return ts_cmp;
+        // }
+        self.txid.cmp(&other.txid)
     }
 }
 
@@ -87,12 +81,14 @@ impl OrderBook {
     pub fn new() -> Self { Self::default() }
 
     pub fn insert_order(&mut self, order: Order) {
-        if order.buy_sell == "sell" {
-            self.bids.entry(order.price).or_default().push(order);
-        } else if order.buy_sell == "buy" {
-            self.asks.entry(order.price).or_default().push(order);
+        if order.price_usd > 0.into() {
+            // Positive prices are buy orders (bids)
+            self.bids.entry(order.price_usd).or_default().push(order);
+        } else if order.price_usd < 0.into() {
+            // Negative prices are sell orders (asks)
+            self.asks.entry(order.price_usd).or_default().push(order);
         } else {
-            tracing::error!("Invalid buy_sell value: {}", order.buy_sell);
+            tracing::error!("Invalid price_usd value: {}", order.price_usd);
         }
     }
 

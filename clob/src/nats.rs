@@ -85,16 +85,21 @@ pub async fn setup_order_processing(
     // Define the order message structure for NATS
     #[derive(Debug, Serialize, Deserialize)]
     struct NatsOrderRequest {
-        owner: String,
-        // make is_buy optional/default to false when missing from message
         #[serde(default)]
-        is_buy: bool,
-        price: f64,
-        amount: f64,
-        timestamp_ns: i64,
-        // optional tx_hash (may be absent)
+        txid: String,
+        #[serde(default, rename = "accountId")]
+        account_id: String,
+        #[serde(rename = "marketLimit")]
+        market_limit: String,
+        #[serde(rename = "marketId")]
+        market_id: String,
+        #[serde(rename = "priceUsd")]
+        price_usd: f64,
+        #[serde(rename = "nShares")]
+        n_shares: f64,
         #[serde(default)]
-        tx_hash: String,
+        utc: String,
+        sig: String,
     }
     
     // Subscribe to the orders topic
@@ -112,12 +117,12 @@ pub async fn setup_order_processing(
                     // Note: The actual order processing would need to be implemented
                     // based on your specific service interface
                     tracing::info!("Order would be processed here: {} {} @ {}",
-                                 if nats_order.is_buy { "BUY" } else { "SELL" },
-                                 nats_order.amount,
-                                 nats_order.price);
+                                 nats_order.market_limit,
+                                 nats_order.n_shares,
+                                 nats_order.price_usd);
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to deserialize NATS order message: {}", e);
+                    tracing::error!("Failed to deserialize NATS order message: {}", e);
                     tracing::debug!("Raw payload: {}", String::from_utf8_lossy(&message.payload));
                 }
             }
