@@ -3,12 +3,12 @@ use std::fs;
 use toml::Value;
 use tonic::{transport::Server, Request, Response, Status};
 
-pub mod clob_proto {
-    tonic::include_proto!("clob");
-}
-
-use clob_proto::clob_server::{Clob, ClobServer};
-use clob_proto::*;
+use clob::clob_proto::clob_server::{Clob, ClobServer};
+use clob::clob_proto::OrderRequest;
+use clob::clob_proto::BookSnapshot;
+use clob::clob_proto::BookRequest;
+use clob::clob_proto::OrderResponse;
+use clob::clob_proto::PriceLevel;
 use clob::Engine;
 use chrono::{Utc};
 
@@ -143,6 +143,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let clob_service = MyClobService::new(engine, book_depth, book_update_tx.clone());
     
     tracing::info!("{} <{}> {}", Utc::now(), "LISTENING", format!("{}:{}", grpc_host, grpc_port));
+
+    // // configure protobufs
+    // tonic_build::configure()
+    // .compile_with_config(
+    //     // serde for protobuf objects
+    //     prost_build::Config::new().type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]"),
+    //     &["proto/api.proto"],
+    //     &["proto"],
+    // )
+    // .unwrap();
 
     // NATS setup
     let nats_host = config.get("nats_host").and_then(|v| v.as_str()).unwrap_or("127.0.0.1");

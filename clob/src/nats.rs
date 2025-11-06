@@ -2,7 +2,11 @@ use async_nats::Client;
 use std::error::Error;
 use tokio::time::{timeout, Duration};
 use futures_util::StreamExt;
-use serde::{Deserialize, Serialize};
+
+// Macro to generate protobuf code for the api module
+pub mod api_proto {
+    tonic::include_proto!("api");
+}
 
 /// Initialize NATS connection with host and port
 /// 
@@ -82,26 +86,6 @@ pub async fn setup_order_processing(
     nats_client: Client,
     subject: String
 ) -> Result<(), Box<dyn Error>> {
-    // Define the order message structure for NATS
-    #[derive(Debug, Serialize, Deserialize)]
-    struct NatsOrderRequest {
-        #[serde(default)]
-        txid: String,
-        #[serde(default, rename = "accountId")]
-        account_id: String,
-        #[serde(rename = "marketLimit")]
-        market_limit: String,
-        #[serde(rename = "marketId")]
-        market_id: String,
-        #[serde(rename = "priceUsd")]
-        price_usd: f64,
-        #[serde(rename = "nShares")]
-        n_shares: f64,
-        #[serde(default)]
-        utc: String,
-        sig: String,
-    }
-    
     // Subscribe to the orders topic
     let mut subscriber = nats_client.subscribe(subject.clone()).await?;
     tracing::info!("Subscribed to NATS subject: {}", subject);
@@ -109,17 +93,16 @@ pub async fn setup_order_processing(
     // Spawn a task to process incoming orders
     tokio::spawn(async move {
         while let Some(message) = subscriber.next().await {
-            // Try to deserialize the order request
-            match serde_json::from_slice::<NatsOrderRequest>(&message.payload) {
+            match serde_json::from_slice::<api_proto::PredictionIntentRequest>(&message.payload) {
                 Ok(nats_order) => {
                     tracing::info!("Received NATS order: {:?}", nats_order);
 
-                    // Note: The actual order processing would need to be implemented
-                    // based on your specific service interface
-                    tracing::info!("Order would be processed here: {} {} @ {}",
-                                 nats_order.market_limit,
-                                 nats_order.n_shares,
-                                 nats_order.price_usd);
+                    // TODO: Process order
+                    tracing::info!("Order would be processed here: {} {} {}",
+                                 nats_order.account_id,
+                                 nats_order.market_id,
+                                 nats_order.n_shares);
+                    
                 }
                 Err(e) => {
                     tracing::error!("Failed to deserialize NATS order message: {}", e);
