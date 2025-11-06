@@ -45,7 +45,7 @@ func JsonMarshaller(req *pb.PredictionIntentRequest) ([]byte, error) {
 }
 
 // SerializePredictionRequestSansSigForSigning creates a base64-encoded JSON string of the request with empty signature
-// This matches the serialization done in Signer.tsx for signature verification
+// Matches the serialization done in Signer.tsx for signature verification
 // Serialize to JSON to base64 encoding, exclude Sig field (similar to how Signer.tsx does it)
 func Serialize64PredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentRequest) (string, error) {
 	// N.B. First temporarily clear the Sig field completely before serialization
@@ -65,26 +65,3 @@ func Serialize64PredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentReq
 
 	return serializedMessageBase64, nil
 }
-
-// func DeserializePredictionRequestFromSigning(serializedMessageBase64 string) (string, error) {
-// 	// Decode from base64
-// 	jsonBytes, err := base64.StdEncoding.DecodeString(serializedMessageBase64)
-// 	if err != nil {
-// 		return "", fmt.Errorf("failed to decode base64: %v", err)
-// 	}
-
-// 	// Unmarshal JSON to PredictionIntentRequest
-// 	var req pb.PredictionIntentRequest
-// 	if err := json.Unmarshal(jsonBytes, &req); err != nil {
-// 		return "", fmt.Errorf("failed to unmarshal JSON: %v", err)
-// 	}
-
-// 	// Do NOT pretty print the request as JSON string!!!
-// 	// prettyJSONBytes, err := json.MarshalIndent(req, "", "  ")
-// 	// if err != nil {
-// 	// 	return "", fmt.Errorf("failed to pretty print JSON: %v", err)
-// 	// }
-// 	// log.Printf(string(prettyJSONBytes))
-
-// 	return string(jsonBytes), nil
-// }
