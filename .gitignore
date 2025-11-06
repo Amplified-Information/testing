@@ -4,6 +4,10 @@ old
 
 .vscode
 
+/target/
+/target/release/
+/target/debug/
+
 .secrets
 .secrets.*
 !.secrets.ENV.example

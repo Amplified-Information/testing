@@ -10,7 +10,6 @@ import (
 
 	pb "api/gen"
 
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 )
 
@@ -31,13 +30,9 @@ func (s *server) PredictIntent(ctx context.Context, req *pb.PredictionIntentRequ
 }
 
 func main() {
-	result := os.Getenv("ENV")
-	if result == "" {
-		log.Fatalf("Failed to start api. ENV {local, dev, prod} must be set.")
-	}
-
-	if err := godotenv.Load(fmt.Sprintf(".config.%s", os.Getenv("ENV")), fmt.Sprintf(".secrets.%s", os.Getenv("ENV"))); err != nil { // Load environment variables from .config.ENV and .secrets.ENV
-		log.Printf("Warning: Could not load .config/.secrets file: %v", err)
+	// check PORT env var is available (.config.ENV and .secrets.ENV are loaded):
+	if os.Getenv("PORT") == "" || os.Getenv("HEDERA_OPERATOR_KEY") == "" {
+		log.Fatalf("Failed to start api. PORT and HEDERA_OPERATOR_KEY must be set.")
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", os.Getenv("PORT")))

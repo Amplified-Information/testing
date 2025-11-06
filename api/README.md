@@ -35,6 +35,10 @@ cd api
 
 # run the server:
 cd api
+set -a # automatically export all variables
+source ./.config.local
+source ./.secrets.local
+set +a # turn off auto-export
 go run ./server/
 ```
 
@@ -100,9 +104,10 @@ migrate -version
 
 ```bash
 cd api
-ENV=local
-source ./.config.$ENV
-source ./.secrets.$ENV
+set -a # automatically export all variables
+source ./.config.local
+source ./.secrets.local
+set +a # turn off auto-export
 DB_URL=postgres://$DB_HOST:$DB_PORT/$DB_NAME
 migrate -database $DB_URL -path db/migrations up
 ```
@@ -117,9 +122,8 @@ Please test the up/downs in lower envs!
 
 ```bash
 cd api
-ENV=local
-source ./.config.$ENV
-source ./.secrets.$ENV
+source ./.config.local
+source ./.secrets.local
 DB_URL=postgres://$DB_HOST:$DB_PORT/$DB_NAME
 migrate -database $DB_URL -path db/migrations down
 ```
