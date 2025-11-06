@@ -7,6 +7,8 @@ import (
 	"log"
 
 	pb "api/gen"
+
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func PrettyJSON(input string) string {
@@ -25,10 +27,27 @@ func PrettyJSON(input string) string {
 	return string(pretty)
 }
 
+// JsonMarshaller marshals protobuf messages to JSON using protojson to respect json_name annotations
+// Produces compact JSON without spaces for signature verification compatibility
+func JsonMarshaller(req *pb.PredictionIntentRequest) ([]byte, error) {
+	marshaler := protojson.MarshalOptions{
+		UseProtoNames:   false, // Use json_name annotations
+		EmitUnpopulated: false, // Don't include zero values
+		Indent:          "",    // N.B. Ensure compact JSON with no indentation or spaces
+	}
+
+	jsonBytes, err := marshaler.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	// Return the JSON bytes directly as protojson already produces compact JSON
+	return jsonBytes, nil
+}
+
 // SerializePredictionRequestSansSigForSigning creates a base64-encoded JSON string of the request with empty signature
 // This matches the serialization done in Signer.tsx for signature verification
-// Serialize to JSON and encode to base64 (similar to how Signer.tsx does it)
-func SerializePredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentRequest) (string, error) {
+// Serialize to JSON to base64 encoding, exclude Sig field (similar to how Signer.tsx does it)
+func Serialize64PredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentRequest) (string, error) {
 	// N.B. First temporarily clear the Sig field completely before serialization
 	originalSig := req.Sig
 	req.Sig = ""
@@ -36,33 +55,36 @@ func SerializePredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentReque
 		req.Sig = originalSig
 	}()
 
-	jsonBytes, err := json.Marshal(req)
+	jsonBytes, err := JsonMarshaller(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to serialize request: %v", err)
 	}
+
+	log.Printf("DEBUG: Go backend JSON for signing: %s", string(jsonBytes))
 	serializedMessageBase64 := base64.StdEncoding.EncodeToString(jsonBytes)
 
 	return serializedMessageBase64, nil
 }
 
-func DeserializePredictionRequestFromSigning(serializedMessageBase64 string) (string, error) {
-	// Decode from base64
-	jsonBytes, err := base64.StdEncoding.DecodeString(serializedMessageBase64)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode base64: %v", err)
-	}
+// func DeserializePredictionRequestFromSigning(serializedMessageBase64 string) (string, error) {
+// 	// Decode from base64
+// 	jsonBytes, err := base64.StdEncoding.DecodeString(serializedMessageBase64)
+// 	if err != nil {
+// 		return "", fmt.Errorf("failed to decode base64: %v", err)
+// 	}
 
-	// Unmarshal JSON to PredictionIntentRequest
-	var req pb.PredictionIntentRequest
-	if err := json.Unmarshal(jsonBytes, &req); err != nil {
-		return "", fmt.Errorf("failed to unmarshal JSON: %v", err)
-	}
+// 	// Unmarshal JSON to PredictionIntentRequest
+// 	var req pb.PredictionIntentRequest
+// 	if err := json.Unmarshal(jsonBytes, &req); err != nil {
+// 		return "", fmt.Errorf("failed to unmarshal JSON: %v", err)
+// 	}
 
-	// Do NOT pretty print the request as JSON string!!!
-	// prettyJSONBytes, err := json.MarshalIndent(req, "", "  ")
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to pretty print JSON: %v", err)
-	// }
+// 	// Do NOT pretty print the request as JSON string!!!
+// 	// prettyJSONBytes, err := json.MarshalIndent(req, "", "  ")
+// 	// if err != nil {
+// 	// 	return "", fmt.Errorf("failed to pretty print JSON: %v", err)
+// 	// }
+// 	// log.Printf(string(prettyJSONBytes))
 
-	return string(jsonBytes), nil
-}
+// 	return string(jsonBytes), nil
+// }

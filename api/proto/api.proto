@@ -1,4 +1,5 @@
 // Use lower_snake_case for field names (Google Protobuf Style Guide)
+// Use json_name option for precise JSON serde - use protojson to Marshal/Unmarshal
 syntax = "proto3";
 
 package api;
@@ -16,21 +17,14 @@ service ApiService {
 message Empty {}
 
 message PredictionIntentRequest {
-  // Strict RFC-9562-compliant UUIDv7
-  string tx_id = 1                         [(validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}];
-  // Strict RFC-9562-compliant UUIDv7
-  string market_id = 2                     [(validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}];
-  // UTC ISO 8601 (Zulu time only)
-  string utc = 3                           [(validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"}];
-  // Hedera account ID (no leading zeros)
-  string account_id = 4                    [(validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"}];
-  // still have 15 digits of decimal precision between 0.0 and 1.0
-  string market_limit = 5                  [(validate.rules).string = {in: ["market", "limit"]}];
-  // price_usd <0 => sell, price_usd >=0 => buy
-  double price_usd = 6                     [(validate.rules).double = {gt: -1.0, lt: 1.0}];
-  double n_shares = 7                      [(validate.rules).double = {gt: 0.0}];
-  // base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars)
-  string sig = 8                          [(validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"}];
+  string tx_id = 1 [json_name = "txId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string market_id = 2 [json_name = "marketId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string utc = 3 [json_name = "utc", (validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"} /* UTC ISO 8601 (Zulu time only) */];
+  string account_id = 4 [json_name = "accountId", (validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"} /* Hedera account ID (no leading zeros) */];
+  string market_limit = 5 [json_name = "marketLimit", (validate.rules).string = {in: ["market", "limit"]} /* still have 15 digits of decimal precision between 0.0 and 1.0 */];
+  double price_usd = 6 [json_name = "priceUsd", (validate.rules).double = {gt: -1.0, lt: 1.0} /* price_usd <0 => sell, price_usd >=0 => buy */];
+  double n_shares = 7 [json_name = "nShares", (validate.rules).double = {gt: 0.0}];
+  string sig = 8 [json_name = "sig", (validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"} /* base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars) */];
 }
 
 message StdResponse {

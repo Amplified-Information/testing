@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	pb "api/gen"
-	clob "api/gen/clob"
 	"api/server/lib"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
@@ -63,22 +63,20 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	}
 	log.Printf("Mirror node response for account %s on network %s: %s %s", accountId, os.Getenv("HEDERA_NETWORK_SELECTED"), publicKey.Key, publicKey.KeyType)
 
-	// Serialize the request for signature verification
-	serializedMessageSansSigBase64, err := lib.SerializePredictionRequest_SansSig_ForSigning(req)
+	// Serialize the request for sig check
+	serializedSansSigBase64, err := lib.Serialize64PredictionRequest_SansSig_ForSigning(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to serialize request for signing: %v", err)
 	}
-
-	// Deserialize the message
-	deserializedMessageUTF8, err := lib.DeserializePredictionRequestFromSigning(serializedMessageSansSigBase64)
+	// to bytes for sig check
+	serializedSansSigBytes, err := base64.StdEncoding.DecodeString(serializedSansSigBase64)
 	if err != nil {
-		log.Printf("Failed to deserialize message for logging: %v", err)
-		deserializedMessageUTF8 = "Failed to deserialize"
+		return "", fmt.Errorf("failed to decode base64: %v", err)
 	}
+	serializedSansSigUTF8 := string(serializedSansSigBytes)
+	log.Printf("Serialized message sans sig (UTF8): %s", serializedSansSigUTF8)
 
-	// log.Printf("\n- publicKey.Key: %s\n- serializedMessageSansSigBase64: %s\n- deserialized message UTF8: %s\n- req.Sig: %s", publicKey.Key, serializedMessageSansSigBase64, deserializedMessageUTF8, req.Sig)
-
-	isValidSig, err := lib.VerifySignature(publicKey.Key, deserializedMessageUTF8, req.Sig)
+	isValidSig, err := lib.VerifySignature(publicKey.Key, serializedSansSigUTF8, req.Sig)
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
@@ -118,20 +116,20 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	}
 
 	/// OK - now you can put the order on the CLOB
-	clobRequest := &clob.OrderRequest{
-		TxId:        req.TxId,
-		MarketId:    req.MarketId,
-		AccountId:   req.AccountId,
-		MarketLimit: req.MarketLimit,
-		PriceUsd:    req.PriceUsd,
-		NShares:     req.NShares,
-	}
+	// clobRequest := &clob.OrderRequest{
+	// 	TxId:        req.TxId,
+	// 	MarketId:    req.MarketId,
+	// 	AccountId:   req.AccountId,
+	// 	MarketLimit: req.MarketLimit,
+	// 	PriceUsd:    req.PriceUsd,
+	// 	NShares:     req.NShares,
+	// }
 
-	// TODO: Implement CLOB client connection and call
-	// This would typically involve creating a gRPC client to the CLOB service
-	// and calling the PlaceOrder method with the clobRequest
-	log.Printf("Would place order on CLOB: tx_id=%s, market_id=%s, account_id=%s, market_limit=%s, price=%.2f, n_shares=%.2f",
-		clobRequest.TxId, clobRequest.MarketId, clobRequest.AccountId, clobRequest.MarketLimit, clobRequest.PriceUsd, clobRequest.NShares)
+	// // TODO: Implement CLOB client connection and call
+	// // This would typically involve creating a gRPC client to the CLOB service
+	// // and calling the PlaceOrder method with the clobRequest
+	// log.Printf("Would place order on CLOB: tx_id=%s, market_id=%s, account_id=%s, market_limit=%s, price=%.2f, n_shares=%.2f",
+	// 	clobRequest.TxId, clobRequest.MarketId, clobRequest.AccountId, clobRequest.MarketLimit, clobRequest.PriceUsd, clobRequest.NShares)
 
 	// Publish to NATS
 	natsConn, err := lib.GetNATSConnection()
@@ -141,7 +139,7 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	defer natsConn.Close()
 
 	// Marshal the CLOB request to JSON
-	clobRequestJSON, err := json.Marshal(clobRequest)
+	clobRequestJSON, err := json.Marshal(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal CLOB request: %v", err)
 	}

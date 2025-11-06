@@ -1,4 +1,5 @@
 // Use lower_snake_case for field names (Google Protobuf Style Guide)
+// Use json_name option for precise JSON serde - use protojson to Marshal/Unmarshal
 syntax = "proto3";
 
 package clob;
@@ -10,12 +11,12 @@ service Clob {
 }
 
 message OrderRequest {
-  string tx_id = 1;
-  string market_id = 2;
-  string account_id = 3;
-  string market_limit = 4;
-  double price_usd = 5;
-  double n_shares = 6;
+  string tx_id = 1 [json_name = "txId"];
+  string market_id = 2 [json_name = "marketId"];
+  string account_id = 3 [json_name = "accountId"];
+  string market_limit = 4 [json_name = "marketLimit"];
+  double price_usd = 5 [json_name = "priceUsd"];
+  double n_shares = 6 [json_name = "nShares"];
 }
 
 // message PredictionIntentRequest {
