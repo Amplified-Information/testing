@@ -9,7 +9,7 @@ pub mod clob_proto {
 
 use clob_proto::clob_server::{Clob, ClobServer};
 use clob_proto::*;
-use clob::{Engine, OrderRequest as EngineOrderRequest};
+use clob::Engine;
 use chrono::{Utc};
 
 use tokio::sync::broadcast;
@@ -22,14 +22,14 @@ pub struct MyClobService {
     book_update_tx: broadcast::Sender<()>,
 }
 
-fn proto_to_engine_order_request(req: OrderRequest) -> Result<EngineOrderRequest, Status> {
-    Ok(EngineOrderRequest {
-        txid: req.tx_id,
-        account_id: req.account_id,
-        price_usd: req.price_usd.into(),
-        n_shares: req.n_shares.into(),
-    })
-}
+// fn proto_to_engine_order_request(req: OrderRequest) -> Result<EngineOrderRequest, Status> {
+//     Ok(EngineOrderRequest {
+//         tx_id: req.tx_id,
+//         account_id: req.account_id,
+//         price_usd: req.price_usd.into(),
+//         n_shares: req.n_shares.into(),
+//     })
+// }
 
 use futures_core::Stream;
 use std::pin::Pin;
@@ -39,13 +39,34 @@ impl Clob for MyClobService {
     type StreamBookStream = Pin<Box<dyn Stream<Item = Result<BookSnapshot, Status>> + Send + 'static>>;
 
     async fn place_order(&self, request: Request<OrderRequest>) -> Result<Response<OrderResponse>, Status> {
-        let req = request.into_inner();
-        let engine_req = proto_to_engine_order_request(req)?;
-        let order = self.engine.create_order_from_request(engine_req);
+        let proto_req = request.into_inner();
+        
+        // Validate required fields
+        if proto_req.tx_id.is_empty() {
+            return Err(Status::invalid_argument("tx_id cannot be empty"));
+        }
+        if proto_req.price_usd == 0.0 {
+            return Err(Status::invalid_argument("price_usd cannot be zero"));
+        }
+        if proto_req.n_shares == 0.0 {
+            return Err(Status::invalid_argument("n_shares cannot be zero"));
+        }
 
-        tracing::info!("{} <{}> {:?}", Utc::now(), "ORDER_CREATED", order);
+        
+        tracing::info!("{} <{}> {:?}", Utc::now(), "ORDER_CREATED", proto_req);
 
-        let trades = self.engine.try_match(Some(order)).await;
+        
+        // Convert proto OrderRequest to engine OrderRequest - use the clob crate's version
+        let engine_req = clob::clob_proto::OrderRequest {
+            tx_id: proto_req.tx_id,
+            market_id: proto_req.market_id,
+            account_id: proto_req.account_id,
+            market_limit: proto_req.market_limit,
+            price_usd: proto_req.price_usd,
+            n_shares: proto_req.n_shares,
+        };
+
+        let trades = self.engine.try_match(Some(engine_req)).await;
         let status = if trades.is_empty() { "ACCEPTED" } else { "MATCHED" };
 
         // Notify all stream_book subscribers

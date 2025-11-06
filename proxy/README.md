@@ -10,7 +10,7 @@ Envoy proxy on local:
 cd proxy
 source .config.local
 source .secrets.local 
-docker run --rm -it -p $ENVOY_PORT:$ENVOY_PORT -p $ENVOY_PORT_ADMIN:$ENVOY_PORT_ADMIN -v $(pwd)/envoy.yaml:/etc/envoy/envoy.yaml envoyproxy/envoy:contrib-v1.35-latest
+docker run --network=host --rm -it -p $ENVOY_PORT:$ENVOY_PORT -p $ENVOY_PORT_ADMIN:$ENVOY_PORT_ADMIN -v $(pwd)/envoy.yaml:/etc/envoy/envoy.yaml envoyproxy/envoy:contrib-v1.35-latest
 ```
 
 Note: the `--net=host` parameter must be applied in a localhost scenario (Docker)

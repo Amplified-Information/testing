@@ -119,8 +119,8 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 
 	/// OK - now you can put the order on the CLOB
 	clobRequest := &clob.OrderRequest{
-		Txid:        req.Txid,
-		Marketid:    req.MarketId,
+		TxId:        req.TxId,
+		MarketId:    req.MarketId,
 		AccountId:   req.AccountId,
 		MarketLimit: req.MarketLimit,
 		PriceUsd:    req.PriceUsd,
@@ -130,8 +130,8 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	// TODO: Implement CLOB client connection and call
 	// This would typically involve creating a gRPC client to the CLOB service
 	// and calling the PlaceOrder method with the clobRequest
-	log.Printf("Would place order on CLOB: txid=%s, marketid=%s, accountId=%s, marketLimit=%s, price=%.2f, nShares=%.2f",
-		clobRequest.Txid, clobRequest.Marketid, clobRequest.AccountId, clobRequest.MarketLimit, clobRequest.PriceUsd, clobRequest.NShares)
+	log.Printf("Would place order on CLOB: tx_id=%s, market_id=%s, account_id=%s, market_limit=%s, price=%.2f, n_shares=%.2f",
+		clobRequest.TxId, clobRequest.MarketId, clobRequest.AccountId, clobRequest.MarketLimit, clobRequest.PriceUsd, clobRequest.NShares)
 
 	// Publish to NATS
 	natsConn, err := lib.GetNATSConnection()

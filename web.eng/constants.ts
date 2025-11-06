@@ -3,7 +3,6 @@ import { PredictionIntentRequest } from './gen/api'
 import { genUUIDv7 } from './lib/utils'
 
 const networksAvailable = [LedgerId.MAINNET, LedgerId.TESTNET, LedgerId.PREVIEWNET]
-// const networkSelected = LedgerId.TESTNET
 const smartContractId = '0.0.7094500'
 const usdcAddress = '0.0.5449'
 const usdcDecimals = 6
@@ -19,7 +18,7 @@ const walletMetaData = {
 }
 
 const defaultPredictionIntentRequest: PredictionIntentRequest = {
-  txid: genUUIDv7(),
+  txId: genUUIDv7(),
   marketId: genUUIDv7(),
   utc: new Date().toISOString(),
   accountId: '0.0.1',

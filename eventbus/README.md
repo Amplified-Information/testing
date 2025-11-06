@@ -4,9 +4,14 @@ Using NATS for events.
 
 No message persistence, no replaying of messages. No state is stored.
 
-## one-liner
+## cmds
 
-`docker run --name nats -p 4222:4222 -p 8222:8222 nats:latest`
+```bash
+cd eventbus
+source .config.local
+source .secrets.local
+docker run --rm -it -e NATS_ADDR=$NATS_HOST -p $NATS_PORT:$NATS_PORT -p $NATS_PORT_MONITOR:$NATS_PORT_MONITOR nats:latest
+```
 
 ## install nats-cli
 

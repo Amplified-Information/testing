@@ -6,12 +6,14 @@ use tokio::sync::Mutex;
 use chrono::Utc;
 use ordered_float::OrderedFloat;
 
+use crate::types::clob_proto::OrderRequest;
+
 impl Engine {
 	pub fn new() -> Self {
 		Self { book: Arc::new(Mutex::new(OrderBook::new())) }
 	}
 
-	pub async fn try_match(&self, maybe_new_order: Option<Order>) -> Vec<Trade> {
+	pub async fn try_match(&self, maybe_new_order: Option<OrderRequest>) -> Vec<Trade> {
     let mut trades: Vec<Trade> = Vec::new();
 
     // Insert new order if present
@@ -56,7 +58,7 @@ impl Engine {
             buyer: bid_order.account_id.clone(),
             seller: ask_order.account_id.clone(),
             price: trade_price,
-            amount: trade_amount,
+            amount: ordered_float::OrderedFloat(trade_amount),
             timestamp: Utc::now(),
         };
 
@@ -65,10 +67,10 @@ impl Engine {
         ask_order.n_shares -= trade_amount;
 
         // Step 5: Put orders back if partially filled
-        if bid_order.n_shares > OrderedFloat(0.0) {
+        if bid_order.n_shares > *OrderedFloat(0.0) {
             bid_level.push_front(bid_order);
         }
-        if ask_order.n_shares > OrderedFloat(0.0) {
+        if ask_order.n_shares > *OrderedFloat(0.0) {
             ask_level.push_front(ask_order);
         }
 
@@ -100,12 +102,12 @@ impl Engine {
 		book.snapshot_top(depth)
 	}
 
-	pub fn create_order_from_request(&self, req: OrderRequest) -> Order {
-		Order {
-			txid: req.txid,
-			account_id: req.account_id,
-			price_usd: req.price_usd,
-			n_shares: req.n_shares,
-		}
-	}
+	// pub fn create_order_from_request(&self, req: OrderRequest) -> Order {
+	// 	Order {
+	// 		tx_id: req.tx_id,
+	// 		account_id: req.account_id,
+	// 		price_usd: req.price_usd,
+	// 		n_shares: req.n_shares,
+	// 	}
+	// }
 }
