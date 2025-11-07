@@ -7,6 +7,7 @@ const smartContractId = '0.0.7094500'
 const usdcAddress = '0.0.5449'
 const usdcDecimals = 6
 
+const priceUsdStepSize = 0.0001
 
 const walletConnectProjectId = '07b98cad4c3b13377e45793d50df9181'
 const walletMetaData = {
@@ -33,6 +34,8 @@ export {
   smartContractId,
   usdcAddress,
   usdcDecimals,
+
+  priceUsdStepSize,
 
   walletConnectProjectId,
   walletMetaData,

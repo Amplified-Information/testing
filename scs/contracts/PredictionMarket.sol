@@ -60,6 +60,22 @@ contract PredictionMarket {
 
         emit SharesPurchased(msg.sender, amount);
     }
+
+    // Buy equal amounts of YES and NO tokens with collateral (1:1:1 ratio)
+    // CLOB buys on behalf of a user's account
+    function buySharesOnBehalf(address buyer, uint256 amount) external {
+        require(!resolved, "Market resolved");
+        // require(block.timestamp < resolutionTime, "Market expired");
+
+        // Transfer collateral from the buyer to the contract using the buyer's allowance
+        collateralToken.transferFrom(buyer, address(this), amount);
+
+        yesTokens[buyer] += amount;
+        noTokens[buyer] += amount;
+        totalCollateral += amount;
+
+        emit SharesPurchased(buyer, amount);
+    }
     
     // Resolve market using Chainlink oracle
     function resolveWithChainlink() external { 

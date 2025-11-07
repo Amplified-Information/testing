@@ -12,10 +12,14 @@ use clob::clob_proto::PriceLevel;
 use clob::Engine;
 use chrono::{Utc};
 
+use futures_core::Stream;
+use std::pin::Pin;
+
 use tokio::sync::broadcast;
 
 use clob::nats::initialize_nats;
 
+#[derive(Clone)]
 pub struct MyClobService {
     engine: Arc<Engine>,
     book_depth: usize,
@@ -30,9 +34,6 @@ pub struct MyClobService {
 //         n_shares: req.n_shares.into(),
 //     })
 // }
-
-use futures_core::Stream;
-use std::pin::Pin;
 
 #[tonic::async_trait]
 impl Clob for MyClobService {
@@ -140,7 +141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine = Arc::new(Engine::new());
     
     let (book_update_tx, _) = broadcast::channel(tokio_channel_capacity);
-    let clob_service = MyClobService::new(engine, book_depth, book_update_tx.clone());
+    let clob_service = Arc::new(MyClobService::new(engine, book_depth, book_update_tx.clone()));
     
     tracing::info!("{} <{}> {}", Utc::now(), "LISTENING", format!("{}:{}", grpc_host, grpc_port));
 
@@ -164,10 +165,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let client = initialize_nats_with_auth(nats_host, nats_port, Some("myuser"), Some("mypass")).await?;
     
     // Setup NATS order processing
-    clob::nats::setup_order_processing(nats, "clob.orders".into()).await?;
+    clob::nats::setup_order_processing(nats, (*clob_service).clone(), "clob.orders".into()).await?;
     
     Server::builder()
-        .add_service(ClobServer::new(clob_service))
+        .add_service(ClobServer::new((*clob_service).clone()))
         .serve(format!("{}:{}", grpc_host, grpc_port).parse()?)
         .await?;
     Ok(())

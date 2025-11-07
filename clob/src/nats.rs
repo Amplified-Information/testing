@@ -3,6 +3,8 @@ use std::error::Error;
 use tokio::time::{timeout, Duration};
 use futures_util::StreamExt;
 
+use crate::clob_proto::{OrderRequest, clob_server::Clob};
+
 // Macro to generate protobuf code for the api module
 pub mod api_proto {
     tonic::include_proto!("api");
@@ -84,34 +86,47 @@ pub async fn initialize_nats_with_auth(
 /// * `Result<(), Box<dyn Error>>` - Success or error
 pub async fn setup_order_processing(
     nats_client: Client,
+    clob_service: impl Clob + Send + Sync + 'static,
     subject: String
 ) -> Result<(), Box<dyn Error>> {
     // Subscribe to the orders topic
     let mut subscriber = nats_client.subscribe(subject.clone()).await?;
     tracing::info!("Subscribed to NATS subject: {}", subject);
     
-    // Spawn a task to process incoming orders
-    tokio::spawn(async move {
-        while let Some(message) = subscriber.next().await {
-            match serde_json::from_slice::<api_proto::PredictionIntentRequest>(&message.payload) {
-                Ok(nats_order) => {
-                    tracing::info!("Received NATS order: {:?}", nats_order);
+        tokio::spawn({
+            // let clob_service = clob_service.clone();
+            async move {
+                while let Some(message) = subscriber.next().await {
+                    match serde_json::from_slice::<api_proto::PredictionIntentRequest>(&message.payload) {
+                        Ok(nats_order) => {
+                            // Received NATS order
+                            tracing::info!("Received NATS order: {:?}", nats_order);
 
-                    // TODO: Process order
-                    tracing::info!("Order would be processed here: {} {} {}",
-                                 nats_order.account_id,
-                                 nats_order.market_id,
-                                 nats_order.n_shares);
-                    
-                }
-                Err(e) => {
-                    tracing::error!("Failed to deserialize NATS order message: {}", e);
-                    tracing::debug!("Raw payload: {}", String::from_utf8_lossy(&message.payload));
+                            // Process order (directly place order via gRPC)
+                            match clob_service.place_order(tonic::Request::new(OrderRequest {
+                                tx_id: nats_order.tx_id,
+                                account_id: nats_order.account_id,
+                                price_usd: nats_order.price_usd,
+                                n_shares: nats_order.n_shares,
+                                market_id: nats_order.market_id,
+                                market_limit: nats_order.market_limit,
+                            })).await {
+                                Ok(response) => {
+                                    tracing::info!("Order placed successfully: {:?}", response);
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to place order: {}", e);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to deserialize NATS order message: {}", e);
+                            tracing::debug!("Raw payload: {}", String::from_utf8_lossy(&message.payload));
+                        }
+                    }
                 }
             }
-        }
-    });
-    
-    tracing::info!("NATS order processing setup completed");
+        });
+        tracing::info!("NATS order processing setup completed");
     Ok(())
 }
