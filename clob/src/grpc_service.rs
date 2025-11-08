@@ -22,8 +22,8 @@ impl Clob for ClobService {
         request: Request<OrderRequest>,
     ) -> Result<Response<OrderResponse>, Status> {
         let order = request.into_inner();
+        log::info!("Placing order: {:?}", order);
         self.order_book_service.place_order(order).await;
-
         let response = OrderResponse {
             status: "success".to_string(),
             error: String::new(),
