@@ -1,5 +1,3 @@
-// Use lower_snake_case for field names (Google Protobuf Style Guide)
-// Use json_name option for precise JSON serde - use protojson to Marshal/Unmarshal
 syntax = "proto3";
 
 package clob;
@@ -16,26 +14,8 @@ message OrderRequest {
   string account_id = 3 [json_name = "accountId"];
   string market_limit = 4 [json_name = "marketLimit"];
   double price_usd = 5 [json_name = "priceUsd"];
-  double n_shares = 6 [json_name = "nShares"];
+  double qty = 6 [json_name = "qty"];
 }
-
-// message PredictionIntentRequest {
-//   // Strict RFC-9562-compliant UUIDv7
-//   string txid = 1                         [(validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}];
-//   // Strict RFC-9562-compliant UUIDv7
-//   string marketId = 2                     [(validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}];
-//   // UTC ISO 8601 (Zulu time only)
-//   string utc = 3                          [(validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"}];
-//   // Hedera account ID (no leading zeros)
-//   string accountId = 4                    [(validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"}];
-//   // buy = "buy", sell = "sell"
-//   string buySell = 5                      [(validate.rules).string = {in: ["buy", "sell"]}];
-//   // still have 15 digits of decimal precision between 0.0 and 1.0
-//   double priceUsd = 6                     [(validate.rules).double = {gt: 0.0, lt: 1.0}];
-//   double nShares = 7                      [(validate.rules).double = {gt: 0.0}];
-//   // base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars)
-//   string sig = 8                          [(validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"}];
-// }
 
 message OrderResponse {
   string status = 1;
@@ -46,12 +26,14 @@ message BookRequest {
   uint32 depth = 1;
 }
 
-message BookSnapshot {
-  repeated PriceLevel bids = 1;
-  repeated PriceLevel asks = 2;
+message OrderDetail {
+  string tx_id = 1;
+  string account_id = 2;
+  double price_usd = 3;
+  double qty = 4;
 }
 
-message PriceLevel {
-  double price = 1;
-  uint32 count = 2;
+message BookSnapshot {
+  repeated OrderDetail bids = 1;
+  repeated OrderDetail asks = 2;
 }
