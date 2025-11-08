@@ -1,5 +1,3 @@
-import React, { useEffect, useMemo, useState } from 'react'
-
 // export type PolymarketAmountPickerProps = {
 //   /** value in dollars (number) */
 //   value?: number
@@ -33,7 +31,7 @@ const ButtonAmount = ({ value = 0, max=0, onChange }: {value: number, max: numbe
       {[1, 5, 10].map((v) => {
         return (
           <button className='ml-2 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border' key={v}
-            onClick={(e) => {
+            onClick={() => {
               if ((value + v) >= max) {
                 onChange(max)
               } else {

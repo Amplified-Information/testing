@@ -1,4 +1,4 @@
-import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk';
+import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk'
 import { smartContractId, usdcAddress, usdcDecimals } from '../constants'
 import { DAppSigner } from '@hashgraph/hedera-wallet-connect'
 

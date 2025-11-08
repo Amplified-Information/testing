@@ -15,7 +15,7 @@ export default defineConfig({
   // },
   base: '/', // also change main.tsx
   build: {
-    outDir: 'dist',
+    outDir: 'dist'
     // assetsDir: 'assets',
     // rollupOptions: {
     //   // Copy 404.html to root for GitHub Pages SPA routing
@@ -28,8 +28,8 @@ export default defineConfig({
 
   server: {
     host: '0.0.0.0', // N.B. needed for envoy
-    port: 5173,
-  },
+    port: 5173
+  }
 
   // server: {   // proxy API requests to backend server
   //   port: 3000, // your Vite dev server port

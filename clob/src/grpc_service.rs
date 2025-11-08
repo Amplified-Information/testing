@@ -22,7 +22,7 @@ impl Clob for ClobService {
         request: Request<OrderRequest>,
     ) -> Result<Response<OrderResponse>, Status> {
         let order = request.into_inner();
-        log::info!("Placing order: {:?}", order);
+        
         self.order_book_service.place_order(order).await;
         let response = OrderResponse {
             status: "success".to_string(),
@@ -47,14 +47,11 @@ impl Clob for ClobService {
         _request: Request<BookRequest>,
     ) -> Result<Response<Self::StreamBookStream>, Status> {
         let (tx, rx) = mpsc::channel(128);
+        let order_book_service = self.order_book_service.clone();
 
         tokio::spawn(async move {
-            // Example: send periodic updates
             loop {
-                let snapshot = BookSnapshot {
-                    bids: vec![],
-                    asks: vec![],
-                };
+                let snapshot = order_book_service.get_book().await;
 
                 if tx.send(Ok(snapshot)).await.is_err() {
                     break;
@@ -68,8 +65,8 @@ impl Clob for ClobService {
     }
 }
 
-pub fn create_service(order_book_service: OrderBookService) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
-    let addr = "0.0.0.0:50051".parse().unwrap();
+pub fn create_service(host: &str, port: &str, order_book_service: OrderBookService) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
+    let addr = format!("{}:{}", host, port).parse().unwrap();
     futures_util::TryFutureExt::map_err(tonic::transport::Server::builder()
         .add_service(ClobServer::new(ClobService::new(order_book_service)))
         .serve(addr), |e| Box::new(e) as Box<dyn std::error::Error>)

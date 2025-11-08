@@ -1,9 +1,3 @@
-import { DAppConnector, HederaChainId, HederaJsonRpcMethod, HederaSessionEvent } from "@hashgraph/hedera-wallet-connect"
-import { walletConnectProjectId, walletMetaData } from "../constants"
-import { LedgerId } from "@hashgraph/sdk"
-
-
-
 // const initWallet = async (networkSelected: LedgerId) => {
 //   try {
 //     dAppConnector.init({ logger: 'error' })

@@ -15,7 +15,7 @@ const walletMetaData = {
   description: 'Hedera dAppConnector Example',
   // url: 'http://localhost:5173', // origin must match your domain & subdomain
   url: window.location.origin,
-  icons: ['https://avatars.githubusercontent.com/u/31002956'],
+  icons: ['https://avatars.githubusercontent.com/u/31002956']
 }
 
 const defaultPredictionIntentRequest: PredictionIntentRequest = {
@@ -25,7 +25,7 @@ const defaultPredictionIntentRequest: PredictionIntentRequest = {
   accountId: '0.0.1',
   marketLimit: 'limit',
   priceUsd: 0,
-  nShares: 0,
+  qty: 0,
   sig: ''
 }
 

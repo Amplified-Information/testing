@@ -23,7 +23,7 @@ message PredictionIntentRequest {
   string account_id = 4 [json_name = "accountId", (validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"} /* Hedera account ID (no leading zeros) */];
   string market_limit = 5 [json_name = "marketLimit", (validate.rules).string = {in: ["market", "limit"]} /* still have 15 digits of decimal precision between 0.0 and 1.0 */];
   double price_usd = 6 [json_name = "priceUsd", (validate.rules).double = {gt: -1.0, lt: 1.0} /* price_usd <0 => sell, price_usd >=0 => buy */];
-  double n_shares = 7 [json_name = "nShares", (validate.rules).double = {gt: 0.0}];
+  double qty = 7 [json_name = "qty", (validate.rules).double = {gt: 0.0}];
   string sig = 8 [json_name = "sig", (validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"} /* base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars) */];
 }
 

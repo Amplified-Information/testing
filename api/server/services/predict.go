@@ -111,8 +111,8 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 		return "", fmt.Errorf("failed to get spender allowance: %v", err)
 	}
 	log.Printf(("Spender allowance for account %s on contract %s: $%.2f"), accountId.String(), _smartContractId.String(), spenderAllowanceUsd)
-	if spenderAllowanceUsd < (req.GetPriceUsd() * req.GetNShares()) {
-		return "", fmt.Errorf("Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetNShares())
+	if spenderAllowanceUsd < (req.GetPriceUsd() * req.GetQty()) {
+		return "", fmt.Errorf("Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
 	}
 
 	/// OK - now you can put the order on the CLOB
@@ -122,14 +122,8 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	// 	AccountId:   req.AccountId,
 	// 	MarketLimit: req.MarketLimit,
 	// 	PriceUsd:    req.PriceUsd,
-	// 	NShares:     req.NShares,
+	// 	Qty:         req.Qty,
 	// }
-
-	// // TODO: Implement CLOB client connection and call
-	// // This would typically involve creating a gRPC client to the CLOB service
-	// // and calling the PlaceOrder method with the clobRequest
-	// log.Printf("Would place order on CLOB: tx_id=%s, market_id=%s, account_id=%s, market_limit=%s, price=%.2f, n_shares=%.2f",
-	// 	clobRequest.TxId, clobRequest.MarketId, clobRequest.AccountId, clobRequest.MarketLimit, clobRequest.PriceUsd, clobRequest.NShares)
 
 	// Publish to NATS
 	natsConn, err := lib.GetNATSConnection()

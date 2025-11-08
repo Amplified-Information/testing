@@ -1,11 +1,9 @@
 import { LedgerId } from '@hashgraph/sdk'
 import { useAppContext } from '../AppProvider'
-import { networksAvailable } from '../constants'
 import Wallet from './Wallet'
 
 const Header = () => {
-  const { isLoggedIn, setIsLoggedIn, networkSelected } = useAppContext()
-  const { dAppConnector } = useAppContext()
+  const { networkSelected } = useAppContext()
 
   return (
     <header className={`${networkSelected === LedgerId.TESTNET ? 'bg-orange-300' : networkSelected === LedgerId.PREVIEWNET ? 'bg-purple-300' : 'bg-green-400'} flex items-center justify-between px-4 py-2 border-b border-gray-200`}>

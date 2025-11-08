@@ -37,9 +37,17 @@ This format enables efficient matching, maintains market integrity with price-ti
 
 ### Quickstart
 
+`cd clob`
+
 `cargo build`
 
-`cargo run`
+```bash
+set -a # automatically export all variables
+source ./.config.local
+source ./.secrets.local
+set +a
+cargo run
+```
 
 ### commands
 
@@ -58,23 +66,28 @@ UUID7=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
   $(( RANDOM & 0x0FFF )) \
   $(( RANDOM<<24 | RANDOM<<12 | RANDOM )) )
 
-grpcurl -plaintext -proto ./proto/clob.proto -d '{"txId":"'$UUID7'","marketId":"'$UUID7'","accountId":"'$OWNER'","marketLimit":"'$MARKET_LIMIT'","priceUsd":'$PRICE_USD',"qty":'$QTY'}' localhost:50051 clob.Clob/PlaceOrder
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"txId":"'$UUID7'","marketId":"'$UUID7'","accountId":"'$OWNER'","marketLimit":"'$MARKET_LIMIT'","priceUsd":'$PRICE_USD',"qty":'$QTY'}' localhost:50051 clob.Clob/PlaceOrder
 ```
 
 **View full orderbook (non-streaming):**
 
 ```bash
 export DEPTH=5
-grpcurl -plaintext -proto ./proto/clob.proto -d '{"depth":'$DEPTH'}' localhost:50051 clob.Clob/GetBook
-
-
-# or thru the Envoy proxy:
-grpcurl -plaintext -proto ./proto/clob.proto -d '{"depth":'$DEPTH'}' localhost:8080 clob.Clob/GetBook
+grpcurl -plaintext -import-path ./proto  -proto ./proto/clob.proto -d '{"depth":'$DEPTH'}' localhost:50051 clob.Clob/GetBook
 ```
 
 **View full orderbook (streaming):**
 
 ```bash
 export DEPTH=5
-grpcurl -plaintext -proto ./proto/clob.proto -d '{"depth":'$DEPTH'}' localhost:50051 clob.Clob/StreamBook
+grpcurl -plaintext -import-path ./proto  -proto ./proto/clob.proto -d '{"depth":'$DEPTH'}' localhost:50051 clob.Clob/StreamBook
+```
+
+## simulator
+
+```bash
+cd simulator
+npm i
+npm run gen # generate protobufs
+npx run sim # run simulator
 ```

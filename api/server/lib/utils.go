@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -33,15 +34,19 @@ func JsonMarshaller(req *pb.PredictionIntentRequest) ([]byte, error) {
 	marshaler := protojson.MarshalOptions{
 		UseProtoNames:   false, // Use json_name annotations
 		EmitUnpopulated: false, // Don't include zero values
-		Indent:          "",    // N.B. Ensure compact JSON with no indentation or spaces
+		Indent:          "",    // Ensure compact JSON with no indentation or spaces
+		Multiline:       false, // Ensure single-line JSON
 	}
 
 	jsonBytes, err := marshaler.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
-	// Return the JSON bytes directly as protojson already produces compact JSON
-	return jsonBytes, nil
+
+	// TODO - this is a hack:
+	jsonBytesNoSpacesBetweenFields := bytes.ReplaceAll(jsonBytes, []byte(" "), []byte(""))
+
+	return jsonBytesNoSpacesBetweenFields, nil
 }
 
 // SerializePredictionRequestSansSigForSigning creates a base64-encoded JSON string of the request with empty signature

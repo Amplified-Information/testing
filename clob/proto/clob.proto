@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package clob;
 
+import "validate/validate.proto";
+
 service Clob {
   rpc PlaceOrder (OrderRequest) returns (OrderResponse);
   rpc GetBook (BookRequest) returns (BookSnapshot);
@@ -9,7 +11,7 @@ service Clob {
 }
 
 message OrderRequest {
-  string tx_id = 1 [json_name = "txId"];
+  string tx_id = 1 [json_name = "txId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
   string market_id = 2 [json_name = "marketId"];
   string account_id = 3 [json_name = "accountId"];
   string market_limit = 4 [json_name = "marketLimit"];

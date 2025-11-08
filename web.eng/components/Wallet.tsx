@@ -1,8 +1,8 @@
-import { DAppConnector, HederaChainId, HederaJsonRpcMethod, HederaSessionEvent } from "@hashgraph/hedera-wallet-connect"
-import { walletConnectProjectId, walletMetaData } from "../constants"
-import { useEffect, useState } from "react"
-import { useAppContext } from "../AppProvider"
-import NetworkSelector from "./NetworkSelector"
+import { DAppConnector, HederaChainId, HederaJsonRpcMethod, HederaSessionEvent } from '@hashgraph/hedera-wallet-connect'
+import { walletConnectProjectId, walletMetaData } from '../constants'
+import { useEffect, useState } from 'react'
+import { useAppContext } from '../AppProvider'
+import NetworkSelector from './NetworkSelector'
 import { getSpenderAllowanceUsd } from '../lib/hedera'
 import GrantAllowance from './GrantAllowance'
 
@@ -47,7 +47,7 @@ const Wallet = () => {
       walletConnectProjectId,
       Object.values(HederaJsonRpcMethod),
       [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
-      [HederaChainId.Mainnet, HederaChainId.Testnet, HederaChainId.Previewnet],
+      [HederaChainId.Mainnet, HederaChainId.Testnet, HederaChainId.Previewnet]
     )
     console.log(`DAppConnector initialized for ${networkSelected.toString()}:`, dAppConnector)
     setDappConnector(_dAppConnector)
@@ -98,7 +98,7 @@ const Wallet = () => {
         return
       }
 
-      console.log(`Available sessions:`)
+      console.log('Available sessions:')
       console.log(_dAppConnector!.signers)
       const _signerZero = _dAppConnector!.signers.find(signer => signer.getLedgerId() === networkSelected) // find first signer on the selected network
       if (!_signerZero) {

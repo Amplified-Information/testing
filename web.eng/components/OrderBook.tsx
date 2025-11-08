@@ -3,11 +3,12 @@
 import { useEffect } from 'react'
 import { useAppContext } from '../AppProvider'
 import { clobClient } from '../grpcClient'
+import { getMidPrice } from '../lib/utils'
 
 const DEPTH = 10
 
 const OrderBook = () => {
-  const { book, setBook } = useAppContext()
+  const { book, setBook, signerZero } = useAppContext()
   
   useEffect(() => {
     // getBook
@@ -34,14 +35,16 @@ const OrderBook = () => {
             {bid.count} {bid.price}
           </li>
         ))} */}
-        {(book?.bids ?? []).slice().reverse().map((bid, idx) => (
-          <li key={`bid-${idx}`} style={{ color: 'green' }}>
-            {bid.count} {bid.price}
-          </li>
-        ))} 
-        {(book?.asks ?? []).slice().reverse().map((ask, idx) => (
+        
+        {(book?.asks ?? []).slice().sort((a, b) => b.priceUsd - a.priceUsd).map((ask, idx) => (
           <li key={`ask-${idx}`} style={{ color: 'red' }}>
-            {ask.count} {ask.price}
+            ${ask.priceUsd.toFixed(4)} &mdash; {ask.qty.toFixed(2)}
+          </li>
+        ))}
+        --- spread: {getMidPrice(book).toFixed(4)}
+        {(book?.bids ?? []).slice().sort((a, b) => b.priceUsd - a.priceUsd).map((bid, idx) => (
+          <li key={`bid-${idx}`} style={{ color: 'green' }}>
+            ${bid.priceUsd.toFixed(4)} &mdash; {bid.qty.toFixed(2)} {bid.accountId === signerZero?.getAccountId().toString() ? '(You)' : ''}
           </li>
         ))} 
         
