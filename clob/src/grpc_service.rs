@@ -36,7 +36,7 @@ impl Clob for ClobService {
         &self,
         _request: Request<BookRequest>,
     ) -> Result<Response<BookSnapshot>, Status> {
-        let snapshot = self.order_book_service.get_book().await;
+        let snapshot = self.order_book_service.get_book(_request.into_inner().depth as usize).await;
         Ok(Response::new(snapshot))
     }
 
@@ -48,10 +48,12 @@ impl Clob for ClobService {
     ) -> Result<Response<Self::StreamBookStream>, Status> {
         let (tx, rx) = mpsc::channel(128);
         let order_book_service = self.order_book_service.clone();
+        
+        let depth = _request.into_inner().depth as usize;
 
         tokio::spawn(async move {
             loop {
-                let snapshot = order_book_service.get_book().await;
+                let snapshot = order_book_service.get_book(depth).await;
 
                 if tx.send(Ok(snapshot)).await.is_err() {
                     break;

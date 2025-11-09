@@ -8,23 +8,42 @@ const HOST = '0.0.0.0'
 const PORT = 50051
 
 // Configurable parameters
-const INITIAL_PRICE = 0.0
-const BASE_QTY = 1.5
-const BASE_VOLATILITY = 0.01
-const MAX_VOLATILITY = 0.05
+const INITIAL_PRICE = 0.5
 const PRICE_RANGE = { min: -1.0, max: 1.0 }
-const VOLUME_MULTIPLIER = { min: 0.5, max: 2.0 }
-const ORDER_DELAY = { min: 100, max: 800 }
+const PERCENT_OFF_PRICE = 0.01
+const PRICE_RECENTER_COUNT = 10 
+// const DRIFT_PRICE = 0.005
+const QTY = { min: 0.01, max: 1.0 }
+const PRECISION = 4
+const ORDER_DELAY = { min: 50, max: 1000 }
 
-let price = INITIAL_PRICE // Current price
-let volatility = BASE_VOLATILITY // Current volatility
+let priceUsd_global = INITIAL_PRICE // Current price
+let count_global = 0
+let grpcClient : ClobClient
 
-// Helper function to generate random numbers within a range
-const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min
+const pause = (ms: number) => {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
-// Helper function to round to 4 decimal places
-const roundToPrecision = (value: number, precision: number) =>
-  Math.round(value * Math.pow(10, precision)) / Math.pow(10, precision)
+const gaussianInRange = (min: number, max: number) => {
+  return Math.random() * (max - min) + min
+}
+
+// this function selects a number between min and max weighted towards min using a probability distribution
+const powerDistInRange = (min: number, max: number, skew: number = 2) => {
+  const sample = Math.random()
+  return min + (max - min) * Math.pow(sample, skew)
+}
+
+// returns a value cannot be less than min or greater than max
+const constrain = (value: number, min: number, max: number): number => {
+  return Math.min(Math.max(value, min), max)
+}
+
+// Helper function to round to precision number of decimal places
+const roundToPrecision = (value: number, precision: number) => {
+  return Math.round(value * Math.pow(10, precision)) / Math.pow(10, precision)
+}
 
 const initConnection = (): ClobClient => {
   try {
@@ -42,27 +61,32 @@ const initConnection = (): ClobClient => {
   }
 }
 
-// Simulate volatility as a sine wave with random noise
-const updateVolatility = () => {
-  const timeFactor = Date.now() / (60 * 1000) // Time in minutes
-  const noise = randomInRange(-0.005, 0.005) // Random noise
-  volatility = BASE_VOLATILITY + Math.abs(Math.sin(timeFactor)) * MAX_VOLATILITY + noise
-}
-
  // Simulate price drift with volatility
-const updatePrice = () => {
-  const drift = randomInRange(-volatility, volatility)
-  price = roundToPrecision(price + drift, 4)
+// const updatePrice = () => {
+//   price = roundToPrecision(price + randomInRange(0 - DRIFT_PRICE, DRIFT_PRICE), PRECISION)
 
-  // Ensure price stays within bounds
-  if (price > PRICE_RANGE.max) price = PRICE_RANGE.max
-  if (price < PRICE_RANGE.min) price = PRICE_RANGE.min
-}
+//   // Ensure price stays within bounds
+//   if (price > PRICE_RANGE.max * 0.99) {
+//     price = roundToPrecision((PRICE_RANGE.max + PRICE_RANGE.min) / 2, PRECISION) // Re-center around midpoint
+//   }
+//   if (price < PRICE_RANGE.min * 0.99) {
+//     price = roundToPrecision((PRICE_RANGE.max + PRICE_RANGE.min) / 2, PRECISION) // Re-center around midpoint
+//   }
+// }
 
 // Simulate volume fluctuations
-const generateVolume = () => {
-  const volumeMultiplier = randomInRange(VOLUME_MULTIPLIER.min, VOLUME_MULTIPLIER.max)
-  return roundToPrecision(BASE_QTY * volumeMultiplier, 4)
+// const generateVolume = () => {
+//   const volumeMultiplier = randomInRange(VOLUME_MULTIPLIER.min, VOLUME_MULTIPLIER.max)
+//   return roundToPrecision(QTY * volumeMultiplier, PRECISION)
+// }
+
+const driftPrice = () => {
+  // Simple random walk for price drift
+  const drift = powerDistInRange(0 - PERCENT_OFF_PRICE, PERCENT_OFF_PRICE, 20)
+  priceUsd_global = (priceUsd_global < 0) ? roundToPrecision(priceUsd_global - drift, PRECISION) : roundToPrecision(priceUsd_global + drift, PRECISION)
+
+  // keep price within range
+  priceUsd_global = constrain(priceUsd_global, PRICE_RANGE.min, PRICE_RANGE.max)
 }
 
 const placeOrder = async (client: ClobClient) => {
@@ -70,40 +94,61 @@ const placeOrder = async (client: ClobClient) => {
   const marketId = uuidv7()
   const accountId = `0.0.${Math.floor(1000 + Math.random() * 9000)}`
   
-  updateVolatility() // Update volatility
-  updatePrice() // Update price
-  const qty = generateVolume() // Generate volume
+  const isBuyOrder = Math.random() < 0.5 // 50% prob
+
+  priceUsd_global = isBuyOrder
+    ? roundToPrecision(priceUsd_global * (1 - powerDistInRange(0.0, PERCENT_OFF_PRICE)), PRECISION) // Buy slightly **below** market price
+    : roundToPrecision(priceUsd_global * (1 + powerDistInRange(0.0, PERCENT_OFF_PRICE)), PRECISION) // Sell slightly **above** market price
+  
+  priceUsd_global = constrain(priceUsd_global, PRICE_RANGE.min, PRICE_RANGE.max)
 
   const order = OrderRequest.create({
     txId: txId,
     marketId: marketId,
     accountId: accountId,
     marketLimit: 'limit',
-    priceUsd: new Date().getTime() % 2 === 0 ? Math.abs(price) : 0 - Math.abs(price),
-    qty: qty
+    priceUsd: isBuyOrder ? priceUsd_global : 0 - priceUsd_global,
+    qty: roundToPrecision(gaussianInRange(QTY.min, QTY.max), PRECISION)
   })
 
   try {
     const response = await client.placeOrder(order).response
-    console.log('Placed order:', order, 'Response:', response)
+    console.log(`Placed ${isBuyOrder ? 'buy' : 'sell'} order:`, order, 'Response:', response)
   } catch (err) {
     console.error('Error placing order:', err)
   }
+
+  driftPrice()
+
+  // ocassionally re-center price:
+  if (count_global > PRICE_RECENTER_COUNT) {
+    console.log('Re-centering price...')
+    priceUsd_global = await getCurrentPrice()
+    count_global = 0
+  }
+  count_global++
 }
 
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const getCurrentPrice = async (): Promise<number> => {
+  const result = await grpcClient.getBook({ depth: 1 })
+  const book = await result.response
+  // Simple mid-price calculation
+  const bid = book.bids.length > 0 ? book.bids[0].priceUsd : INITIAL_PRICE
+  const ask = book.asks.length > 0 ? book.asks[0].priceUsd : INITIAL_PRICE
+  return roundToPrecision((bid + ask) / 2, PRECISION)
+}
 
 console.log('Starting simulator...')
 ;(async () => {
   console.log('Initializing connection...')
-  const client = initConnection()
+  grpcClient = initConnection()
   console.log('Connection initialized, starting order loop')
 
   while (true) {
     console.log('Placing order...')
-    await placeOrder(client)
+    await placeOrder(grpcClient)
     // Random delay between orders:
-    await pause(randomInRange(ORDER_DELAY.min, ORDER_DELAY.max))
+    await pause(powerDistInRange(ORDER_DELAY.min, ORDER_DELAY.max))
   }
 })().catch((err) => {
   console.error('Fatal error in main loop:', err)
