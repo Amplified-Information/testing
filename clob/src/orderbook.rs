@@ -15,7 +15,7 @@ pub struct OrderBookService {
 impl OrderBookService {
     pub fn new() -> Self {
         Self {
-            order_book: Arc::new(RwLock::new(OrderBook::new(true))), // Default to allowing partial matching
+            order_book: Arc::new(RwLock::new(OrderBook::new(/*true*/))),
         }
     }
 
@@ -29,10 +29,10 @@ impl OrderBookService {
         book.snapshot(depth)
     }
 
-    pub async fn start_periodic_scan(&self) {
+    pub async fn start_periodic_scan(&self, duration_seconds: u64) {
         let order_book = Arc::clone(&self.order_book);
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(duration_seconds));
             loop {
                 interval.tick().await;
                 let mut book = order_book.write().await;
@@ -46,15 +46,15 @@ impl OrderBookService {
 pub struct OrderBook {
     buy_orders: Vec<OrderRequest>,
     sell_orders: Vec<OrderRequest>,
-    allow_partial_matching: bool, // New field to enable/disable partial matching
+    // allow_partial_matching: bool, // New field to enable/disable partial matching
 }
 
 impl OrderBook {
-    pub fn new(allow_partial_matching: bool) -> Self {
+    pub fn new(/*allow_partial_matching: bool*/) -> Self {
         Self {
             buy_orders: Vec::new(),
             sell_orders: Vec::new(),
-            allow_partial_matching,
+            // allow_partial_matching,
         }
     }
 
@@ -62,62 +62,67 @@ impl OrderBook {
         log::info!("CREATE \t OrderRequest: {:?}", order); // Log the incoming order
 
         if order.price_usd < 0.0 {
-            let mut adjusted_order = order.clone();
-            adjusted_order.price_usd = order.price_usd.abs();
-            Self::match_order(adjusted_order, &mut self.buy_orders, &mut self.sell_orders, self.allow_partial_matching);
+            // let mut adjusted_order = order.clone();
+            // adjusted_order.price_usd = order.price_usd.abs();
+            Self::match_order(order, &mut self.buy_orders, &mut self.sell_orders);
         } else {
-            Self::match_order(order, &mut self.sell_orders, &mut self.buy_orders, self.allow_partial_matching);
+            Self::match_order(order, &mut self.sell_orders, &mut self.buy_orders);
         }
     }
 
-    fn match_order(mut incoming_order: OrderRequest, opposite_orders: &mut Vec<OrderRequest>, same_side_orders: &mut Vec<OrderRequest>, allow_partial_matching: bool) {
-        // Sort opposite orders: ascending for sell orders, descending for buy orders
-        if incoming_order.price_usd > 0.0 {
-            opposite_orders.sort_by(|a, b| a.price_usd.partial_cmp(&b.price_usd).unwrap());
-        } else {
-            opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
-        }
+    fn match_order(mut incoming_order: OrderRequest, opposite_orders: &mut Vec<OrderRequest>, same_side_orders: &mut Vec<OrderRequest>) {
+        // log::info!("Matching order: {:?}", incoming_order);
+        // log::info!("Opposite orders before sorting: {:?}", opposite_orders);
+
+        opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
+        // // Sort opposite orders: descending for buy orders, ascending for sell orders
+        // if incoming_order.price_usd > 0.0 {
+        //     opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
+        // } else {
+        //     opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
+        // }
+        // log::info!("Opposite orders after sorting: {:?}", opposite_orders);
 
         let i = 0;
         while i < opposite_orders.len() {
             let existing_order = &mut opposite_orders[i];
 
-            if allow_partial_matching {
-                // Match based on price
-                if (incoming_order.price_usd >= existing_order.price_usd && incoming_order.price_usd > 0.0) ||
-                   (incoming_order.price_usd <= existing_order.price_usd && incoming_order.price_usd < 0.0) {
+            // log::info!("Checking match: Incoming order price: {}, Existing order price: {}", incoming_order.price_usd, existing_order.price_usd);
 
-                    if incoming_order.qty <= existing_order.qty {
-                        existing_order.qty -= incoming_order.qty;
-                        if existing_order.qty == 0.0 {
-                            opposite_orders.remove(i);
-                        }
-                        log::info!("MATCH \t OrderRequest: {:?}", incoming_order);
-                        return;
-                    } else {
-                        incoming_order.qty -= existing_order.qty;
+            // Match based on price constraints
+            if (incoming_order.price_usd > 0.0 && incoming_order.price_usd >= existing_order.price_usd) ||
+               (incoming_order.price_usd < 0.0 && existing_order.price_usd >= incoming_order.price_usd.abs()) {
+
+                // log::info!("Price constraint satisfied. Attempting to match...");
+
+                if incoming_order.qty <= existing_order.qty {
+                    existing_order.qty -= incoming_order.qty;
+                    if existing_order.qty == 0.0 {
                         opposite_orders.remove(i);
                     }
-                } else {
-                    // No match possible due to price constraint
-                    break;
-                }
-            } else {
-                // Exact matching only
-                if incoming_order.qty == existing_order.qty {
-                    opposite_orders.remove(i);
                     log::info!("MATCH \t OrderRequest: {:?}", incoming_order);
                     return;
                 } else {
-                    // No match
-                    break;
+                    incoming_order.qty -= existing_order.qty;
+                    log::info!("MATCH_PARTIAL \t Remaining incoming order quantity: {}", incoming_order.qty);
+                    opposite_orders.remove(i);
+                    continue; // Continue searching for additional matches
                 }
+            } else {
+                // log::info!("Price constraint not satisfied. No match.");
+                // No match possible due to price constraint
+                break;
             }
         }
+
+        // If no match, add to the respective order book
+        // log::info!("No match found, adding to same side orders: {:?}", incoming_order);
         same_side_orders.push(incoming_order);
     }
 
     pub fn snapshot(&self, depth: usize) -> BookSnapshot {
+        let effective_depth = if depth == 0 { usize::MAX } else { depth }; // depth = 0 -> return everything
+
         BookSnapshot {
             bids: self.buy_orders.iter().map(|order| OrderDetail {
                 tx_id: order.tx_id.clone(),
@@ -130,7 +135,7 @@ impl OrderBook {
                 account_id: order.account_id.clone(),
                 price_usd: order.price_usd,
                 qty: order.qty,
-            }).take(depth).collect(),
+            }).take(effective_depth).collect(),
         }
     }
 
@@ -152,7 +157,7 @@ impl OrderBook {
                 let mut buy_order = self.buy_orders.remove(i);
                 let mut sell_order = self.sell_orders.remove(0);
 
-                if self.allow_partial_matching {
+                // if self.allow_partial_matching {
                     if buy_order.qty <= sell_order.qty {
                         sell_order.qty -= buy_order.qty;
                         log::info!("MATCH \t Buy Order: {:?} with Sell Order", buy_order);
@@ -164,17 +169,17 @@ impl OrderBook {
                         log::info!("MATCH \t Sell Order: {:?} with Buy Order", sell_order);
                         self.buy_orders.insert(i, buy_order);
                     }
-                } else {
-                    // Exact matching only
-                    if buy_order.qty == sell_order.qty {
-                        log::info!("MATCH \t Buy Order: {:?} with Sell Order: {:?}", buy_order, sell_order);
-                    } else {
-                        // No exact match, put them back
-                        self.buy_orders.insert(i, buy_order);
-                        self.sell_orders.insert(0, sell_order);
-                        i += 1;
-                    }
-                }
+                // } else {
+                //     // Exact matching only
+                //     if buy_order.qty == sell_order.qty {
+                //         log::info!("MATCH \t Buy Order: {:?} with Sell Order: {:?}", buy_order, sell_order);
+                //     } else {
+                //         // No exact match, put them back
+                //         self.buy_orders.insert(i, buy_order);
+                //         self.sell_orders.insert(0, sell_order);
+                //         i += 1;
+                //     }
+                // }
             } else {
                 // No more matches possible
                 break;

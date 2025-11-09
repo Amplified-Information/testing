@@ -22,8 +22,8 @@ const genUUIDv7 = (): string => {
 
 const getMidPrice = (book: BookSnapshot): number => {
   if (book.bids.length === 0 || book.asks.length === 0) return 0.5
-  // console.log(book.asks[0].price, " ", book.bids[0].price)
-  return (((0 - book.asks[0].priceUsd) + book.bids[0].priceUsd) / 2)
+  // console.log(book.asks[0].priceUsd, ' ', book.bids[0].priceUsd)
+  return ((book.asks[0].priceUsd - book.bids[0].priceUsd) / 2)
 }
 
 export {

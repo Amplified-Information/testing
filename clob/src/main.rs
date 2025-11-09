@@ -17,10 +17,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let subject: String = std::env::var("NATS_SUBJECT").unwrap_or_else(|_| panic!("Failed to read env var NATS_SUBJECT"));
 
     let order_book_service = OrderBookService::new();
-    let order_book_clone = order_book_service.clone();
-    tokio::spawn(async move {
-        order_book_clone.start_periodic_scan().await;
-    });
+    // scan for matches periodically:
+    // let order_book_clone = order_book_service.clone();
+    // tokio::spawn(async move {
+    //     order_book_clone.start_periodic_scan(1).await;
+    // });
 
     let grpc_server = create_service(&host, &port, order_book_service.clone());
     log::info!("START \t CLOB service running on port {}:{}", host, port);

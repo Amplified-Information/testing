@@ -5,7 +5,7 @@ import { useAppContext } from '../AppProvider'
 import { clobClient } from '../grpcClient'
 import { getMidPrice } from '../lib/utils'
 
-const DEPTH = 10
+const DEPTH = 0
 
 const OrderBook = () => {
   const { book, setBook, signerZero } = useAppContext()
@@ -36,9 +36,9 @@ const OrderBook = () => {
           </li>
         ))} */}
         
-        {(book?.asks ?? []).slice().sort((a, b) => b.priceUsd - a.priceUsd).map((ask, idx) => (
+        {(book?.asks ?? []).slice().sort((a, b) => a.priceUsd - b.priceUsd).map((ask, idx) => (
           <li key={`ask-${idx}`} style={{ color: 'red' }}>
-            ${ask.priceUsd.toFixed(4)} &mdash; {ask.qty.toFixed(2)}
+            ${ask.priceUsd.toFixed(4)} &mdash; {ask.qty.toFixed(2)} {ask.accountId === signerZero?.getAccountId().toString() ? '(You)' : ''}
           </li>
         ))}
         --- spread: {getMidPrice(book).toFixed(4)}
