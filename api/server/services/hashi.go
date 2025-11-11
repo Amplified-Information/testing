@@ -15,7 +15,19 @@ import (
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
-func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
+type Hashi struct {
+	dbService   *DbService
+	natsService *NatsService
+}
+
+func (h *Hashi) InitHashi(dbService *DbService, natsService *NatsService) {
+	h.dbService = dbService
+	h.natsService = natsService
+
+	log.Println("Hashi initialized successfully")
+}
+
+func (h *Hashi) SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	// validations
 	// - req.AccountId is a valid Hedera account ID
 	//   req.AccountId has a value >= 0.0.1000
@@ -115,6 +127,15 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 		return "", fmt.Errorf("Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
 	}
 
+	// check we haven't received this txid previously
+	exists, err := h.dbService.IsDuplicateTxId(req.TxId)
+	if err != nil {
+		return "", fmt.Errorf("failed to check existing txId: %v", err)
+	}
+	if exists {
+		return "", fmt.Errorf("duplicate txId: %s", req.TxId)
+	}
+
 	/// OK - now you can put the order on the CLOB
 	// clobRequest := &clob.OrderRequest{
 	// 	TxId:        req.TxId,
@@ -125,12 +146,8 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 	// 	Qty:         req.Qty,
 	// }
 
-	// Publish to NATS
-	natsConn, err := lib.GetNATSConnection()
-	if err != nil {
-		return "", fmt.Errorf("failed to connect to NATS: %v", err)
-	}
-	defer natsConn.Close()
+	// store the OrderRequest in the database
+	h.dbService.SaveOrderRequest(req)
 
 	// Marshal the CLOB request to JSON
 	clobRequestJSON, err := json.Marshal(req)
@@ -138,14 +155,12 @@ func SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
 		return "", fmt.Errorf("failed to marshal CLOB request: %v", err)
 	}
 
-	// Publish to NATS subject
-	subject := "clob.orders"
-	err = natsConn.Publish(subject, clobRequestJSON)
+	err = h.natsService.Publish(lib.SUBJECT_CLOB_ORDERS, clobRequestJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to publish to NATS: %v", err)
 	}
 
-	log.Printf("Published order to NATS subject '%s': %s", subject, string(clobRequestJSON))
+	log.Printf("Published order to NATS subject '%s': %s", lib.SUBJECT_CLOB_ORDERS, string(clobRequestJSON))
 
 	return fmt.Sprintf("Processed input for user %s", req.AccountId), nil
 }

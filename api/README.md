@@ -108,7 +108,8 @@ set -a # automatically export all variables
 source ./.config.local
 source ./.secrets.local
 set +a # turn off auto-export
-DB_URL=postgres://$DB_HOST:$DB_PORT/$DB_NAME
+DB_URL=postgres://$DB_UNAME:$DB_PWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable
+echo $DB_URL
 migrate -database $DB_URL -path db/migrations up
 ```
 

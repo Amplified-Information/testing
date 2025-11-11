@@ -8,10 +8,6 @@ import (
 
 	"os"
 
-	// "crypto/ecdsa" // Go’s standard library doesn’t include secp256k1
-	// "github.com/decred/dcrd/dcrec/secp256k1/v4"
-	// "golang.org/x/crypto/sha3"
-
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
@@ -129,4 +125,8 @@ func GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.Acco
 	// Convert to float64 and apply decimals
 	amount := float64(result.Allowances[0].Amount) / math.Pow(10, float64(usdcDecimals))
 	return amount, nil
+}
+
+func BuyShares() error {
+	
 }

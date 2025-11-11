@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { uint8ToBase64, getMidPrice } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
-import { defaultPredictionIntentRequest, priceUsdStepSize } from '../constants'
+import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault } from '../constants'
 import ButtonAmount from './ButtonAmount'
 
 const Signer = () => {
@@ -37,14 +37,14 @@ const Signer = () => {
   useEffect(() => {
     let _priceUsd = predictionIntentRequest.marketLimit === 'market' ? getMidPrice(book) : priceUsd
     if (buySell === 'sell') {
-      _priceUsd = 0 - _priceUsd
+      _priceUsd = 0 - (_priceUsd || midPriceUsdDefault)
     }
 
     setPredictionIntentRequest({ 
       ...predictionIntentRequest,
-      priceUsd: _priceUsd,
+      priceUsd: _priceUsd || midPriceUsdDefault,
       // marketLimit: predictionIntentRequest.marketLimit === "market" ? "market" : "limit"
-      qty: betUsd/Math.abs(_priceUsd)
+      qty: betUsd/Math.abs(_priceUsd || midPriceUsdDefault)
     })
 
     // setPredictionIntentRequest({
@@ -59,6 +59,8 @@ const Signer = () => {
 
   return (
     <div>
+      <h2>Signer <svg className="inline-block w-5 h-5 cursor-pointer" onClick={() => window.location.reload()} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></h2>
+
       <code>
         {
         <div
@@ -102,7 +104,7 @@ const Signer = () => {
       <br/>
 
 
-      <input type='checkbox' checked={predictionIntentRequest.marketLimit === 'market'} onClick={() => {
+      <input type='checkbox' checked={predictionIntentRequest.marketLimit === 'market'} onChange={() => {
         setPredictionIntentRequest({ 
           ...predictionIntentRequest,
           marketLimit: predictionIntentRequest.marketLimit === 'market' ? 'limit' : 'market'
@@ -116,7 +118,7 @@ const Signer = () => {
           className='bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-1 px-2 rounded text-sm mx-2'
           onClick={() => {
             // setPredictionIntentRequest({ ...predictionIntentRequest, priceUsd: getMidPrice() })
-            setPriceUsd(getMidPrice(book))
+            setPriceUsd(getMidPrice(book) || midPriceUsdDefault)
           }
         }>mid-price</button>
       }
@@ -129,7 +131,7 @@ const Signer = () => {
           id='buy' 
           name='buySell' 
           checked={buySell === 'buy'} 
-          onClick={() => {
+          onChange={() => {
             setBuySell('buy')
           }}
         />
@@ -140,7 +142,7 @@ const Signer = () => {
           id='sell' 
           name='buySell' 
           checked={buySell === 'sell'} 
-          onClick={() => {
+          onChange={() => {
             setBuySell('sell')
           }}
         />
@@ -177,7 +179,6 @@ const Signer = () => {
       <br/>
       <br/>
 
-      
       <button className={'btn orange'} disabled={!signerZero || thinger || predictionIntentRequest.sig.length === 0} title={!signerZero ? 'Wallet not connected' : ''} onClick={ async () => {
         setThinger(true)
         console.log('Submitting order intent to backend API...')

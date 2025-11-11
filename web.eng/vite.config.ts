@@ -29,6 +29,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // N.B. needed for envoy
     port: 5173
+    // port: 8080
   }
 
   // server: {   // proxy API requests to backend server

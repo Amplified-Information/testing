@@ -15,7 +15,6 @@ const Home = () => {
         <OrderBook />
       </div>
       <div style={{ flex: 1, marginLeft: '20px' }}>
-        <h2>Signer</h2>
         <Signer />
       </div>
     </div>
