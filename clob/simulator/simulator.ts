@@ -10,15 +10,15 @@ const PORT = 50051
 // Configurable parameters
 const INITIAL_PRICE = 0.5
 const PRICE_RANGE = { min: -1.0, max: 1.0 }
-const PERCENT_OFF_PRICE = 0.01
-const PRICE_RECENTER_COUNT = 10 
+const PERCENT_OFF_PRICE = 10
+// const PRICE_RECENTER_COUNT = 10 
 // const DRIFT_PRICE = 0.005
 const QTY = { min: 0.01, max: 1.0 }
 const PRECISION = 4
 const ORDER_DELAY = { min: 50, max: 1000 }
 
-let priceUsd_global = INITIAL_PRICE // Current price
-let count_global = 0
+// let priceUsd_global = INITIAL_PRICE // Current price
+// let count_global = 0
 let grpcClient : ClobClient
 
 const pause = (ms: number) => {
@@ -80,34 +80,36 @@ const initConnection = (): ClobClient => {
 //   return roundToPrecision(QTY * volumeMultiplier, PRECISION)
 // }
 
-const driftPrice = () => {
-  // Simple random walk for price drift
-  const drift = powerDistInRange(0 - PERCENT_OFF_PRICE, PERCENT_OFF_PRICE, 20)
-  priceUsd_global = (priceUsd_global < 0) ? roundToPrecision(priceUsd_global - drift, PRECISION) : roundToPrecision(priceUsd_global + drift, PRECISION)
+// const driftPrice = () => {
+//   // Simple random walk for price drift
+//   const drift = powerDistInRange(0 - PERCENT_OFF_PRICE, PERCENT_OFF_PRICE, 20)
+//   priceUsd_global = (priceUsd_global < 0) ? roundToPrecision(priceUsd_global - drift, PRECISION) : roundToPrecision(priceUsd_global + drift, PRECISION)
 
-  // keep price within range
-  priceUsd_global = constrain(priceUsd_global, PRICE_RANGE.min, PRICE_RANGE.max)
-}
+//   // keep price within range
+//   priceUsd_global = constrain(priceUsd_global, PRICE_RANGE.min, PRICE_RANGE.max)
+// }
 
 const placeOrder = async (client: ClobClient) => {
   const txId = uuidv7()
   const marketId = uuidv7()
   const accountId = `0.0.${Math.floor(1000 + Math.random() * 9000)}`
   
-  const isBuyOrder = Math.random() < 0.5 // 50% prob
+  // const isBuyOrder = Math.random() < 0.5 // 50% prob
 
-  priceUsd_global = isBuyOrder
-    ? roundToPrecision(priceUsd_global * (1 - powerDistInRange(0.0, PERCENT_OFF_PRICE)), PRECISION) // Buy slightly **below** market price
-    : roundToPrecision(priceUsd_global * (1 + powerDistInRange(0.0, PERCENT_OFF_PRICE)), PRECISION) // Sell slightly **above** market price
-  
-  priceUsd_global = constrain(priceUsd_global, PRICE_RANGE.min, PRICE_RANGE.max)
+  // priceUsd_global = isBuyOrder
+  //   ? roundToPrecision(priceUsd_global * (1 - powerDistInRange(0.0, PERCENT_OFF_PRICE)), PRECISION) // Buy slightly **below** market price
+  //   : roundToPrecision(priceUsd_global * (1 + powerDistInRange(0.0, PERCENT_OFF_PRICE)), PRECISION) // Sell slightly **above** market price
+  const isBuyOrder = Math.random() > 0.5 
+  const perturbation = powerDistInRange(0, PERCENT_OFF_PRICE, 2) / 100
+  let priceUsd = INITIAL_PRICE + perturbation
+  priceUsd = constrain(priceUsd, 0, PRICE_RANGE.max)
 
   const order = OrderRequest.create({
     txId: txId,
     marketId: marketId,
     accountId: accountId,
     marketLimit: 'limit',
-    priceUsd: isBuyOrder ? priceUsd_global : 0 - priceUsd_global,
+    priceUsd: isBuyOrder ? priceUsd : 0 - priceUsd,
     qty: roundToPrecision(gaussianInRange(QTY.min, QTY.max), PRECISION)
   })
 
@@ -118,25 +120,26 @@ const placeOrder = async (client: ClobClient) => {
     console.error('Error placing order:', err)
   }
 
-  driftPrice()
+  // driftPrice()
 
   // ocassionally re-center price:
-  if (count_global > PRICE_RECENTER_COUNT) {
-    console.log('Re-centering price...')
-    priceUsd_global = await getCurrentPrice()
-    count_global = 0
-  }
-  count_global++
+  // if (count_global > PRICE_RECENTER_COUNT) {
+  //   console.log('Re-centering price...')
+  //   priceUsd_global = await getCurrentPrice()
+  //   count_global = 0
+  // }
+  // count_global++
 }
 
-const getCurrentPrice = async (): Promise<number> => {
-  const result = await grpcClient.getBook({ depth: 1 })
-  const book = await result.response
-  // Simple mid-price calculation
-  const bid = book.bids.length > 0 ? book.bids[0].priceUsd : INITIAL_PRICE
-  const ask = book.asks.length > 0 ? book.asks[0].priceUsd : INITIAL_PRICE
-  return roundToPrecision((bid + ask) / 2, PRECISION)
-}
+// const getCurrentPrice = async (): Promise<number> => {
+//   const result = await grpcClient.getBook({ depth: 1 })
+//   const book = await result.response
+//   // Simple mid-price calculation
+//   const bid = book.bids.length > 0 ? book.bids[0].priceUsd : INITIAL_PRICE
+//   const ask = book.asks.length > 0 ? book.asks[0].priceUsd : INITIAL_PRICE
+//   console.log('Current price:', (bid + ask) / 2)
+//   return roundToPrecision((bid + ask) / 2, PRECISION)
+// }
 
 console.log('Starting simulator...')
 ;(async () => {

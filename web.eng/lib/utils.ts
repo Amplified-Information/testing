@@ -20,15 +20,22 @@ const genUUIDv7 = (): string => {
   return uuidv7()
 }
 
-const getMidPrice = (book: BookSnapshot): number => {
-  if (book.bids.length === 0 || book.asks.length === 0) return 0.5
+const getMidPrice = (book: BookSnapshot): number | undefined => {
+  if (book.bids.length === 0 || book.asks.length === 0) return undefined
   // console.log(book.asks[0].priceUsd, ' ', book.bids[0].priceUsd)
-  return ((book.asks[0].priceUsd - book.bids[0].priceUsd) / 2)
+  return 0 - ((book.asks[0].priceUsd - book.bids[0].priceUsd) / 2)
+}
+
+const getSpreadPercent = (book: BookSnapshot): number | undefined => {
+  if (book.bids.length === 0 || book.asks.length === 0) return undefined
+  // console.log(book.asks[0].priceUsd, ' ', book.bids[0].priceUsd)
+  return ((0 - book.asks[0].priceUsd - book.bids[0].priceUsd) / book.bids[0].priceUsd) * 100
 }
 
 export {
   uint8ToBase64,
   // uint8ToHex,
   genUUIDv7,
-  getMidPrice
+  getMidPrice,
+  getSpreadPercent
 }

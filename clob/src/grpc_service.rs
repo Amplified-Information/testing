@@ -1,3 +1,4 @@
+use futures_util::TryFutureExt;
 use tonic::{Request, Response, Status};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio::sync::mpsc;
@@ -23,7 +24,11 @@ impl Clob for ClobService {
     ) -> Result<Response<OrderResponse>, Status> {
         let order = request.into_inner();
         
-        self.order_book_service.place_order(order).await;
+        let result = self.order_book_service.place_order(order).await;
+        if let Err(e) = result {
+            log::error!("Failed to place order: {}", e);
+            return Err(Status::internal(e.to_string()));
+        }
         let response = OrderResponse {
             status: "success".to_string(),
             error: String::new(),
@@ -67,9 +72,15 @@ impl Clob for ClobService {
     }
 }
 
-pub fn create_service(host: &str, port: &str, order_book_service: OrderBookService) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
+pub fn start_grpc(host: &str, port: &str, order_book_service: OrderBookService) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
     let addr = format!("{}:{}", host, port).parse().unwrap();
-    futures_util::TryFutureExt::map_err(tonic::transport::Server::builder()
+    log::info!("Starting gRPC server on {}", addr);
+
+    tonic::transport::Server::builder()
         .add_service(ClobServer::new(ClobService::new(order_book_service)))
-        .serve(addr), |e| Box::new(e) as Box<dyn std::error::Error>)
+        .serve(addr)
+        .map_err(|e| {
+            log::error!("Failed to start gRPC server: {}", e);
+            Box::new(e) as Box<dyn std::error::Error>
+        })
 }

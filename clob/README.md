@@ -51,6 +51,10 @@ cargo run
 
 ### commands
 
+**check gRPC server is listening**
+
+`netstat -tuln | grep 50051`
+
 **Place an order:**
 
 ```bash

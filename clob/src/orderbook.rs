@@ -7,21 +7,24 @@ pub mod proto {
 }
 use proto::{OrderRequest, BookSnapshot, OrderDetail};
 
+use crate::constants;
+
 #[derive(Debug, Clone)]
 pub struct OrderBookService {
-    order_book: Arc<RwLock<OrderBook>>,
+    order_book: Arc<RwLock<OrderBook>>
 }
 
 impl OrderBookService {
-    pub fn new() -> Self {
+    pub fn new(nats_client: &async_nats::Client) -> Self {
         Self {
-            order_book: Arc::new(RwLock::new(OrderBook::new(/*true*/))),
+            order_book: Arc::new(RwLock::new(OrderBook::new(nats_client)))
         }
     }
 
-    pub async fn place_order(&self, order: OrderRequest) {
+    pub async fn place_order(&self, order: OrderRequest) -> Result<(), Box<dyn std::error::Error>> {
         let mut book = self.order_book.write().await;
-        book.add_order(order);
+        book.add_order(order.clone()).await;
+        Ok(())
     }
 
     pub async fn get_book(&self, depth: usize) -> BookSnapshot {
@@ -29,16 +32,16 @@ impl OrderBookService {
         book.snapshot(depth)
     }
 
-    pub async fn start_periodic_scan(&self, duration_seconds: u64) {
+    pub fn start_periodic_scan(&self, duration_seconds: u64) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
         let order_book = Arc::clone(&self.order_book);
-        tokio::spawn(async move {
+        async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(duration_seconds));
             loop {
                 interval.tick().await;
                 let mut book = order_book.write().await;
-                book.scan_for_matches();
+                book.scan_for_matches().await;
             }
-        });
+        }
     }
 }
 
@@ -46,31 +49,29 @@ impl OrderBookService {
 pub struct OrderBook {
     buy_orders: Vec<OrderRequest>,
     sell_orders: Vec<OrderRequest>,
-    // allow_partial_matching: bool, // New field to enable/disable partial matching
+    nats_client: async_nats::Client
 }
 
 impl OrderBook {
-    pub fn new(/*allow_partial_matching: bool*/) -> Self {
+    pub fn new(nats_client: &async_nats::Client) -> Self {
         Self {
             buy_orders: Vec::new(),
             sell_orders: Vec::new(),
-            // allow_partial_matching,
+            nats_client: nats_client.clone()
         }
     }
 
-    pub fn add_order(&mut self, order: OrderRequest) {
+    pub async fn add_order(&mut self, order: OrderRequest) {
         log::info!("CREATE \t OrderRequest: {:?}", order); // Log the incoming order
 
         if order.price_usd < 0.0 {
-            // let mut adjusted_order = order.clone();
-            // adjusted_order.price_usd = order.price_usd.abs();
-            Self::match_order(order, &mut self.buy_orders, &mut self.sell_orders);
+            Self::match_order(&self.nats_client, order, &mut self.buy_orders, &mut self.sell_orders).await;
         } else {
-            Self::match_order(order, &mut self.sell_orders, &mut self.buy_orders);
+            Self::match_order(&self.nats_client, order, &mut self.sell_orders, &mut self.buy_orders).await;
         }
     }
 
-    fn match_order(mut incoming_order: OrderRequest, opposite_orders: &mut Vec<OrderRequest>, same_side_orders: &mut Vec<OrderRequest>) {
+    async fn match_order(nats_client: &async_nats::Client, mut incoming_order: OrderRequest, opposite_orders: &mut Vec<OrderRequest>, same_side_orders: &mut Vec<OrderRequest>) {
         // log::info!("Matching order: {:?}", incoming_order);
         // log::info!("Opposite orders before sorting: {:?}", opposite_orders);
 
@@ -101,12 +102,20 @@ impl OrderBook {
                         opposite_orders.remove(i);
                     }
                     log::info!("MATCH \t OrderRequest: {:?}", incoming_order);
+                    
+                    if let Err(e) = nats_client.publish(constants::CLOB_MATCHES, serde_json::to_vec(&incoming_order).unwrap().into()).await {
+                        log::error!("Failed to publish MATCH to NATS: {:?}", e);
+                    }
                     return;
                 } else {
                     incoming_order.qty -= existing_order.qty;
                     log::info!("MATCH_PARTIAL \t Remaining incoming order quantity: {}", incoming_order.qty);
+                    // log::info!("NATS \t published {:?} to: \"{}\"", order, "clob.matches");
+                    // self.nats_client.publish("clob.matches",  serde_json::to_vec(&order)?.into()).await?;
+                    // Note: Cannot publish to NATS here as match_order is a static method without access to nats_client
+                    // Consider refactoring to pass nats_client or handle publishing in the caller
                     opposite_orders.remove(i);
-                    continue; // Continue searching for additional matches
+                    continue; // Continue searching for additional matches (partial match)
                 }
             } else {
                 // log::info!("Price constraint not satisfied. No match.");
@@ -141,49 +150,48 @@ impl OrderBook {
 
     // Scan to find matches in the order book
     // This function runs periodically
-    pub fn scan_for_matches(&mut self) {
+    pub async fn scan_for_matches(&mut self) {
+        log::info!("SCAN \t Scanning orderbook for matches...");
+
         // Sort buy orders by price descending (highest first)
         self.buy_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
         // Sort sell orders by price ascending (lowest first)
         self.sell_orders.sort_by(|a, b| a.price_usd.partial_cmp(&b.price_usd).unwrap());
 
+        // Attempt to match all sell orders with buy orders
         let mut i = 0;
-        while i < self.buy_orders.len() && !self.sell_orders.is_empty() {
-            let buy_order = &self.buy_orders[i];
-            let sell_order = &self.sell_orders[0];
+        while i < self.sell_orders.len() {
+            let sell_order = self.sell_orders[i].clone();
 
-            // Check if a match is possible
-            if buy_order.price_usd >= sell_order.price_usd {
-                let mut buy_order = self.buy_orders.remove(i);
-                let mut sell_order = self.sell_orders.remove(0);
-
-                // if self.allow_partial_matching {
-                    if buy_order.qty <= sell_order.qty {
-                        sell_order.qty -= buy_order.qty;
-                        log::info!("MATCH \t Buy Order: {:?} with Sell Order", buy_order);
-                        if sell_order.qty > 0.0 {
-                            self.sell_orders.insert(0, sell_order);
-                        }
-                    } else {
-                        buy_order.qty -= sell_order.qty;
-                        log::info!("MATCH \t Sell Order: {:?} with Buy Order", sell_order);
-                        self.buy_orders.insert(i, buy_order);
-                    }
-                // } else {
-                //     // Exact matching only
-                //     if buy_order.qty == sell_order.qty {
-                //         log::info!("MATCH \t Buy Order: {:?} with Sell Order: {:?}", buy_order, sell_order);
-                //     } else {
-                //         // No exact match, put them back
-                //         self.buy_orders.insert(i, buy_order);
-                //         self.sell_orders.insert(0, sell_order);
-                //         i += 1;
-                //     }
-                // }
-            } else {
-                // No more matches possible
-                break;
+            // Check if the sell order can be matched with the highest buy order
+            if let Some(highest_buy_order) = self.buy_orders.first() {
+                if sell_order.price_usd.abs() <= highest_buy_order.price_usd {
+                    self.sell_orders.remove(i);
+                    Self::match_order(&self.nats_client, sell_order, &mut self.buy_orders, &mut self.sell_orders).await;
+                    continue; // Recheck the current index after removal
+                }
             }
+
+            i += 1; // Move to the next sell order if no match
         }
+
+        // Attempt to match all buy orders with sell orders
+        let mut i = 0;
+        while i < self.buy_orders.len() {
+            let buy_order = self.buy_orders[i].clone();
+
+            // Check if the buy order can be matched with the lowest sell order
+            if let Some(lowest_sell_order) = self.sell_orders.first() {
+                if buy_order.price_usd >= lowest_sell_order.price_usd.abs() {
+                    self.buy_orders.remove(i);
+                    Self::match_order(&self.nats_client, buy_order, &mut self.sell_orders, &mut self.buy_orders).await;
+                    continue; // Recheck the current index after removal
+                }
+            }
+
+            i += 1; // Move to the next buy order if no match
+        }
+
+        log::info!("SCAN \t Complete.");
     }
 }
