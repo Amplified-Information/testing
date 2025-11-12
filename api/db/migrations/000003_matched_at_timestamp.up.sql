@@ -1,0 +1,2 @@
+ALTER TABLE order_requests
+ADD COLUMN matched_at TIMESTAMP DEFAULT NULL;

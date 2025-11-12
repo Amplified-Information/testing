@@ -1,18 +1,23 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+
+	pb_clob "api/gen/clob"
 
 	"github.com/nats-io/nats.go"
 )
 
 type NatsService struct {
-	nats *nats.Conn
+	nats          *nats.Conn
+	hederaService *HederaService
+	dbService     *DbService
 }
 
-func (n *NatsService) InitNATS() error {
+func (n *NatsService) InitNATS(h *HederaService, d *DbService) error {
 	natsURL := os.Getenv("NATS_URL")
 	if natsURL == "" {
 		natsURL = nats.DefaultURL
@@ -22,6 +27,12 @@ func (n *NatsService) InitNATS() error {
 		return fmt.Errorf("failed to connect to NATS: %v", err)
 	}
 	n.nats = natsConn
+
+	// and inject the HederaService:
+	n.hederaService = h
+	// and inject the DbService:
+	n.dbService = d
+
 	log.Println("NATS initialized successfully")
 	return nil
 }
@@ -56,9 +67,22 @@ func (n *NatsService) Subscribe(subject string, handler nats.MsgHandler) (*nats.
 
 func (n *NatsService) HandleOrderMatches(subject string) error {
 	_, err := n.Subscribe(subject, func(msg *nats.Msg) {
-		fmt.Printf("Received MATCH message: %s\n", string(msg.Data))
+		fmt.Printf("Received MATCH on %s: %s\n", subject, string(msg.Data))
 
-		
+		// Add the match to the database (auditing)
+		var orderRequestClob pb_clob.OrderRequestClob
+		if err := json.Unmarshal(msg.Data, &orderRequestClob); err != nil {
+			log.Printf("Error parsing order data: %v", err)
+			return
+		}
+		txID := orderRequestClob.TxId
+		n.dbService.UpdateOrderMatchedAt(txID)
+
+		// Now submit the match to the smart contract
+		err := n.hederaService.BuyShares(&orderRequestClob)
+		if err != nil {
+			log.Printf("Error submitting match (txid=%s) to smart contract: %v ", orderRequestClob.TxId, err)
+		}
 	})
 	if err != nil {
 		return err

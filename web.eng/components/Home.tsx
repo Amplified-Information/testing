@@ -1,5 +1,5 @@
 import OrderBook from './OrderBook'
-import PlacePrediction from './PlacePrediction'
+// import PlacePrediction from './PlacePrediction'
 import Signer from './Signer'
 
 const Home = () => {
@@ -7,9 +7,9 @@ const Home = () => {
   
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <div style={{ flex: 1 }}>
+      {/* <div style={{ flex: 1 }}>
         <PlacePrediction />
-      </div>
+      </div> */}
       <div style={{ flex: 1, marginLeft: '20px' }}>
         <h2>Order Book</h2>
         <OrderBook />

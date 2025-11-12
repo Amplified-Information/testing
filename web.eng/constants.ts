@@ -19,15 +19,18 @@ const walletMetaData = {
   icons: ['https://avatars.githubusercontent.com/u/31002956']
 }
 
-const defaultPredictionIntentRequest: PredictionIntentRequest = {
-  txId: genUUIDv7(),
-  marketId: genUUIDv7(),
-  utc: new Date().toISOString(),
-  accountId: '0.0.1',
-  marketLimit: 'limit',
-  priceUsd: 0,
-  qty: 0,
-  sig: ''
+const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
+  return {
+    txId: genUUIDv7(),
+    net: 'testnet',
+    marketId: genUUIDv7(),
+    generatedAt: new Date().toISOString(),
+    accountId: '0.0.1',
+    marketLimit: 'limit',
+    priceUsd: 0,
+    qty: 0,
+    sig: ''
+  }
 }
 
 export { 

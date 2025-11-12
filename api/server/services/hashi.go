@@ -9,25 +9,27 @@ import (
 	"strconv"
 	"time"
 
-	pb "api/gen"
+	pb_api "api/gen"
 	"api/server/lib"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
 type Hashi struct {
-	dbService   *DbService
-	natsService *NatsService
+	dbService     *DbService
+	natsService   *NatsService
+	hederaService *HederaService
 }
 
-func (h *Hashi) InitHashi(dbService *DbService, natsService *NatsService) {
+func (h *Hashi) InitHashi(dbService *DbService, natsService *NatsService, hederaService *HederaService) {
 	h.dbService = dbService
 	h.natsService = natsService
+	h.hederaService = hederaService
 
 	log.Println("Hashi initialized successfully")
 }
 
-func (h *Hashi) SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string, error) {
+func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (string, error) {
 	// validations
 	// - req.AccountId is a valid Hedera account ID
 	//   req.AccountId has a value >= 0.0.1000
@@ -42,7 +44,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string,
 	}
 
 	// Validate timestamp is within the last TIMESTAMP_ALLOWED_PAST_SECONDS seconds
-	timestamp, err := time.Parse(time.RFC3339, req.Utc)
+	timestamp, err := time.Parse(time.RFC3339, req.GeneratedAt)
 	if err != nil {
 		return "", fmt.Errorf("invalid timestamp format: %v", err)
 	}
@@ -60,16 +62,26 @@ func (h *Hashi) SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string,
 	futureDelta := now.Add(time.Duration(allowedFutureSeconds) * time.Second)
 
 	if timestamp.Before(pastDelta) {
-		return "", fmt.Errorf("timestamp is too old: %s", req.Utc)
+		return "", fmt.Errorf("timestamp is too old: %s", req.GeneratedAt)
 	}
 
 	if timestamp.After(futureDelta) {
-		return "", fmt.Errorf("timestamp is too far in the future: %s. Now: %s", req.Utc, now)
+		return "", fmt.Errorf("timestamp is too far in the future: %s. Now: %s", req.GeneratedAt, now)
+	}
+
+	// check we haven't received this txid previously
+	exists, err := h.dbService.IsDuplicateTxId(req.TxId)
+	if err != nil {
+		return "", fmt.Errorf("failed to check existing txId: %v", err)
+	}
+	if exists {
+		log.Printf("DUPLICATE: %s", req.TxId)
+		return "", fmt.Errorf("duplicate txId: %s", req.TxId)
 	}
 
 	// Validate signature against public key from mirror node
 	// First look up the Hedera accountId against the mirror node
-	publicKey, err := lib.GetPublicKey(accountId)
+	publicKey, err := h.hederaService.GetPublicKey(accountId)
 	if err != nil {
 		return "", fmt.Errorf("failed to get public key: %v", err)
 	}
@@ -88,7 +100,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string,
 	serializedSansSigUTF8 := string(serializedSansSigBytes)
 	log.Printf("Serialized message sans sig (UTF8): %s", serializedSansSigUTF8)
 
-	isValidSig, err := lib.VerifySignature(publicKey.Key, serializedSansSigUTF8, req.Sig)
+	isValidSig, err := h.hederaService.VerifySignature(publicKey.Key, serializedSansSigUTF8, req.Sig)
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
@@ -118,22 +130,13 @@ func (h *Hashi) SubmitPredictionIntent(req *pb.PredictionIntentRequest) (string,
 		return "", fmt.Errorf("failed to parse USDC_DECIMALS: %v", err)
 	}
 
-	spenderAllowanceUsd, err := lib.GetSpenderAllowanceUsd(*_networkSelected, accountId, _smartContractId, usdcAddress, usdcDecimals)
+	spenderAllowanceUsd, err := h.hederaService.GetSpenderAllowanceUsd(*_networkSelected, accountId, _smartContractId, usdcAddress, usdcDecimals)
 	if err != nil {
 		return "", fmt.Errorf("failed to get spender allowance: %v", err)
 	}
 	log.Printf(("Spender allowance for account %s on contract %s: $%.2f"), accountId.String(), _smartContractId.String(), spenderAllowanceUsd)
 	if spenderAllowanceUsd < (req.GetPriceUsd() * req.GetQty()) {
 		return "", fmt.Errorf("Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
-	}
-
-	// check we haven't received this txid previously
-	exists, err := h.dbService.IsDuplicateTxId(req.TxId)
-	if err != nil {
-		return "", fmt.Errorf("failed to check existing txId: %v", err)
-	}
-	if exists {
-		return "", fmt.Errorf("duplicate txId: %s", req.TxId)
 	}
 
 	/// OK - now you can put the order on the CLOB

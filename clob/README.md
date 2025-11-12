@@ -58,7 +58,8 @@ cargo run
 **Place an order:**
 
 ```bash
-export OWNER="0.0.12345"
+export ACCOUNTID="0.0.12345"
+export NET="testnet"
 export PRICE_USD=0.5000005
 export MARKET_LIMIT=limit
 export QTY=1.5
@@ -70,7 +71,7 @@ UUID7=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
   $(( RANDOM & 0x0FFF )) \
   $(( RANDOM<<24 | RANDOM<<12 | RANDOM )) )
 
-grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"txId":"'$UUID7'","marketId":"'$UUID7'","accountId":"'$OWNER'","marketLimit":"'$MARKET_LIMIT'","priceUsd":'$PRICE_USD',"qty":'$QTY'}' localhost:50051 clob.Clob/PlaceOrder
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"txId":"'$UUID7'","net":"'$NET'","marketId":"'$UUID7'","accountId":"'$ACCOUNTID'","marketLimit":"'$MARKET_LIMIT'","priceUsd":'$PRICE_USD',"qty":'$QTY'}' localhost:50051 clob.Clob/PlaceOrder
 ```
 
 **View full orderbook (non-streaming):**

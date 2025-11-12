@@ -5,19 +5,19 @@ package clob;
 import "validate/validate.proto";
 
 service Clob {
-  rpc PlaceOrder (OrderRequest) returns (OrderResponse);
+  rpc PlaceOrder (OrderRequestClob) returns (OrderResponse);
   rpc GetBook (BookRequest) returns (BookSnapshot);
   rpc StreamBook (BookRequest) returns (stream BookSnapshot);
 }
 
-// TODO - rename this to something other than OrderRequest (conflicts with OrderRequest in api.proto)
-message OrderRequest {
+message OrderRequestClob {
   string tx_id = 1 [json_name = "txId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
-  string market_id = 2 [json_name = "marketId"];
-  string account_id = 3 [json_name = "accountId"];
-  string market_limit = 4 [json_name = "marketLimit"];
-  double price_usd = 5 [json_name = "priceUsd"];
-  double qty = 6 [json_name = "qty"];
+  string net = 2 [json_name = "net"];
+  string market_id = 3 [json_name = "marketId"];
+  string account_id = 4 [json_name = "accountId"];
+  string market_limit = 5 [json_name = "marketLimit"];
+  double price_usd = 6 [json_name = "priceUsd"];
+  double qty = 7 [json_name = "qty"];
 }
 
 message OrderResponse {

@@ -3,7 +3,7 @@ use tonic::{Request, Response, Status};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio::sync::mpsc;
 use crate::orderbook::OrderBookService;
-use crate::orderbook::proto::{OrderRequest, OrderResponse, BookRequest, BookSnapshot, clob_server::{Clob, ClobServer}};
+use crate::orderbook::proto::{OrderRequestClob, OrderResponse, BookRequest, BookSnapshot, clob_server::{Clob, ClobServer}};
 
 #[derive(Debug, Clone)]
 pub struct ClobService {
@@ -20,7 +20,7 @@ impl ClobService {
 impl Clob for ClobService {
     async fn place_order(
         &self,
-        request: Request<OrderRequest>,
+        request: Request<OrderRequestClob>,
     ) -> Result<Response<OrderResponse>, Status> {
         let order = request.into_inner();
         

@@ -1,22 +1,57 @@
-package lib
+package services
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 
 	"os"
 
+	"api/server/lib"
+
+	pb_clob "api/gen/clob"
+
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
+
+type HederaService struct {
+	hedera_client *hiero.Client
+}
 
 type PublicKey struct {
 	KeyType string
 	Key     string
 }
 
-func VerifySignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bool, error) {
+func (h *HederaService) InitHedera() (*hiero.Client, error) {
+	networkSelected := os.Getenv("HEDERA_NETWORK_SELECTED")
+	operatorIdStr := os.Getenv("HEDERA_OPERATOR_ID")
+	operatorKeyStr := os.Getenv("HEDERA_OPERATOR_KEY")
+
+	operatorId, err := hiero.AccountIDFromString(operatorIdStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid HEDERA_OPERATOR_ID: %v", err)
+	}
+
+	operatorKey, err := hiero.PrivateKeyFromStringECDSA(operatorKeyStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid HEDERA_OPERATOR_KEY: %v", err)
+	}
+
+	client, err := hiero.ClientForName(networkSelected)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Hedera client: %v", err)
+	}
+
+	client.SetOperator(operatorId, operatorKey)
+
+	log.Println("Hedera initialized successfully")
+	return client, nil
+}
+
+func (h *HederaService) VerifySignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bool, error) {
 	// _pubKeyHex := "03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787"
 	// **works**
 	// _messageUTF8 := "aGVsbG8=" // hello
@@ -24,19 +59,19 @@ func VerifySignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bo
 	// **works**
 	// _sigBase64 := "NsiQSJWWx+SrZK3OsxdbIgNgxch//+RoRk6BZG5gsrJy1NoE7d1OKW/d4/Jo5lu/amkPp8zWzTB4PKTi1BRSZw==" // hello
 	// **works**
-	// _messageUTF8 := "{\"txid\":\"019a2c12-633b-75e7-8004-4585f525048c\",\"marketId\":\"019a2c12-633b-75e7-8004-4839f51ba5eb\",\"utc\":\"2025-10-28T18:26:33.915Z\",\"accountId\":\"0.0.7090546\",\"buySell\":\"buy\",\"priceUsd\":0,\"nShares\":0}"
+	// _messageUTF8 := "{\"txid\":\"019a2c12-633b-75e7-8004-4585f525048c\",\"marketId\":\"019a2c12-633b-75e7-8004-4839f51ba5eb\",\"generated_at\":\"2025-10-28T18:26:33.915Z\",\"accountId\":\"0.0.7090546\",\"buySell\":\"buy\",\"priceUsd\":0,\"nShares\":0}"
 	// _sigBase64 := "0Kq5/wcUzqFXggdx/LkJpP1JbwGudaNdNN7wbIRZoyU1QO7bPVCKyJTuBSxfF8SSgyu0aMhTi2n8E6kD7vizEw=="
 	// **works**
-	// _messageUTF8 := "{\"txid\":\"019a2c4d-890b-759c-816e-d5e88ed59168\",\"marketId\":\"019a2c4d-890b-759c-816e-da2f5739d388\",\"utc\":\"2025-10-28T19:31:10.219Z\",\"accountId\":\"0.0.7090546\",\"buySell\":\"buy\",\"priceUsd\":0.5,\"nShares\":2}"
+	// _messageUTF8 := "{\"txid\":\"019a2c4d-890b-759c-816e-d5e88ed59168\",\"marketId\":\"019a2c4d-890b-759c-816e-da2f5739d388\",\"generated_at\":\"2025-10-28T19:31:10.219Z\",\"accountId\":\"0.0.7090546\",\"buySell\":\"buy\",\"priceUsd\":0.5,\"nShares\":2}"
 	// _sigBase64 := "Fhs1PJ1bCji5jS951CT43Mu9q5Y1YLVBTgFsSKkG0Ap9ocmb6O9RsEIpn4QVan5X38tHovj+9P5GmIUh5SVwWw=="
 
-	fmt.Printf("VerifyHashPackSignature: \n- pubKeyHex: %s\n- messageUTF8: %s\n- sigBase64: %s\n", pubKeyHex, messageUTF8, sigBase64)
+	log.Printf("VerifyHashPackSignature: \n- pubKeyHex: %s\n- messageUTF8: %s\n- sigBase64: %s\n", pubKeyHex, messageUTF8, sigBase64)
 
-	isSigValid, err := VerifyHashPackSignature(pubKeyHex, messageUTF8, sigBase64)
+	isSigValid, err := h.VerifyHashPackSignature(pubKeyHex, messageUTF8, sigBase64)
 	if err != nil {
 		return false, err
 	}
-	// fmt.Printf("verified: %b\n", ok)
+
 	return isSigValid, nil
 }
 
@@ -44,7 +79,7 @@ func VerifySignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bo
 // pubKeyHex: compressed Hedera ECDSA public key (33 bytes, hex string)
 // messageUTF8: the original message that was signed
 // sigBase64: the Base64 R||S signature from HashPack
-func VerifyHashPackSignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bool, error) {
+func (h *HederaService) VerifyHashPackSignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bool, error) {
 	// Decode Base64 signature
 	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
 	if err != nil {
@@ -68,10 +103,10 @@ func VerifyHashPackSignature(pubKeyHex string, messageUTF8 string, sigBase64 str
 	return verified, nil
 }
 
-func GetPublicKey(accountId hiero.AccountID) (PublicKey, error) {
+func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (PublicKey, error) {
 	// TODO... may get rate limited here...
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", os.Getenv("HEDERA_NETWORK_SELECTED"), accountId)
-	resp, err := Fetch(GET, mirrorNodeURL, nil)
+	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
 
 	if err != nil {
 		return PublicKey{}, fmt.Errorf("failed to query mirror node: %v", err)
@@ -95,10 +130,10 @@ func GetPublicKey(accountId hiero.AccountID) (PublicKey, error) {
 	return PublicKey{KeyType: result.Key.Type_, Key: result.Key.Key}, nil
 }
 
-func GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
+func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
 
-	resp, err := Fetch(GET, mirrorNodeURL, nil)
+	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
 	if err != nil {
 		return 0, fmt.Errorf("error fetching allowance: %w", err)
 	}
@@ -127,6 +162,7 @@ func GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.Acco
 	return amount, nil
 }
 
-func BuyShares() error {
-	
+func (h *HederaService) BuyShares(orderRequestClob *pb_clob.OrderRequestClob) error {
+	log.Println("BuyShares!")
+	return nil
 }

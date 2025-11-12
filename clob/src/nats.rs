@@ -1,4 +1,4 @@
-use crate::{constants, orderbook::{OrderBookService, proto::OrderRequest}};
+use crate::{constants, orderbook::{OrderBookService, proto::OrderRequestClob}};
 use async_nats::ServerAddr;
 use futures_util::StreamExt;
 
@@ -18,11 +18,11 @@ pub async fn subscribe_and_place_orders(
     let mut subscriber = nats.subscribe(constants::CLOB_ORDERS.to_string()).await?;
 
     while let Some(message) = subscriber.next().await {
-        match serde_json::from_slice::<OrderRequest>(&message.payload) {
+        match serde_json::from_slice::<OrderRequestClob>(&message.payload) {
             Ok(order) => {
-                log::info!("EVENT OrderRequest: {:?}", order);
-                let _ = order_book_service.place_order(OrderRequest {
+                let _ = order_book_service.place_order(OrderRequestClob {
                         tx_id: order.tx_id,
+                        net: order.net,
                         market_id: order.market_id,
                         account_id: order.account_id,
                         market_limit: order.market_limit,

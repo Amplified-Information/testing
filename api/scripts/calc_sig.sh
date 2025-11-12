@@ -26,7 +26,7 @@ MARKET_ID=$(generate_uuidv7)
 JSON_MESSAGE=$(jq -n \
     --arg txid "$TXID" \
     --arg marketId "$MARKET_ID" \
-    --arg utc "$UTC" \
+    --arg generatedAt "$UTC" \
     --arg accountId "$ACCOUNT_ID" \
     --argjson buySell "$BUYSELL" \
     --argjson priceUsd "$PRICE_USD" \

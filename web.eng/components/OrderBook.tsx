@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useAppContext } from '../AppProvider'
 import { clobClient } from '../grpcClient'
 import { getMidPrice, getSpreadPercent } from '../lib/utils'
+import Cancel from './Canel'
 
 const DEPTH = 0
 
@@ -37,14 +38,18 @@ const OrderBook = () => {
         ))} */}
         
         {(book?.asks ?? []).slice().sort((a, b) => a.priceUsd - b.priceUsd).map((ask, idx) => (
-          <li key={`ask-${idx}`} style={{ color: 'red' }}>
-            ${(0 - ask.priceUsd).toFixed(4)} &mdash; {ask.qty.toFixed(2)} {ask.accountId === signerZero?.getAccountId().toString() ? '(You)' : ''}
+          <li key={`ask-${idx}`}>
+            <span style={{ color: 'red' }}>
+              ${(0 - ask.priceUsd).toFixed(4)} &mdash; {ask.qty.toFixed(2)}</span>
+              &nbsp;{ask.accountId === signerZero?.getAccountId().toString() ? <Cancel txId={ask.txId} /> : ''}
           </li>
         ))}
         --- mid-price: {typeof getMidPrice(book) === 'undefined' ? 'N/A' : getMidPrice(book)!.toFixed(4)}, spread: {typeof getSpreadPercent(book) === 'undefined' ? 'N/A' : getSpreadPercent(book)!.toFixed(2)}% ---
         {(book?.bids ?? []).slice().sort((a, b) => b.priceUsd - a.priceUsd).map((bid, idx) => (
-          <li key={`bid-${idx}`} style={{ color: 'green' }}>
-            ${bid.priceUsd.toFixed(4)} &mdash; {bid.qty.toFixed(2)} {bid.accountId === signerZero?.getAccountId().toString() ? '(You)' : ''}
+          <li key={`bid-${idx}`}>
+            <span style={{ color: 'green' }}>
+            ${bid.priceUsd.toFixed(4)} &mdash; {bid.qty.toFixed(2)}</span>
+            &nbsp;{bid.accountId === signerZero?.getAccountId().toString() ? <Cancel txId={bid.txId} /> : ''}
           </li>
         ))} 
         

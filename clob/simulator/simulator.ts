@@ -1,5 +1,5 @@
 import { ClobClient } from './gen/clob.client.js'
-import { OrderRequest } from './gen/clob.js'
+import { OrderRequestClob } from './gen/clob.js'
 import grpc from '@grpc/grpc-js'
 import { v7 as uuidv7 } from 'uuid'
 import { GrpcTransport } from '@protobuf-ts/grpc-transport'
@@ -91,6 +91,7 @@ const initConnection = (): ClobClient => {
 
 const placeOrder = async (client: ClobClient) => {
   const txId = uuidv7()
+  const net = 'testnet'
   const marketId = uuidv7()
   const accountId = `0.0.${Math.floor(1000 + Math.random() * 9000)}`
   
@@ -104,8 +105,9 @@ const placeOrder = async (client: ClobClient) => {
   let priceUsd = INITIAL_PRICE + perturbation
   priceUsd = constrain(priceUsd, 0, PRICE_RANGE.max)
 
-  const order = OrderRequest.create({
+  const order = OrderRequestClob.create({
     txId: txId,
+    net: net,
     marketId: marketId,
     accountId: accountId,
     marketLimit: 'limit',

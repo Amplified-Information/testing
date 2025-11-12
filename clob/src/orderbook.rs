@@ -5,7 +5,7 @@ use log;
 pub mod proto {
     tonic::include_proto!("clob");
 }
-use proto::{OrderRequest, BookSnapshot, OrderDetail};
+use proto::{OrderRequestClob, BookSnapshot, OrderDetail};
 
 use crate::constants;
 
@@ -21,7 +21,7 @@ impl OrderBookService {
         }
     }
 
-    pub async fn place_order(&self, order: OrderRequest) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn place_order(&self, order: OrderRequestClob) -> Result<(), Box<dyn std::error::Error>> {
         let mut book = self.order_book.write().await;
         book.add_order(order.clone()).await;
         Ok(())
@@ -47,8 +47,8 @@ impl OrderBookService {
 
 #[derive(Debug)]
 pub struct OrderBook {
-    buy_orders: Vec<OrderRequest>,
-    sell_orders: Vec<OrderRequest>,
+    buy_orders: Vec<OrderRequestClob>,
+    sell_orders: Vec<OrderRequestClob>,
     nats_client: async_nats::Client
 }
 
@@ -61,8 +61,8 @@ impl OrderBook {
         }
     }
 
-    pub async fn add_order(&mut self, order: OrderRequest) {
-        log::info!("CREATE \t OrderRequest: {:?}", order); // Log the incoming order
+    pub async fn add_order(&mut self, order: OrderRequestClob) {
+        log::info!("CREATE \t OrderRequestClob: {:?}", order); // Log the incoming order
 
         if order.price_usd < 0.0 {
             Self::match_order(&self.nats_client, order, &mut self.buy_orders, &mut self.sell_orders).await;
@@ -71,7 +71,7 @@ impl OrderBook {
         }
     }
 
-    async fn match_order(nats_client: &async_nats::Client, mut incoming_order: OrderRequest, opposite_orders: &mut Vec<OrderRequest>, same_side_orders: &mut Vec<OrderRequest>) {
+    async fn match_order(nats_client: &async_nats::Client, mut incoming_order: OrderRequestClob, opposite_orders: &mut Vec<OrderRequestClob>, same_side_orders: &mut Vec<OrderRequestClob>) {
         // log::info!("Matching order: {:?}", incoming_order);
         // log::info!("Opposite orders before sorting: {:?}", opposite_orders);
 
@@ -101,7 +101,8 @@ impl OrderBook {
                     if existing_order.qty == 0.0 {
                         opposite_orders.remove(i);
                     }
-                    log::info!("MATCH \t OrderRequest: {:?}", incoming_order);
+                    // TODO - want both matching orders in the match message
+                    log::info!("MATCH \t OrderRequestClob: {:?}", incoming_order);
                     
                     if let Err(e) = nats_client.publish(constants::CLOB_MATCHES, serde_json::to_vec(&incoming_order).unwrap().into()).await {
                         log::error!("Failed to publish MATCH to NATS: {:?}", e);

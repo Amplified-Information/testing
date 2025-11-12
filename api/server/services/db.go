@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	pb "api/gen"
+	pb_api "api/gen"
 
 	_ "github.com/lib/pq"
 )
@@ -24,7 +24,7 @@ func (dbService *DbService) CloseDb() error {
 }
 
 func (dbService *DbService) InitDb() error {
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_UNAME"), os.Getenv("DB_PWORD"), os.Getenv("DB_NAME"))
 
 	var db, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -52,7 +52,7 @@ func (dbService *DbService) IsDuplicateTxId(txId string) (bool, error) {
 }
 
 // SaveOrderRequest saves an order request to the database
-func (dbService *DbService) SaveOrderRequest(req *pb.PredictionIntentRequest) error {
+func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest) error {
 	if dbService.db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -60,17 +60,18 @@ func (dbService *DbService) SaveOrderRequest(req *pb.PredictionIntentRequest) er
 	// Using raw SQL queries - no ORM for simplicity and performance
 	// TODO: sqlc or sqlx
 	insertSQL := `
-		INSERT INTO order_requests (tx_id, market_id, account_id, market_limit, price_usd, qty, utc, sig)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO order_requests (tx_id, net, market_id, account_id, market_limit, price_usd, qty, generated_at, sig)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := dbService.db.Exec(insertSQL,
 		req.TxId,
+		req.Net,
 		req.MarketId,
 		req.AccountId,
 		req.MarketLimit,
 		req.PriceUsd,
 		req.Qty,
-		req.Utc,
+		req.GeneratedAt,
 		req.Sig,
 	)
 
@@ -79,5 +80,24 @@ func (dbService *DbService) SaveOrderRequest(req *pb.PredictionIntentRequest) er
 	}
 
 	log.Printf("Saved order request to database for account %s", req.AccountId)
+	return nil
+}
+
+func (dbService *DbService) UpdateOrderMatchedAt(txId string) error {
+	if dbService.db == nil {
+		return fmt.Errorf("database not initialized!")
+	}
+
+	updateSQL := `
+		UPDATE order_requests
+		SET matched_at = NOW()
+		WHERE tx_id = $1`
+
+	_, err := dbService.db.Exec(updateSQL, txId)
+	if err != nil {
+		return fmt.Errorf("failed to update matched_at for txId %s: %v", txId, err)
+	}
+
+	log.Printf("Updated \"matched_at\" timestamp for txId %s", txId)
 	return nil
 }
