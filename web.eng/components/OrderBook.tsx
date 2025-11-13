@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useAppContext } from '../AppProvider'
 import { clobClient } from '../grpcClient'
 import { getMidPrice, getSpreadPercent } from '../lib/utils'
-import Cancel from './Canel'
+import Cancel from './Cancel'
 
 const DEPTH = 0
 

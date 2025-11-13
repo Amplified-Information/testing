@@ -9,7 +9,6 @@ type NetConf = {
 }
 
 const networkSelected: HederaNetwork = 'testnet'
-
 const operatorAccountId: string = '0.0.7090546'
 const operatorKeyType: HederaKeyType = 'ecdsa'
 

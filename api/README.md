@@ -7,19 +7,26 @@ echo $GOPATH
 # make sure Go version is >1.22
 go version
 
+# generate protobuf interface
+cd api
+./genProto.sh
+
+# run the server:
+cd api
+set -a # automatically export all variables
+source ./.config.local
+source ./.secrets.local
+set +a # turn off auto-export
+go run ./server/
+```
+
+## start from scratch
+
+```bash
 cd api
 go mod init api # module name is 'api'
 go mod tidy
 
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-go install github.com/envoyproxy/protoc-gen-validate@latest
-go get google.golang.org/grpc
-go get github.com/envoyproxy/protoc-gen-validate@latest
-go get github.com/btcsuite/btcd/btcec/v2
-go get golang.org/x/crypto/sha3
-go get "github.com/decred/dcrd/dcrec/secp256k1/v4"
-go get github.com/hiero-ledger/hiero-sdk-go/v2/sdk
 # use Envoy’s PGV
 mkdir -p proto/validate
 curl -sSL https://raw.githubusercontent.com/envoyproxy/protoc-gen-validate/main/validate/validate.proto -o proto/validate/validate.proto
@@ -30,16 +37,6 @@ mkdir -p proto/google
 # now generate the interface
 cd api
 ./genProto.sh
-
-
-
-# run the server:
-cd api
-set -a # automatically export all variables
-source ./.config.local
-source ./.secrets.local
-set +a # turn off auto-export
-go run ./server/
 ```
 
 ```bash
@@ -125,6 +122,8 @@ Please test the up/downs in lower envs!
 cd api
 source ./.config.local
 source ./.secrets.local
-DB_URL=postgres://$DB_HOST:$DB_PORT/$DB_NAME
+# or...
+source ./loadEnv.sh local
+DB_URL=postgres://$DB_UNAME:$DB_PWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable
 migrate -database $DB_URL -path db/migrations down
 ```

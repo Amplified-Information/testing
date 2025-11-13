@@ -65,23 +65,30 @@ const main = async () => {
     const buyTx = await new ContractExecuteTransaction()
       .setContractId(contractId)
       .setGas(1_000_000)
-      .setFunction('buyShares',
-        new ContractFunctionParameters().addUint256(amountUnits.toString()))
+      .setFunction('buyPositionTokens',
+        new ContractFunctionParameters()
+          .addUint256(amountUnits.toString()))
       .execute(client)
 
     const buyReceipt = await buyTx.getReceipt(client);
-    console.log('buyShares status:', buyReceipt.status.toString());
-  //   const query = new ContractExecuteTransaction()
-  //     .setContractId(ContractId.fromString(contractId))
-  //     .setGas(100000)
-  //     .setFunction(
-  //       'buyShares',
-  //       new ContractFunctionParameters().addUint256(amount)
-  //     )
-  //     .
+    console.log('buyPositionTokens status:', buyReceipt.status.toString());
 
-  //   const result = await query.execute(client)
 
+     // 4) buy outcome tokens on behalf of another account which has an allowance set (buyPositionTokensOnBehalf)
+    console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`);
+    const buyTx4 = await new ContractExecuteTransaction()
+      .setContractId(contractId)
+      .setGas(1_000_000)
+      .setFunction('buyPositionTokensOnBehalf',
+        new ContractFunctionParameters()
+          .addAddress(client.operatorPublicKey!.toEvmAddress())
+          .addUint256(amountUnits.toString()))
+      .execute(client)
+
+    const buyReceipt4 = await buyTx4.getReceipt(client);
+    console.log('buyPositionTokensOnBehalf status:', buyReceipt4.status.toString());
+ 
+ 
   //   // getUint256 returns BigNumber-like object; convert to string
   //   const yes = result.getUint256(0).toString()
   //   const no = result.getUint256(1).toString()

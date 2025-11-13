@@ -2,7 +2,7 @@ import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, Tok
 import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { initHederaClient } from './lib/hedera.ts'
 
-const [ client, operatorKey ] = initHederaClient(
+const [ client ] = initHederaClient(
   networkSelected,
   operatorAccountId,
   operatorKeyType

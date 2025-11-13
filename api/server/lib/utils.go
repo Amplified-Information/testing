@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -89,4 +90,14 @@ func Serialize64PredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentReq
 	serializedMessageBase64 := base64.StdEncoding.EncodeToString(jsonBytes)
 
 	return serializedMessageBase64, nil
+}
+
+func Int64ToBytes(n int64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(n))
+	return b
+}
+
+func BytesToInt64(b []byte) int64 {
+	return int64(binary.BigEndian.Uint64(b))
 }

@@ -16,11 +16,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let nats_port: String = std::env::var("NATS_PORT").unwrap_or_else(|_| panic!("Failed to read env var NATS_PORT"));
     let clob_matching_interval_seconds: u64 = std::env::var("CLOB_MATCHING_INTERVAL_SECONDS").unwrap_or_else(|_| "5".to_string()).parse().unwrap_or_else(|_| panic!("Failed to read env var CLOB_MATCHING_INTERVAL_SECONDS"));
 
-    // init NATS
-    let nats_client = nats::init_nats(&nats_host, &nats_port).await.expect("Failed to initialize NATS client");
+    // init NATS service
+    let nats_service = nats::NatsService::new(&nats_host, &nats_port).await
+        .expect("Failed to initialize NATS service");
     
-    // init orderbook
-    let order_book_service = OrderBookService::new(&nats_client);
+    // init orderbook service
+    let order_book_service = OrderBookService::new(&nats_service);
 
     // Start the periodic orderbook scan
     let order_book_service_for_scan = order_book_service.clone();
@@ -35,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // NATS: listen for new orders to add to orderbook
     let order_book_service_for_nats = order_book_service.clone();
     let nats_task = tokio::spawn(async move {
-        let result = nats::subscribe_and_place_orders(&nats_client, order_book_service_for_nats).await;
+        let result = nats::NatsService::subscribe_and_place_orders(&nats_service.nats_client, order_book_service_for_nats).await;
         if let Err(e) = result {
             log::error!("NATS subscription failed: {}", e);
         }

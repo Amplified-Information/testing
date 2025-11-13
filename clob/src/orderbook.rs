@@ -7,7 +7,7 @@ pub mod proto {
 }
 use proto::{OrderRequestClob, BookSnapshot, OrderDetail};
 
-use crate::constants;
+use crate::{nats};
 
 #[derive(Debug, Clone)]
 pub struct OrderBookService {
@@ -15,9 +15,9 @@ pub struct OrderBookService {
 }
 
 impl OrderBookService {
-    pub fn new(nats_client: &async_nats::Client) -> Self {
+    pub fn new(nats_service: &nats::NatsService) -> Self {
         Self {
-            order_book: Arc::new(RwLock::new(OrderBook::new(nats_client)))
+            order_book: Arc::new(RwLock::new(OrderBook::new(&nats_service.clone())))
         }
     }
 
@@ -49,15 +49,15 @@ impl OrderBookService {
 pub struct OrderBook {
     buy_orders: Vec<OrderRequestClob>,
     sell_orders: Vec<OrderRequestClob>,
-    nats_client: async_nats::Client
+    nats_service: Arc<nats::NatsService> // wrap in arc to make cloning cheap
 }
 
 impl OrderBook {
-    pub fn new(nats_client: &async_nats::Client) -> Self {
+    pub fn new(nats_service: &nats::NatsService) -> Self {
         Self {
             buy_orders: Vec::new(),
             sell_orders: Vec::new(),
-            nats_client: nats_client.clone()
+            nats_service: Arc::new(nats_service.clone()),
         }
     }
 
@@ -65,68 +65,65 @@ impl OrderBook {
         log::info!("CREATE \t OrderRequestClob: {:?}", order); // Log the incoming order
 
         if order.price_usd < 0.0 {
-            Self::match_order(&self.nats_client, order, &mut self.buy_orders, &mut self.sell_orders).await;
+            Self::match_order(&self.nats_service, order, &mut self.buy_orders, &mut self.sell_orders).await;
         } else {
-            Self::match_order(&self.nats_client, order, &mut self.sell_orders, &mut self.buy_orders).await;
+            Self::match_order(&self.nats_service, order, &mut self.sell_orders, &mut self.buy_orders).await;
         }
     }
 
-    async fn match_order(nats_client: &async_nats::Client, mut incoming_order: OrderRequestClob, opposite_orders: &mut Vec<OrderRequestClob>, same_side_orders: &mut Vec<OrderRequestClob>) {
-        // log::info!("Matching order: {:?}", incoming_order);
-        // log::info!("Opposite orders before sorting: {:?}", opposite_orders);
-
+    async fn match_order(nats_service: &nats::NatsService, mut incoming_order: OrderRequestClob, opposite_orders: &mut Vec<OrderRequestClob>, same_side_orders: &mut Vec<OrderRequestClob>) {
         opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
-        // // Sort opposite orders: descending for buy orders, ascending for sell orders
-        // if incoming_order.price_usd > 0.0 {
-        //     opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
-        // } else {
-        //     opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
-        // }
-        // log::info!("Opposite orders after sorting: {:?}", opposite_orders);
 
         let i = 0;
         while i < opposite_orders.len() {
             let existing_order = &mut opposite_orders[i];
-
-            // log::info!("Checking match: Incoming order price: {}, Existing order price: {}", incoming_order.price_usd, existing_order.price_usd);
-
             // Match based on price constraints
             if (incoming_order.price_usd > 0.0 && incoming_order.price_usd >= existing_order.price_usd) ||
                (incoming_order.price_usd < 0.0 && existing_order.price_usd >= incoming_order.price_usd.abs()) {
 
-                // log::info!("Price constraint satisfied. Attempting to match...");
-
+                let orc2= existing_order.clone();
                 if incoming_order.qty <= existing_order.qty {
                     existing_order.qty -= incoming_order.qty;
                     if existing_order.qty == 0.0 {
                         opposite_orders.remove(i);
                     }
-                    // TODO - want both matching orders in the match message
+
                     log::info!("MATCH \t OrderRequestClob: {:?}", incoming_order);
                     
-                    if let Err(e) = nats_client.publish(constants::CLOB_MATCHES, serde_json::to_vec(&incoming_order).unwrap().into()).await {
-                        log::error!("Failed to publish MATCH to NATS: {:?}", e);
-                    }
+
+                    // Notify NATS of full match - spawn to fire/forget
+                    let orc1 = incoming_order.clone();
+                    let nats_clone = nats_service.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = nats_clone.publish_match(false, &orc1, &orc2).await {
+                            log::error!("NATS\tFailed to publish match: {}", e);
+                        }
+                    });
+                    
                     return;
                 } else {
                     incoming_order.qty -= existing_order.qty;
-                    log::info!("MATCH_PARTIAL \t Remaining incoming order quantity: {}", incoming_order.qty);
-                    // log::info!("NATS \t published {:?} to: \"{}\"", order, "clob.matches");
-                    // self.nats_client.publish("clob.matches",  serde_json::to_vec(&order)?.into()).await?;
-                    // Note: Cannot publish to NATS here as match_order is a static method without access to nats_client
-                    // Consider refactoring to pass nats_client or handle publishing in the caller
                     opposite_orders.remove(i);
+
+                    log::info!("MATCH_PARTIAL \t Remaining incoming order quantity: {}", incoming_order.qty);
+                    
+                     // Notify NATS of partial match - spawn to fire/forget
+                    let orc1 = incoming_order.clone();
+                    let nats_clone = nats_service.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = nats_clone.publish_match(true, &orc1, &orc2).await {
+                            log::error!("NATS\tFailed to publish match: {}", e);
+                        }
+                    });
                     continue; // Continue searching for additional matches (partial match)
                 }
             } else {
-                // log::info!("Price constraint not satisfied. No match.");
                 // No match possible due to price constraint
                 break;
             }
         }
 
-        // If no match, add to the respective order book
-        // log::info!("No match found, adding to same side orders: {:?}", incoming_order);
+        // If no match, add to the respective order book // log::info!("No match found, adding to same side orders: {:?}", incoming_order);
         same_side_orders.push(incoming_order);
     }
 
@@ -168,7 +165,7 @@ impl OrderBook {
             if let Some(highest_buy_order) = self.buy_orders.first() {
                 if sell_order.price_usd.abs() <= highest_buy_order.price_usd {
                     self.sell_orders.remove(i);
-                    Self::match_order(&self.nats_client, sell_order, &mut self.buy_orders, &mut self.sell_orders).await;
+                    Self::match_order(&self.nats_service, sell_order, &mut self.buy_orders, &mut self.sell_orders).await;
                     continue; // Recheck the current index after removal
                 }
             }
@@ -185,7 +182,7 @@ impl OrderBook {
             if let Some(lowest_sell_order) = self.sell_orders.first() {
                 if buy_order.price_usd >= lowest_sell_order.price_usd.abs() {
                     self.buy_orders.remove(i);
-                    Self::match_order(&self.nats_client, buy_order, &mut self.sell_orders, &mut self.buy_orders).await;
+                    Self::match_order(&self.nats_service, buy_order, &mut self.sell_orders, &mut self.buy_orders).await;
                     continue; // Recheck the current index after removal
                 }
             }

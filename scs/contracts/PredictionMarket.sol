@@ -32,7 +32,7 @@ contract PredictionMarket {
     bool public outcome; // true = YES wins, false = NO wins
     uint256 public totalCollateral;
     
-    event SharesPurchased(address indexed buyer, uint256 amount);
+    event PositionTokensPurchased(address indexed buyer, uint256 amount);
     event MarketResolved(bool outcome);
     event WinningsRedeemed(address indexed user, uint256 amount);
     event TokenAssociated(address indexed token);
@@ -44,37 +44,50 @@ contract PredictionMarket {
     }
     
     // Buy equal amounts of YES and NO tokens with collateral (1:1:1 ratio)
-    function buyShares(uint256 amount/* TODO , string signature*/) external {
+    // - Validate the order (signature, expiry, etc.) // TODO
+    // - Collect collateral (e.g., USDC or HBAR equivalent).
+    // - Mint position tokens (YES/NO tokens) proportional to qty.
+    // - Emit events for off-chain indexers.
+    function buyPositionTokens(uint256 collateral) external {
         require(!resolved, "Market resolved");
         // require(block.timestamp < resolutionTime, "Market expired");
 
         // TODO - 1% trading fee?
         // TODO - how to incentivize market makers? Give them predict token...
         
+        collateralToken.transferFrom(msg.sender, address(this), collateral);
         
-        collateralToken.transferFrom(msg.sender, address(this), amount);
-        
-        yesTokens[msg.sender] += amount;
-        noTokens[msg.sender] += amount;
-        totalCollateral += amount;
+        yesTokens[msg.sender] += collateral;
+        noTokens[msg.sender] += collateral;
+        totalCollateral += collateral;
 
-        emit SharesPurchased(msg.sender, amount);
+        emit PositionTokensPurchased(msg.sender, collateral);
     }
 
     // Buy equal amounts of YES and NO tokens with collateral (1:1:1 ratio)
     // CLOB buys on behalf of a user's account
-    function buySharesOnBehalf(address buyer, uint256 amount) external {
+    // - Validate the order (signature, expiry, etc.)
+    // - Collect collateral (e.g., USDC or HBAR equivalent).
+    // - Mint position tokens (YES/NO tokens) proportional to qty.
+    // - Emit events for off-chain indexers.
+     // NOTE: buyer must approve this contract to spend collateral tokens before calling
+    // TODO - 1% trading fee?
+    // TODO - how to incentivize market makers? Give them predict token...
+    function buyPositionTokensOnBehalf(address buyer, uint256 collateral) external {
         require(!resolved, "Market resolved");
         // require(block.timestamp < resolutionTime, "Market expired");
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
-        collateralToken.transferFrom(buyer, address(this), amount);
+        // The buyer must have approved this contract (not msg.sender) to spend their tokens
+        // IERC20(usdcAddress).transferFrom(owner, recipient, amount);
+        // HederaTokenService.transferToken(token, from, to, amount);
+        require(collateralToken.transferFrom(buyer, address(this), collateral), "Transfer failed");
+        
+        yesTokens[buyer] += collateral;
+        noTokens[buyer] += collateral;
+        totalCollateral += collateral;
 
-        yesTokens[buyer] += amount;
-        noTokens[buyer] += amount;
-        totalCollateral += amount;
-
-        emit SharesPurchased(buyer, amount);
+        emit PositionTokensPurchased(buyer, collateral);
     }
     
     // Resolve market using Chainlink oracle

@@ -3,7 +3,7 @@ import { PredictionIntentRequest } from './gen/api'
 import { genUUIDv7 } from './lib/utils'
 
 const networksAvailable = [LedgerId.MAINNET, LedgerId.TESTNET, LedgerId.PREVIEWNET]
-const smartContractId = '0.0.7094500'
+const smartContractId = '0.0.7243612'
 const usdcAddress = '0.0.5449'
 const usdcDecimals = 6
 

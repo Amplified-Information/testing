@@ -47,6 +47,7 @@ func (h *HederaService) InitHedera() (*hiero.Client, error) {
 
 	client.SetOperator(operatorId, operatorKey)
 
+	h.hedera_client = client
 	log.Println("Hedera initialized successfully")
 	return client, nil
 }
@@ -162,7 +163,68 @@ func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, a
 	return amount, nil
 }
 
-func (h *HederaService) BuyShares(orderRequestClob *pb_clob.OrderRequestClob) error {
-	log.Println("BuyShares!")
+func (h *HederaService) GetEvmAlias(accountId hiero.AccountID) (string, error) {
+	info, err := hiero.NewAccountInfoQuery().
+		SetAccountID(accountId).
+		Execute(h.hedera_client)
+	if err != nil {
+		return "", fmt.Errorf("GetEvmAlias failed: %w", err)
+	}
+
+	return info.ContractAccountID, nil
+}
+
+func (h *HederaService) BuyPositionTokens(orderRequestClob *pb_clob.OrderRequestClob) error {
+	// amount := orderRequestClob.PriceUsd * orderRequestClob.NShares
+
+	// implement smart contract interaction to buy shares
+	// call function buyPositionTokensOnBehalf(address buyer, uint256 amount) external { ... }
+	// Create contract function call
+	smartContractIdStr := os.Getenv("SMART_CONTRACT_ID")
+	smartContractId, err := hiero.ContractIDFromString(smartContractIdStr)
+	if err != nil {
+		return fmt.Errorf("invalid SMART_CONTRACT_ID: %w", err)
+	}
+
+	accountId, err := hiero.AccountIDFromString(orderRequestClob.AccountId)
+	if err != nil {
+		return fmt.Errorf("BuyPositionTokens: invalid AccountId: %w", err)
+	}
+
+	// look up the alias key for accountId for EVM execution:
+	evmAlias, err := h.GetEvmAlias(accountId)
+	if err != nil {
+		return fmt.Errorf("failed to get alias key: %v", err)
+	}
+
+	params := hiero.NewContractFunctionParameters()
+	params.AddAddress(evmAlias) // accountId.ToEvmAddress()) // h.hedera_client.GetOperatorPublicKey().ToEvmAddress()) //accountId.ToEvmAddress())
+	params.AddUint256(lib.Int64ToBytes(int64(orderRequestClob.PriceUsd * orderRequestClob.Qty)))
+
+	contractCall := hiero.NewContractExecuteTransaction().
+		SetContractID(smartContractId).
+		SetGas(1_000_000). // paid by us...
+		SetFunction("buyPositionTokensOnBehalf", params)
+
+	// Execute transaction
+	txResponse, err := contractCall.Execute(h.hedera_client)
+	if err != nil {
+		return fmt.Errorf("failed to execute contract call: %w", err)
+		// TODO - put the order back on the CLOB...
+	}
+
+	// Get receipt
+	receipt, err := txResponse.GetReceipt(h.hedera_client)
+	if err != nil {
+		return fmt.Errorf("failed to get receipt: %w", err)
+		// TODO - put the order back on the CLOB...
+	}
+
+	if receipt.Status != hiero.StatusSuccess {
+		return fmt.Errorf("contract execution failed with status: %s", receipt.Status)
+		// TODO - put the order back on the CLOB...
+	}
+
+	log.Printf("Successfully bought %d position tokens for txId=%s. Hedera tx ID: %s", orderRequestClob.Qty, orderRequestClob.TxId, txResponse.TransactionID.String())
 	return nil
 }

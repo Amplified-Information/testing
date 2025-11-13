@@ -1,14 +1,16 @@
-### contract parameters
+# smart contract
+
+## contract parameters
 
 collateral token - USDC, USDC[hts], HBAR, etc.
 
-share tokens - ERC20-style or hts native
+position tokens - ERC20-style or hts native
 
 single oracle vs multiple oracles - simple shard tokens (ERC-20) or gnosis conditional token
 
 etc.
 
-# Comparison Table
+## Comparison Table
 
 | Collateral token  | Yes/No share token | Comments |
 |-------------------|--------------------|--------------------|
@@ -40,17 +42,22 @@ or...
 
 **Deploy contract:**
 
-Be sure to set the HEDERA_OPERATOR_KEY in `../shared/.env`
+Be sure to set the HEDERA_OPERATOR_KEY in `../shared/.secrets`
 
-Also, set the params in `scripts/deploy.ts`
+```bash
+source ./.secrets.local
+```
+
+Config is done in `scripts/constants.ts`
 
 ```bash
 cd scripts
 
-../node_modules/.bin/ts-node deploy.ts
+../node_modules/.bin/ts-node 0_deploy.ts
 
 # or...
 
+npm run compile
 npm run deploy
 
 export SMART_CONTRACT_ID=...
@@ -67,10 +74,9 @@ cd scripts
 # call getUserTokens (readonly):
 ../node_modules/.bin/ts-node 2_getUserTokens.ts $SMART_CONTRACT_ID 0.0.3728074
 
-# send USDC to a smart contract:
+# send USDC to a smart contract (buyPositionTokens and buyPositionTokensOnBehalf):
 ../node_modules/.bin/ts-node 3_buy.ts $SMART_CONTRACT_ID 1
 ```
-
 
 # Sample Hardhat 3 Beta Project (`node:test` and `viem`)
 

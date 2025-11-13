@@ -76,10 +76,10 @@ func (n *NatsService) HandleOrderMatches(subject string) error {
 			return
 		}
 		txID := orderRequestClob.TxId
-		n.dbService.UpdateOrderMatchedAt(txID)
+		n.dbService.UpdateOrderMatchedAt(txID) // TODO - handle partial matching
 
 		// Now submit the match to the smart contract
-		err := n.hederaService.BuyShares(&orderRequestClob)
+		err := n.hederaService.BuyPositionTokens(&orderRequestClob)
 		if err != nil {
 			log.Printf("Error submitting match (txid=%s) to smart contract: %v ", orderRequestClob.TxId, err)
 		}

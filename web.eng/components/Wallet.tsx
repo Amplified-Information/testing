@@ -1,5 +1,5 @@
 import { DAppConnector, HederaChainId, HederaJsonRpcMethod, HederaSessionEvent } from '@hashgraph/hedera-wallet-connect'
-import { walletConnectProjectId, walletMetaData } from '../constants'
+import { smartContractId, walletConnectProjectId, walletMetaData } from '../constants'
 import { useEffect, useState } from 'react'
 import { useAppContext } from '../AppProvider'
 import NetworkSelector from './NetworkSelector'
@@ -34,7 +34,7 @@ const Wallet = () => {
     ;(async () => {
       if (!signerZero) return
 
-      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, signerZero.getAccountId().toString())
+      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, smartContractId, signerZero.getAccountId().toString())
       setSpenderAllowanceUsd(_spenderAllowance)
     })()
   }, [signerZero])
@@ -49,10 +49,8 @@ const Wallet = () => {
       [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
       [HederaChainId.Mainnet, HederaChainId.Testnet, HederaChainId.Previewnet]
     )
-    console.log(`DAppConnector initialized for ${networkSelected.toString()}:`, dAppConnector)
-    setDappConnector(_dAppConnector)
 
-    console.log('Attempting to init dAppConnector...')
+    setDappConnector(_dAppConnector)
     await _dAppConnector.init()
     return _dAppConnector
   }
@@ -72,7 +70,7 @@ const Wallet = () => {
 
   const connect = async () => {
     setThinger(true)
-     const _dAppConnector = await initDAppConnector()
+    const _dAppConnector = await initDAppConnector()
     try {
       const _signerZero = _dAppConnector!.signers.find(signer => signer.getLedgerId() === networkSelected) // find first signer on the selected network
       if (!_signerZero) {
@@ -109,8 +107,7 @@ const Wallet = () => {
         console.log(`signerZero set to ${_signerZero.getAccountId().toString()} for network ${networkSelected.toString()}`)
       }
     } catch (e) {
-      console.error('searchExistingSignerAndConnect: ')
-      console.error(e)
+      console.error('searchExistingSignerAndConnect: ', JSON.stringify(e))
     }
   }
 

@@ -1,8 +1,8 @@
 import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk'
-import { smartContractId, usdcAddress, usdcDecimals } from '../constants'
+import { usdcAddress, usdcDecimals } from '../constants'
 import { DAppSigner } from '@hashgraph/hedera-wallet-connect'
 
-const getSpenderAllowanceUsd = async (networkSelected: LedgerId, accountId: string): Promise<number> => {
+const getSpenderAllowanceUsd = async (networkSelected: LedgerId, smartContractId: string, accountId: string): Promise<number> => {
   try {
     const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}/allowances/tokens?spender.id=eq:${smartContractId}&token.id=eq:${usdcAddress}`
     const response = await fetch(mirrornode)
@@ -26,7 +26,7 @@ const grantAllowanceUsd = async (signerZero: DAppSigner, contractId: string, amo
     .setContractId(usdcAddress)
     .setGas(10_000_000) // TODO: this is coming up as infinity HBAR?
     .setFunction('approve', new ContractFunctionParameters()
-      .addAddress(ContractId.fromString(contractId).toEvmAddress())
+      .addAddress(ContractId.fromString(contractId).toEvmAddress()) // spender (the smart contract)
       .addUint256(amountUsd * (10 ** usdcDecimals)))
     .executeWithSigner(signerZero)
 

@@ -47,6 +47,8 @@ const Signer = () => {
       accountId: signerZero ? signerZero.getAccountId().toString() : '0.0.0'
     })
 
+    setThinger(false)
+
     // setPredictionIntentRequest({
     //   ...predictionIntentRequest,
     //   qty: betUsd/predictionIntentRequest.priceUsd
