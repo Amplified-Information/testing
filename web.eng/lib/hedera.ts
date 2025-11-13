@@ -1,6 +1,19 @@
-import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk'
-import { usdcAddress, usdcDecimals } from '../constants'
+import { AccountId, ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk'
+import { TMP_MARKET_ID, usdcAddress, usdcDecimals } from '../constants'
 import { DAppSigner } from '@hashgraph/hedera-wallet-connect'
+import { Position } from '../types'
+
+const getActiveMarkets = async (accountId: AccountId): Promise<string[]> => {
+  void accountId
+  return [TMP_MARKET_ID]
+}
+const getAllPositions = async (accountId: AccountId): Promise<Position[]> => {
+  const markets = await getActiveMarkets(accountId)
+  for (let i = 0; i < markets.length; i++) {
+    // TODO
+  }
+  return []
+}
 
 const getSpenderAllowanceUsd = async (networkSelected: LedgerId, smartContractId: string, accountId: string): Promise<number> => {
   try {
@@ -40,4 +53,8 @@ const grantAllowanceUsd = async (signerZero: DAppSigner, contractId: string, amo
     }
 }
 
-export { getSpenderAllowanceUsd, grantAllowanceUsd }
+export { 
+  getAllPositions, 
+  getSpenderAllowanceUsd, 
+  grantAllowanceUsd 
+}
