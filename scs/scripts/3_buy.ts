@@ -62,16 +62,16 @@ const main = async () => {
     console.log(`allowance now [${netConf[networkSelected].usdcDecimals} decimals]: ${allowance}`)
 
     // 3) buy outcome tokens (msg.sender must be token holder)
-    const buyTx = await new ContractExecuteTransaction()
-      .setContractId(contractId)
-      .setGas(1_000_000)
-      .setFunction('buyPositionTokens',
-        new ContractFunctionParameters()
-          .addUint256(amountUnits.toString()))
-      .execute(client)
+    // const buyTx = await new ContractExecuteTransaction()
+    //   .setContractId(contractId)
+    //   .setGas(1_000_000)
+    //   .setFunction('buyPositionTokens',
+    //     new ContractFunctionParameters()
+    //       .addUint256(amountUnits.toString()))
+    //   .execute(client)
 
-    const buyReceipt = await buyTx.getReceipt(client);
-    console.log('buyPositionTokens status:', buyReceipt.status.toString());
+    // const buyReceipt = await buyTx.getReceipt(client);
+    // console.log('buyPositionTokens status:', buyReceipt.status.toString());
 
 
      // 4) buy outcome tokens on behalf of another account which has an allowance set (buyPositionTokensOnBehalf)
@@ -79,10 +79,13 @@ const main = async () => {
     const buyTx4 = await new ContractExecuteTransaction()
       .setContractId(contractId)
       .setGas(1_000_000)
-      .setFunction('buyPositionTokensOnBehalf',
+      .setFunction(
+        'buyPositionTokensOnBehalf',
         new ContractFunctionParameters()
           .addAddress(client.operatorPublicKey!.toEvmAddress())
-          .addUint256(amountUnits.toString()))
+          .addUint256(amountUnits.toString())
+          .addBool(false) // isSell
+      )
       .execute(client)
 
     const buyReceipt4 = await buyTx4.getReceipt(client);

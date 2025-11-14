@@ -32,7 +32,7 @@ contract PredictionMarket {
     bool public outcome; // true = YES wins, false = NO wins
     uint256 public totalCollateral;
     
-    event PositionTokensPurchased(address indexed buyer, uint256 amount);
+    event PositionTokensPurchased(address indexed buyer, uint256 amount, uint256 nPositionTokens, bool isSell);
     event MarketResolved(bool outcome);
     event WinningsRedeemed(address indexed user, uint256 amount);
     event TokenAssociated(address indexed token);
@@ -48,21 +48,21 @@ contract PredictionMarket {
     // - Collect collateral (e.g., USDC or HBAR equivalent).
     // - Mint position tokens (YES/NO tokens) proportional to qty.
     // - Emit events for off-chain indexers.
-    function buyPositionTokens(uint256 collateral) external {
-        require(!resolved, "Market resolved");
-        // require(block.timestamp < resolutionTime, "Market expired");
+    // function buyPositionTokens(uint256 collateral) external {
+    //     require(!resolved, "Market resolved");
+    //     // require(block.timestamp < resolutionTime, "Market expired");
 
-        // TODO - 1% trading fee?
-        // TODO - how to incentivize market makers? Give them predict token...
+    //     // TODO - 1% trading fee?
+    //     // TODO - how to incentivize market makers? Give them predict token...
         
-        collateralToken.transferFrom(msg.sender, address(this), collateral);
+    //     collateralToken.transferFrom(msg.sender, address(this), collateral);
         
-        yesTokens[msg.sender] += collateral;
-        noTokens[msg.sender] += collateral;
-        totalCollateral += collateral;
+    //     yesTokens[msg.sender] += collateral;
+    //     noTokens[msg.sender] += collateral;
+    //     totalCollateral += collateral;
 
-        emit PositionTokensPurchased(msg.sender, collateral);
-    }
+    //     emit PositionTokensPurchased(msg.sender, collateral);
+    // }
 
     // Buy equal amounts of YES and NO tokens with collateral (1:1:1 ratio)
     // CLOB buys on behalf of a user's account
@@ -73,7 +73,31 @@ contract PredictionMarket {
      // NOTE: buyer must approve this contract to spend collateral tokens before calling
     // TODO - 1% trading fee?
     // TODO - how to incentivize market makers? Give them predict token...
-    function buyPositionTokensOnBehalf(address buyer, uint256 collateral) external {
+    // function buyPositionTokensOnBehalf(address buyer, uint256 collateralUSDC, uint256 nPositionTokens, bool isSell) external {
+    //     require(!resolved, "Market resolved");
+    //     // require(block.timestamp < resolutionTime, "Market expired");
+
+    //     // Transfer collateral from the buyer to the contract using the buyer's allowance
+    //     // The buyer must have approved this contract (not msg.sender) to spend their tokens
+    //     // IERC20(usdcAddress).transferFrom(owner, recipient, amount);
+    //     // HederaTokenService.transferToken(token, from, to, amount);
+    //     require(collateralToken.transferFrom(buyer, address(this), collateralUSDC), "Transfer failed");
+        
+    //     if (isSell) {
+    //         noTokens[buyer] += nPositionTokens;
+    //     } else {
+    //         yesTokens[buyer] += nPositionTokens;
+    //     }
+        
+    //     totalCollateral += collateralUSDC;
+
+    //     emit PositionTokensPurchased(buyer, collateralUSDC, nPositionTokens, isSell);
+    // }
+
+    // must be atomic - what if the buyer or seller removes their USDC allowance?
+    // moved the yes/no/isSell logic to the API
+    // TODO - verify sigs?
+    function buyPositionTokensOnBehalfAtomic(address yes, address no, uint256 collateralUSDC, uint256 nPositionTokens) external {
         require(!resolved, "Market resolved");
         // require(block.timestamp < resolutionTime, "Market expired");
 
@@ -81,13 +105,17 @@ contract PredictionMarket {
         // The buyer must have approved this contract (not msg.sender) to spend their tokens
         // IERC20(usdcAddress).transferFrom(owner, recipient, amount);
         // HederaTokenService.transferToken(token, from, to, amount);
-        require(collateralToken.transferFrom(buyer, address(this), collateral), "Transfer failed");
+        require(collateralToken.transferFrom(yes, address(this), collateralUSDC), "Transfer failed");
+        require(collateralToken.transferFrom(no, address(this), collateralUSDC), "Transfer failed");
         
-        yesTokens[buyer] += collateral;
-        noTokens[buyer] += collateral;
-        totalCollateral += collateral;
+        yesTokens[yes] += nPositionTokens;
+        noTokens[no] += nPositionTokens;
+        
+        totalCollateral += collateralUSDC;
 
-        emit PositionTokensPurchased(buyer, collateral);
+        emit PositionTokensPurchased(yes, collateralUSDC / 2, nPositionTokens, false);
+        emit PositionTokensPurchased(no, collateralUSDC / 2, nPositionTokens, true);
+
     }
     
     // Resolve market using Chainlink oracle
@@ -122,6 +150,10 @@ contract PredictionMarket {
     // View functions
     function getUserTokens(address user) external view returns (uint256 yes, uint256 no) {
         return (yesTokens[user], noTokens[user]);
+    }
+
+    function getTotalCollateral() external view returns (uint256) {
+        return totalCollateral;
     }
 
     // function associateToken(address tokenAddress) external {

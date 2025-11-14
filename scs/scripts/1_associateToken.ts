@@ -25,7 +25,7 @@ const main = async () => {
     }
 
     console.log(`Smart contract:\t${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
-    console.log(`Associating token:\t${tokenId} (${TokenId.fromString(tokenId).toEvmAddress()}) with the smart contract...`)
+    console.log(`Associating token:\t${tokenId} (${TokenId.fromString(tokenId).toEvmAddress()}) with the smart contract ${contractId}...`)
 
     // Create and execute the ContractExecuteTransaction
     const tx = await new ContractExecuteTransaction()
@@ -38,6 +38,7 @@ const main = async () => {
     console.log("Contract association:", receipt.status.toString())
   } catch (e) {
     console.error('Error associating token:', e)
+    console.error('Perhaps the token is already associated?')
     process.exit(1)
   }
 }

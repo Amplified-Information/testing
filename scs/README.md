@@ -45,7 +45,7 @@ or...
 Be sure to set the HEDERA_OPERATOR_KEY in `../shared/.secrets`
 
 ```bash
-source ./.secrets.local
+source ./loadEnv.sh local
 ```
 
 Config is done in `scripts/constants.ts`
