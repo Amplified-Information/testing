@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/big"
+	"strconv"
 
 	"os"
 
 	"api/server/lib"
-
-	pb_clob "api/gen/clob"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
@@ -174,7 +174,7 @@ func (h *HederaService) GetEvmAlias(accountId hiero.AccountID) (string, error) {
 	return info.ContractAccountID, nil
 }
 
-func (h *HederaService) BuyPositionTokens(orderRequestClob *pb_clob.OrderRequestClob) error {
+func (h *HederaService) BuyPositionTokens(_accountIdYes string, _accountIdNo string, collateralUsdFloat64Abs float64, nPositionTokensFloat64 float64) error {
 	// amount := orderRequestClob.PriceUsd * orderRequestClob.NShares
 
 	// implement smart contract interaction to buy shares
@@ -186,25 +186,67 @@ func (h *HederaService) BuyPositionTokens(orderRequestClob *pb_clob.OrderRequest
 		return fmt.Errorf("invalid SMART_CONTRACT_ID: %w", err)
 	}
 
-	accountId, err := hiero.AccountIDFromString(orderRequestClob.AccountId)
+	accountIdYes, err := hiero.AccountIDFromString(_accountIdYes)
+	if err != nil {
+		return fmt.Errorf("BuyPositionTokens: invalid AccountId: %w", err)
+	}
+	accountIdNo, err := hiero.AccountIDFromString(_accountIdNo)
 	if err != nil {
 		return fmt.Errorf("BuyPositionTokens: invalid AccountId: %w", err)
 	}
 
-	// look up the alias key for accountId for EVM execution:
-	evmAlias, err := h.GetEvmAlias(accountId)
+	evmAliasYes, err := h.GetEvmAlias(accountIdYes)
+	if err != nil {
+		return fmt.Errorf("failed to get alias key: %v", err)
+	}
+	evmAliasNo, err := h.GetEvmAlias(accountIdNo)
 	if err != nil {
 		return fmt.Errorf("failed to get alias key: %v", err)
 	}
 
+	// scale the float64s for the number of USDC_DECIMALS
+	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
+	usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid USDC_DECIMALS: %w", err)
+	}
+	collateralUsdFloat64Abs = collateralUsdFloat64Abs * math.Pow10(int(usdcDecimals))
+	nPositionTokensFloat64 = nPositionTokensFloat64 * math.Pow10(int(usdcDecimals))
+
+	// isSell := orderRequestClob.PriceUsd < 0.0
+
+	// usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
+	// usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
+	// if err != nil {
+	// 	return fmt.Errorf("invalid USDC_DECIMALS: %w", err)
+	// }
+
+	// collateralUsdFloat64 := orderRequestClob.PriceUsd * math.Pow10(int(usdcDecimals))
+	// collateralUsdFloat64 = math.Abs(collateralUsdFloat64)
+	// collateralUsd := big.NewInt(int64(collateralUsdFloat64))
+
+	// nPositionTokensFloat64 := orderRequestClob.Qty * math.Pow10(int(usdcDecimals))
+	// nPositionTokensFloat64 = math.Abs(nPositionTokensFloat64)
+	// nPositionTokens := big.NewInt(int64(nPositionTokensFloat64))
+
+	// params := hiero.NewContractFunctionParameters()
+	// params.AddAddress(evmAlias)                             // buyer
+	// params.AddUint256(hiero.To256BitBytes(collateralUsd))   // amount
+	// params.AddUint256(hiero.To256BitBytes(nPositionTokens)) // nPositionTokens
+	// params.AddBool(isSell)
+
 	params := hiero.NewContractFunctionParameters()
-	params.AddAddress(evmAlias) // accountId.ToEvmAddress()) // h.hedera_client.GetOperatorPublicKey().ToEvmAddress()) //accountId.ToEvmAddress())
-	params.AddUint256(lib.Int64ToBytes(int64(orderRequestClob.PriceUsd * orderRequestClob.Qty)))
+	params.AddAddress(evmAliasYes)                                                     // the yes buyer
+	params.AddAddress(evmAliasNo)                                                      // the no buyer
+	params.AddUint256(hiero.To256BitBytes(big.NewInt(int64(collateralUsdFloat64Abs)))) // collateralUSDC
+	params.AddUint256(hiero.To256BitBytes(big.NewInt(int64(nPositionTokensFloat64))))  // nPositionTokens
+
+	log.Printf("Attempting to allocate position tokens on-chain: accountIdYes=%s, accountIdNo=%s, collateralUsd=%f, positionTokens=%f", evmAliasYes, evmAliasNo, collateralUsdFloat64Abs, nPositionTokensFloat64)
 
 	contractCall := hiero.NewContractExecuteTransaction().
 		SetContractID(smartContractId).
-		SetGas(1_000_000). // paid by us...
-		SetFunction("buyPositionTokensOnBehalf", params)
+		SetGas(2_000_000). // paid by us...
+		SetFunction("buyPositionTokensOnBehalfAtomic", params)
 
 	// Execute transaction
 	txResponse, err := contractCall.Execute(h.hedera_client)
@@ -225,6 +267,6 @@ func (h *HederaService) BuyPositionTokens(orderRequestClob *pb_clob.OrderRequest
 		// TODO - put the order back on the CLOB...
 	}
 
-	log.Printf("Successfully bought %d position tokens for txId=%s. Hedera tx ID: %s", orderRequestClob.Qty, orderRequestClob.TxId, txResponse.TransactionID.String())
+	log.Printf("Successfully sent $USDC%d collateral from both accountId=%s (YES) and accountId=%s (NO). nPositionTokens: %f. Hedera txId: %s", collateralUsdFloat64Abs, _accountIdYes, _accountIdNo, nPositionTokensFloat64, txResponse.TransactionID.String())
 	return nil
 }

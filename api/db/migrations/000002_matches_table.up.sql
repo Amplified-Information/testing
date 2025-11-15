@@ -1,6 +1,5 @@
 CREATE TABLE matches (
   id SERIAL PRIMARY KEY,
-  matched_at TIMESTAMPTZ NOT NULL,
   tx_id1 UUID NOT NULL,
   tx_id2 UUID NOT NULL,
   is_partial BOOLEAN NOT NULL,

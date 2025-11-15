@@ -7,6 +7,7 @@ import (
 	"os"
 
 	pb_api "api/gen"
+	pb_clob "api/gen/clob"
 
 	_ "github.com/lib/pq"
 )
@@ -89,9 +90,7 @@ func (dbService *DbService) UpdateOrderMatchedAt(txId string) error {
 	}
 
 	updateSQL := `
-		UPDATE order_requests
-		SET matched_at = NOW()
-		WHERE tx_id = $1`
+		INSERT INTO matches`
 
 	_, err := dbService.db.Exec(updateSQL, txId)
 	if err != nil {
@@ -99,5 +98,29 @@ func (dbService *DbService) UpdateOrderMatchedAt(txId string) error {
 	}
 
 	log.Printf("Updated \"matched_at\" timestamp for txId %s", txId)
+	return nil
+}
+
+func (dbService *DbService) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderRequestClob, isPartial bool) error {
+	// Record the match in the database for auditing
+	if dbService.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	insertSQL := `
+		INSERT INTO matches (tx_id1, tx_id2, is_partial)
+		VALUES ($1, $2, $3)` // TODO - make this type safe
+
+	_, err := dbService.db.Exec(insertSQL,
+		orderRequestClobTuple[0].TxId,
+		orderRequestClobTuple[1].TxId,
+		isPartial,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to record match for txIds %s and %s: %v", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId, err)
+	}
+
+	log.Printf("Recorded match on database for txIds: {%s, %s}", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId)
+
 	return nil
 }

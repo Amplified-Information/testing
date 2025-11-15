@@ -1,7 +1,6 @@
 package main
 
 import (
-	"api/server/lib"
 	"api/server/services"
 	"context"
 	"fmt"
@@ -83,7 +82,7 @@ func main() {
 	}
 	defer natsService.CloseNATS()
 	// NATS start listening for matches
-	natsService.HandleOrderMatches(lib.NATS_CLOB_MATCHES)
+	natsService.HandleOrderMatches()
 
 	// initialize hashi service
 	hashiService := services.Hashi{}

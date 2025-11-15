@@ -59,7 +59,7 @@ impl NatsService {
     pub async fn publish_match(&self, is_partial_match: bool, orc1: &OrderRequestClob, orc2: &OrderRequestClob) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let orders: Vec<OrderRequestClob> = vec![orc1.clone(), orc2.clone()]; // Create a vector of OrderRequestClob
         let payload = serde_json::to_vec(&orders).unwrap();
-        let _ = self.nats_client.publish(if is_partial_match { constants::CLOB_MATCHES_PARTIAL } else { constants::CLOB_MATCHES }, payload.into()).await;
+        let _ = self.nats_client.publish(if is_partial_match { constants::CLOB_MATCHES_PARTIAL } else { constants::CLOB_MATCHES_FULL }, payload.into()).await;
         log::info!("NATS \t Published MATCH for order: {:?}", orc1);
         Ok(())
     }

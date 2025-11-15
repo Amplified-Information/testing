@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -135,7 +136,8 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("failed to get spender allowance: %v", err)
 	}
 	log.Printf(("Spender allowance for account %s on contract %s: $%.2f"), accountId.String(), _smartContractId.String(), spenderAllowanceUsd)
-	if spenderAllowanceUsd < (req.GetPriceUsd() * req.GetQty()) {
+	if spenderAllowanceUsd < math.Abs(req.GetPriceUsd()*req.GetQty()) {
+		log.Printf("ERROR: Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
 		return "", fmt.Errorf("Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
 	}
 

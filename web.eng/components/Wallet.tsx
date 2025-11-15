@@ -34,10 +34,18 @@ const Wallet = () => {
     ;(async () => {
       if (!signerZero) return
 
-      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, smartContractId, signerZero.getAccountId().toString())
-      setSpenderAllowanceUsd(_spenderAllowance)
+      updateSpenderAllowance()
     })()
   }, [signerZero])
+
+  const updateSpenderAllowance = async () => {
+    try {
+      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, smartContractId, signerZero!.getAccountId().toString())
+      setSpenderAllowanceUsd(_spenderAllowance)
+    } catch (error) {
+      console.error('Error updating spender allowance:', error)
+    }
+  }
 
   const initDAppConnector = async () => {
     // https://www.npmjs.com/package/@hashgraph/hedera-wallet-connect

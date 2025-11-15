@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react'
 import { uint8ToBase64, getMidPrice } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
-import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault } from '../constants'
+import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, smartContractId } from '../constants'
 import ButtonAmount from './ButtonAmount'
+import { getSpenderAllowanceUsd } from '../lib/hedera'
 
 const Signer = () => {
-  const { signerZero, networkSelected, spenderAllowanceUsd, book } = useAppContext()
+  const { signerZero, networkSelected, spenderAllowanceUsd, setSpenderAllowanceUsd, book } = useAppContext()
   const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>(defaultPredictionIntentRequest())
   const [thinger, setThinger] = useState<boolean>(false)
   const [buySell, setBuySell] = useState<'buy' | 'sell'>('buy')
@@ -205,6 +206,10 @@ const Signer = () => {
         } catch (e) {
           console.error('PredictIntent error:', e)
         } finally {
+          // update spender allowance after spending:
+          // Note: delay!!!
+          const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, smartContractId, signerZero!.getAccountId().toString())
+          setSpenderAllowanceUsd(_spenderAllowance)
           setThinger(false)
         }
       }}>
