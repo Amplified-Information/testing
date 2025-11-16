@@ -76,15 +76,16 @@ const main = async () => {
 
      // 4) buy outcome tokens on behalf of another account which has an allowance set (buyPositionTokensOnBehalf)
     console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`);
+    const params = new ContractFunctionParameters() // TODO - fix this!
+      .addAddress(client.operatorPublicKey!.toEvmAddress())
+      .addUint256(amountUnits.toString())
+      .addBool(false) // isSell
     const buyTx4 = await new ContractExecuteTransaction()
       .setContractId(contractId)
       .setGas(1_000_000)
       .setFunction(
         'buyPositionTokensOnBehalf',
-        new ContractFunctionParameters()
-          .addAddress(client.operatorPublicKey!.toEvmAddress())
-          .addUint256(amountUnits.toString())
-          .addBool(false) // isSell
+        params
       )
       .execute(client)
 
