@@ -17,7 +17,7 @@ const main = async () => {
   // CLI args: contractId, userAccountEvmAddress
   const [contractId, accountId] = process.argv.slice(2)
   if (!contractId || !accountId) {
-    console.error('Usage: ts-node getUserTokens.ts <contractId> <accountId>')
+    console.error(`Usage: ts-node getUserTokens.ts <contractId> <accountId>\t\t(note: current operator account id = ${operatorAccountId})`)
     process.exit(1)
   }
 

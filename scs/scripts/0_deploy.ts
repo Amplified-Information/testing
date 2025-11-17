@@ -97,5 +97,7 @@ async function deployContract(client: Client) {
 (async () => {
   await deployContract(client)
 
+  console.log(`accountId=${operatorAccountId}`)
+
   process.exit(0)
 })()

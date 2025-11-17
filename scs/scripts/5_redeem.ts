@@ -14,33 +14,31 @@ const [ client, _ ] = initHederaClient(
 
 const main = async () => {
   // CLI args: contractId, userAccountEvmAddress
-  const [contractId, noYesStr] = process.argv.slice(2)
-  if (!contractId || !noYesStr) {
-    console.error('Usage: ts-node 4_resolveMarket.ts <contractId> <noYes>')
+  const [contractId] = process.argv.slice(2)
+  if (!contractId) {
+    console.error(`Usage: ts-node 5_redeem.ts <contractId>\t\t(note: current operator account id = ${operatorAccountId})`)
     process.exit(1)
   }
-
-  const noYes = noYesStr.toLowerCase().trim() === 'true' || noYesStr === '1'
-
-  console.log(`Calling resolveMarket (noYes=${noYes}) on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
+  console.log(`Calling "redeem()" on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
   
   try {
     const params = new ContractFunctionParameters() // .addAddress(accountIdEvm)
-    params.addBool(noYes)
     const query = new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(contractId))
-      .setGas(100_000)
+      .setGas(1_000_000)
       .setFunction(
-        'resolveMarket',
+        'redeem',
         params
       )
 
     const result = await query.execute(client)
+    const record = await result.getRecord(client)
     const receipt = await result.getReceipt(client)
+    console.log(`amountUSDC recieved = ${record.contractFunctionResult!.getUint256(0).toString()} (check your hashpack wallet)` )
     console.log('Done. Receipt status: ', receipt.status.toString())
   } catch (err) {
     console.error('Contract call failed:', err)
-    console.error('Perhaps the market is already resolved?')
+    console.error('Perhaps the market is not yet resolved? Cannot redeem until market is resolved.')
     process.exit(1)
   }
 }

@@ -58,7 +58,7 @@ contract PredictionMarket {
     // moved the yes/no/isSell logic to the API
     // TODO - verify sigs?
     function buyPositionTokensOnBehalfAtomic(address yes, address no, uint256 collateralUSDC, uint256 nPositionTokens) external onlyOwner {
-        require(resolutionTime != 0, "Market resolved");
+        require(resolutionTime == 0, "Market resolved");
         // require(block.timestamp < resolutionTime, "Market expired");
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
@@ -79,11 +79,9 @@ contract PredictionMarket {
     }
     
     // Resolve market using Chainlink oracle
-    function resolve(bool noYes) external onlyOracle { // TODO - only oracle can call
-        require(resolutionTime != 0, "Already resolved");
-        // require(block.timestamp >= resolutionTime, "Too early to resolve");
+    function resolveMarket(bool noYes) external onlyOracle {
+        require(resolutionTime == 0, "Already resolved");
 
-        // TODO: Add Chainlink oracle request and resolution logic here
         outcome = noYes;
         resolutionTime = block.timestamp;
        
@@ -92,26 +90,28 @@ contract PredictionMarket {
     
     // Redeem winning tokens for collateral
     // Only user (msg.sender) can access their winnings
-    function redeem() external {
-        require(resolutionTime != 0, "Not resolved yet");
+    function redeem() external returns (uint256 amountUSDC) {
+        require(resolutionTime > 0, "Not resolved yet");
         
-        uint256 winningTokens = outcome ? yesTokens[msg.sender] : noTokens[msg.sender];
-        require(winningTokens > 0, "No winning tokens");
+        uint256 nTokens = outcome ? yesTokens[msg.sender] : noTokens[msg.sender];
+        require(nTokens > 0, "No winning tokens");
 
         // TODO - 2% profit redeem fee...
         // TODO - 1% profit fee for the market makers - TODO: how do we keep track of market makers?
         
         // Transfer collateral 1:1
-        collateralToken.transfer(msg.sender, winningTokens);
+        collateralToken.transfer(msg.sender, nTokens);
 
         // Clear balances
-        yesTokens[msg.sender] = 0;
-        noTokens[msg.sender] = 0;
+        if (yesTokens[msg.sender] > 0 ) yesTokens[msg.sender] = 0;
+        if (noTokens[msg.sender] > 0 ) noTokens[msg.sender] = 0;
 
         // don't forget to reduce totalCollateral
-        totalCollateral = totalCollateral - winningTokens;
+        totalCollateral = totalCollateral - nTokens;
         
-        emit WinningsRedeemed(msg.sender, winningTokens);
+        emit WinningsRedeemed(msg.sender, nTokens);
+
+        return nTokens; // nTokens === amountUSDC (1:1 mapping)
     }
     
     function getUserTokens(address user) external view returns (uint256 yes, uint256 no) {

@@ -74,8 +74,8 @@ cd scripts
 # call getUserTokens (readonly):
 ../node_modules/.bin/ts-node 2_getUserTokens.ts $SMART_CONTRACT_ID 0.0.3728074
 
-# send USDC to a smart contract (buyPositionTokens and buyPositionTokensOnBehalf):
-../node_modules/.bin/ts-node 3_buy.ts $SMART_CONTRACT_ID 1
+# send USDC to a smart contract:
+../node_modules/.bin/ts-node 3_buy.ts $SMART_CONTRACT_ID 112233 33442
 ```
 
 # Sample Hardhat 3 Beta Project (`node:test` and `viem`)

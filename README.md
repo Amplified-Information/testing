@@ -75,6 +75,12 @@ source .secrets.prod
 ./release-deploy.sh v0.0.1 prod
 ```
 
+###
+
+View container CPU/memory usage:
+
+`docker stats`
+
 ### kubernetes
 
 *Note: in the future, we may move to k8s*
