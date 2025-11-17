@@ -127,3 +127,23 @@ source ./loadEnv.sh local
 DB_URL=postgres://$DB_UNAME:$DB_PWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable
 migrate -database $DB_URL -path db/migrations down
 ```
+
+## sqlc
+
+`go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
+
+`sqlc version`
+
+N.B. maintain a database schema:
+
+```bash
+cd db
+pg_dump $DB_URL --schema-only | sed '/^\\/d' > schema.sql
+```
+
+Can now do:
+
+```bash
+cd api/db
+sqlc generate
+```

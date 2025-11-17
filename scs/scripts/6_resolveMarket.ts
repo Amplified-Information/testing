@@ -17,7 +17,7 @@ const main = async () => {
   // CLI args: contractId, userAccountEvmAddress
   const [contractId, marketId_uuid7, noYesStr] = process.argv.slice(2)
   if (!contractId || !marketId_uuid7 || !noYesStr) {
-    console.error('Usage: ts-node 4_resolveMarket.ts <contractId> <marketId_uuid7> <noYes>')
+    console.error('Usage: ts-node resolveMarket.ts <contractId> <marketId_uuid7> <noYes>')
     process.exit(1)
   }
   const marketIdBigInt = uuid7_to_uint128(marketId_uuid7)

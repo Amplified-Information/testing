@@ -13,6 +13,7 @@ import (
 	pb_api "api/gen"
 	"api/server/lib"
 
+	"github.com/google/uuid"
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
@@ -71,7 +72,11 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 
 	// check we haven't received this txid previously
-	exists, err := h.dbService.IsDuplicateTxId(req.TxId)
+	txUUID, err := uuid.Parse(req.TxId)
+	if err != nil {
+		return "", fmt.Errorf("invalid txId uuid: %v", err)
+	}
+	exists, err := h.dbService.IsDuplicateTxId(txUUID)
 	if err != nil {
 		return "", fmt.Errorf("failed to check existing txId: %v", err)
 	}

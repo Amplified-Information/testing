@@ -23,7 +23,7 @@ const main = async () => {
         $(( RANDOM & 0x0FFF )) \
         $(( RANDOM<<24 | RANDOM<<12 | RANDOM )) )
       `)
-      console.error('Usage: ts-node 1_newMarket.ts <contractId> <marketId_uuid7> <statement>')
+      console.error('Usage: ts-node newMarket.ts <contractId> <marketId_uuid7> <statement>')
       console.error('Usage example: ../node_modules/.bin/ts-node 1_newMarket.ts $SMART_CONTRACT_ID $UUID7 "Bitcoin will be over $100,000 end 2026"')
       process.exit(1)
     }

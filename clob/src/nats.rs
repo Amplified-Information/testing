@@ -41,6 +41,7 @@ impl NatsService {
                             market_limit: order.market_limit,
                             price_usd: order.price_usd,
                             qty: order.qty,
+                            sig: order.sig,
                         })
                         .await;
                 }

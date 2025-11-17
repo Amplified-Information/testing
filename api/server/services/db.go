@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -8,7 +9,11 @@ import (
 
 	pb_api "api/gen"
 	pb_clob "api/gen/clob"
+	sqlc "api/gen/sqlc"
 
+	"time"
+
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -42,14 +47,17 @@ func (dbService *DbService) InitDb() error {
 	return nil
 }
 
-func (dbService *DbService) IsDuplicateTxId(txId string) (bool, error) {
-	var exists bool
-	query := `SELECT EXISTS(SELECT 1 FROM order_requests WHERE tx_id = $1)`
-	err := dbService.db.QueryRow(query, txId).Scan(&exists)
-	if err != nil {
+func (dbService *DbService) IsDuplicateTxId(txId uuid.UUID) (bool, error) {
+	if dbService.db == nil {
+		return false, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbService.db)
+	isDuplicate, err := q.IsDuplicateTxId(context.Background(), txId)
+	if err != nil && err != sql.ErrNoRows {
 		return false, fmt.Errorf("failed to check duplicate txId: %v", err)
 	}
-	return exists, nil
+	return isDuplicate == true, nil
 }
 
 // SaveOrderRequest saves an order request to the database
@@ -58,69 +66,72 @@ func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest
 		return fmt.Errorf("database not initialized")
 	}
 
-	// Using raw SQL queries - no ORM for simplicity and performance
-	// TODO: sqlc or sqlx
-	insertSQL := `
-		INSERT INTO order_requests (tx_id, net, market_id, account_id, market_limit, price_usd, qty, generated_at, sig)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-
-	_, err := dbService.db.Exec(insertSQL,
-		req.TxId,
-		req.Net,
-		req.MarketId,
-		req.AccountId,
-		req.MarketLimit,
-		req.PriceUsd,
-		req.Qty,
-		req.GeneratedAt,
-		req.Sig,
-	)
-
+	txUUID, err := uuid.Parse(req.TxId)
 	if err != nil {
-		return fmt.Errorf("failed to insert order request: %v", err)
+		return fmt.Errorf("invalid txId uuid: %v", err)
+	}
+
+	marketUUID, err := uuid.Parse(req.MarketId)
+	if err != nil {
+		return fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	generatedAt, err := time.Parse(time.RFC3339, req.GeneratedAt) // Zulu time (RFC3339)
+	if err != nil {
+		return fmt.Errorf("invalid GeneratedAt timestamp: %v", err)
+	}
+	generatedAt = generatedAt.UTC()
+
+	params := sqlc.CreateOrderRequestParams{
+		TxID:        txUUID,
+		Net:         req.Net,
+		MarketID:    marketUUID,
+		AccountID:   req.AccountId,
+		MarketLimit: req.MarketLimit,
+		PriceUsd:    req.PriceUsd,
+		Qty:         req.Qty,
+		GeneratedAt: generatedAt,
+	}
+
+	q := sqlc.New(dbService.db)
+	_, err = q.CreateOrderRequest(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("CreateOrderRequest failed: %v", err)
 	}
 
 	log.Printf("Saved order request to database for account %s", req.AccountId)
 	return nil
 }
 
-func (dbService *DbService) UpdateOrderMatchedAt(txId string) error {
-	if dbService.db == nil {
-		return fmt.Errorf("database not initialized!")
-	}
-
-	updateSQL := `
-		INSERT INTO matches`
-
-	_, err := dbService.db.Exec(updateSQL, txId)
-	if err != nil {
-		return fmt.Errorf("failed to update matched_at for txId %s: %v", txId, err)
-	}
-
-	log.Printf("Updated \"matched_at\" timestamp for txId %s", txId)
-	return nil
-}
-
-func (dbService *DbService) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderRequestClob, isPartial bool) error {
+func (dbService *DbService) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderRequestClob, isPartial bool) (*sqlc.Match, error) {
 	// Record the match in the database for auditing
 	if dbService.db == nil {
-		return fmt.Errorf("database not initialized")
+		return nil, fmt.Errorf("database not initialized")
 	}
 
-	insertSQL := `
-		INSERT INTO matches (tx_id1, tx_id2, is_partial)
-		VALUES ($1, $2, $3)` // TODO - make this type safe
-
-	_, err := dbService.db.Exec(insertSQL,
-		orderRequestClobTuple[0].TxId,
-		orderRequestClobTuple[1].TxId,
-		isPartial,
-	)
+	txId1, err := uuid.Parse(orderRequestClobTuple[0].TxId)
 	if err != nil {
-		return fmt.Errorf("failed to record match for txIds %s and %s: %v", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId, err)
+		return nil, fmt.Errorf("invalid txId1 uuid: %v", err)
+	}
+
+	txId2, err := uuid.Parse(orderRequestClobTuple[1].TxId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid txId2 uuid: %v", err)
+	}
+
+	params := sqlc.CreateMatchParams{
+		TxId1:     txId1,
+		TxId2:     txId2,
+		IsPartial: isPartial,
+	}
+
+	q := sqlc.New(dbService.db)
+	match, err := q.CreateMatch(context.Background(), params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to record match for txIds %s and %s: %v", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId, err)
 	}
 
 	log.Printf("Recorded match on database for txIds: {%s, %s}", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId)
 
-	return nil
+	return &match, nil
 }

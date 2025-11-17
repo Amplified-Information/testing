@@ -89,7 +89,7 @@ func (n *NatsService) HandleOrderMatches() error {
 			isPartial = false
 		}
 
-		err := n.dbService.RecordMatch(
+		_, err := n.dbService.RecordMatch(
 			[2]*pb_clob.OrderRequestClob{&orderRequestClobTuple[0], &orderRequestClobTuple[1]},
 			isPartial,
 		)

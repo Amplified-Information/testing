@@ -6,6 +6,7 @@ toolchain go1.24.9
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
+	github.com/google/uuid v1.6.0
 	github.com/hiero-ledger/hiero-sdk-go/v2 v2.72.0
 	github.com/nats-io/nats.go v1.47.0
 	google.golang.org/grpc v1.76.0
