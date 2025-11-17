@@ -16,51 +16,73 @@ contract PredictionMarket {
     // USDC on Hedera Mainnet: 0x000000000000000000000000000000000006f89a
     // USDC on Hedera Testnet: 0x0000000000000000000000000000000000068cda // 0.0.5449
     IERC20 public immutable collateralToken;
-
     address constant HTS_PRECOMPILE = address(0x167);
 
     address owner;
-
-    string public statement;
-    bool public outcome; // true = YES wins, false = NO wins
-    uint256 public resolutionTime;
-    uint256 public totalCollateral;
-    
-    mapping(address => uint256) public yesTokens;
-    mapping(address => uint256) public noTokens;
     mapping(address => bool) public associatedTokens;
+
+    mapping(uint128 => string) public statements;
+    mapping(uint128 => bool) public outcomes;               // true = YES wins, false = NO wins
+    mapping(uint128 => uint256) public resolutionTimes;
+    mapping(uint128 => uint256) public totalCollaterals;
     
-    event PositionTokensPurchased(address indexed buyer, uint256 amount, uint256 nPositionTokens, bool isSell);
-    event MarketResolved(bool outcome);
-    event WinningsRedeemed(address indexed user, uint256 amount);
+    mapping(uint128 => mapping(address => uint256)) public yesTokens;
+    mapping(uint128 => mapping(address => uint256)) public noTokens;
+    
+    event PositionTokensPurchased(uint128 marketId, address indexed buyer, uint256 amount, uint256 nPositionTokens, bool isSell);
+    event MarketResolved(uint128 marketId, bool outcome);
+    event WinningsRedeemed(uint128 marketId, address indexed user, uint256 amount);
     event TokenAssociated(address indexed token);
 
+    /**
+    Only contract owner guard
+    */
     modifier onlyOwner() {
         require(msg.sender == owner, "Only direct user calls are allowed for this function");
         _;
     }
 
+    /**
+    Only Oracle guard
+    */
     modifier onlyOracle() {
         require(msg.sender == owner /* TODO - change to Oracle address */, "Only oracle can call this function");
         _;
     }
 
-    constructor(address _collateralToken, string memory _statement) {
+    /**
+    Smart contract contructor to initialize the PredictionMarket with the specified collateral token.
+    @param _collateralToken The address of the ERC20 token to be used as collateral (e.g., USDC).
+    */
+    constructor(address _collateralToken) {
         collateralToken = IERC20(_collateralToken);
-        statement = _statement;
-
         owner = msg.sender;
-
-        resolutionTime = 0;
     }
 
-    // must be atomic - what if the buyer or seller removes their USDC allowance?
-    // moved the yes/no/isSell logic to the API
-    // TODO - verify sigs?
-    function buyPositionTokensOnBehalfAtomic(address yes, address no, uint256 collateralUSDC, uint256 nPositionTokens) external onlyOwner {
-        require(resolutionTime == 0, "Market resolved");
-        // require(block.timestamp < resolutionTime, "Market expired");
+    /**
+    Function to create a new prediction market with a unique market ID and statement.
+    @param marketId The unique identifier for the new market.
+    @param _statement The statement or question for the prediction market.
+    */
+    function createNewMarket(uint128 marketId, string memory _statement) external onlyOwner {
+        require(keccak256(abi.encodePacked(statements[marketId])) == keccak256(abi.encodePacked("")), "Market already exists");
+        statements[marketId] = _statement;
+        resolutionTimes[marketId] = 0; // TODO - necessary? Can be removed?
+        totalCollaterals[marketId] = 0; // TODO - necessary? Can be removed?
+    }
 
+    /**
+    This function allows the CLOB to initiate the buying of YES and NO position tokens atomically on behalf of two accounts "yes" and "no".
+    TODO - verify the signatures
+    @param marketId The ID of the market.
+    @param yes The address of the account buying YES position tokens.
+    @param no The address of the account buying NO position tokens.
+    @param collateralUSDC The amount of collateral (in USDC) to be used for purchasing position tokens.
+    @param nPositionTokens The number of position tokens to be purchased for each account.
+    */
+    function buyPositionTokensOnBehalfAtomic(uint128 marketId, address yes, address no, uint256 collateralUSDC, uint256 nPositionTokens) external onlyOwner {
+        require(resolutionTimes[marketId] == 0, "Market resolved");
+        
         // Transfer collateral from the buyer to the contract using the buyer's allowance
         // The buyer must have approved this contract (not msg.sender) to spend their tokens
         // IERC20(usdcAddress).transferFrom(owner, recipient, amount);
@@ -68,32 +90,40 @@ contract PredictionMarket {
         require(collateralToken.transferFrom(yes, address(this), collateralUSDC), "Transfer failed");
         require(collateralToken.transferFrom(no, address(this), collateralUSDC), "Transfer failed");
         
-        yesTokens[yes] += nPositionTokens;
-        noTokens[no] += nPositionTokens;
+        yesTokens[marketId][yes] += nPositionTokens;
+        noTokens[marketId][no] += nPositionTokens;
         
-        totalCollateral += collateralUSDC;
+        totalCollaterals[marketId] += collateralUSDC;
 
-        emit PositionTokensPurchased(yes, collateralUSDC / 2, nPositionTokens, false);
-        emit PositionTokensPurchased(no, collateralUSDC / 2, nPositionTokens, true);
-
+        emit PositionTokensPurchased(marketId, yes, collateralUSDC, nPositionTokens, false);
+        emit PositionTokensPurchased(marketId, no, collateralUSDC, nPositionTokens, true);
     }
     
-    // Resolve market using Chainlink oracle
-    function resolveMarket(bool noYes) external onlyOracle {
-        require(resolutionTime == 0, "Already resolved");
+    /**
+    This function allows the oracle to resolve the market by specifying the outcome (YES or NO).
+    TODO - restrict to Oracle address
+    @param marketId The ID of the market to be resolved.
+    @param noYes A boolean indicating the outcome of the market: true for YES wins, false for NO wins.
+    */
+    function resolveMarket(uint128 marketId, bool noYes) external onlyOracle {
+        require(resolutionTimes[marketId] == 0, "Already resolved");
 
-        outcome = noYes;
-        resolutionTime = block.timestamp;
+        outcomes[marketId] = noYes;
+        resolutionTimes[marketId] = block.timestamp;
        
-        emit MarketResolved(noYes);
+        emit MarketResolved(marketId, noYes);
     }
     
-    // Redeem winning tokens for collateral
-    // Only user (msg.sender) can access their winnings
-    function redeem() external returns (uint256 amountUSDC) {
-        require(resolutionTime > 0, "Not resolved yet");
+    /**
+    This function allows users to redeem their winning position tokens for collateral after the market has been resolved.
+    A user (msg.sender) can only access their own winnings after the market is resolved
+    @param marketId The ID of the market for which the user wants to redeem their winnings.
+    @return amountUSDC The amount of collateral (in USDC) redeemed by the user
+    */
+    function redeem(uint128 marketId) external returns (uint256 amountUSDC) {
+        require(resolutionTimes[marketId] > 0, "Not resolved yet");
         
-        uint256 nTokens = outcome ? yesTokens[msg.sender] : noTokens[msg.sender];
+        uint256 nTokens = outcomes[marketId] ? yesTokens[marketId][msg.sender] : noTokens[marketId][msg.sender];
         require(nTokens > 0, "No winning tokens");
 
         // TODO - 2% profit redeem fee...
@@ -103,25 +133,42 @@ contract PredictionMarket {
         collateralToken.transfer(msg.sender, nTokens);
 
         // Clear balances
-        if (yesTokens[msg.sender] > 0 ) yesTokens[msg.sender] = 0;
-        if (noTokens[msg.sender] > 0 ) noTokens[msg.sender] = 0;
+        if (yesTokens[marketId][msg.sender] > 0 ) yesTokens[marketId][msg.sender] = 0;
+        if (noTokens[marketId][msg.sender] > 0 ) noTokens[marketId][msg.sender] = 0;
 
         // don't forget to reduce totalCollateral
-        totalCollateral = totalCollateral - nTokens;
+        totalCollaterals[marketId] = totalCollaterals[marketId] - nTokens;
         
-        emit WinningsRedeemed(msg.sender, nTokens);
+        emit WinningsRedeemed(marketId, msg.sender, nTokens);
 
         return nTokens; // nTokens === amountUSDC (1:1 mapping)
     }
     
-    function getUserTokens(address user) external view returns (uint256 yes, uint256 no) {
-        return (yesTokens[user], noTokens[user]);
+    /**
+    This function retrieves the number of YES and NO position tokens held by a user for a specific market.
+    @param marketId The ID of the market.
+    @param user The address of the user whose tokens are being queried.
+    @return yes The number of YES position tokens held by the user.
+    @return no The number of NO position tokens held by the user.
+    */
+    function getUserTokens(uint128 marketId, address user) external view returns (uint256 yes, uint256 no) {
+        return (yesTokens[marketId][user], noTokens[marketId][user]);
     }
 
-    function getTotalCollateral() external view returns (uint256) {
-        return totalCollateral;
+    /**
+    This function gets the total collateral for a specific market.
+    @param marketId The ID of the market.
+    @return amountUSDC The total amount of collateral deposited in the specified market.
+    */
+    function getTotalCollateral(uint128 marketId) external view returns (uint256 amountUSDC) {
+        return totalCollaterals[marketId];
     }
 
+    /**
+    This function associates the specified token with the contract using the Hedera Token Service precompile.
+    It can only be called by the contract owner.
+    @param tokenAddress The address of the token to be associated with the contract.
+    */
     function associateToken(address tokenAddress) external onlyOwner {
         (bool success, bytes memory result) = HTS_PRECOMPILE.call(
             abi.encodeWithSelector(

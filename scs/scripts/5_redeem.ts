@@ -5,6 +5,7 @@ import {
 } from '@hashgraph/sdk'
 import { initHederaClient } from './lib/hedera.ts'
 import { networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
+import { uuid7_to_uint128 } from './utils.ts';
 
 const [ client, _ ] = initHederaClient(
   networkSelected,
@@ -14,15 +15,18 @@ const [ client, _ ] = initHederaClient(
 
 const main = async () => {
   // CLI args: contractId, userAccountEvmAddress
-  const [contractId] = process.argv.slice(2)
-  if (!contractId) {
-    console.error(`Usage: ts-node 5_redeem.ts <contractId>\t\t(note: current operator account id = ${operatorAccountId})`)
+  const [contractId, marketId_uuid7] = process.argv.slice(2)
+  if (!contractId || !marketId_uuid7) {
+    console.error(`Usage: ts-node 5_redeem.ts <contractId> <marketId_uuid7>\t\t(note: current operator account id = ${operatorAccountId})`)
     process.exit(1)
   }
-  console.log(`Calling "redeem()" on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
+  const marketIdBigInt = uuid7_to_uint128(marketId_uuid7)
+
+  console.log(`Calling "redeem(${marketId_uuid7})" on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
   
   try {
-    const params = new ContractFunctionParameters() // .addAddress(accountIdEvm)
+    const params = new ContractFunctionParameters()
+      .addUint128(marketIdBigInt.uint128.toString())
     const query = new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(contractId))
       .setGas(1_000_000)
