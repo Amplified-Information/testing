@@ -9,10 +9,12 @@ const Positions = () => {
 
   useEffect(() => {
     ;(async () => {
+      if (!signerZero) return
       const _positions = await getAllPositions(signerZero!.getAccountId())
+      console.log(`current positions: ${_positions}`)
       setPositions(_positions)
     })()
-  }, [])
+  }, [signerZero])
 
   return (
     <div className={''}>

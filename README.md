@@ -75,11 +75,17 @@ source .secrets.prod
 ./release-deploy.sh v0.0.1 prod
 ```
 
-###
+### docker
 
 View container CPU/memory usage:
 
 `docker stats`
+
+### Screencast transcode
+
+Reduce to 480p:
+
+`ffmpeg -i 'Screencast from 2025-11-17 14-14-57.webm' -vf scale=1280:-1 -c:v libvpx-vp9 -crf 32 -b:v 0 -c:a libopus output.webm`
 
 ### kubernetes
 
