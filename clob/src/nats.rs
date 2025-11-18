@@ -15,13 +15,6 @@ impl NatsService {
         Ok(Self { nats_client: _nats_client })
     }
 
-    // pub async fn init_nats(nats_host: &str, nats_port: &str) -> Result<async_nats::Client, Box<dyn std::error::Error + Send + Sync>> {
-    //     let nats_address = format!("{}:{}", nats_host, nats_port);
-    //     log::info!("NATS \t Connecting to: {}", nats_address);
-    //     let nats_client = async_nats::connect(nats_address.parse::<ServerAddr>()?).await?;
-    //     Ok(nats_client)
-    // }
-
     pub async fn subscribe_and_place_orders(
         nats: &async_nats::Client,
         order_book_service: OrderBookService,

@@ -113,3 +113,19 @@ Potential disadvantages:
 - ERC20-style smart contracts may cost more
 - ERC20-style smart contracts may be incompatible with ed25519 key
 - etc.
+
+
+## Digital signatures
+
+Every transaction initiated by the user has a digital signature.
+
+`sig` is calculated based on the payload below. The payload to construct a sig is a subset of the fields in `api.proto`.
+
+```typescript
+{
+  tx_id: uuid7
+  market_id: uuid7
+  price_usd: float
+  qty: float
+}
+```

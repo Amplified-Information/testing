@@ -60,10 +60,12 @@ func (n *NatsService) Subscribe(subject string, handler nats.MsgHandler) (*nats.
 	if n.nats == nil {
 		return nil, fmt.Errorf("NATS connection not initialized")
 	}
+
 	subscription, err := n.nats.Subscribe(subject, handler)
 	if err != nil {
 		return nil, fmt.Errorf("failed to subscribe to subject %s: %v", subject, err)
 	}
+
 	return subscription, nil
 }
 
@@ -129,17 +131,6 @@ func (n *NatsService) HandleOrderMatches() error {
 		if err != nil {
 			log.Printf("Error submitting match to smart contract: %v ", err)
 		}
-		// // match 1:
-		// err = n.hederaService.BuyPositionTokens(&orderRequestClobTuple[0])
-		// if err != nil {
-		// 	log.Printf("Error submitting match (txid=%s) to smart contract: %v ", orderRequestClobTuple[0].TxId, err)
-		// }
-
-		// // match 2:
-		// err = n.hederaService.BuyPositionTokens(&orderRequestClobTuple[1])
-		// if err != nil {
-		// 	log.Printf("Error submitting match (txid=%s) to smart contract: %v ", orderRequestClobTuple[1].TxId, err)
-		// }
 	})
 	if err != nil {
 		return err

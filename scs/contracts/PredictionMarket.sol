@@ -29,7 +29,7 @@ contract PredictionMarket {
     mapping(uint128 => mapping(address => uint256)) public yesTokens;
     mapping(uint128 => mapping(address => uint256)) public noTokens;
     
-    event PositionTokensPurchased(uint128 marketId, address indexed buyer, uint256 amount, uint256 nPositionTokens, bool isSell);
+    event PositionTokensPurchased(uint128 marketId, address indexed buyer, uint256 collateralUsd, bool isSell);
     event MarketResolved(uint128 marketId, bool outcome);
     event WinningsRedeemed(uint128 marketId, address indexed user, uint256 amount);
     event TokenAssociated(address indexed token);
@@ -75,28 +75,47 @@ contract PredictionMarket {
     This function allows the CLOB to initiate the buying of YES and NO position tokens atomically on behalf of two accounts "yes" and "no".
     TODO - verify the signatures
     @param marketId The ID of the market.
-    @param yes The address of the account buying YES position tokens.
-    @param no The address of the account buying NO position tokens.
+    @param signerYes The (signing) address of the account buying YES position tokens.
+    @param signerNo The (signing) address of the account buying NO position tokens.
     @param collateralUSDC The amount of collateral (in USDC) to be used for purchasing position tokens.
-    @param nPositionTokens The number of position tokens to be purchased for each account.
+    @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
+    @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
+    @param sigYes The signature of the YES position token purchase transaction.
+    @param sigNo The signature of the NO position token purchase transaction.
     */
-    function buyPositionTokensOnBehalfAtomic(uint128 marketId, address yes, address no, uint256 collateralUSDC, uint256 nPositionTokens) external onlyOwner {
+    function buyPositionTokensOnBehalfAtomic(uint128 marketId, address signerYes, address signerNo, uint256 collateralUSDC, uint128 txIdYes, uint128 txIdNo, bytes calldata sigYes, bytes calldata sigNo) external onlyOwner {
         require(resolutionTimes[marketId] == 0, "Market resolved");
-        
+
+        // Calculate on-chain message hashes
+        bytes32 messageHashYes = calcSig(txIdYes, marketId, signerYes, collateralUSDC);
+        bytes32 messageHashNo = calcSig(txIdNo, marketId, signerNo, collateralUSDC);
+
+        // Validate signatures
+        require(
+            validateECDSASignature(signerYes, messageHashYes, sigYes) ||
+            validateEd25519Signature(signerYes, messageHashYes, sigYes),
+            "Invalid YES signature"
+        );
+        require(
+            validateECDSASignature(signerNo, messageHashNo, sigNo) ||
+            validateEd25519Signature(signerNo, messageHashNo, sigNo),
+            "Invalid NO signature"
+        );
+
         // Transfer collateral from the buyer to the contract using the buyer's allowance
         // The buyer must have approved this contract (not msg.sender) to spend their tokens
         // IERC20(usdcAddress).transferFrom(owner, recipient, amount);
         // HederaTokenService.transferToken(token, from, to, amount);
-        require(collateralToken.transferFrom(yes, address(this), collateralUSDC), "Transfer failed");
-        require(collateralToken.transferFrom(no, address(this), collateralUSDC), "Transfer failed");
+        require(collateralToken.transferFrom(signerYes, address(this), collateralUSDC), "Transfer failed");
+        require(collateralToken.transferFrom(signerNo, address(this), collateralUSDC), "Transfer failed");
         
-        yesTokens[marketId][yes] += nPositionTokens;
-        noTokens[marketId][no] += nPositionTokens;
+        yesTokens[marketId][signerYes] += collateralUSDC; // 1:1 mapping of collateral to position tokens
+        noTokens[marketId][signerNo] += collateralUSDC; // 1:1 mapping of collateral to position tokens
         
         totalCollaterals[marketId] += collateralUSDC;
 
-        emit PositionTokensPurchased(marketId, yes, collateralUSDC, nPositionTokens, false);
-        emit PositionTokensPurchased(marketId, no, collateralUSDC, nPositionTokens, true);
+        emit PositionTokensPurchased(marketId, signerYes, collateralUSDC, false);
+        emit PositionTokensPurchased(marketId, signerNo, collateralUSDC, true);
     }
     
     /**
@@ -183,5 +202,62 @@ contract PredictionMarket {
 
         associatedTokens[tokenAddress] = true;
         emit TokenAssociated(tokenAddress);
+    }
+
+    function calcSig(
+        uint128 txId,
+        uint128 marketId,
+        address signer,
+        uint256 collateralUSDC
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(txId, marketId, signer, collateralUSDC));
+    }
+
+    /**
+    Validate ECDSA signature using Hedera precompiled contract.
+    @param signer The address of the signer.
+    @param messageHash The hash of the signed message.
+    @param signature The signature to validate.
+    @return isValid True if the signature is valid, false otherwise.
+    */
+    function validateECDSASignature(
+        address signer,
+        bytes32 messageHash,
+        bytes memory signature
+    ) internal view returns (bool isValid) {
+        (bool success, bytes memory result) = address(0x167).staticcall(
+            abi.encodeWithSignature(
+                "validateECDSASignature(address,bytes32,bytes)",
+                signer,
+                messageHash,
+                signature
+            )
+        );
+        require(success, "ECDSA validation failed");
+        return abi.decode(result, (bool));
+    }
+
+    /**
+    Validate Ed25519 signature using Hedera precompiled contract.
+    @param signer The address of the signer.
+    @param messageHash The hash of the signed message.
+    @param signature The signature to validate.
+    @return isValid True if the signature is valid, false otherwise.
+    */
+    function validateEd25519Signature(
+        address signer,
+        bytes32 messageHash,
+        bytes memory signature
+    ) internal view returns (bool isValid) {
+        (bool success, bytes memory result) = address(0x167).staticcall(
+            abi.encodeWithSignature(
+                "validateEd25519Signature(address,bytes32,bytes)",
+                signer,
+                messageHash,
+                signature
+            )
+        );
+        require(success, "Ed25519 validation failed");
+        return abi.decode(result, (bool));
     }
 }

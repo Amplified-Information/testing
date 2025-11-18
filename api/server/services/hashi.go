@@ -147,19 +147,12 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 
 	/// OK - now you can put the order on the CLOB
-	// clobRequest := &clob.OrderRequest{
-	// 	TxId:        req.TxId,
-	// 	MarketId:    req.MarketId,
-	// 	AccountId:   req.AccountId,
-	// 	MarketLimit: req.MarketLimit,
-	// 	PriceUsd:    req.PriceUsd,
-	// 	Qty:         req.Qty,
-	// }
+	/// All validations passed
 
 	// store the OrderRequest in the database
 	h.dbService.SaveOrderRequest(req)
 
-	// Marshal the CLOB request to JSON
+	// Marshal the CLOB req: *pb_api.PredictionIntentRequest to JSON
 	clobRequestJSON, err := json.Marshal(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal CLOB request: %v", err)
