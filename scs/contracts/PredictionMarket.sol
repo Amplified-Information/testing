@@ -77,18 +77,18 @@ contract PredictionMarket {
     @param marketId The ID of the market.
     @param signerYes The (signing) address of the account buying YES position tokens.
     @param signerNo The (signing) address of the account buying NO position tokens.
-    @param collateralUSDC The amount of collateral (in USDC) to be used for purchasing position tokens.
+    @param collateralUsdcAbs The amount of collateral (in USDC) to be used for purchasing position tokens.
     @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
     @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
     @param sigYes The signature of the YES position token purchase transaction.
     @param sigNo The signature of the NO position token purchase transaction.
     */
-    function buyPositionTokensOnBehalfAtomic(uint128 marketId, address signerYes, address signerNo, uint256 collateralUSDC, uint128 txIdYes, uint128 txIdNo, bytes calldata sigYes, bytes calldata sigNo) external onlyOwner {
+    function buyPositionTokensOnBehalfAtomic(uint128 marketId, address signerYes, address signerNo, uint256 collateralUsdcAbs, uint128 txIdYes, uint128 txIdNo, bytes calldata sigYes, bytes calldata sigNo) external onlyOwner {
         require(resolutionTimes[marketId] == 0, "Market resolved");
 
-        // Calculate on-chain message hashes
-        bytes32 messageHashYes = calcSig(txIdYes, marketId, signerYes, collateralUSDC);
-        bytes32 messageHashNo = calcSig(txIdNo, marketId, signerNo, collateralUSDC);
+        // Calculate payload sigs on-chain
+        bytes32 messageHashYes = calcSig(txIdYes, marketId, collateralUsdcAbs);
+        bytes32 messageHashNo = calcSig(txIdNo, marketId, collateralUsdcAbs);
 
         // Validate signatures
         require(
@@ -106,16 +106,16 @@ contract PredictionMarket {
         // The buyer must have approved this contract (not msg.sender) to spend their tokens
         // IERC20(usdcAddress).transferFrom(owner, recipient, amount);
         // HederaTokenService.transferToken(token, from, to, amount);
-        require(collateralToken.transferFrom(signerYes, address(this), collateralUSDC), "Transfer failed");
-        require(collateralToken.transferFrom(signerNo, address(this), collateralUSDC), "Transfer failed");
+        require(collateralToken.transferFrom(signerYes, address(this), collateralUsdcAbs), "Transfer failed");
+        require(collateralToken.transferFrom(signerNo, address(this), collateralUsdcAbs), "Transfer failed");
         
-        yesTokens[marketId][signerYes] += collateralUSDC; // 1:1 mapping of collateral to position tokens
-        noTokens[marketId][signerNo] += collateralUSDC; // 1:1 mapping of collateral to position tokens
+        yesTokens[marketId][signerYes] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
+        noTokens[marketId][signerNo] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
         
-        totalCollaterals[marketId] += collateralUSDC;
+        totalCollaterals[marketId] += collateralUsdcAbs;
 
-        emit PositionTokensPurchased(marketId, signerYes, collateralUSDC, false);
-        emit PositionTokensPurchased(marketId, signerNo, collateralUSDC, true);
+        emit PositionTokensPurchased(marketId, signerYes, collateralUsdcAbs, false);
+        emit PositionTokensPurchased(marketId, signerNo, collateralUsdcAbs, true);
     }
     
     /**
@@ -207,10 +207,9 @@ contract PredictionMarket {
     function calcSig(
         uint128 txId,
         uint128 marketId,
-        address signer,
         uint256 collateralUSDC
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(txId, marketId, signer, collateralUSDC));
+        return keccak256(abi.encodePacked(txId, marketId, collateralUSDC));
     }
 
     /**

@@ -1,4 +1,3 @@
-import { v7 as uuidv7 } from 'uuid'
 import { BookSnapshot } from '../gen/clob'
 
 const uint8ToBase64 = (bytes: Uint8Array): string => {
@@ -16,9 +15,9 @@ const uint8ToBase64 = (bytes: Uint8Array): string => {
 //     .join('');
 // }
 
-const genUUIDv7 = (): string => {
-  return uuidv7()
-}
+// const genUUIDv7 = (): string => {
+//   return uuidv7()
+// }
 
 const getMidPrice = (book: BookSnapshot): number | undefined => {
   if (book.bids.length === 0 || book.asks.length === 0) return undefined
@@ -35,7 +34,6 @@ const getSpreadPercent = (book: BookSnapshot): number | undefined => {
 export {
   uint8ToBase64,
   // uint8ToHex,
-  genUUIDv7,
   getMidPrice,
   getSpreadPercent
 }

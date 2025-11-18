@@ -7,9 +7,9 @@ echo $GOPATH
 # make sure Go version is >1.22
 go version
 
-# generate protobuf interface
+# generate sqlc and protobuf interfaces
 cd api
-./genProto.sh
+./genInterfaces.sh
 
 # run the server:
 cd api
@@ -36,7 +36,7 @@ mkdir -p proto/google
 
 # now generate the interface
 cd api
-./genProto.sh
+./genInterfaces.sh
 ```
 
 ```bash

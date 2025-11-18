@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"math/big"
-	"strconv"
 
 	"os"
 
@@ -174,7 +172,7 @@ func (h *HederaService) GetEvmAlias(accountId hiero.AccountID) (string, error) {
 	return info.ContractAccountID, nil
 }
 
-func (h *HederaService) BuyPositionTokens(_accountIdYes string, _accountIdNo string, collateralUsdFloat64Abs float64, nPositionTokensFloat64 float64) error {
+func (h *HederaService) BuyPositionTokens(_accountIdYes string, _accountIdNo string, collateralUsdAbsFloat64 float64, marketIdUuid string, txIdUuidYes string, txIdUuidNo string, sigYesBase64 string, sigNoBase64 string) error {
 	// amount := orderRequestClob.PriceUsd * orderRequestClob.NShares
 
 	// implement smart contract interaction to buy shares
@@ -204,44 +202,51 @@ func (h *HederaService) BuyPositionTokens(_accountIdYes string, _accountIdNo str
 		return fmt.Errorf("failed to get alias key: %v", err)
 	}
 
-	// scale the float64s for the number of USDC_DECIMALS
-	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
-	usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
+	// translate variables to suitable format, prior to submission to smart contract:
+	marketIdBigInt, err := lib.Uuid7_to_bigint(marketIdUuid)
 	if err != nil {
-		return fmt.Errorf("invalid USDC_DECIMALS: %w", err)
+		return fmt.Errorf("failed to convert marketId to bigint: %w", err)
 	}
-	collateralUsdFloat64Abs = collateralUsdFloat64Abs * math.Pow10(int(usdcDecimals))
-	nPositionTokensFloat64 = nPositionTokensFloat64 * math.Pow10(int(usdcDecimals))
 
-	// isSell := orderRequestClob.PriceUsd < 0.0
+	collateralUsd_abs_scaled_bigint, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsFloat64)
+	if err != nil {
+		return fmt.Errorf("failed to scale collateral USD: %w", err)
+	}
 
-	// usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
-	// usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
-	// if err != nil {
-	// 	return fmt.Errorf("invalid USDC_DECIMALS: %w", err)
-	// }
+	txIdUuidYesBigInt, err := lib.Uuid7_to_bigint(txIdUuidYes)
+	if err != nil {
+		return fmt.Errorf("failed to convert txIdUuidYes to bigint: %w", err)
+	}
+	txIdUuidNoBigInt, err := lib.Uuid7_to_bigint(txIdUuidNo)
+	if err != nil {
+		return fmt.Errorf("failed to convert txIdUuidNo to bigint: %w", err)
+	}
 
-	// collateralUsdFloat64 := orderRequestClob.PriceUsd * math.Pow10(int(usdcDecimals))
-	// collateralUsdFloat64 = math.Abs(collateralUsdFloat64)
-	// collateralUsd := big.NewInt(int64(collateralUsdFloat64))
+	sigYesBytes, err := base64.StdEncoding.DecodeString(sigYesBase64)
+	if err != nil {
+		return fmt.Errorf("failed to decode sigYesBase64: %w", err)
+	}
+	sigNoBytes, err := base64.StdEncoding.DecodeString(sigNoBase64)
+	if err != nil {
+		return fmt.Errorf("failed to decode sigNoBase64: %w", err)
+	}
 
-	// nPositionTokensFloat64 := orderRequestClob.Qty * math.Pow10(int(usdcDecimals))
-	// nPositionTokensFloat64 = math.Abs(nPositionTokensFloat64)
-	// nPositionTokens := big.NewInt(int64(nPositionTokensFloat64))
-
-	// params := hiero.NewContractFunctionParameters()
-	// params.AddAddress(evmAlias)                             // buyer
-	// params.AddUint256(hiero.To256BitBytes(collateralUsd))   // amount
-	// params.AddUint256(hiero.To256BitBytes(nPositionTokens)) // nPositionTokens
-	// params.AddBool(isSell)
-
+	// set up the smart contract parameters:
+	// note:
+	// UUIDv7 fits into a 128-bit unsigned integer register
+	// hiero.ToPaddedBytes(someBigUintAbs, 16) // 16 * 8-bits = 128-bit uint
+	// hiero.ToPaddedBytes(someBigUintAbs, 32) // 32 * 8-bits = 256-bit uint
 	params := hiero.NewContractFunctionParameters()
-	params.AddAddress(evmAliasYes)                                                     // the yes buyer
-	params.AddAddress(evmAliasNo)                                                      // the no buyer
-	params.AddUint256(hiero.To256BitBytes(big.NewInt(int64(collateralUsdFloat64Abs)))) // collateralUSDC
-	params.AddUint256(hiero.To256BitBytes(big.NewInt(int64(nPositionTokensFloat64))))  // nPositionTokens
+	params.AddUint128(hiero.ToPaddedBytes(marketIdBigInt, 16))                  // marketId: uint128
+	params.AddAddress(evmAliasYes)                                              // signerYes: address
+	params.AddAddress(evmAliasNo)                                               // signerNo: address
+	params.AddUint256(hiero.ToPaddedBytes(collateralUsd_abs_scaled_bigint, 32)) // collateralUsdcAbs: uint256
+	params.AddUint128(hiero.ToPaddedBytes(txIdUuidYesBigInt, 16))               // txIdYes: uint128
+	params.AddUint128(hiero.ToPaddedBytes(txIdUuidNoBigInt, 16))                // txIdNo: uint128
+	params.AddBytes(sigYesBytes)                                                // sigYes: bytes (calldata)
+	params.AddBytes(sigNoBytes)                                                 // sigNo: bytes (calldata)
 
-	log.Printf("Attempting to allocate position tokens on-chain: accountIdYes=%s, accountIdNo=%s, collateralUsd=%f, positionTokens=%f", evmAliasYes, evmAliasNo, collateralUsdFloat64Abs, nPositionTokensFloat64)
+	log.Printf("Attempting to allocate position tokens on-chain (marketId=%s): accountIdYes=%s, accountIdNo=%s, collateralUsdAbs=%f, txIdYesUuid=%s (sigYesBase64=%s), txIdNoUuid=%s (sigNoBase64=%s)", marketIdUuid, evmAliasYes, evmAliasNo, collateralUsdAbsFloat64, txIdUuidYes, sigYesBase64, txIdUuidNo, sigNoBase64)
 
 	contractCall := hiero.NewContractExecuteTransaction().
 		SetContractID(smartContractId).
@@ -267,6 +272,6 @@ func (h *HederaService) BuyPositionTokens(_accountIdYes string, _accountIdNo str
 		// TODO - put the order back on the CLOB...
 	}
 
-	log.Printf("Successfully sent $USDC%d collateral from both accountId=%s (YES) and accountId=%s (NO). nPositionTokens: %f. Hedera txId: %s", collateralUsdFloat64Abs, _accountIdYes, _accountIdNo, nPositionTokensFloat64, txResponse.TransactionID.String())
+	log.Printf("Successfully sent $USDC%d collateral from both accountId=%s (YES) and accountId=%s (NO). Hedera txId: %s", collateralUsd_abs_scaled_bigint.Uint64(), _accountIdYes, _accountIdNo, txResponse.TransactionID.String())
 	return nil
 }

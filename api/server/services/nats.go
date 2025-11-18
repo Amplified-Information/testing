@@ -107,27 +107,43 @@ func (n *NatsService) HandleOrderMatches() error {
 		// Example: [{"tx_id":"019a824d-75b4-73af-a19a-11bd6d11afd0","net":"testnet","market_id":"019a7e77-39e2-72a3-9bea-a63bdfa79d20","account_id":"0.0.7090546","market_limit":"limit","price_usd":-0.5,"qty":0.42},{"tx_id":"019a7f37-1f9c-7713-9766-94236e48f261","net":"testnet","market_id":"019a7e77-39e2-72a3-9bea-a63bdfa79d20","account_id":"0.0.7090546","market_limit":"limit","price_usd":0.5,"qty":1.8798}]
 		accountIdYes := orderRequestClobTuple[0].AccountId
 		accountIdNo := orderRequestClobTuple[1].AccountId
+		txIdUuidYes := orderRequestClobTuple[0].TxId
+		txIdUuidNo := orderRequestClobTuple[1].TxId
+		sigYesBase64 := orderRequestClobTuple[0].Sig
+		sigNoBase64 := orderRequestClobTuple[1].Sig
+		flipYesNo := false
+
 		collateralUsdFloat64 := 0.0
-		nPosTokensFloat64 := 0.0
 		if orderRequestClobTuple[0].Qty > orderRequestClobTuple[1].Qty {
-			nPosTokensFloat64 = orderRequestClobTuple[1].Qty // the lesser of the two amounts
 			collateralUsdFloat64 = orderRequestClobTuple[1].Qty * orderRequestClobTuple[1].PriceUsd
 			if collateralUsdFloat64 > 0 {
-				accountIdYes = orderRequestClobTuple[1].AccountId
-				accountIdNo = orderRequestClobTuple[0].AccountId
+				flipYesNo = true
 			}
 		} else { // [1].Qty > [0].Qty
-			nPosTokensFloat64 = orderRequestClobTuple[0].Qty // the lesser of the two amounts
 			collateralUsdFloat64 = orderRequestClobTuple[0].Qty * orderRequestClobTuple[0].PriceUsd
 			if collateralUsdFloat64 < 0 {
-				accountIdYes = orderRequestClobTuple[1].AccountId
-				accountIdNo = orderRequestClobTuple[0].AccountId
+				flipYesNo = true
 			}
 		}
 
-		collateralUsdFloat64Abs := math.Abs(collateralUsdFloat64)
+		if (flipYesNo) {
+			accountIdYes, accountIdNo = accountIdNo, accountIdYes
+			txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
+			sigYesBase64, sigNoBase64 = sigNoBase64, sigYesBase64
+		}
 
-		err = n.hederaService.BuyPositionTokens(accountIdYes, accountIdNo, collateralUsdFloat64Abs, nPosTokensFloat64)
+		marketIdUuid := orderRequestClobTuple[0].MarketId // marketId 1 and marketId 0 are the same
+
+		err = n.hederaService.BuyPositionTokens(
+			accountIdYes,
+			accountIdNo,
+			math.Abs(collateralUsdFloat64),
+			marketIdUuid,
+			txIdUuidYes,
+			txIdUuidNo,
+			sigYesBase64,
+			sigNoBase64,
+		)
 		if err != nil {
 			log.Printf("Error submitting match to smart contract: %v ", err)
 		}

@@ -1,6 +1,6 @@
 import { LedgerId } from '@hashgraph/sdk'
 import { PredictionIntentRequest } from './gen/api'
-import { genUUIDv7 } from './lib/utils'
+import { v7 as uuidv7 } from 'uuid'
 
 const networksAvailable = [LedgerId.MAINNET, LedgerId.TESTNET, LedgerId.PREVIEWNET]
 const smartContractId = '0.0.7274968'
@@ -22,7 +22,7 @@ const walletMetaData = {
 
 const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
   return {
-    txId: genUUIDv7(),
+    txId: uuidv7(),
     net: 'testnet',
     marketId: TMP_MARKET_ID,
     generatedAt: new Date().toISOString(),

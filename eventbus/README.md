@@ -10,6 +10,8 @@ No message persistence, no replaying of messages. No state is stored.
 cd eventbus
 source .config.local
 source .secrets.local
+# or:
+source loadEnv.sh local
 docker run --rm -it -e NATS_ADDR=$NATS_HOST -p $NATS_PORT:$NATS_PORT -p $NATS_PORT_MONITOR:$NATS_PORT_MONITOR nats:latest
 ```
 

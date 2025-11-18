@@ -123,9 +123,12 @@ Every transaction initiated by the user has a digital signature.
 
 ```typescript
 {
-  tx_id: uuid7
-  market_id: uuid7
-  price_usd: float
-  qty: float
+  txId: uuid7         // uint128
+  marketId: uuid7     // uint128
+  priceUsdAbs: float  // uint256
 }
 ```
+
+See: `getSerializedPayloadForSigning(...)` in ./lib/utils.ts
+
+

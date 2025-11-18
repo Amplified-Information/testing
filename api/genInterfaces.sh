@@ -3,6 +3,12 @@
 rm -rf gen
 mkdir -p gen/clob
 
+echo "Generating sqlc interfaces..."
+cd db
+sqlc generate
+cd ..
+echo "-> sqlc interfaces generated."
+echo ""
 
 #protoc --proto_path=proto --proto_path=proto/validate --go_out=gen --go_opt=paths=source_relative --go-grpc_out=gen --go-grpc_opt=paths=source_relative --validate_out="lang=go,paths=source_relative:gen" proto/api.proto
 protoc \
