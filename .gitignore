@@ -2,6 +2,8 @@
 old
 .env
 
+node_modules/
+
 .vscode
 
 /target/

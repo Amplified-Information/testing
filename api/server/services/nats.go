@@ -70,8 +70,8 @@ func (n *NatsService) Subscribe(subject string, handler nats.MsgHandler) (*nats.
 }
 
 func (n *NatsService) HandleOrderMatches() error {
-	log.Printf("NATS_CLOB_MATCHES> subscription starting...")
-	_, err := n.Subscribe("clob.matches.*" /* wildcard! */, func(msg *nats.Msg) {
+	log.Printf("HandleOrderMatches subscription starting...")
+	_, err := n.Subscribe(lib.NATS_CLOB_MATCHES_WILDCARD, func(msg *nats.Msg) {
 		fmt.Printf("NATS %s: %s\n", msg.Subject, string(msg.Data))
 
 		var orderRequestClobTuple [2]pb_clob.OrderRequestClob
@@ -80,15 +80,38 @@ func (n *NatsService) HandleOrderMatches() error {
 			return
 		}
 
+		// assert that [0].marketId and [1].marketId are the same
+		if orderRequestClobTuple[0].MarketId != orderRequestClobTuple[1].MarketId {
+			log.Printf("PROBLEM: the marketIds (%s, %s) don't match! (txid=%s).", orderRequestClobTuple[0].MarketId, orderRequestClobTuple[1].MarketId, orderRequestClobTuple[0].TxId)
+			return
+		}
+
+		// assert that the two priceUsd's cancel each other out
+		priceDiff := orderRequestClobTuple[0].PriceUsd + orderRequestClobTuple[1].PriceUsd
+		if priceDiff != 0.0 {
+			log.Printf("PROBLEM: orderRequestClobTuple[0] + orderRequestClobTuple[1] is %f and not 0.0", priceDiff)
+			return
+		}
+
+		// assert that priceUsd is not 0.0
+		if orderRequestClobTuple[0].PriceUsd == 0.0 {
+			log.Printf("PROBLEM: priceUsd is 0.0 - this is not allowed (txid=%s).", orderRequestClobTuple[0].TxId)
+			return
+		}
+
 		/////
 		// db
 		// Record the match on a database (auditing)
 		/////
 		isPartial := false
-		if msg.Subject == lib.NATS_CLOB_MATCHES_PARTIAL {
+		switch msg.Subject {
+		case lib.NATS_CLOB_MATCHES_PARTIAL:
 			isPartial = true
-		} else if msg.Subject == lib.NATS_CLOB_MATCHES_FULL {
+		case lib.NATS_CLOB_MATCHES_FULL:
 			isPartial = false
+		default:
+			log.Printf("NATS: Invalid subject")
+			return
 		}
 
 		_, err := n.dbService.RecordMatch(
@@ -111,34 +134,32 @@ func (n *NatsService) HandleOrderMatches() error {
 		txIdUuidNo := orderRequestClobTuple[1].TxId
 		sigYesBase64 := orderRequestClobTuple[0].Sig
 		sigNoBase64 := orderRequestClobTuple[1].Sig
-		flipYesNo := false
 
 		collateralUsdFloat64 := 0.0
-		if orderRequestClobTuple[0].Qty > orderRequestClobTuple[1].Qty {
+		if orderRequestClobTuple[0].Qty > orderRequestClobTuple[1].Qty { // [1] is fully matched, [0] is partially matched
+			// this amount ([1] is the lower Qty) of USDC will be taken as collateral
 			collateralUsdFloat64 = orderRequestClobTuple[1].Qty * orderRequestClobTuple[1].PriceUsd
-			if collateralUsdFloat64 > 0 {
-				flipYesNo = true
-			}
-		} else { // [1].Qty > [0].Qty
+		} else { // [1].Qty > [0].Qty ......... [0] is fully matched, [1] is partially matched
+			// this amount ([0] is the lower Qty) of USDC will be taken as collateral
 			collateralUsdFloat64 = orderRequestClobTuple[0].Qty * orderRequestClobTuple[0].PriceUsd
-			if collateralUsdFloat64 < 0 {
-				flipYesNo = true
-			}
 		}
 
-		if (flipYesNo) {
+		// do we need to flip which accoundId is YES and which accountId is NO?
+		// by default:
+		//   -> [0] is YES, [1] is NO
+		// iff [0].PriceUsd < 0.0
+		//   -> [0] is NO, [1] is YES
+		if orderRequestClobTuple[0].PriceUsd < 0 {
 			accountIdYes, accountIdNo = accountIdNo, accountIdYes
 			txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
 			sigYesBase64, sigNoBase64 = sigNoBase64, sigYesBase64
 		}
 
-		marketIdUuid := orderRequestClobTuple[0].MarketId // marketId 1 and marketId 0 are the same
-
 		err = n.hederaService.BuyPositionTokens(
 			accountIdYes,
 			accountIdNo,
 			math.Abs(collateralUsdFloat64),
-			marketIdUuid,
+			orderRequestClobTuple[0].MarketId, // marketId 1 and marketId 0 are the same
 			txIdUuidYes,
 			txIdUuidNo,
 			sigYesBase64,

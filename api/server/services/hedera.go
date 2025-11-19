@@ -257,19 +257,19 @@ func (h *HederaService) BuyPositionTokens(_accountIdYes string, _accountIdNo str
 	txResponse, err := contractCall.Execute(h.hedera_client)
 	if err != nil {
 		return fmt.Errorf("failed to execute contract call: %w", err)
-		// TODO - put the order back on the CLOB...
+		// TODO - put the order back on the CLOB?...
 	}
 
 	// Get receipt
 	receipt, err := txResponse.GetReceipt(h.hedera_client)
 	if err != nil {
 		return fmt.Errorf("failed to get receipt: %w", err)
-		// TODO - put the order back on the CLOB...
+		// TODO - put the order back on the CLOB?...
 	}
 
 	if receipt.Status != hiero.StatusSuccess {
 		return fmt.Errorf("contract execution failed with status: %s", receipt.Status)
-		// TODO - put the order back on the CLOB...
+		// TODO - put the order back on the CLOB?...
 	}
 
 	log.Printf("Successfully sent $USDC%d collateral from both accountId=%s (YES) and accountId=%s (NO). Hedera txId: %s", collateralUsd_abs_scaled_bigint.Uint64(), _accountIdYes, _accountIdNo, txResponse.TransactionID.String())
