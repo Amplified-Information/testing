@@ -78,29 +78,39 @@ contract PredictionMarket {
     @param signerYes The (signing) address of the account buying YES position tokens.
     @param signerNo The (signing) address of the account buying NO position tokens.
     @param collateralUsdcAbs The amount of collateral (in USDC) to be used for purchasing position tokens.
-    @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
-    @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
-    @param sigYes The signature of the YES position token purchase transaction.
-    @param sigNo The signature of the NO position token purchase transaction.
     */
-    function buyPositionTokensOnBehalfAtomic(uint128 marketId, address signerYes, address signerNo, uint256 collateralUsdcAbs, uint128 txIdYes, uint128 txIdNo, bytes calldata sigYes, bytes calldata sigNo) external onlyOwner {
+    // @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
+    // @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
+    // @param sigYes The signature of the YES position token purchase transaction.
+    // @param sigNo The signature of the NO position token purchase transaction.
+    function buyPositionTokensOnBehalfAtomic(
+        uint128 marketId, 
+        address signerYes, 
+        address signerNo, 
+        uint256 collateralUsdcAbs
+        // uint128 txIdYes,
+        // uint128 txIdNo, 
+        // bytes calldata sigYes,
+        // bytes calldata sigNo
+    ) external onlyOwner {
         require(resolutionTimes[marketId] == 0, "Market resolved");
+        require(bytes(statements[marketId]).length > 0, "No market statement has been set");
 
-        // Calculate payload sigs on-chain
-        bytes32 messageHashYes = calcSig(txIdYes, marketId, collateralUsdcAbs);
-        bytes32 messageHashNo = calcSig(txIdNo, marketId, collateralUsdcAbs);
+        // // Calculate payload sigs on-chain
+        // bytes32 messageHashYes = calcSig(txIdYes, marketId, collateralUsdcAbs);
+        // bytes32 messageHashNo = calcSig(txIdNo, marketId, collateralUsdcAbs);
 
-        // Validate signatures
-        require(
-            validateECDSASignature(signerYes, messageHashYes, sigYes) ||
-            validateEd25519Signature(signerYes, messageHashYes, sigYes),
-            "Invalid YES signature"
-        );
-        require(
-            validateECDSASignature(signerNo, messageHashNo, sigNo) ||
-            validateEd25519Signature(signerNo, messageHashNo, sigNo),
-            "Invalid NO signature"
-        );
+        // // Validate signatures
+        // require(
+        //     validateECDSASignature(signerYes, messageHashYes, sigYes) ||
+        //     validateEd25519Signature(signerYes, messageHashYes, sigYes),
+        //     "Invalid YES signature"
+        // );
+        // require(
+        //     validateECDSASignature(signerNo, messageHashNo, sigNo) ||
+        //     validateEd25519Signature(signerNo, messageHashNo, sigNo),
+        //     "Invalid NO signature"
+        // );
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
         // The buyer must have approved this contract (not msg.sender) to spend their tokens
@@ -112,7 +122,7 @@ contract PredictionMarket {
         yesTokens[marketId][signerYes] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
         noTokens[marketId][signerNo] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
         
-        totalCollaterals[marketId] += collateralUsdcAbs;
+        totalCollaterals[marketId] += (2 * collateralUsdcAbs);
 
         emit PositionTokensPurchased(marketId, signerYes, collateralUsdcAbs, false);
         emit PositionTokensPurchased(marketId, signerNo, collateralUsdcAbs, true);

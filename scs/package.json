@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "compile": "solcjs ./contracts/PredictionMarket.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done",
-    "deploy": "ts-node ./scripts/0_deploy.ts && echo \"**Don't forget to associate USDC with this newly deployed smart contract\""
+    "deploy": "ts-node ./scripts/0_deploy.ts"
   },
   "dependencies": {
     "@gnosis.pm/conditional-tokens-contracts": "^1.0.3",

@@ -30,7 +30,7 @@ const main = async () => {
 
   try {
     const params = new ContractFunctionParameters()
-      .addUint128(marketIdBigInt.uint128.toString())
+      .addUint256(marketIdBigInt.uint128.toString())
       .addAddress(accountIdEvm)
     const query = new ContractCallQuery()
       .setContractId(ContractId.fromString(contractId))

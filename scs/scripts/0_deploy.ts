@@ -70,7 +70,12 @@ async function deployContract(client: Client) {
     const contractId = contractReceipt.contractId
 
     console.log(`Contract deployed with ID: ${contractId}`)
-    console.log(`export SMART_CONTRACT_ID=${contractId}`)
+    console.log(`--> export SMART_CONTRACT_ID=${contractId}`)
+    console.log(`--> Don't forget to the smart contract ID for:
+- api (.config.*) + restart
+- web (constants.ts) + restart
+`)
+    console.log(`--> Don't forget to create at least one new market`)
 
     /////
     // This is not acceptable as it requires an admin key on the contract!

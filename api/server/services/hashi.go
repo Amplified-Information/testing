@@ -81,7 +81,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("failed to check existing txId: %v", err)
 	}
 	if exists {
-		log.Printf("DUPLICATE: %s", req.TxId)
+		log.Printf("DUPLICATE txId: %s", req.TxId)
 		return "", fmt.Errorf("duplicate txId: %s", req.TxId)
 	}
 
@@ -100,10 +100,10 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 
 	// calculate the keccak256 hash of the serialized payload
 	keccakHash := lib.Keccak256(serializedPayload)
-	
+
 	log.Printf("Parameters passed to VerifySig(...): \n\t- publicKey (hex, looked up): %s\n\t- payloadKeccak (base64, calculated server-side based on payload): %s\n\t- sig (base64, extracted from payload): %s\n", publicKey.String(), base64.StdEncoding.EncodeToString(keccakHash), req.Sig)
 	isValidSig, err := h.hederaService.VerifySig(publicKey, keccakHash, req.Sig)
-	
+
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
@@ -147,7 +147,10 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	/// All validations passed
 
 	// store the OrderRequest in the database
-	h.dbService.SaveOrderRequest(req)
+	_, err = h.dbService.SaveOrderRequest(req)
+	if err != nil {
+		return "", fmt.Errorf("database error: failed to save order request: %v", err)
+	}
 
 	// Marshal the CLOB req: *pb_api.PredictionIntentRequest to JSON
 	clobRequestJSON, err := json.Marshal(req)
@@ -155,6 +158,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("failed to marshal CLOB request: %v", err)
 	}
 
+	// Publish the message to NATS:
 	err = h.natsService.Publish(lib.SUBJECT_CLOB_ORDERS, clobRequestJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to publish to NATS: %v", err)

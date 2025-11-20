@@ -61,24 +61,24 @@ func (dbService *DbService) IsDuplicateTxId(txId uuid.UUID) (bool, error) {
 }
 
 // SaveOrderRequest saves an order request to the database
-func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest) error {
+func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest) (*sqlc.OrderRequest, error) {
 	if dbService.db == nil {
-		return fmt.Errorf("database not initialized")
+		return nil, fmt.Errorf("database not initialized")
 	}
 
 	txUUID, err := uuid.Parse(req.TxId)
 	if err != nil {
-		return fmt.Errorf("invalid txId uuid: %v", err)
+		return nil, fmt.Errorf("invalid txId uuid: %v", err)
 	}
 
 	marketUUID, err := uuid.Parse(req.MarketId)
 	if err != nil {
-		return fmt.Errorf("invalid marketId uuid: %v", err)
+		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
 	}
 
 	generatedAt, err := time.Parse(time.RFC3339, req.GeneratedAt) // Zulu time (RFC3339)
 	if err != nil {
-		return fmt.Errorf("invalid GeneratedAt timestamp: %v", err)
+		return nil, fmt.Errorf("invalid GeneratedAt timestamp: %v", err)
 	}
 	generatedAt = generatedAt.UTC()
 
@@ -90,17 +90,18 @@ func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest
 		MarketLimit: req.MarketLimit,
 		PriceUsd:    req.PriceUsd,
 		Qty:         req.Qty,
+		Sig:         req.Sig,
 		GeneratedAt: generatedAt,
 	}
 
 	q := sqlc.New(dbService.db)
-	_, err = q.CreateOrderRequest(context.Background(), params)
+	newOrderRequest, err := q.CreateOrderRequest(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("CreateOrderRequest failed: %v", err)
+		return nil, fmt.Errorf("CreateOrderRequest failed: %v", err)
 	}
 
 	log.Printf("Saved order request to database for account %s", req.AccountId)
-	return nil
+	return &newOrderRequest, nil
 }
 
 func (dbService *DbService) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderRequestClob, isPartial bool) (*sqlc.Match, error) {
