@@ -99,58 +99,6 @@ func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, payloadKeccak []by
 	return verified, nil
 }
 
-// func (h *HederaService) VerifySignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bool, error) {
-// 	// _pubKeyHex := "03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787"
-// 	// **works**
-// 	// _messageUTF8 := "aGVsbG8=" // hello
-// 	// _sigBase64 := "2e//YBNUI73pfAnY3Eoh+sAGV8naXuCjfj8+JjByVGFwckhE2ICgs9YYoapxVuR2Qnq+4yxheLSSfa4TXObT+A=="
-// 	// **works**
-// 	// _sigBase64 := "NsiQSJWWx+SrZK3OsxdbIgNgxch//+RoRk6BZG5gsrJy1NoE7d1OKW/d4/Jo5lu/amkPp8zWzTB4PKTi1BRSZw==" // hello
-// 	// **works**
-// 	// _messageUTF8 := "{\"txid\":\"019a2c12-633b-75e7-8004-4585f525048c\",\"marketId\":\"019a2c12-633b-75e7-8004-4839f51ba5eb\",\"generated_at\":\"2025-10-28T18:26:33.915Z\",\"accountId\":\"0.0.7090546\",\"buySell\":\"buy\",\"priceUsd\":0,\"nShares\":0}"
-// 	// _sigBase64 := "0Kq5/wcUzqFXggdx/LkJpP1JbwGudaNdNN7wbIRZoyU1QO7bPVCKyJTuBSxfF8SSgyu0aMhTi2n8E6kD7vizEw=="
-// 	// **works**
-// 	// _messageUTF8 := "{\"txid\":\"019a2c4d-890b-759c-816e-d5e88ed59168\",\"marketId\":\"019a2c4d-890b-759c-816e-da2f5739d388\",\"generated_at\":\"2025-10-28T19:31:10.219Z\",\"accountId\":\"0.0.7090546\",\"buySell\":\"buy\",\"priceUsd\":0.5,\"nShares\":2}"
-// 	// _sigBase64 := "Fhs1PJ1bCji5jS951CT43Mu9q5Y1YLVBTgFsSKkG0Ap9ocmb6O9RsEIpn4QVan5X38tHovj+9P5GmIUh5SVwWw=="
-
-// 	log.Printf("VerifyHashPackSignature: \n- pubKeyHex: %s\n- messageUTF8: %s\n- sigBase64: %s\n", pubKeyHex, messageUTF8, sigBase64)
-
-// 	isSigValid, err := h.VerifyHashPackSignature(pubKeyHex, messageUTF8, sigBase64)
-// 	if err != nil {
-// 		return false, err
-// 	}
-
-// 	return isSigValid, nil
-// }
-
-// // VerifyHashPackSignature verifies a HashPack signature for a given message and ECDSA public key
-// // pubKeyHex: compressed Hedera ECDSA public key (33 bytes, hex string)
-// // messageUTF8: the original message that was signed
-// // sigBase64: the Base64 R||S signature from HashPack
-// func (h *HederaService) VerifyHashPackSignature(pubKeyHex string, messageUTF8 string, sigBase64 string) (bool, error) {
-// 	// Decode Base64 signature
-// 	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
-// 	if err != nil {
-// 		return false, fmt.Errorf("failed to decode signature: %w", err)
-// 	}
-// 	if len(sigBytes) != 64 {
-// 		return false, fmt.Errorf("unexpected signature length: %d", len(sigBytes))
-// 	}
-
-// 	// Parse Hedera ECDSA public key
-// 	pubKey, err := hiero.PublicKeyFromStringECDSA(pubKeyHex)
-// 	if err != nil {
-// 		return false, fmt.Errorf("failed to parse public key: %w", err)
-// 	}
-
-// 	// Construct the exact signed message bytes (Hedera WalletConnect prefix)
-// 	prefixed := []byte(fmt.Sprintf("\x19Hedera Signed Message:\n%d%s", len(messageUTF8), messageUTF8))
-// 	log.Printf("%s", string(prefixed))
-// 	// Verify signature
-// 	verified := pubKey.VerifySignedMessage(prefixed, sigBytes)
-// 	return verified, nil
-// }
-
 func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKey, error) {
 	// TODO... may get rate limited here...
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", os.Getenv("HEDERA_NETWORK_SELECTED"), accountId)
@@ -200,7 +148,7 @@ func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKe
 /*
 *
 This function determines the type of a given Hedera public key (offline).
-@param PublicKey publicKey - the public key to check
+@param publicKey - the public key to check
 */
 func (h *HederaService) PublicKeyType(publicKey *hiero.PublicKey) (HederaKeyType, error) {
 	decodedKey, err := base64.StdEncoding.DecodeString(publicKey.String())
@@ -217,33 +165,6 @@ func (h *HederaService) PublicKeyType(publicKey *hiero.PublicKey) (HederaKeyType
 		return -1, fmt.Errorf("unknown key type with length: %d", len(decodedKey))
 	}
 }
-
-// func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (PublicKey, error) {
-// 	// TODO... may get rate limited here...
-// 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", os.Getenv("HEDERA_NETWORK_SELECTED"), accountId)
-// 	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
-
-// 	if err != nil {
-// 		return PublicKey{}, fmt.Errorf("failed to query mirror node: %v", err)
-// 	}
-
-// 	if resp.StatusCode != 200 {
-// 		return PublicKey{}, fmt.Errorf("mirror node returned status code %d", resp.StatusCode)
-// 	}
-
-// 	var result struct {
-// 		Key struct {
-// 			Key   string `json:"key"`
-// 			Type_ string `json:"_type"`
-// 		} `json:"key"`
-// 	}
-
-// 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-// 		return PublicKey{}, fmt.Errorf("failed to parse mirror node response: %v", err)
-// 	}
-
-// 	return PublicKey{KeyType: result.Key.Type_, Key: result.Key.Key}, nil
-// }
 
 func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
