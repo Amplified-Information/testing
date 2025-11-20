@@ -177,21 +177,21 @@ const Signer = () => {
         try {
 
           const payload: Uint8Array = getSerializedPayloadForSigning(predictionIntentRequest)
-          console.log('*** Serialized payload for signing (hex):', Buffer.from(payload).toString('hex'))
+          // console.log('*** Serialized payload for signing (hex):', Buffer.from(payload).toString('hex'))
           console.log('*** Serialized payload for signing (base64):', uint8ToBase64(payload))
-          console.log('*** payload len=', payload.length)
+          // console.log('*** payload len=', payload.length)
           // const safeCopy = new Uint8Array(payload)
 
           const keccakHash: Uint8Array = keccak_256(payload)
-          console.log('*** Keccak-256 hash of payload (hex):', Buffer.from(keccakHash).toString('hex'))
+          // console.log('*** Keccak-256 hash of payload (hex):', Buffer.from(keccakHash).toString('hex'))
           console.log('*** Keccak-256 hash of payload (base64):', uint8ToBase64(keccakHash))
 
-          const testPayload = new Uint8Array([0x01, 0x02, 0x03]) // Replace with the actual payload
-          const hashTest = keccak_256(testPayload)
-          console.log('*** TEST payload (hex):', Buffer.from(testPayload).toString('hex'))
-          console.log('*** TEST keccak-256 hash (hex):', Buffer.from(hashTest).toString('hex'))
+          // const testPayload = new Uint8Array([0x01, 0x02, 0x03]) // Replace with the actual payload
+          // const hashTest = keccak_256(testPayload)
+          // console.log('*** TEST payload (hex):', Buffer.from(testPayload).toString('hex'))
+          // console.log('*** TEST keccak-256 hash (hex):', Buffer.from(hashTest).toString('hex'))
 
-          const multiSig = await signerZero!.sign([payload]/*, { encoding: 'base64'} */)
+          const multiSig = await signerZero!.sign([keccakHash /*payload*/ ], { encoding: 'base64'} )
           const sigUint8 = multiSig[0].signature // reckon most of the time just one sig
           setPredictionIntentRequest({ ...predictionIntentRequest, sig: uint8ToBase64(sigUint8) })
           console.log('*** Signature: ', uint8ToBase64(sigUint8))

@@ -91,39 +91,43 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	if err != nil {
 		return "", fmt.Errorf("failed to get public key: %v", err)
 	}
-	log.Printf("Mirror node response for account %s on network %s: %s %s", accountId, os.Getenv("HEDERA_NETWORK_SELECTED"), publicKey.Key, publicKey.KeyType)
+	log.Printf("Mirror node response for account %s on network %s: %s", accountId, os.Getenv("HEDERA_NETWORK_SELECTED"), publicKey.String())
 
 	serializedPayload, err := lib.ExtractPayloadForSigning(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to extract payload for signing: %v", err)
 	}
-	log.Printf("*** Serialized payload for signing (hex): %x", serializedPayload)
-	log.Printf("*** Serialized payload for signing (base64): %s", base64.StdEncoding.EncodeToString(serializedPayload))
-	log.Printf("*** serializedPayload len=%d\n", len(serializedPayload))
-	
-	keccakHash := lib.Keccak256(serializedPayload)
-	log.Printf("*** Keccak-256 hash of payload (hex): %x", keccakHash)
-	log.Printf("*** Keccak-256 hash of payload (base64): %s", base64.StdEncoding.EncodeToString(keccakHash))
+	// // log.Printf("*** Serialized payload for signing (hex): %x", serializedPayload)
+	// log.Printf("*** Serialized payload for signing (base64): %s", base64.StdEncoding.EncodeToString(serializedPayload))
+	// // log.Printf("*** serializedPayload len=%d\n", len(serializedPayload))
 
-	testPayload := []byte{0x01, 0x02, 0x03}
-	keccakTest := lib.Keccak256(testPayload)
-	log.Printf("*** TEST payload (hex): %x", testPayload)
-	log.Printf("*** TEST Keccak-256 hash (hex): %x", keccakTest)
+	keccakHash := lib.Keccak256(serializedPayload)
+	// // log.Printf("*** Keccak-256 hash of payload (hex): %x", keccakHash)
+	// log.Printf("*** Server extracted the payload according to the format and generated the Keccak-256 hash")
+	// log.Printf("*** resulting Keccak-256: %s", base64.StdEncoding.EncodeToString(keccakHash))
+
+	// testPayload := []byte{0x01, 0x02, 0x03}
+	// keccakTest := lib.Keccak256(testPayload)
+	// log.Printf("*** TEST payload (hex): %x", testPayload)
+	// log.Printf("*** TEST Keccak-256 hash (hex): %x", keccakTest)
 
 	// Serialize the request for sig check
-	serializedSansSigBase64, err := lib.Serialize64PredictionRequest_SansSig_ForSigning(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to serialize request for signing: %v", err)
-	}
-	// to bytes for sig check
-	serializedSansSigBytes, err := base64.StdEncoding.DecodeString(serializedSansSigBase64)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode base64: %v", err)
-	}
-	serializedSansSigUTF8 := string(serializedSansSigBytes)
-	log.Printf("Serialized message sans sig (UTF8): %s", serializedSansSigUTF8)
+	// serializedSansSigBase64, err := lib.Serialize64PredictionRequest_SansSig_ForSigning(req)
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to serialize request for signing: %v", err)
+	// }
+	// // to bytes for sig check
+	// serializedSansSigBytes, err := base64.StdEncoding.DecodeString(serializedSansSigBase64)
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to decode base64: %v", err)
+	// }
+	// serializedSansSigUTF8 := string(serializedSansSigBytes)
+	// log.Printf("Serialized message sans sig (UTF8): %s", serializedSansSigUTF8)
 
-	isValidSig, err := h.hederaService.VerifySignature(publicKey.Key, serializedSansSigUTF8, req.Sig)
+	log.Printf("Parameters passed to VerifySig(...): \n\t- publicKey (hex, looked up): %s\n\t- payloadKeccak (base64, calculated server-side based on payload): %s\n\t- sig (base64, extracted from payload): %s\n", publicKey.String(), base64.StdEncoding.EncodeToString(keccakHash), req.Sig)
+	isValidSig, err := h.hederaService.VerifySig(publicKey, keccakHash, req.Sig)
+	// isValidSig, err := h.hederaService.VerifySignature(publicKey.String(), base64.StdEncoding.EncodeToString(keccakHash), req.Sig)
+
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
@@ -132,6 +136,15 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		log.Printf("Invalid signature for account %s", req.AccountId)
 		return "", fmt.Errorf("invalid signature")
 	}
+	// isValidSig, err := h.hederaService.VerifySignature(publicKey.Key, serializedSansSigUTF8, req.Sig)
+	// if err != nil {
+	// 	log.Printf("Failed to verify signature: %v", err)
+	// 	return "", fmt.Errorf("failed to verify signature: %v", err)
+	// }
+	// if !isValidSig {
+	// 	log.Printf("Invalid signature for account %s", req.AccountId)
+	// 	return "", fmt.Errorf("invalid signature")
+	// }
 
 	log.Printf("**Signature is valid for account %s**", req.AccountId)
 

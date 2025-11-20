@@ -40,7 +40,7 @@ func (s *server) HealthCheck(ctx context.Context, req *pb_api.Empty) (*pb_api.St
 
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
-	vars := []string{"HOST", "PORT", "HEDERA_OPERATOR_KEY", "DB_HOST", "DB_PORT", "DB_UNAME", "DB_PWORD", "DB_NAME"}
+	vars := []string{"HOST", "PORT", "HEDERA_OPERATOR_ID", "HEDERA_OPERATOR_KEY_TYPE", "HEDERA_OPERATOR_KEY", "DB_HOST", "DB_PORT", "DB_UNAME", "DB_PWORD", "DB_NAME"}
 	vals := make(map[string]string)
 
 	var missing []string

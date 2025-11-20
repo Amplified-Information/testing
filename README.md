@@ -130,5 +130,3 @@ Every transaction initiated by the user has a digital signature.
 ```
 
 See: `getSerializedPayloadForSigning(...)` in ./lib/utils.ts
-
-
