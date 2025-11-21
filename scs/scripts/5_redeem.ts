@@ -26,7 +26,7 @@ const main = async () => {
   
   try {
     const params = new ContractFunctionParameters()
-      .addUint128(marketIdBigInt.uint128.toString())
+      .addUint128(marketIdBigInt.toString())
     const query = new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(contractId))
       .setGas(1_000_000)

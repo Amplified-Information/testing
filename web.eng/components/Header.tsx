@@ -2,6 +2,7 @@ import { LedgerId } from '@hashgraph/sdk'
 import { useAppContext } from '../AppProvider'
 import Wallet from './Wallet'
 import Positions from './Positions'
+import { smartContractId } from '../constants'
 
 const Header = () => {
   const { networkSelected } = useAppContext()
@@ -11,11 +12,16 @@ const Header = () => {
       <div className="flex items-center gap-2">
         <img src='../img/logo.svg' />
         <span className="font-semibold">Predict</span>
+        
       </div>
 
       
       <Positions />
-      
+
+      <span>
+        smart contract Id: <b>{smartContractId}</b>
+      </span>
+
       <div>
         <Wallet />
       </div>

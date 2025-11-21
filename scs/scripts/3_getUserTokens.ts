@@ -23,14 +23,14 @@ const main = async () => {
   }
   const marketIdBigInt = uuid7_to_uint128(marketId_uuid7)
 
-  console.log(`Calling getUserTokens(${marketId_uuid7}) on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
-
+  console.log(`Calling getUserTokens(${marketId_uuid7}/${marketIdBigInt.toString()}) on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
+  // console.log(uuid7_to_uint128('019a7e77-39e2-72a3-9bea-a63bdfa79d21').toString())
   const accountIdEvm = await getEvmAddress(client, accountId)
   console.log(`evm address for ${accountId}: ${accountIdEvm}`)
 
   try {
     const params = new ContractFunctionParameters()
-      .addUint256(marketIdBigInt.uint128.toString())
+      .addUint128(marketIdBigInt.toString())
       .addAddress(accountIdEvm)
     const query = new ContractCallQuery()
       .setContractId(ContractId.fromString(contractId))

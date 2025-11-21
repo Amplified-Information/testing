@@ -12,6 +12,10 @@ interface IHederaTokenService {
     function associateToken(address account, address token) external returns (int64);
 }
 
+interface IHederaAccountService {
+    function isAuthorizedRaw(address account, bytes32 messageHash, bytes calldata signatureBlob) external view returns (bool);
+}
+
 contract PredictionMarket {
     // USDC on Hedera Mainnet: 0x000000000000000000000000000000000006f89a
     // USDC on Hedera Testnet: 0x0000000000000000000000000000000000068cda // 0.0.5449
@@ -78,50 +82,49 @@ contract PredictionMarket {
     @param signerYes The (signing) address of the account buying YES position tokens.
     @param signerNo The (signing) address of the account buying NO position tokens.
     @param collateralUsdcAbs The amount of collateral (in USDC) to be used for purchasing position tokens.
+    @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
+    @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
+    @param sigYes The signature of the YES position token purchase transaction.
+    @param sigNo The signature of the NO position token purchase transaction.
     */
-    // @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
-    // @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
-    // @param sigYes The signature of the YES position token purchase transaction.
-    // @param sigNo The signature of the NO position token purchase transaction.
     function buyPositionTokensOnBehalfAtomic(
-        uint128 marketId, 
-        address signerYes, 
-        address signerNo, 
-        uint256 collateralUsdcAbs
-        // uint128 txIdYes,
-        // uint128 txIdNo, 
-        // bytes calldata sigYes,
-        // bytes calldata sigNo
+        uint128 marketId,
+        address signerYes,
+        address signerNo,
+        uint256 collateralUsdcAbs,
+        uint128 txIdYes,
+        uint128 txIdNo,
+        bytes calldata sigYes,
+        bytes calldata sigNo
     ) external onlyOwner {
         require(resolutionTimes[marketId] == 0, "Market resolved");
         require(bytes(statements[marketId]).length > 0, "No market statement has been set");
 
-        // // Calculate payload sigs on-chain
-        // bytes32 messageHashYes = calcSig(txIdYes, marketId, collateralUsdcAbs);
-        // bytes32 messageHashNo = calcSig(txIdNo, marketId, collateralUsdcAbs);
-
-        // // Validate signatures
-        // require(
-        //     validateECDSASignature(signerYes, messageHashYes, sigYes) ||
-        //     validateEd25519Signature(signerYes, messageHashYes, sigYes),
-        //     "Invalid YES signature"
+        // // Debugging: Log input data for STATICCALL
+        // bytes memory inputData = abi.encodeWithSelector(
+        //     bytes4(keccak256("associateToken(address,address)")),
+        //     signerYes,
+        //     address(this)
         // );
+        // debugStaticCallInput(inputData);
+
+        // Validate signatures
+        require(
+            validateSignature(signerYes, txIdYes, marketId, collateralUsdcAbs, sigYes),
+            "Invalid YES signature"
+        );
         // require(
-        //     validateECDSASignature(signerNo, messageHashNo, sigNo) ||
-        //     validateEd25519Signature(signerNo, messageHashNo, sigNo),
+        //     validateSignature(signerNo, txIdNo, marketId, collateralUsdcAbs, sigNo),
         //     "Invalid NO signature"
         // );
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
-        // The buyer must have approved this contract (not msg.sender) to spend their tokens
-        // IERC20(usdcAddress).transferFrom(owner, recipient, amount);
-        // HederaTokenService.transferToken(token, from, to, amount);
         require(collateralToken.transferFrom(signerYes, address(this), collateralUsdcAbs), "Transfer failed");
         require(collateralToken.transferFrom(signerNo, address(this), collateralUsdcAbs), "Transfer failed");
-        
+
         yesTokens[marketId][signerYes] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
         noTokens[marketId][signerNo] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
-        
+
         totalCollaterals[marketId] += (2 * collateralUsdcAbs);
 
         emit PositionTokensPurchased(marketId, signerYes, collateralUsdcAbs, false);
@@ -174,7 +177,7 @@ contract PredictionMarket {
     }
     
     /**
-    This function retrieves the number of YES and NO position tokens held by a user for a specific market.
+    Retrieve the number of YES and NO position tokens held by a user for a specific market.
     @param marketId The ID of the market.
     @param user The address of the user whose tokens are being queried.
     @return yes The number of YES position tokens held by the user.
@@ -185,7 +188,7 @@ contract PredictionMarket {
     }
 
     /**
-    This function gets the total collateral for a specific market.
+    Get the total collateral for a specific market.
     @param marketId The ID of the market.
     @return amountUSDC The total amount of collateral deposited in the specified market.
     */
@@ -194,7 +197,7 @@ contract PredictionMarket {
     }
 
     /**
-    This function associates the specified token with the contract using the Hedera Token Service precompile.
+    Associate the specified token with the contract using the Hedera Token Service precompile.
     It can only be called by the contract owner.
     @param tokenAddress The address of the token to be associated with the contract.
     */
@@ -214,12 +217,48 @@ contract PredictionMarket {
         emit TokenAssociated(tokenAddress);
     }
 
-    function calcSig(
+
+    /////
+    // sig verification functions
+    /////
+
+    /**
+    Calculate the prefixed message hash.
+    @param txId The transaction ID.
+    @param marketId The market ID.
+    @param collateralUsdcAbs The collateral amount.
+    @return The prefixed message hash.
+    */
+    function prefixedHash(
         uint128 txId,
         uint128 marketId,
-        uint256 collateralUSDC
+        uint256 collateralUsdcAbs
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(txId, marketId, collateralUSDC));
+        bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
+        bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
+        return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
+    }
+
+    /**
+    Internal function to validate a signature.
+    @param signer The address of the signer.
+    @param txId The transaction ID.
+    @param marketId The market ID.
+    @param collateralUsdcAbs The collateral amount.
+    @param signature The signature to validate.
+    @return True if the signature is valid, false otherwise.
+    */
+    function validateSignature(
+        address signer,
+        uint128 txId,
+        uint128 marketId,
+        uint256 collateralUsdcAbs,
+        bytes memory signature
+    ) internal view returns (bool) {
+        bytes32 messageHash = prefixedHash(txId, marketId, collateralUsdcAbs);
+        return validateECDSASignatureWithECRecover(signer, messageHash, signature);
+        // return validateECDSASignature(signer, messageHash, signature);
+        // return validateSignatureWithHedera(signer, messageHash, signature);
     }
 
     /**
@@ -268,5 +307,132 @@ contract PredictionMarket {
         );
         require(success, "Ed25519 validation failed");
         return abi.decode(result, (bool));
+    }
+
+    /**
+    Validate ECDSA signature using ecrecover.
+    Added debugging logs to output the recovered address.
+    @param signer The address of the expected signer.
+    @param messageHash The hash of the signed message.
+    @param signature The signature to validate.
+    @return isValid True if the signature is valid, false otherwise.
+    */
+    function validateECDSASignatureWithECRecover(
+        address signer,
+        bytes32 messageHash,
+        bytes memory signature
+    ) internal pure returns (bool isValid) {
+        require(signature.length == 64 || signature.length == 65, string(abi.encodePacked("Invalid signature length: ", uint2str(signature.length))));
+
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+
+        // Extract r, s, and v from the signature
+        assembly {
+            r := mload(add(signature, 0x20))
+            s := mload(add(signature, 0x40))
+        }
+
+        if (signature.length == 65) {
+            assembly {
+                v := byte(0, mload(add(signature, 0x60)))
+            }
+        } else {
+            // Assume a default v value if not provided
+            v = 27; // Default to 27, can be adjusted based on context
+        }
+
+        // Adjust v for compatibility with ecrecover
+        if (v < 27) {
+            v += 27;
+        }
+
+        require(v == 27 || v == 28, "Invalid v value");
+
+        // Recover the signer's address
+        address recoveredSigner = ecrecover(messageHash, v, r, s);
+
+        // Debugging log for the recovered address
+        require(recoveredSigner != address(0), "Recovered address is zero");
+        require(recoveredSigner == signer, string(abi.encodePacked("Recovered address does not match signer: ", toAsciiString(recoveredSigner))));
+
+        return recoveredSigner == signer;
+    }
+
+     function validateSignatureWithHedera(
+        address signer,
+        bytes32 messageHash,
+        bytes memory signature
+    ) internal view returns (bool) {
+        (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
+            abi.encodeWithSignature(
+                "isAuthorizedRaw(address,bytes32,bytes)",
+                signer,
+                messageHash,
+                signature
+            )
+        );
+        require(success, "isAuthorizedRaw call failed");
+        return abi.decode(result, (bool));
+    }
+
+    /////
+    // Helper/debugging functions
+    /////
+
+    /**
+    Helper function to convert address to string.
+    */
+    function toAsciiString(address x) internal pure returns (string memory) {
+        bytes memory s = new bytes(40);
+        for (uint256 i = 0; i < 20; i++) {
+            bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2**(8 * (19 - i)))));
+            bytes1 hi = bytes1(uint8(b) / 16);
+            bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+            s[2 * i] = char(hi);
+            s[2 * i + 1] = char(lo);
+        }
+        return string(abi.encodePacked("0x", s));
+    }
+
+    function char(bytes1 b) internal pure returns (bytes1 c) {
+        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+        else return bytes1(uint8(b) + 0x57);
+    }
+
+    /**
+    Helper function to convert uint to string.
+    */
+    function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint256 j = _i;
+        uint256 len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint256 k = len;
+        while (_i != 0) {
+            k = k - 1;
+            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
+    }
+
+    /**
+    Debugging function to log input data for STATICCALL.
+    This function will help trace the execution flow and verify the input data.
+    */
+    function debugStaticCallInput(
+        bytes memory inputData
+    ) internal pure returns (bytes memory) {
+        return inputData;
     }
 }

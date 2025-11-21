@@ -16,9 +16,9 @@ const [ client, _ ] = initHederaClient(
 
 const main = async () => {
   // CLI args: contractId, amount
-  const [contractId, marketId_uuid7, collateralUSDC, nPositionTokens] = process.argv.slice(2)
-  if (!contractId || !marketId_uuid7 || !collateralUSDC || !nPositionTokens) {
-    console.error(`Usage: ts-node buy.ts <contractId> <marketId_uuid7> <collateralUSDC> <nPositionTokens>`)
+  const [contractId, marketId_uuid7, collateralUSDC/*, nPositionTokens*/] = process.argv.slice(2)
+  if (!contractId || !marketId_uuid7 || !collateralUSDC) {
+    console.error(`Usage: ts-node buy.ts <contractId> <marketId_uuid7> <collateralUSDC>`)
     process.exit(1)
   }
   const yesAccount = client.operatorPublicKey!.toEvmAddress() // TODO - make yesAccount and noAccount different accounts...
@@ -36,10 +36,10 @@ const main = async () => {
   console.log(`contractId: ${contractId} - ${ContractId.fromString(contractId).toEvmAddress()}`)
 
   try {
-    const collateralUSDCx100 = parseFloat(collateralUSDC) * 100 // rounding up to 2 decimal places acceptable
-    const collateralUSDCbig = BigInt(collateralUSDCx100) * BigInt(10 ** netConf[networkSelected].usdcDecimals) / BigInt(100)
-    const nPositionTokensBig = BigInt(nPositionTokens)
-    console.log(`Buying ${nPositionTokensBig} position tokens (both buy and sell side) with ${collateralUSDCbig} (USDC base units) as collateral (x2)...`)
+    const collateralUSDCx10000 = parseFloat(collateralUSDC) * 10000 // rounding up to 4 decimal places acceptable
+    const collateralUSDCbig = BigInt(Math.floor(collateralUSDCx10000)) * BigInt(10 ** netConf[networkSelected].usdcDecimals) / BigInt(10000)
+    // const nPositionTokensBig = BigInt(nPositionTokens)
+    console.log(`Buying ${collateralUSDCbig} position tokens (both buy and sell side) with ${collateralUSDCbig} (USDC base units) as collateral (x2)...`)
     
     // 1. Approve the PredictionMarket contract to spend user's USDC collateral tokens (x2)
     const approveTx = await new ContractExecuteTransaction()
@@ -84,11 +84,11 @@ const main = async () => {
      // 4) buy outcome tokens on behalf of another account which has an allowance set (buyPositionTokensOnBehalf)
     console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`);
     const params = new ContractFunctionParameters()
-      .addUint128(marketIdBigInt.uint128.toString()) // marketId
+      .addUint128(marketIdBigInt.toString()) // marketId
       .addAddress(yesAccount)
       .addAddress(noAccount)
       .addUint256(collateralUSDCbig.toString()) // collateralUSDC
-      .addUint256(nPositionTokensBig.toString()) // nPositionTokens
+      // .addUint256(nPositionTokensBig.toString()) // nPositionTokens
     const buyTx4 = await new ContractExecuteTransaction()
       .setContractId(contractId)
       .setGas(2_000_000) // approx 1 million per USDC transfer (two USDC transfers in the atomic function)

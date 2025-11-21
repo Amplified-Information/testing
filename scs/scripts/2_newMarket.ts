@@ -38,11 +38,11 @@ const main = async () => {
     }
 
     console.log(`Smart contract:\t${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
-    console.log(`Creating a new market with marketId:\t${marketId_uuid7} (${marketIdBigInt.uint128})`)
+    console.log(`Creating a new market with marketId:\t${marketId_uuid7} (${marketIdBigInt.toString()})`)
     
     // Create and execute the ContractExecuteTransaction
     const params = new ContractFunctionParameters()
-      .addUint128(marketIdBigInt.uint128.toString())
+      .addUint128(marketIdBigInt.toString())
       .addString(statement)
     const tx = await new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(contractId))

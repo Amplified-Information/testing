@@ -27,7 +27,7 @@ const main = async () => {
   
   try {
     const params = new ContractFunctionParameters()
-      .addUint128(marketIdBigInt.uint128.toString())
+      .addUint128(marketIdBigInt.toString())
       .addBool(noYes)
     const query = new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(contractId))

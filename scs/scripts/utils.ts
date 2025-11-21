@@ -1,12 +1,12 @@
-const uuid7_to_uint128 = (uuid7: string): { uint128: BigInt } => {
+const uuid7_to_uint128 = (uuid7: string): bigint => {
   const hexStr = uuid7.replace(/-/g, '') // Remove hyphens
   if (hexStr.length !== 32) {
     throw new Error('Invalid UUIDv7 format')
   }
-  return { uint128: BigInt('0x' + hexStr) }
+  return BigInt('0x' + hexStr)
 }
 
-function uint128_to_uuid7(someBigInt: BigInt): string {
+function uint128_to_uuid7(someBigInt: bigint): string {
   // Ensure the random number is 128 bits
   const hexStr = someBigInt.toString(16).padStart(32, '0');
 

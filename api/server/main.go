@@ -95,6 +95,8 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
+	log.Printf("Smart contract ID from env: %s", os.Getenv("SMART_CONTRACT_ID"))
+
 	grpcServer := grpc.NewServer()
 	pb_api.RegisterApiServiceServer(grpcServer, &server{hashiService: hashiService, dbService: dbService, natsService: natsService})
 
