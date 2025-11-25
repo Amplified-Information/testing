@@ -6,11 +6,17 @@ toolchain go1.24.9
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
+	github.com/ethereum/go-ethereum v1.16.7
 	github.com/google/uuid v1.6.0
 	github.com/hiero-ledger/hiero-sdk-go/v2 v2.72.0
 	github.com/nats-io/nats.go v1.47.0
 	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.10
+)
+
+require (
+	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251001021608-1fe7b43fc4d6 // indirect
+	github.com/holiman/uint256 v1.3.2 // indirect
 )
 
 require (

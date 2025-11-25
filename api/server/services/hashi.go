@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -99,11 +98,11 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 
 	// calculate the keccak256 hash of the serialized payload
-	keccakHash := lib.Keccak256(serializedPayload)
+	// keccakHash := lib.Keccak256(serializedPayload)
 
-	log.Printf("Parameters passed to VerifySig(...): \n\t- publicKey (hex, looked up): %s\n\t- payloadKeccak (base64, calculated server-side based on payload): %s\n\t- sig (base64, extracted from payload): %s\n", publicKey.String(), base64.StdEncoding.EncodeToString(keccakHash), req.Sig)
-	isValidSig, err := h.hederaService.VerifySig(publicKey, keccakHash, req.Sig)
-
+	// log.Printf("Parameters passed to VerifySig(...): \n\t- publicKey (hex, looked up): %s\n\t- payloadKeccak (base64, calculated server-side based on payload): %s\n\t- sig (base64, extracted from payload): %s\n", publicKey.String(), base64.StdEncoding.EncodeToString(keccakHash), req.Sig)
+	isValidSig, err := h.hederaService.VerifySig(publicKey, serializedPayload, req.Sig)
+	
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)

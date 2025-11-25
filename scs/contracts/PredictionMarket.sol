@@ -109,10 +109,10 @@ contract PredictionMarket {
         // debugStaticCallInput(inputData);
 
         // Validate signatures
-        require(
-            validateSignature(signerYes, txIdYes, marketId, collateralUsdcAbs, sigYes),
-            "Invalid YES signature"
-        );
+        // require(
+        //     validateSignature(signerYes, txIdYes, marketId, collateralUsdcAbs, sigYes),
+        //     "Invalid YES signature"
+        // );
         // require(
         //     validateSignature(signerNo, txIdNo, marketId, collateralUsdcAbs, sigNo),
         //     "Invalid NO signature"
@@ -222,217 +222,220 @@ contract PredictionMarket {
     // sig verification functions
     /////
 
-    /**
-    Calculate the prefixed message hash.
-    @param txId The transaction ID.
-    @param marketId The market ID.
-    @param collateralUsdcAbs The collateral amount.
-    @return The prefixed message hash.
-    */
-    function prefixedHash(
-        uint128 txId,
-        uint128 marketId,
-        uint256 collateralUsdcAbs
-    ) internal pure returns (bytes32) {
-        bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
-        bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
-        return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
+    function verifyHash(bytes32 r, bytes32 s, uint8 v, bytes32 msgHash) public pure returns (address) {
+        address signer = ecrecover(msgHash, v, r, s);
+        return signer;
     }
 
-    /**
-    Internal function to validate a signature.
-    @param signer The address of the signer.
-    @param txId The transaction ID.
-    @param marketId The market ID.
-    @param collateralUsdcAbs The collateral amount.
-    @param signature The signature to validate.
-    @return True if the signature is valid, false otherwise.
-    */
-    function validateSignature(
-        address signer,
-        uint128 txId,
-        uint128 marketId,
-        uint256 collateralUsdcAbs,
-        bytes memory signature
-    ) internal view returns (bool) {
-        bytes32 messageHash = prefixedHash(txId, marketId, collateralUsdcAbs);
-        return validateECDSASignatureWithECRecover(signer, messageHash, signature);
-        // return validateECDSASignature(signer, messageHash, signature);
-        // return validateSignatureWithHedera(signer, messageHash, signature);
-    }
+    // /**
+    // Internal function to validate a signature.
+    // @param signer The address of the signer.
+    // @param txId The transaction ID.
+    // @param marketId The market ID.
+    // @param collateralUsdcAbs The collateral amount.
+    // @param signature The signature to validate.
+    // @return True if the signature is valid, false otherwise.
+    // */
+    // function validateSignature(
+    //     address signer,
+    //     uint128 txId,
+    //     uint128 marketId,
+    //     uint256 collateralUsdcAbs,
+    //     bytes memory signature
+    // ) internal view returns (bool) {
+    //     bytes32 msgHash = prefixedHash(txId, marketId, collateralUsdcAbs);
+    //     return verifyHash(signature, msgHash);
+    // }
 
-    /**
-    Validate ECDSA signature using Hedera precompiled contract.
-    @param signer The address of the signer.
-    @param messageHash The hash of the signed message.
-    @param signature The signature to validate.
-    @return isValid True if the signature is valid, false otherwise.
-    */
-    function validateECDSASignature(
-        address signer,
-        bytes32 messageHash,
-        bytes memory signature
-    ) internal view returns (bool isValid) {
-        (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
-            abi.encodeWithSignature(
-                "validateECDSASignature(address,bytes32,bytes)",
-                signer,
-                messageHash,
-                signature
-            )
-        );
-        require(success, "ECDSA validation failed");
-        return abi.decode(result, (bool));
-    }
+    // /**
+    // Calculate the prefixed message hash.
+    // @param txId The transaction ID.
+    // @param marketId The market ID.
+    // @param collateralUsdcAbs The collateral amount.
+    // @return The prefixed message hash.
+    // */
+    // function prefixedHash(
+    //     uint128 txId,
+    //     uint128 marketId,
+    //     uint256 collateralUsdcAbs
+    // ) internal pure returns (bytes32) {
+    //     bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
+    //     bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
+    //     return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
+    // }
 
-    /**
-    Validate Ed25519 signature using Hedera precompiled contract.
-    @param signer The address of the signer.
-    @param messageHash The hash of the signed message.
-    @param signature The signature to validate.
-    @return isValid True if the signature is valid, false otherwise.
-    */
-    function validateEd25519Signature(
-        address signer,
-        bytes32 messageHash,
-        bytes memory signature
-    ) internal view returns (bool isValid) {
-        (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
-            abi.encodeWithSignature(
-                "validateEd25519Signature(address,bytes32,bytes)",
-                signer,
-                messageHash,
-                signature
-            )
-        );
-        require(success, "Ed25519 validation failed");
-        return abi.decode(result, (bool));
-    }
+    // /**
+    // Validate ECDSA signature using Hedera precompiled contract.
+    // @param signer The address of the signer.
+    // @param messageHash The hash of the signed message.
+    // @param signature The signature to validate.
+    // @return isValid True if the signature is valid, false otherwise.
+    // */
+    // function validateECDSASignature(
+    //     address signer,
+    //     bytes32 messageHash,
+    //     bytes memory signature
+    // ) internal view returns (bool isValid) {
+    //     (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
+    //         abi.encodeWithSignature(
+    //             "validateECDSASignature(address,bytes32,bytes)",
+    //             signer,
+    //             messageHash,
+    //             signature
+    //         )
+    //     );
+    //     require(success, "ECDSA validation failed");
+    //     return abi.decode(result, (bool));
+    // }
 
-    /**
-    Validate ECDSA signature using ecrecover.
-    Added debugging logs to output the recovered address.
-    @param signer The address of the expected signer.
-    @param messageHash The hash of the signed message.
-    @param signature The signature to validate.
-    @return isValid True if the signature is valid, false otherwise.
-    */
-    function validateECDSASignatureWithECRecover(
-        address signer,
-        bytes32 messageHash,
-        bytes memory signature
-    ) internal pure returns (bool isValid) {
-        require(signature.length == 64 || signature.length == 65, string(abi.encodePacked("Invalid signature length: ", uint2str(signature.length))));
+    // /**
+    // Validate Ed25519 signature using Hedera precompiled contract.
+    // @param signer The address of the signer.
+    // @param messageHash The hash of the signed message.
+    // @param signature The signature to validate.
+    // @return isValid True if the signature is valid, false otherwise.
+    // */
+    // function validateEd25519Signature(
+    //     address signer,
+    //     bytes32 messageHash,
+    //     bytes memory signature
+    // ) internal view returns (bool isValid) {
+    //     (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
+    //         abi.encodeWithSignature(
+    //             "validateEd25519Signature(address,bytes32,bytes)",
+    //             signer,
+    //             messageHash,
+    //             signature
+    //         )
+    //     );
+    //     require(success, "Ed25519 validation failed");
+    //     return abi.decode(result, (bool));
+    // }
 
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
+    // /**
+    // Validate ECDSA signature using ecrecover.
+    // Added debugging logs to output the recovered address.
+    // @param signer The address of the expected signer.
+    // @param messageHash The hash of the signed message.
+    // @param signature The signature to validate.
+    // @return isValid True if the signature is valid, false otherwise.
+    // */
+    // function validateECDSASignatureWithECRecover(
+    //     address signer,
+    //     bytes32 messageHash,
+    //     bytes memory signature
+    // ) internal pure returns (bool isValid) {
+    //     require(signature.length == 64 || signature.length == 65, string(abi.encodePacked("Invalid signature length: ", uint2str(signature.length))));
 
-        // Extract r, s, and v from the signature
-        assembly {
-            r := mload(add(signature, 0x20))
-            s := mload(add(signature, 0x40))
-        }
+    //     bytes32 r;
+    //     bytes32 s;
+    //     uint8 v;
 
-        if (signature.length == 65) {
-            assembly {
-                v := byte(0, mload(add(signature, 0x60)))
-            }
-        } else {
-            // Assume a default v value if not provided
-            v = 27; // Default to 27, can be adjusted based on context
-        }
+    //     // Extract r, s, and v from the signature
+    //     assembly {
+    //         r := mload(add(signature, 0x20))
+    //         s := mload(add(signature, 0x40))
+    //     }
 
-        // Adjust v for compatibility with ecrecover
-        if (v < 27) {
-            v += 27;
-        }
+    //     if (signature.length == 65) {
+    //         assembly {
+    //             v := byte(0, mload(add(signature, 0x60)))
+    //         }
+    //     } else {
+    //         // Assume a default v value if not provided
+    //         v = 27; // Default to 27, can be adjusted based on context
+    //     }
 
-        require(v == 27 || v == 28, "Invalid v value");
+    //     // Adjust v for compatibility with ecrecover
+    //     if (v < 27) {
+    //         v += 27;
+    //     }
 
-        // Recover the signer's address
-        address recoveredSigner = ecrecover(messageHash, v, r, s);
+    //     require(v == 27 || v == 28, "Invalid v value");
 
-        // Debugging log for the recovered address
-        require(recoveredSigner != address(0), "Recovered address is zero");
-        require(recoveredSigner == signer, string(abi.encodePacked("Recovered address does not match signer: ", toAsciiString(recoveredSigner))));
+    //     // Recover the signer's address
+    //     address recoveredSigner = ecrecover(messageHash, v, r, s);
 
-        return recoveredSigner == signer;
-    }
+    //     // Debugging log for the recovered address
+    //     require(recoveredSigner != address(0), "Recovered address is zero");
+    //     require(recoveredSigner == signer, string(abi.encodePacked("Recovered address does not match signer: ", toAsciiString(recoveredSigner))));
 
-     function validateSignatureWithHedera(
-        address signer,
-        bytes32 messageHash,
-        bytes memory signature
-    ) internal view returns (bool) {
-        (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
-            abi.encodeWithSignature(
-                "isAuthorizedRaw(address,bytes32,bytes)",
-                signer,
-                messageHash,
-                signature
-            )
-        );
-        require(success, "isAuthorizedRaw call failed");
-        return abi.decode(result, (bool));
-    }
+    //     return recoveredSigner == signer;
+    // }
 
-    /////
-    // Helper/debugging functions
-    /////
+    //  function validateSignatureWithHedera(
+    //     address signer,
+    //     bytes32 messageHash,
+    //     bytes memory signature
+    // ) internal view returns (bool) {
+    //     (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
+    //         abi.encodeWithSignature(
+    //             "isAuthorizedRaw(address,bytes32,bytes)",
+    //             signer,
+    //             messageHash,
+    //             signature
+    //         )
+    //     );
+    //     require(success, "isAuthorizedRaw call failed");
+    //     return abi.decode(result, (bool));
+    // }
 
-    /**
-    Helper function to convert address to string.
-    */
-    function toAsciiString(address x) internal pure returns (string memory) {
-        bytes memory s = new bytes(40);
-        for (uint256 i = 0; i < 20; i++) {
-            bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2**(8 * (19 - i)))));
-            bytes1 hi = bytes1(uint8(b) / 16);
-            bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
-            s[2 * i] = char(hi);
-            s[2 * i + 1] = char(lo);
-        }
-        return string(abi.encodePacked("0x", s));
-    }
+    // /////
+    // // Helper/debugging functions
+    // /////
 
-    function char(bytes1 b) internal pure returns (bytes1 c) {
-        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
-        else return bytes1(uint8(b) + 0x57);
-    }
+    // /**
+    // Helper function to convert address to string.
+    // */
+    // function toAsciiString(address x) internal pure returns (string memory) {
+    //     bytes memory s = new bytes(40);
+    //     for (uint256 i = 0; i < 20; i++) {
+    //         bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2**(8 * (19 - i)))));
+    //         bytes1 hi = bytes1(uint8(b) / 16);
+    //         bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+    //         s[2 * i] = char(hi);
+    //         s[2 * i + 1] = char(lo);
+    //     }
+    //     return string(abi.encodePacked("0x", s));
+    // }
 
-    /**
-    Helper function to convert uint to string.
-    */
-    function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint256 j = _i;
-        uint256 len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint256 k = len;
-        while (_i != 0) {
-            k = k - 1;
-            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
-    }
+    // function char(bytes1 b) internal pure returns (bytes1 c) {
+    //     if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+    //     else return bytes1(uint8(b) + 0x57);
+    // }
 
-    /**
-    Debugging function to log input data for STATICCALL.
-    This function will help trace the execution flow and verify the input data.
-    */
-    function debugStaticCallInput(
-        bytes memory inputData
-    ) internal pure returns (bytes memory) {
-        return inputData;
-    }
+    // /**
+    // Helper function to convert uint to string.
+    // */
+    // function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
+    //     if (_i == 0) {
+    //         return "0";
+    //     }
+    //     uint256 j = _i;
+    //     uint256 len;
+    //     while (j != 0) {
+    //         len++;
+    //         j /= 10;
+    //     }
+    //     bytes memory bstr = new bytes(len);
+    //     uint256 k = len;
+    //     while (_i != 0) {
+    //         k = k - 1;
+    //         uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
+    //         bytes1 b1 = bytes1(temp);
+    //         bstr[k] = b1;
+    //         _i /= 10;
+    //     }
+    //     return string(bstr);
+    // }
+
+    // /**
+    // Debugging function to log input data for STATICCALL.
+    // This function will help trace the execution flow and verify the input data.
+    // */
+    // function debugStaticCallInput(
+    //     bytes memory inputData
+    // ) internal pure returns (bytes memory) {
+    //     return inputData;
+    // }
 }

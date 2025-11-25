@@ -87,6 +87,21 @@ const getSerializedPayloadForSigning = (predictionIntentRequest: PredictionInten
   return serializeObjForSigning(objForSigning)
 }
 
+const splitSignature = (signature: string) => {
+    // Ensure the signature is a 65-byte hex string
+    if (signature.length !== 132 && signature.length !== 130) {
+        throw new Error('Invalid signature length')
+    }
+
+    // Extract r, s, and v
+    const r = '0x' + signature.slice(2, 66) // First 32 bytes
+    const s = '0x' + signature.slice(66, 130) // Next 32 bytes
+    const v = parseInt(signature.slice(130, 132), 16) // Last byte (recovery ID)
+
+    return { r, s, v }
+}
+
 export {
-  getSerializedPayloadForSigning
+  getSerializedPayloadForSigning,
+  splitSignature
 }

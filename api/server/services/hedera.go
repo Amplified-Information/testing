@@ -13,6 +13,7 @@ import (
 	"api/server/lib"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type HederaService struct {
@@ -74,29 +75,40 @@ func (h *HederaService) InitHedera() (*hiero.Client, error) {
 *
 Function to verify a signature
 @param PublicKey publickKey - the public key to verify against
-@param byte[] payloadKeccak - the keccak256 hash of the payload (see ExtractPayloadForSigning(...) in sign.go)
+@param byte[] serializedPayload - the serialisedPayload - see sign.go
 @param string sigBase64 - the signature (base64) to verify against
 @return bool - true if the signature is valid, false otherwise
 */
-func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, payloadKeccak []byte, sigBase64 string) (bool, error) {
-	payloadKeccakBase64 := base64.StdEncoding.EncodeToString(payloadKeccak)
-
-	// Construct the exact signed message bytes (Hedera WalletConnect prefix)
-	// N.B. the payload is prefixed!
-	prefixedPayload := []byte(fmt.Sprintf("\x19Hedera Signed Message:\n%d%s", len(payloadKeccakBase64), payloadKeccakBase64)) // note: frontend is signed using base64, so the prefixedPayload should be calculated using base64 and not []byte
-	// log.Printf("%s", string(prefixedPayload))
+func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, serializedPayload []byte, sigBase64 string) (bool, error) {
+	// keccak256 hash of the serialized payload
+	payloadKeccak := lib.Keccak256(serializedPayload)
+	log.Printf("payloadKeccak (hex) (len=%d): %x", len(payloadKeccak), payloadKeccak)
 
 	// Decode Base64 signature
-	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
+	sig, err := base64.StdEncoding.DecodeString(sigBase64)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode signature: %w", err)
 	}
-	if len(sigBytes) != 64 {
-		return false, fmt.Errorf("unexpected signature length: %d", len(sigBytes))
+	if len(sig) != 64 {
+		return false, fmt.Errorf("unexpected signature length: %d", len(sig))
 	}
 
+	// Construct the exact signed message bytes (Hedera WalletConnect prefix)
+	// N.B. the payload is prefixed!
+	prefix := "\x19Hedera Signed Message:\n"
+	prefixedPayload := append([]byte(prefix), byte(len(payloadKeccak))) // Append raw byte length
+	prefixedPayload = append(prefixedPayload, payloadKeccak...)
+	log.Printf("prefixedPayload (hex) (len=%d):%x", len(prefixedPayload), prefixedPayload)
+
+	log.Printf(publicKey.StringRaw())
+	log.Printf("serializedPayload (hex) (len=%d): %x", len(serializedPayload), serializedPayload)
+	log.Printf("%v", publicKey.VerifySignedMessage(prefixedPayload, sig))
+	log.Printf("%v", publicKey.VerifySignedMessage(crypto.Keccak256(prefixedPayload), sig))
+	log.Printf("%v", publicKey.VerifySignedMessage(payloadKeccak, sig))
+	log.Printf("%v", publicKey.VerifySignedMessage(serializedPayload, sig))
+
 	// Verify signature
-	verified := publicKey.VerifySignedMessage(prefixedPayload, sigBytes) // note: The hiero Golang library will again calc the keccak256 of the prefixed message
+	verified := publicKey.VerifySignedMessage(prefixedPayload, sig) // note: The hiero Golang library will again calc the keccak256 of the prefixed message
 	return verified, nil
 }
 

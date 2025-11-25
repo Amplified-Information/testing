@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "compile": "solcjs ./contracts/PredictionMarket.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done",
+    "compile2": "solcjs ./contracts/Sig.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done",
     "deploy": "ts-node ./scripts/0_deploy.ts"
   },
   "dependencies": {
@@ -12,6 +13,7 @@
   },
   "devDependencies": {
     "@hashgraph/sdk": "^2.75.0",
+    "@types/elliptic": "^6.4.18",
     "@types/node": "^22.18.10",
     "dotenv": "^17.2.3",
     "ethers": "^6.15.0",

@@ -11,7 +11,7 @@ const [ client, _ ] = initHederaClient(
   operatorKeyType
 )
 
-const smartContractBinaryFn = __dirname + '/../../contracts/out/PredictionMarket.bin'
+const smartContractBinaryFn = __dirname + '/../../contracts/out/Sig.bin'
 
 const getConstructorParams = () => {
   const collateralToken = ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress() // USD Coin (USDC) on Hedera
@@ -46,7 +46,7 @@ async function deployContract(client: Client) {
     /////
     // Step 1: Deploy the smart contract
     /////
-    console.log('Deploying smart contract...')
+    console.log(`Deploying smart contract ${smartContractBinaryFn.split('/').pop()}...`)
     // Encode the constructor parameters
     const constructorParams = getConstructorParams()
 
