@@ -4,11 +4,13 @@ import tseslint from 'typescript-eslint'
 import { defineConfig } from 'eslint/config'
 
 export default defineConfig([
-  {
-    files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    plugins: { js },
-    extends: ['js/recommended'],
-    languageOptions: { globals: globals.browser },
+  { 
+    files: ['**/*.{js,mjs,cjs,ts,mts,cts}'], 
+    plugins: { js }, 
+    extends: ['js/recommended'], 
+    languageOptions: { 
+      globals: globals.browser 
+    },
     rules: {
       'comma-dangle': ['error', 'never'],
       'quotes': ['error', 'single'],
@@ -17,6 +19,5 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': ['warn', { varsIgnorePattern: '^_$', argsIgnorePattern: '^_$' }] // ignore unused variables named exactly "_"
     }
   },
-  tseslint.configs.recommended,
-  { ignores: ['gen'] }
+  tseslint.configs.recommended
 ])

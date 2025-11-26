@@ -75,9 +75,9 @@ async function deployContract(client: Client) {
 - api (.config.*) + restart
 - web (constants.ts) + restart
 `)
-    console.log(`--> Don't forget to associate USDC!`)
-    console.log(`--> Don't forget to create at least one new market!`)
-    console.log(`--> Finally, you will need to set an allowance for the contract to spend USDC on behalf your account!`)
+    console.log('--> Don\'t forget to associate USDC!')
+    console.log('--> Don\'t forget to create at least one new market!')
+    console.log('--> Finally, you will need to set an allowance for the contract to spend USDC on behalf your account!')
 
     /////
     // This is not acceptable as it requires an admin key on the contract!

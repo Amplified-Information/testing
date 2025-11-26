@@ -1,12 +1,12 @@
 import {
   ContractCallQuery,
   ContractFunctionParameters,
-  ContractId,
+  ContractId
 } from '@hashgraph/sdk'
 import { initHederaClient } from './lib/hedera.ts'
 import { networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
-import { getEvmAddress } from './lib/utils.ts';
-import { uuid7_to_uint128 } from './utils.ts';
+import { getEvmAddress } from './lib/utils.ts'
+import { uuid7_to_uint128 } from './utils.ts'
 
 const [ client, _ ] = initHederaClient(
   networkSelected,

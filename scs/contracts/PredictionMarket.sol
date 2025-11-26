@@ -108,7 +108,15 @@ contract PredictionMarket {
         // );
         // debugStaticCallInput(inputData);
 
-        // Validate signatures
+        // construct payload (on-chain so cannot fake it):
+        bytes32 msgHash_yes = prefixedHash(txIdYes, marketId, collateralUsdcAbs);
+        bytes32 msgHash_no = prefixedHash(txIdNo, marketId, collateralUsdcAbs);
+        msgHash_yes = msgHash_no;
+
+        // On-chain validation of signatures
+        // require(verifyHash(r_yes, s_yes, 27, msgHash_yes) == signerYes, "Invalid YES signature");
+        // require(verifyHash(r_no, s_no, 27, msgHash_no) == signerNo, "Invalid NO signature");
+
         // require(
         //     validateSignature(signerYes, txIdYes, marketId, collateralUsdcAbs, sigYes),
         //     "Invalid YES signature"
@@ -221,13 +229,29 @@ contract PredictionMarket {
     /////
     // sig verification functions
     /////
-
-    function verifyHash(bytes32 r, bytes32 s, uint8 v, bytes32 msgHash) public pure returns (address) {
+    function verify(bytes32 r, bytes32 s, uint8 v, bytes32 msgHash) public pure returns (address) {
         address signer = ecrecover(msgHash, v, r, s);
         return signer;
     }
 
-    // /**
+    /**
+    Calculate the prefixed message hash.
+    @param txId The transaction ID.
+    @param marketId The market ID.
+    @param collateralUsdcAbs The collateral amount.
+    @return The prefixed message hash.
+    */
+    function prefixedHash(
+        uint128 txId,
+        uint128 marketId,
+        uint256 collateralUsdcAbs
+    ) internal pure returns (bytes32) {
+        bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
+        bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
+        return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
+    }
+
+     // /**
     // Internal function to validate a signature.
     // @param signer The address of the signer.
     // @param txId The transaction ID.
@@ -247,22 +271,6 @@ contract PredictionMarket {
     //     return verifyHash(signature, msgHash);
     // }
 
-    // /**
-    // Calculate the prefixed message hash.
-    // @param txId The transaction ID.
-    // @param marketId The market ID.
-    // @param collateralUsdcAbs The collateral amount.
-    // @return The prefixed message hash.
-    // */
-    // function prefixedHash(
-    //     uint128 txId,
-    //     uint128 marketId,
-    //     uint256 collateralUsdcAbs
-    // ) internal pure returns (bytes32) {
-    //     bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
-    //     bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
-    //     return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
-    // }
 
     // /**
     // Validate ECDSA signature using Hedera precompiled contract.

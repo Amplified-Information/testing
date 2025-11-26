@@ -25,6 +25,13 @@ const (
 	DELETE HTTPMethod = "DELETE"
 )
 
+var GloboMarshaler = protojson.MarshalOptions{
+	UseProtoNames:   false, // Use json_name annotations
+	EmitUnpopulated: false, // Don't include zero values
+	Indent:          "",    // Ensure compact JSON with no indentation or spaces
+	Multiline:       false, // Ensure single-line JSON
+}
+
 func Fetch(method HTTPMethod, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(string(method), url, body)
 	if err != nil {
@@ -52,14 +59,7 @@ func PrettyJSON(input string) string {
 // JsonMarshaller marshals protobuf messages to JSON using protojson to respect json_name annotations
 // Produces compact JSON without spaces for signature verification compatibility
 func JsonMarshaller(req *pb.PredictionIntentRequest) ([]byte, error) {
-	marshaler := protojson.MarshalOptions{
-		UseProtoNames:   false, // Use json_name annotations
-		EmitUnpopulated: false, // Don't include zero values
-		Indent:          "",    // Ensure compact JSON with no indentation or spaces
-		Multiline:       false, // Ensure single-line JSON
-	}
-
-	jsonBytes, err := marshaler.Marshal(req)
+	jsonBytes, err := GloboMarshaler.Marshal(req)
 	if err != nil {
 		return nil, err
 	}

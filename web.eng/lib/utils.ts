@@ -31,9 +31,16 @@ const getSpreadPercent = (book: BookSnapshot): number | undefined => {
   return ((0 - book.asks[0].priceUsd - book.bids[0].priceUsd) / book.bids[0].priceUsd) * 100
 }
 
+const floatToBigIntScaledDecimals = (value: number, nDecimals: number): bigint => {
+  const [integerPart, fractionalPart = ''] = value.toString().split('.')
+  const scaledValue = '' + integerPart + '' + fractionalPart.padEnd(nDecimals, '0').slice(0, nDecimals)
+  return BigInt(scaledValue)
+}
+
 export {
   uint8ToBase64,
   // uint8ToHex,
   getMidPrice,
-  getSpreadPercent
+  getSpreadPercent,
+  floatToBigIntScaledDecimals
 }

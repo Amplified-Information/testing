@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"os"
 
 	pb_clob "api/gen/clob"
@@ -128,21 +127,26 @@ func (n *NatsService) HandleOrderMatches() error {
 		// Determine which account recieves the YES and which account receives the NO (price_usd < 0 => NO)
 		// Determine collateral USD (the lesser of the two sides - e.g. partial match)
 		// Example: [{"tx_id":"019a824d-75b4-73af-a19a-11bd6d11afd0","net":"testnet","market_id":"019a7e77-39e2-72a3-9bea-a63bdfa79d20","account_id":"0.0.7090546","market_limit":"limit","price_usd":-0.5,"qty":0.42},{"tx_id":"019a7f37-1f9c-7713-9766-94236e48f261","net":"testnet","market_id":"019a7e77-39e2-72a3-9bea-a63bdfa79d20","account_id":"0.0.7090546","market_limit":"limit","price_usd":0.5,"qty":1.8798}]
+		origPricelUsdYes := orderRequestClobTuple[0].PriceUsd
+		origPricelUsdNo := orderRequestClobTuple[1].PriceUsd
 		accountIdYes := orderRequestClobTuple[0].AccountId
 		accountIdNo := orderRequestClobTuple[1].AccountId
 		txIdUuidYes := orderRequestClobTuple[0].TxId
 		txIdUuidNo := orderRequestClobTuple[1].TxId
-		sigYesBase64 := orderRequestClobTuple[0].Sig
-		sigNoBase64 := orderRequestClobTuple[1].Sig
+		sigYes_base64 := orderRequestClobTuple[0].Sig
+		sigNo_base64 := orderRequestClobTuple[1].Sig
 
-		collateralUsdFloat64 := 0.0
-		if orderRequestClobTuple[0].Qty > orderRequestClobTuple[1].Qty { // [1] is fully matched, [0] is partially matched
-			// this amount ([1] is the lower Qty) of USDC will be taken as collateral
-			collateralUsdFloat64 = orderRequestClobTuple[1].Qty * orderRequestClobTuple[1].PriceUsd
-		} else { // [1].Qty > [0].Qty ......... [0] is fully matched, [1] is partially matched
-			// this amount ([0] is the lower Qty) of USDC will be taken as collateral
-			collateralUsdFloat64 = orderRequestClobTuple[0].Qty * orderRequestClobTuple[0].PriceUsd
-		}
+		// collateralUsdFloat := qty * orderRequestClobTuple[0].PriceUsd // [0] and [1] priceUsd have the same abs value
+		// collateralUsdFloatAbs := math.Abs(collateralUsdFloat)
+
+		// collateralUsdFloat64 := 0.0
+		// if orderRequestClobTuple[0].Qty > orderRequestClobTuple[1].Qty { // [1] is fully matched, [0] is partially matched
+		// 	// this amount ([1] is the lower Qty) of USDC will be taken as collateral
+		// 	collateralUsdFloat64 = orderRequestClobTuple[1].Qty * orderRequestClobTuple[1].PriceUsd
+		// } else { // [1].Qty > [0].Qty ......... [0] is fully matched, [1] is partially matched
+		// 	// this amount ([0] is the lower Qty) of USDC will be taken as collateral
+		// 	collateralUsdFloat64 = orderRequestClobTuple[0].Qty * orderRequestClobTuple[0].PriceUsd
+		// }
 
 		// do we need to flip which accoundId is YES and which accountId is NO?
 		// by default:
@@ -150,23 +154,29 @@ func (n *NatsService) HandleOrderMatches() error {
 		// iff [0].PriceUsd < 0.0
 		//   -> [0] is NO, [1] is YES
 		if orderRequestClobTuple[0].PriceUsd < 0 {
+			origPricelUsdYes, origPricelUsdNo = origPricelUsdNo, origPricelUsdYes
 			accountIdYes, accountIdNo = accountIdNo, accountIdYes
 			txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
-			sigYesBase64, sigNoBase64 = sigNoBase64, sigYesBase64
+			sigYes_base64, sigNo_base64 = sigNo_base64, sigYes_base64
 		}
 
-		err = n.hederaService.BuyPositionTokens(
+		isOK, err := n.hederaService.BuyPositionTokens(
+			orderRequestClobTuple[0].MarketId,                               // marketId[1] and marketId[0] are the same
+			min(orderRequestClobTuple[0].Qty, orderRequestClobTuple[1].Qty), // take the *lower* Qty
+			origPricelUsdYes,
+			origPricelUsdNo,
 			accountIdYes,
 			accountIdNo,
-			math.Abs(collateralUsdFloat64),
-			orderRequestClobTuple[0].MarketId, // marketId 1 and marketId 0 are the same
 			txIdUuidYes,
 			txIdUuidNo,
-			sigYesBase64,
-			sigNoBase64,
+			sigYes_base64,
+			sigNo_base64,
 		)
 		if err != nil {
 			log.Printf("Error submitting match to smart contract: %v ", err)
+		}
+		if !isOK {
+			log.Printf("Smart contract did not accept the parameters")
 		}
 	})
 	if err != nil {

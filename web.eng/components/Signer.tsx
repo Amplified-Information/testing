@@ -1,14 +1,17 @@
 import { PredictionIntentRequest } from '../gen/api'
 import { useEffect, useState } from 'react'
-import { uint8ToBase64, getMidPrice } from '../lib/utils'
+import { getMidPrice, floatToBigIntScaledDecimals } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
-import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, smartContractId } from '../constants'
+import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, smartContractId, usdcDecimals } from '../constants'
 import ButtonAmount from './ButtonAmount'
 import { getSpenderAllowanceUsd } from '../lib/hedera'
-import { getSerializedPayloadForSigning } from '../lib/sign'
+// import { getSerializedPayloadForSigning, splitSignature } from '../lib/sign'
 // import { keccak256 } from 'ethers'
-import { keccak_256 } from '@noble/hashes/sha3.js'
+// import { keccak_256 } from '@noble/hashes/sha3.js'
+import { ethers } from 'ethers'
+import { ObjForSigning } from '../types'
+import { splitSignature } from '../lib/sign'
 // import { splitSignature } from 'ethers'
 // import { splitSignature } from 'ethers/lib/utils'
 
@@ -73,6 +76,18 @@ const Signer = () => {
       ...defaultPredictionIntentRequest()
     })
   }
+
+  // function arrayify(data: string): Uint8Array {
+  //   if (typeof data !== 'string' || !data.startsWith('0x')) {
+  //     throw new Error('Invalid hex string')
+  //   }
+  //   const hex = data.slice(2)
+  //   const bytes = new Uint8Array(hex.length / 2)
+  //   for (let i = 0; i < bytes.length; i++) {
+  //     bytes[i] = parseInt(hex.substr(i * 2, 2), 16)
+  //   }
+  //   return bytes
+  // }
 
   return (
     <div>
@@ -171,11 +186,38 @@ const Signer = () => {
       <br/>
       <br/>
 
-      <button className='btn green' disabled={!signerZero || thinger} title={!signerZero ? 'Wallet not connected' : predictionIntentRequest.sig.length === 0 ? 'Message not signed' : ''} onClick={async () => {
-        setThinger(true)
-        console.log('Signing OrderIntent...')
-        console.log(signerZero)
+      <button 
+        className='btn green'
+        disabled={!signerZero || thinger} title={!signerZero ? 'Wallet not connected' : predictionIntentRequest.sig.length === 0 ? 'Message not signed' : ''} 
+        onClick={async () => {
+          setThinger(true)
+          console.log('Signing OrderIntent...')
+          
+          try {
+            const payload: ObjForSigning = {
+              collateralUsd_abs_scaled: floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(),
+              marketId_uuid: predictionIntentRequest.marketId,
+              txId_uuid: predictionIntentRequest.txId
+            }
+            
+            const serializedPayload = JSON.stringify(payload)
+            console.log(`serializedPayload (utf8): ${serializedPayload}`)
 
+            const keccak = ethers.keccak256(Buffer.from(serializedPayload, 'utf8')).slice(2) // remove 0x prefix
+            console.log(`keccak (hex) (len=${keccak.length}): ${keccak}`)
+
+            const sig = (await signerZero!.sign([Buffer.from(keccak)]))[0].signature
+            console.log(`Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
+
+            setPredictionIntentRequest({ ...predictionIntentRequest, sig: Buffer.from(sig).toString('base64') })
+          } catch (e) {
+            console.error('Error signing')
+            console.error(e)
+          } finally {
+            setThinger(false)
+          }
+
+        /*
         try {
 
           const payload: Uint8Array = getSerializedPayloadForSigning(predictionIntentRequest)
@@ -192,7 +234,7 @@ const Signer = () => {
           // const hashTest = keccak_256(testPayload)
           // console.log('*** TEST payload (hex):', Buffer.from(testPayload).toString('hex'))
           // console.log('*** TEST keccak-256 hash (hex):', Buffer.from(hashTest).toString('hex'))
-          // const multiSig = await signerZero!.sign([keccakHash /*payload*/ ], { encoding: 'base64'} ) // 
+          // const multiSig = await signerZero!.sign([keccakHash ], { encoding: 'base64'} ) // 
           const multiSig = await signerZero!.sign([ keccakHash ])
           const sigUint8: Uint8Array = multiSig[0].signature // reckon most of the time just one sig
           setPredictionIntentRequest({ ...predictionIntentRequest, sig: uint8ToBase64(sigUint8) })
@@ -213,7 +255,9 @@ const Signer = () => {
         } finally {
           setThinger(false)
         }
-      }}>
+        */
+        }}
+      >
         Sign
       </button>
       <br/>
@@ -246,30 +290,61 @@ const Signer = () => {
       <br/>
 
       <button className='btn' onClick={async () => {
-        const pir: PredictionIntentRequest = {
+        const msgStr = 'Hello Hedera'
+        console.log(msgStr)
+        const msgHashHex = ethers.keccak256(Buffer.from(msgStr, 'utf8')).slice(2)
+        console.log(msgHashHex)
+        // const msgHash = Uint8Array.from(Buffer.from(msgHashHex, 'hex'))
+        // const msgHash = ethers.keccak256(Buffer.from(msgStr, 'utf8')).slice(2) 
+        // console.log(`msgHash (hex) (len=${msgHashHex.length}): ${msgHashHex}`)
+        
+        const sig = (await signerZero!.sign([Buffer.from(msgStr, 'utf8')]))[0].signature
+        console.log(`Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
+
+        const sig2 = (await signerZero!.sign([Buffer.from(msgHashHex, 'hex')]))[0].signature
+        console.log(`Signature (hex) (len=${sig2.length}): ${Buffer.from(sig2).toString('hex')}`)
+
+        const sig3 = (await signerZero!.sign([Buffer.from(msgHashHex, 'hex')]))[0].signature
+        console.log(`Signature (hex) (len=${sig3.length}): ${Buffer.from(sig3).toString('hex')}`)
+      }}>
+        Test2
+      </button>
+
+      <button className='btn' onClick={async () => {
+        const pir = {
           txId: '019aab9a-e734-700a-87de-b383095ac8c6',
           marketId: '019a7e77-39e2-72a3-9bea-a63bdfa79d20',
-          qty: 0.02,
-          priceUsd: 0.5,
+          // qty: 0.02,
+          priceUsd: 0.5
 
-          net: 'testnet',
-          accountId: '0.0.7090546',
-          marketLimit: 'limit',
-          sig: '',
-          generatedAt: '2025-11-22T12:47:27.028Z'
+          // net: 'testnet',
+          // accountId: '0.0.7090546',
+          // marketLimit: 'limit',
+          // sig: '',
+          // generatedAt: '2025-11-22T12:47:27.028Z'
         }
-        console.log(`payload: ${JSON.stringify(pir)}`)
 
-        const serializedPayload = getSerializedPayloadForSigning(pir)
-        console.log(`serializedPayload (hex): ${Buffer.from(serializedPayload).toString('hex')}`)
-        const keccak256 = keccak_256(serializedPayload)
-        console.log(`keccak256 of serializedPayload (hex) (len=${keccak256.length}): ${Buffer.from(keccak256).toString('hex')}`)
-        const sig = (await signerZero!.sign([ keccak256 ], { encoding: 'utf-8' }))[0].signature
+        // const serializedPayload = getSerializedPayloadForSigning(pir)
+
+        const payload = {
+          marketId_uuid: pir.marketId,
+          priceUsd_abs_scaled: floatToBigIntScaledDecimals(Math.abs(pir.priceUsd), usdcDecimals).toString(),
+          txId_uuid: pir.txId
+        }
+        console.log(`payload: ${JSON.stringify(payload)}`)
+        const serializedPayload = JSON.stringify(payload)
+        const keccak = ethers.keccak256(Buffer.from(serializedPayload, 'utf8')).slice(2)
+        console.log(`keccak (hex) (len=${keccak.length}): ${keccak}`)
+
+        // console.log(`serializedPayload (hex): ${Buffer.from(serializedPayload).toString('hex')}`)
+        // console.log(`serializedPayload (utf8): ${Buffer.from(serializedPayload).toString('utf8')}`)
+        const sig =  (await signerZero!.sign([Buffer.from('0x' + keccak)]))[0].signature
+        // const keccak256 = keccak_256(serializedPayload)
+        // console.log(`keccak256 of serializedPayload (hex) (len=${keccak256.length}): ${Buffer.from(keccak256).toString('hex')}`)
+        // const sig = (await signerZero!.sign([ keccak256 ], { encoding: 'utf-8' }))[0].signature
         console.log(`Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
         // const { r, s, v } = splitSignature(Buffer.from(sig).toString('hex'))
         // console.log('Signature components:', { r, s, v })
-
-        signerZero!.sign
       }}>
         Test
       </button>

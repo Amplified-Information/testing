@@ -1,6 +1,8 @@
 package services
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -96,13 +98,23 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	if err != nil {
 		return "", fmt.Errorf("failed to extract payload for signing: %v", err)
 	}
+	log.Printf("serializedPayload: %s", serializedPayload)
 
 	// calculate the keccak256 hash of the serialized payload
-	// keccakHash := lib.Keccak256(serializedPayload)
+	keccakHash := lib.Keccak256([]byte(serializedPayload))
+	keccakHashHex := hex.EncodeToString(keccakHash)
+	log.Printf("keccakHash (hex): %x", keccakHash)
+
+	// signatureBase64 to hex:
+	sig, err := base64.StdEncoding.DecodeString(req.Sig)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode signature from base64: %v", err)
+	}
+	log.Printf("signature to verify (hex): %x", sig)
 
 	// log.Printf("Parameters passed to VerifySig(...): \n\t- publicKey (hex, looked up): %s\n\t- payloadKeccak (base64, calculated server-side based on payload): %s\n\t- sig (base64, extracted from payload): %s\n", publicKey.String(), base64.StdEncoding.EncodeToString(keccakHash), req.Sig)
-	isValidSig, err := h.hederaService.VerifySig(publicKey, serializedPayload, req.Sig)
-	
+	// isValidSig, err := h.hederaService.VerifySig(publicKey, keccakHash, req.Sig)
+	isValidSig, err := h.hederaService.Verify(publicKey, keccakHashHex, sig)
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
@@ -142,8 +154,8 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
 	}
 
-	/// OK - now you can put the order on the CLOB
-	/// All validations passed
+	/// OK - All validations passed
+	/// Now you can (attempt to) put the order on the CLOB (subject to on-chain sig verification)
 
 	// store the OrderRequest in the database
 	_, err = h.dbService.SaveOrderRequest(req)
