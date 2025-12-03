@@ -71,6 +71,7 @@ func ExtractPayloadForSigning(req *pb.PredictionIntentRequest) ([]byte, error) {
 		CollateralUsdAbsScaled string `json:"collateralUsd_abs_scaled"`
 		MarketIdUUID           string `json:"marketId_uuid"`
 		TxIdUUID               string `json:"txId_uuid"`
+		// Qty
 	}
 	obj := ObjForSigning{
 		CollateralUsdAbsScaled: CollateralUsdAbsScaled.String(),

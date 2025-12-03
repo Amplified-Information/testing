@@ -114,18 +114,17 @@ Potential disadvantages:
 - ERC20-style smart contracts may be incompatible with ed25519 key
 - etc.
 
-
 ## Digital signatures
 
 Every transaction initiated by the user has a digital signature.
 
-`sig` is calculated based on the payload below. The payload to construct a sig is a subset of the fields in `api.proto`.
+`sig` is calculated based on the payload below. The payload to construct a sig is a subset of the fields in `PredictionIntentRequest` in `api.proto`.
 
-```typescript
-{
-  txId: uuid7         // uint128
-  marketId: uuid7     // uint128
-  priceUsdAbs: float  // uint256
+```golang
+type ObjForSigning struct {
+  CollateralUsdAbsScaled string
+  MarketIdUUID           string
+  TxIdUUID               string
 }
 ```
 

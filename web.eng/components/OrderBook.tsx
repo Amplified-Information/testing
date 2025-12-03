@@ -13,43 +13,47 @@ const DEPTH = 0 // TODO
 const OrderBook = ({ marketId }: { marketId: string }) => {
   const { book, setBook, signerZero } = useAppContext()
  
+  /**
+   * Effect to start streaming the order book data for the given marketId.
+   * Cleanly end the stream (abort) when the component unmounts
+   */
   useEffect(() => {
-  const ac = new AbortController()
+    const ac = new AbortController()
 
-  async function startStream() {
-    let call: ServerStreamingCall | undefined
-    try {
-      call = clobClient.streamBook(
-        { marketId, depth: DEPTH },
-        { signal: ac.signal, abort: ac.signal }  // RpcOptions
-      )
+    async function startStream() {
+      let call: ServerStreamingCall | undefined
+      try {
+        call = clobClient.streamBook(
+          { marketId, depth: DEPTH },
+          { signal: ac.signal, abort: ac.signal }  // RpcOptions
+        )
 
-      for await (const msg of call.responses) {
-        if (ac.signal.aborted) {
-          console.log('Stream aborted')
-          return
+        for await (const msg of call.responses) {
+          if (ac.signal.aborted) {
+            console.log('Stream aborted')
+            return
+          }
+          setBook(msg as BookSnapshot)
         }
-        setBook(msg as BookSnapshot)
+      } catch (err) {
+        if (!ac.signal.aborted) {
+          console.error('streamBook error:', err)
+        } else {
+          console.log('Stream aborted due to controller signal')
+        }
+      } finally {
+        console.log('finally')
+        console.info(call)
       }
-    } catch (err) {
-      if (!ac.signal.aborted) {
-        console.error('streamBook error:', err)
-      } else {
-        console.log('Stream aborted due to controller signal')
-      }
-    } finally {
-      console.log('finally')
-      console.info(call)
     }
-  }
 
-  startStream()
+    startStream()
 
-  return () => {
-    console.log('Aborting order book stream for marketId:', marketId)
-    ac.abort() // cancels the stream on unmount
-  }
-}, [marketId])
+    return () => {
+      console.log('Aborting order book stream for marketId:', marketId)
+      ac.abort() // cancels the stream on unmount
+    }
+  }, [marketId])
 
   return (
     <div>
