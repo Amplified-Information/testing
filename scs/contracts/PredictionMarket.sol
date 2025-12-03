@@ -68,7 +68,7 @@ contract PredictionMarket {
     @param marketId The unique identifier for the new market.
     @param _statement The statement or question for the prediction market.
     */
-    function createNewMarket(uint128 marketId, string memory _statement) external onlyOwner {
+    function createNewMarket(uint128 marketId, string memory _statement/*, TODO: uint8 txFee - configure fees per-market? */) external onlyOwner {
         require(keccak256(abi.encodePacked(statements[marketId])) == keccak256(abi.encodePacked("")), "Market already exists");
         statements[marketId] = _statement;
         resolutionTimes[marketId] = 0; // TODO - necessary? Can be removed?

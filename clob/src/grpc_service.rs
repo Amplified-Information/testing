@@ -41,8 +41,17 @@ impl Clob for ClobService {
         &self,
         _request: Request<BookRequest>,
     ) -> Result<Response<BookSnapshot>, Status> {
-        let snapshot = self.order_book_service.get_book(_request.into_inner().depth as usize).await;
-        Ok(Response::new(snapshot))
+
+        let inner = _request.into_inner();
+
+        let snapshot = self.order_book_service.get_book(&inner.market_id, inner.depth as usize).await;
+        match snapshot {
+            Ok(snapshot) => Ok(Response::new(snapshot)),
+            Err(e) => {
+                log::error!("Failed to get book snapshot: {} {}", inner.market_id, e);
+                Err(Status::internal(e.to_string()))
+            }
+        }
     }
 
     type StreamBookStream = ReceiverStream<Result<BookSnapshot, Status>>;
@@ -54,13 +63,18 @@ impl Clob for ClobService {
         let (tx, rx) = mpsc::channel(128);
         let order_book_service = self.order_book_service.clone();
         
-        let depth = _request.into_inner().depth as usize;
+        let inner = _request.into_inner();
 
         tokio::spawn(async move {
             loop {
-                let snapshot = order_book_service.get_book(depth).await;
+                let snapshot = order_book_service.get_book(&inner.market_id, inner.depth as usize).await;
 
-                if tx.send(Ok(snapshot)).await.is_err() {
+                let result = snapshot.map_err(|e| {
+                    log::error!("Failed to get book snapshot: {}", e);
+                    Status::internal(e.to_string())
+                });
+
+                if tx.send(result).await.is_err() {
                     break;
                 }
 
@@ -69,6 +83,25 @@ impl Clob for ClobService {
         });
 
         Ok(Response::new(ReceiverStream::new(rx)))
+    }
+    
+    async fn add_market(
+        &self,
+        request: Request<crate::orderbook::proto::MarketIdRequest>,
+    ) -> Result<Response<crate::orderbook::proto::MarketIdResponse>, Status> {
+        // TODO - prevent duplicate market IDs
+        // TODO - validate market ID format
+        
+        let inner = request.into_inner();
+        let market_id = inner.market_id;
+
+        self.order_book_service.add_market(market_id.clone()).await;
+
+        let response = crate::orderbook::proto::MarketIdResponse {
+            market_id,
+        };
+
+        Ok(Response::new(response))
     }
 }
 

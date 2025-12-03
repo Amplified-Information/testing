@@ -1,5 +1,5 @@
 use tokio::sync::RwLock;
-use std::{sync::Arc};
+use std::{sync::Arc, collections::HashMap};
 use log;
 
 pub mod proto {
@@ -11,38 +11,68 @@ use crate::{nats};
 
 #[derive(Debug, Clone)]
 pub struct OrderBookService {
-    order_book: Arc<RwLock<OrderBook>>
+    order_books: Arc<RwLock<HashMap<String, Arc<RwLock<OrderBook>>>>>,
+    nats_service: nats::NatsService,
 }
 
 impl OrderBookService {
-    pub fn new(nats_service: &nats::NatsService) -> Self {
+    pub async fn new(nats_service: nats::NatsService) -> Self {
+        
         Self {
-            order_book: Arc::new(RwLock::new(OrderBook::new(&nats_service.clone())))
+            order_books: Arc::new(RwLock::new(HashMap::new())),
+            nats_service, // Initialize NATS service here
         }
     }
+
+    pub async fn add_market(&self, market_id: String/*, nats_service: &nats::NatsService */) {
+        let mut order_books = self.order_books.write().await;
+        order_books.insert(market_id, Arc::new(RwLock::new(OrderBook::new(&self.nats_service))));
+    }
+
+    // pub async fn remove_market(&self, market_id: &str) {
+    //     let mut order_books = self.order_books.write().await;
+    //     order_books.remove(market_id);
+    // }
 
     pub async fn place_order(&self, order: OrderRequestClob) -> Result<(), Box<dyn std::error::Error>> {
-        let mut book = self.order_book.write().await;
-        book.add_order(order.clone()).await;
-        Ok(())
-    }
-
-    pub async fn get_book(&self, depth: usize) -> BookSnapshot {
-        let book = self.order_book.read().await;
-        book.snapshot(depth)
-    }
-
-    pub fn start_periodic_scan(&self, duration_seconds: u64) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
-        let order_book = Arc::clone(&self.order_book);
-        async move {
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(duration_seconds));
-            loop {
-                interval.tick().await;
-                let mut book = order_book.write().await;
-                book.scan_for_matches().await;
-            }
+        let order_books = self.order_books.read().await;
+        if let Some(order_book) = order_books.get(order.market_id.as_str()) {
+            let mut book = order_book.write().await;
+            book.add_order(order).await;
+            Ok(())
+        } else {
+            Err("Market not found".into())
         }
     }
+
+    pub async fn get_book(&self, market_id: &str, depth: usize) -> Result<BookSnapshot, Box<dyn std::error::Error>> {
+        let order_books = self.order_books.read().await;
+        if let Some(order_book) = order_books.get(market_id) {
+            let book = order_book.read().await;
+            Ok(book.snapshot(depth))
+        } else {
+            Err("Market not found".into())
+        }
+    }
+
+    // pub fn start_periodic_scan(&self, market_id: &str, duration_seconds: u64) -> Result<impl Future<Output = Result<(), Box<dyn std::error::Error>>>, Box<dyn std::error::Error>> {
+    //     let order_books = self.order_books.clone();
+    //     let market_id = market_id.to_string();
+
+    //     if let Some(order_book) = order_books.blocking_read().get(&market_id) {
+    //         let order_book = Arc::clone(order_book);
+    //         Ok(async move {
+    //             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(duration_seconds));
+    //             loop {
+    //                 interval.tick().await;
+    //                 let mut book = order_book.write().await;
+    //                 book.scan_for_matches().await;
+    //             }
+    //         })
+    //     } else {
+    //         Err("Market not found".into())
+    //     }
+    // }
 }
 
 #[derive(Debug)]
@@ -146,50 +176,50 @@ impl OrderBook {
         }
     }
 
-    // Scan to find matches in the order book
-    // This function runs periodically
-    pub async fn scan_for_matches(&mut self) {
-        log::info!("SCAN \t Scanning orderbook for matches...");
+    // // Scan to find matches in the order book
+    // // This function runs periodically
+    // pub async fn scan_for_matches(&mut self) {
+    //     log::info!("SCAN \t Scanning orderbook for matches...");
 
-        // Sort buy orders by price descending (highest first)
-        self.buy_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
-        // Sort sell orders by price ascending (lowest first)
-        self.sell_orders.sort_by(|a, b| a.price_usd.partial_cmp(&b.price_usd).unwrap());
+    //     // Sort buy orders by price descending (highest first)
+    //     self.buy_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
+    //     // Sort sell orders by price ascending (lowest first)
+    //     self.sell_orders.sort_by(|a, b| a.price_usd.partial_cmp(&b.price_usd).unwrap());
 
-        // Attempt to match all sell orders with buy orders
-        let mut i = 0;
-        while i < self.sell_orders.len() {
-            let sell_order = self.sell_orders[i].clone();
+    //     // Attempt to match all sell orders with buy orders
+    //     let mut i = 0;
+    //     while i < self.sell_orders.len() {
+    //         let sell_order = self.sell_orders[i].clone();
 
-            // Check if the sell order can be matched with the highest buy order
-            if let Some(highest_buy_order) = self.buy_orders.first() {
-                if sell_order.price_usd.abs() <= highest_buy_order.price_usd {
-                    self.sell_orders.remove(i);
-                    Self::match_order(&self.nats_service, sell_order, &mut self.buy_orders, &mut self.sell_orders).await;
-                    continue; // Recheck the current index after removal
-                }
-            }
+    //         // Check if the sell order can be matched with the highest buy order
+    //         if let Some(highest_buy_order) = self.buy_orders.first() {
+    //             if sell_order.price_usd.abs() <= highest_buy_order.price_usd {
+    //                 self.sell_orders.remove(i);
+    //                 Self::match_order(&self.nats_service, sell_order, &mut self.buy_orders, &mut self.sell_orders).await;
+    //                 continue; // Recheck the current index after removal
+    //             }
+    //         }
 
-            i += 1; // Move to the next sell order if no match
-        }
+    //         i += 1; // Move to the next sell order if no match
+    //     }
 
-        // Attempt to match all buy orders with sell orders
-        let mut i = 0;
-        while i < self.buy_orders.len() {
-            let buy_order = self.buy_orders[i].clone();
+    //     // Attempt to match all buy orders with sell orders
+    //     let mut i = 0;
+    //     while i < self.buy_orders.len() {
+    //         let buy_order = self.buy_orders[i].clone();
 
-            // Check if the buy order can be matched with the lowest sell order
-            if let Some(lowest_sell_order) = self.sell_orders.first() {
-                if buy_order.price_usd >= lowest_sell_order.price_usd.abs() {
-                    self.buy_orders.remove(i);
-                    Self::match_order(&self.nats_service, buy_order, &mut self.sell_orders, &mut self.buy_orders).await;
-                    continue; // Recheck the current index after removal
-                }
-            }
+    //         // Check if the buy order can be matched with the lowest sell order
+    //         if let Some(lowest_sell_order) = self.sell_orders.first() {
+    //             if buy_order.price_usd >= lowest_sell_order.price_usd.abs() {
+    //                 self.buy_orders.remove(i);
+    //                 Self::match_order(&self.nats_service, buy_order, &mut self.sell_orders, &mut self.buy_orders).await;
+    //                 continue; // Recheck the current index after removal
+    //             }
+    //         }
 
-            i += 1; // Move to the next buy order if no match
-        }
+    //         i += 1; // Move to the next buy order if no match
+    //     }
 
-        log::info!("SCAN \t Complete.");
-    }
+    //     log::info!("SCAN \t Complete.");
+    // }
 }

@@ -8,6 +8,7 @@ service Clob {
   rpc PlaceOrder (OrderRequestClob) returns (OrderResponse);
   rpc GetBook (BookRequest) returns (BookSnapshot);
   rpc StreamBook (BookRequest) returns (stream BookSnapshot);
+  rpc AddMarket (MarketIdRequest) returns (MarketIdResponse);
 }
 
 message OrderRequestClob {
@@ -27,7 +28,8 @@ message OrderResponse {
 }
 
 message BookRequest {
-  uint32 depth = 1;
+  string market_id = 1;
+  uint32 depth = 2;
 }
 
 message OrderDetail {
@@ -40,4 +42,12 @@ message OrderDetail {
 message BookSnapshot {
   repeated OrderDetail bids = 1;
   repeated OrderDetail asks = 2;
+}
+
+
+message MarketIdRequest {
+  string market_id = 1;
+}
+message MarketIdResponse {
+  string market_id = 1;
 }

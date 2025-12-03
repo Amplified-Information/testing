@@ -14,24 +14,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let host = std::env::var("HOST").unwrap_or_else(|_| panic!("Failed to read env var HOST"));
     let nats_host: String = std::env::var("NATS_HOST").unwrap_or_else(|_| panic!("Failed to read env var NATS_HOST"));
     let nats_port: String = std::env::var("NATS_PORT").unwrap_or_else(|_| panic!("Failed to read env var NATS_PORT"));
-    let clob_matching_interval_seconds: u64 = std::env::var("CLOB_MATCHING_INTERVAL_SECONDS").unwrap_or_else(|_| "5".to_string()).parse().unwrap_or_else(|_| panic!("Failed to read env var CLOB_MATCHING_INTERVAL_SECONDS"));
+    // let clob_matching_interval_seconds: u64 = std::env::var("CLOB_MATCHING_INTERVAL_SECONDS").unwrap_or_else(|_| "5".to_string()).parse().unwrap_or_else(|_| panic!("Failed to read env var CLOB_MATCHING_INTERVAL_SECONDS"));
 
     // init NATS service
     let nats_service = nats::NatsService::new(&nats_host, &nats_port).await
         .expect("Failed to initialize NATS service");
     
     // init orderbook service
-    let order_book_service = OrderBookService::new(&nats_service);
+    let order_book_service = OrderBookService::new(nats_service.clone()).await;
 
     // Start the periodic orderbook scan
-    let order_book_service_for_scan = order_book_service.clone();
-    let orderbook_scan_task = tokio::spawn(async move {
-        log::info!("Starting periodic orderbook scan...");
-        let result = order_book_service_for_scan.start_periodic_scan(clob_matching_interval_seconds).await;
-        if let Err(e) = result {
-            log::error!("Orderbook scan failed: {}", e);
-        }
-    });
+    // TODO - re-enable
+    // let order_book_service_for_scan = order_book_service.clone();
+    // let orderbook_scan_task = tokio::spawn(async move {
+    //     log::info!("Starting periodic orderbook scan...");
+    //     let result = order_book_service_for_scan.start_periodic_scan(clob_matching_interval_seconds).await;
+    //     if let Err(e) = result {
+    //         log::error!("Orderbook scan failed: {}", e);
+    //     }
+    // });
 
     // NATS: listen for new orders to add to orderbook
     let order_book_service_for_nats = order_book_service.clone();
@@ -52,8 +53,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    /*
+    0189c0a8-7e80-7e80-8000-000000000001
+    0189c0a8-7e80-7e80-8000-000000000002
+    0189c0a8-7e80-7e80-8000-000000000003
+    0189c0a8-7e80-7e80-8000-000000000004
+    */
+
     // Run all tasks concurrently
-    let _ = tokio::try_join!(orderbook_scan_task, grpc_server_task, nats_task);
+    let _ = tokio::try_join!(/*orderbook_scan_task,*/ grpc_server_task, nats_task);
 
     Ok(())
 }

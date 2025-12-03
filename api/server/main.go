@@ -10,15 +10,18 @@ import (
 	"os"
 
 	pb_api "api/gen"
+	repositories "api/server/repositories"
 
 	"google.golang.org/grpc"
 )
 
 type server struct {
 	pb_api.UnimplementedApiServiceServer
-	hashiService services.Hashi
-	dbService    services.DbService
-	natsService  services.NatsService
+	dbRepository repositories.DbRepository
+
+	hashiService   services.Hashi
+	natsService    services.NatsService
+	marketsService services.MarketService
 }
 
 func (s *server) PredictIntent(ctx context.Context, req *pb_api.PredictionIntentRequest) (*pb_api.StdResponse, error) {
@@ -39,6 +42,20 @@ func (s *server) HealthCheck(ctx context.Context, req *pb_api.Empty) (*pb_api.St
 	}, nil
 }
 
+func (s *server) GetMarkets(ctx context.Context, req *pb_api.LimitOffsetRequest) (*pb_api.MarketsResponse, error) {
+	result, err := s.marketsService.GetMarkets(req.GetLimit(), req.GetOffset())
+	return result, err
+}
+
+func (s *server) GetMarketById(ctx context.Context, req *pb_api.MarketIdRequest) (*pb_api.MarketResponse, error) {
+	result, err := s.marketsService.GetMarketById(req.GetMarketId())
+	return result, err
+}
+
+func (s *server) CreateMarket(ctx context.Context, req *pb_api.NewMarketRequest) (*pb_api.MarketResponse, error) {
+	result, err := s.marketsService.CreateMarket(req)
+	return result, err
+}
 // func SplitSignature(signature []byte) (r, s []byte, v byte, err error) {
 // 	if len(signature) != 65 {
 // 		return nil, nil, 0, fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(signature))
@@ -197,7 +214,7 @@ func (s *server) HealthCheck(ctx context.Context, req *pb_api.Empty) (*pb_api.St
 
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
-	vars := []string{"HOST", "PORT", "HEDERA_OPERATOR_ID", "HEDERA_OPERATOR_KEY_TYPE", "HEDERA_OPERATOR_KEY", "DB_HOST", "DB_PORT", "DB_UNAME", "DB_PWORD", "DB_NAME"}
+	vars := []string{"HOST", "PORT", "HEDERA_OPERATOR_ID", "HEDERA_OPERATOR_KEY_TYPE", "HEDERA_OPERATOR_KEY", "DB_HOST", "DB_PORT", "DB_UNAME", "DB_PWORD", "DB_NAME", "DB_MAX_ROWS"}
 	vals := make(map[string]string)
 
 	var missing []string
@@ -215,14 +232,20 @@ func main() {
 
 	var err error
 
+	/////
+	// data layer
+	/////
 	// initialize database
-	dbService := services.DbService{}
-	err = dbService.InitDb()
+	dbRepository := repositories.DbRepository{}
+	err = dbRepository.InitDb()
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
-	defer dbService.CloseDb()
+	defer dbRepository.CloseDb()
 
+	/////
+	// service layer
+	/////
 	// initialize Hedera service
 	hederaService := services.HederaService{}
 	_, err = hederaService.InitHedera()
@@ -231,9 +254,16 @@ func main() {
 	}
 	// TODO: defer hederaService cleanup
 
+	// initialize Markets service
+	marketsService := services.MarketService{}
+	err = marketsService.Init(&dbRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize Markets service: %v", err)
+	}
+
 	// initialize NATS
 	natsService := services.NatsService{}
-	err = natsService.InitNATS(&hederaService, &dbService)
+	err = natsService.InitNATS(&hederaService, &dbRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize NATS: %v", err)
 	}
@@ -243,7 +273,7 @@ func main() {
 
 	// initialize hashi service
 	hashiService := services.Hashi{}
-	hashiService.InitHashi(&dbService, &natsService, &hederaService)
+	hashiService.InitHashi(&dbRepository, &natsService, &hederaService)
 	// TODO: defer hashiService cleanup
 
 	// sNow start gRPC service
@@ -255,7 +285,13 @@ func main() {
 	log.Printf("Smart contract ID from env: %s", os.Getenv("SMART_CONTRACT_ID"))
 
 	grpcServer := grpc.NewServer()
-	pb_api.RegisterApiServiceServer(grpcServer, &server{hashiService: hashiService, dbService: dbService, natsService: natsService})
+	pb_api.RegisterApiServiceServer(grpcServer, &server{
+		dbRepository: dbRepository,
+
+		hashiService:   hashiService,
+		natsService:    natsService,
+		marketsService: marketsService,
+	})
 
 	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
 	if err := grpcServer.Serve(lis); err != nil {

@@ -1,31 +1,60 @@
 
 
 import { useEffect } from 'react'
+import { ServerStreamingCall } from '@protobuf-ts/runtime-rpc' // Ensure this is the correct library for your project
 import { useAppContext } from '../AppProvider'
 import { clobClient } from '../grpcClient'
 import { getMidPrice, getSpreadPercent } from '../lib/utils'
 import Cancel from './Cancel'
+import { BookSnapshot } from '../gen/clob'
 
-const DEPTH = 0
+const DEPTH = 0 // TODO
 
-const OrderBook = () => {
+const OrderBook = ({ marketId }: { marketId: string }) => {
   const { book, setBook, signerZero } = useAppContext()
-  
+ 
   useEffect(() => {
-    // getBook
-    ;(async () => {
-      const result = await clobClient.getBook({ depth: DEPTH })
-      setBook(result.response)
-    })()
+  const controller = new AbortController()
 
-    // streamBook
-    ;(async () => {
-      const stream = clobClient.streamBook({ depth: DEPTH })
-      for await (const response of stream.responses) {
-        setBook(response)
+  async function startStream() {
+    let call: ServerStreamingCall | undefined
+    try {
+      call = clobClient.streamBook(
+        { marketId, depth: DEPTH },
+        { signal: controller.signal }  // RpcOptions
+      )
+
+      for await (const msg of call.responses) {
+        if (controller.signal.aborted) {
+          console.log('Stream aborted')
+          return
+        }
+        setBook(msg as BookSnapshot)
       }
-    })()
-  }, [])
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        console.error('streamBook error:', err)
+      } else {
+        console.log('Stream aborted due to controller signal')
+      }
+    } finally {
+      // Ensure transport is closed
+      // if (call.s) {
+      console.log('finally')
+      console.info(call)
+      
+        // call.() // Manually close the transport if supported
+      // }
+    }
+  }
+
+  startStream()
+
+  return () => {
+    console.log('Aborting order book stream for marketId:', marketId)
+    controller.abort() // cancels the stream on unmount
+  }
+}, [marketId])
 
   return (
     <div>

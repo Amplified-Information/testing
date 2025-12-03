@@ -11,18 +11,24 @@ import { getSpenderAllowanceUsd } from '../lib/hedera'
 // import { keccak_256 } from '@noble/hashes/sha3.js'
 import { ethers } from 'ethers'
 import { ObjForSigning } from '../types'
-import { splitSignature } from '../lib/sign'
+import { proto } from '@hashgraph/proto'
+import { base64StringToSignatureMap /*, signatureMapToBase64String*/ } from '@hashgraph/hedera-wallet-connect'
+// import { splitSignature } from '../lib/sign'
 // import { splitSignature } from 'ethers'
 // import { splitSignature } from 'ethers/lib/utils'
 
-const Signer = () => {
-  const { signerZero, networkSelected, spenderAllowanceUsd, setSpenderAllowanceUsd, book } = useAppContext()
-  const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>(defaultPredictionIntentRequest())
+const Signer = ({ marketId }: { marketId: string }) => {
+  const { signerZero, networkSelected, spenderAllowanceUsd, setSpenderAllowanceUsd, book, dAppConnector } = useAppContext()
+  const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>({...defaultPredictionIntentRequest(), marketId: marketId})
   const [thinger, setThinger] = useState<boolean>(false)
   const [buySell, setBuySell] = useState<'buy' | 'sell'>('buy')
   
   const [betUsd, setBetUsd] = useState<number>(1.0)
   const [priceUsd, setPriceUsd] = useState<number>(0.0)
+
+  useEffect(() => {
+    console.log(`marketId: ${marketId}`)
+  }, [])
 
   // TODO - remove this debug messaging
   useEffect(() => {
@@ -73,7 +79,8 @@ const Signer = () => {
 
   const resetTx = () => {
     setPredictionIntentRequest({
-      ...defaultPredictionIntentRequest()
+      ...defaultPredictionIntentRequest(),
+      marketId: marketId
     })
   }
 
@@ -291,21 +298,72 @@ const Signer = () => {
 
       <button className='btn' onClick={async () => {
         const msgStr = 'Hello Hedera'
-        console.log(msgStr)
-        const msgHashHex = ethers.keccak256(Buffer.from(msgStr, 'utf8')).slice(2)
-        console.log(msgHashHex)
+        console.log(`xx msgStr: ${msgStr}`)
+        const msgStrHex = Buffer.from(msgStr, 'utf8').toString('hex')
+        console.log(`xx msgStrHex: ${msgStrHex}`)
+        const msgHashHex = ethers.keccak256(ethers.toUtf8Bytes(msgStr)).slice(2)  //sha256
+        console.log(`xx msgHashHex: ${msgHashHex}`)
         // const msgHash = Uint8Array.from(Buffer.from(msgHashHex, 'hex'))
         // const msgHash = ethers.keccak256(Buffer.from(msgStr, 'utf8')).slice(2) 
         // console.log(`msgHash (hex) (len=${msgHashHex.length}): ${msgHashHex}`)
+
+        // // ethers.toUtf8Bytes(msgStr)
+        // let sig = null
+
+        // function signerSignaturesToSignatureMap(signerSignatures: SignerSignature[]): proto.SignatureMap {
+        //   const signatureMap = proto.SignatureMap.create({
+        //     sigPair: signerSignatures.map((s) => s.publicKey._toProtobufSignature(s.signature))
+        //   })
+
+        //   return signatureMap
+        // }
+
+        // const signerSignatures = await signerZero!.sign([Buffer.from(msgStr)])
+        // // const signerSignatures = await signer.sign(stringToSignerMessage(body))
+
+        // const _signatureMap = proto.SignatureMap.create(
+        //   signerSignaturesToSignatureMap(signerSignatures)
+        // )
+
+        // console.log('hello: ')
+        // const sigBase64 = _signatureMap.sigPair[0].ECDSASecp256k1
+        // console.log(`xx Signature (hex) (len=${sigBase64!.length}): ${Buffer.from(sigBase64!).toString('hex')}`)
+        // console.log(signerSignatures[0].publicKey.toString())
+        // console.log(signerSignatures[0].accountId.toString())
+        // const signatureMap = signatureMapToBase64String(_signatureMap)
+        // console.log(signatureMap.toString())
+
+        const signMessagParams = {
+          signerAccountId: signerZero!.getAccountId().toString(),
+          message: msgStr
+        }
+        const signMessageResult = await dAppConnector?.signMessage(signMessagParams)
+        // console.log(signMessageResult as string)
+        let signatureMap: proto.SignatureMap | undefined
+        if (signMessageResult && 'signatureMap' in signMessageResult) {
+          signatureMap = base64StringToSignatureMap(signMessageResult['signatureMap'] as string)
+          console.log(signatureMap)
+          console.log(Buffer.from(signatureMap.sigPair[0].ECDSASecp256k1!).toString('hex'))
+        } else {
+          console.error('signMessageResult is undefined or does not contain signatureMap')
+        }
         
-        const sig = (await signerZero!.sign([Buffer.from(msgStr, 'utf8')]))[0].signature
-        console.log(`Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
+        // console.log(base64StringToSignatureMap(signMessageResult!.result))
+        // return
+        // sig = (await signerZero!.sign([Buffer.from(msgStr)]))[0].signature
+        // console.log(`xx Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
 
-        const sig2 = (await signerZero!.sign([Buffer.from(msgHashHex, 'hex')]))[0].signature
-        console.log(`Signature (hex) (len=${sig2.length}): ${Buffer.from(sig2).toString('hex')}`)
+        // sig = (await signerZero!.sign([Buffer.from('0x' + msgStrHex, 'hex')]))[0].signature
+        // console.log(`xx Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
 
-        const sig3 = (await signerZero!.sign([Buffer.from(msgHashHex, 'hex')]))[0].signature
-        console.log(`Signature (hex) (len=${sig3.length}): ${Buffer.from(sig3).toString('hex')}`)
+        // sig = (await signerZero!.sign([Buffer.from(msgStr, 'utf8')]))[0].signature
+        // console.log(`xx Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
+        
+        // sig = (await signerZero!.sign([Buffer.from(msgHashHex, 'hex')]))[0].signature
+        // console.log(`xx Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
+
+        // sig = (await signerZero!.sign([Buffer.from('0x' + msgHashHex, 'hex')]))[0].signature
+        // console.log(`xx Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
       }}>
         Test2
       </button>
@@ -356,5 +414,24 @@ const Signer = () => {
     </div>
   )
 }
+
+// import { proto } from '@hashgraph/proto'
+
+// const { signatureMap } = request<SignTransactionResult['result']>({
+//   method: HederaJsonRpcMethod.SignMessage,
+//   params: {
+//     signerAccountId: this._signerAccountId,
+//     message: messageToSign,
+//   },
+// })
+
+// function signatureMapToBase64String(signatureMap: proto.SignatureMap): string {
+//   const encoded = proto.SignatureMap.encode(signatureMap).finish()
+//   return Uint8ArrayToBase64String(encoded)
+// }
+
+// export function Uint8ArrayToBase64String(binary: Uint8Array): string {
+//   return Buffer.from(binary).toString('base64')
+// }
 
 export default Signer

@@ -8,6 +8,7 @@ import (
 
 	pb_clob "api/gen/clob"
 	"api/server/lib"
+	repositories "api/server/repositories"
 
 	"github.com/nats-io/nats.go"
 )
@@ -15,10 +16,10 @@ import (
 type NatsService struct {
 	nats          *nats.Conn
 	hederaService *HederaService
-	dbService     *DbService
+	dbRepository  *repositories.DbRepository
 }
 
-func (n *NatsService) InitNATS(h *HederaService, d *DbService) error {
+func (n *NatsService) InitNATS(h *HederaService, d *repositories.DbRepository) error {
 	natsURL := os.Getenv("NATS_URL")
 	if natsURL == "" {
 		natsURL = nats.DefaultURL
@@ -32,7 +33,7 @@ func (n *NatsService) InitNATS(h *HederaService, d *DbService) error {
 	// and inject the HederaService:
 	n.hederaService = h
 	// and inject the DbService:
-	n.dbService = d
+	n.dbRepository = d
 
 	log.Println("NATS initialized successfully")
 	return nil
@@ -113,7 +114,7 @@ func (n *NatsService) HandleOrderMatches() error {
 			return
 		}
 
-		_, err := n.dbService.RecordMatch(
+		_, err := n.dbRepository.RecordMatch(
 			[2]*pb_clob.OrderRequestClob{&orderRequestClobTuple[0], &orderRequestClobTuple[1]},
 			isPartial,
 		)

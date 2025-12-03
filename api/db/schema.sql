@@ -22,6 +22,21 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: markets; Type: TABLE; Schema: public; Owner: your_db_user
+--
+
+CREATE TABLE public.markets (
+    market_id uuid NOT NULL,
+    statement text NOT NULL,
+    is_open boolean DEFAULT true NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    resolved_at timestamp without time zone
+);
+
+
+ALTER TABLE public.markets OWNER TO your_db_user;
+
+--
 -- Name: matches; Type: TABLE; Schema: public; Owner: your_db_user
 --
 
@@ -129,6 +144,14 @@ ALTER TABLE ONLY public.matches ALTER COLUMN id SET DEFAULT nextval('public.matc
 --
 
 ALTER TABLE ONLY public.order_requests ALTER COLUMN id SET DEFAULT nextval('public.order_requests_id_seq'::regclass);
+
+
+--
+-- Name: markets markets_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.markets
+    ADD CONSTRAINT markets_pkey PRIMARY KEY (market_id);
 
 
 --

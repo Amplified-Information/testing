@@ -12,6 +12,9 @@ import "validate/validate.proto"; // PGV
 service ApiService {
   rpc Health(Empty) returns (StdResponse);
   rpc PredictIntent(PredictionIntentRequest) returns (StdResponse);
+  rpc GetMarketById(MarketIdRequest) returns (MarketResponse);
+  rpc GetMarkets(LimitOffsetRequest) returns (MarketsResponse);
+  rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
 }
 
 message Empty {}
@@ -30,4 +33,30 @@ message PredictionIntentRequest {
 
 message StdResponse {
   string message = 1;
+}
+
+message MarketIdRequest {
+  string market_id = 1 [json_name = "marketId",     (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+}
+
+message LimitOffsetRequest {
+  int32 limit = 1  [(validate.rules).int32 = {gt: 0}];
+  int32 offset = 2 [(validate.rules).int32 = {gt: 0}];
+}
+
+message MarketResponse {
+  string market_id = 1    [json_name = "marketId"];
+  string statement = 2    [json_name = "statement"];
+  bool is_open = 3        [json_name = "isOpen"];
+  string created_at = 4   [json_name = "createdAt"];
+  string resolved_at = 5  [json_name = "resolvedAt"];
+}
+
+message MarketsResponse {
+  repeated MarketResponse markets = 1;
+}
+
+message NewMarketRequest {
+  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string statement = 2 [json_name = "statement", (validate.rules).string = {min_len: 10, max_len: 500}];
 }

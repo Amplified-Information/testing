@@ -1,14 +1,23 @@
-import { ContractCallQuery, ContractFunctionParameters, ContractId } from '@hashgraph/sdk'
+import { AccountId, ContractCallQuery, ContractFunctionParameters, ContractId, PublicKey, SignerSignature } from '@hashgraph/sdk'
 import { networkSelected, operatorAccountId, operatorKeyType } from '../constants.ts'
 import { initHederaClient } from '../lib/hedera.ts'
 import { ethers } from 'ethers'
+import { text } from 'stream/consumers'
+import { keccak256 } from '@noble/secp256k1'
 
 // CLI args: contractId, tokenId
-const [contractId, publicKeyHex, payload, sigHex] = process.argv.slice(2)
-if (!contractId || !publicKeyHex || !payload || !sigHex) {
-  console.error('Usage: ts-node onChainVerify.ts <contractId> <publicKeyHex> <payload> <sigHex>')
-  process.exit(1)
-}
+// const [contractId, publicKeyHex, payload, sigHex] = process.argv.slice(2)
+// if (!contractId || !publicKeyHex || !payload || !sigHex) {
+//   console.error('Usage: ts-node onChainVerify.ts <contractId> <publicKeyHex> <payload> <sigHex>')
+//   process.exit(1)
+// }
+const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'
+
+const contractId = '0.0.7330728' // process.env.SMART_CONTRACT_ID!
+const publicKeyHex = '302d300706052b8104000a03220003b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787'
+// const publicKeyHex = '03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787'
+const payload = 'Hello Hedera'
+const sigHex = ''
 
 console.log(`publicKeyHex: ${publicKeyHex}`)
 console.log(`payload: ${payload}`)
@@ -20,27 +29,67 @@ const [ client, _ ] = initHederaClient(
   operatorKeyType
 )
 
+const wallet = new ethers.Wallet(privateKeyHex)
+console.log(`EVM address from private key: ${wallet.address.toLowerCase()}`)
+console.log('---')
+
 const verify = async () => {
-  const rHex = sigHex.slice(0, 64)
-  const sHex = sigHex.slice(64, 128)
-  const v = 27
-  console.log('r (hex):', rHex)
-  console.log('s (hex):', sHex)
-  console.log(`v: ${v}`) // 27 or 28
+  const textFormats: ('hex' | 'utf8')[] = ['hex', 'utf8']
+  const payloadLens = [32, 64]
 
-  const r = Uint8Array.from(Buffer.from(rHex, 'hex'))
-  const s = Uint8Array.from(Buffer.from(sHex, 'hex'))
+  // for (const textFormat of textFormats) {
+  //   for (const payloadLen of payloadLens) {
+  const payloadHashedHex = keccak256(ethers.toUtf8Bytes(payload)).slice(2)
+  console.log(`payloadHashedHex (len=${payloadHashedHex.length}): ${payloadHashedHex}`)
+  const payloadHashed = Buffer.from(payloadHashedHex, 'hex')
+  console.log(`payloadHashed (len=${payloadHashed.length}): ${payloadHashed}`)
 
-  const payloadHashedHex = ethers.keccak256(Uint8Array.from(Buffer.from(payload, 'utf8'))).slice(2)
-  console.log(`payloadHashedHex: ${payloadHashedHex}`)
+  const payloadHashedPrefixedHex = addPrefix(payloadHashed).slice(2)
+  const payloadHashedPrefixed = Buffer.from(payloadHashedPrefixedHex, 'hex')
+  // console.log(`payloadHashedPrefixedHex (len=${payloadHashedPrefixedHex.length}): ${payloadHashedPrefixedHex}`)
+  // console.log(`payloadHashedPrefixed (len=${payloadHashedPrefixed.length}): ${payloadHashedPrefixed}`)
+  const payloadHashedPrefixedHashedHex = ethers.keccak256(payloadHashedPrefixed).slice(2)
+  console.log(`payloadHashedPrefixedHashedHex (len=${payloadHashedPrefixedHashedHex.length}): ${payloadHashedPrefixedHashedHex}`)
+  const payloadHashedPrefixedHashed = Buffer.from(payloadHashedPrefixedHashedHex, 'hex')
+  
 
-  const payloadPrefixedHashedHex = ethers.keccak256(ethers.concat([
-    ethers.toUtf8Bytes('\x19Hedera Signed Message:\n32'),
-    Uint8Array.from(Buffer.from(payloadHashedHex, 'hex'))
-  ])).slice(2)
-  console.log(`payloadPrefixedHashedHex: ${payloadPrefixedHashedHex}`)
+  await calcSig(Buffer.from(payload))
+  await calcSig(payloadHashed)
+  await calcSig(payloadHashedPrefixed)
+  await calcSig(payloadHashedPrefixedHashed)
 
-  await onChainVerify(r, s, v, payloadPrefixedHashedHex)
+  
+  //   }
+  // }
+  
+  
+
+  // const rHex = sigHex.slice(0, 64)
+  // const sHex = sigHex.slice(64, 128)
+  // const v = 27
+  // console.log('r (hex):', rHex)
+  // console.log('s (hex):', sHex)
+  // console.log(`v: ${v}`) // 27 or 28
+
+  // const r = Uint8Array.from(Buffer.from(rHex, 'hex'))
+  // const s = Uint8Array.from(Buffer.from(sHex, 'hex'))
+
+  // await onChainVerify(r, s, v, payloadPrefixedHashedHex)
+}
+
+const addPrefix = (input: Uint8Array): string => {
+  return ethers.concat([
+    ethers.toUtf8Bytes('\x19Hedera Signed Message:\n'),
+    ethers.toUtf8Bytes(`${input.length}`),
+    input
+  ])
+}
+
+const calcSig = async (payload: Uint8Array) => {
+  const sigHex = (await wallet.signMessage(payload)).slice(2)
+  const sig = Buffer.from(sigHex, 'hex')
+  // console.log(`sig (len=${sig.length}): ${sig}`)
+  console.log(`sigHex (len=${sigHex.length}): ${sigHex}`)
 }
 
 const onChainVerify = async (r: Uint8Array, s: Uint8Array, v: number, hashHex: string) => {
@@ -67,6 +116,35 @@ const onChainVerify = async (r: Uint8Array, s: Uint8Array, v: number, hashHex: s
     console.error('Contract call failed:', err)
   }
 }
+
+// const sign = async ( data: Uint8Array ): Promise<SignerSignature[]> => {
+//   try {
+//     const messageToSign = Buffer.from(data).toString('utf-8')
+
+//     const { signatureMap } = await this.request<SignTransactionResult['result']>({
+//       method: HederaJsonRpcMethod.SignMessage,
+//       params: {
+//         signerAccountId: this._signerAccountId,
+//         message: messageToSign
+//       }
+//     })
+
+//     const sigmap = base64StringToSignatureMap(signatureMap)
+//     const signerSignature = new SignerSignature({
+//       accountId: AccountId.fromString(accountId),
+//       publicKey: PublicKey.fromBytes(sigmap.sigPair[0].pubKeyPrefix as Uint8Array),
+//       signature:
+//         (sigmap.sigPair[0].ed25519 as Uint8Array) ||
+//         (sigmap.sigPair[0].ECDSASecp256k1 as Uint8Array),
+//     })
+
+//     console.log('Data signed successfully')
+//     return [signerSignature]
+//   } catch (error) {
+//     console.log('Error signing data:', error)
+//     throw error
+//   }
+// }
 
 (async () => {
   await verify()

@@ -79,6 +79,21 @@ export PAYLOAD='{"txid":"019a2bc2-d729-7407-acb7-fff6e81daa11","marketId":"019a2
 grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.PredictIntent
 ```
 
+Retrieve markets from the database:
+
+```bash
+export PORT=8888
+
+export PAYLOAD="{}"
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.GetMarketById
+
+export PAYLOAD='{"market_id":"0189c0a8-7e80-7e80-8000-000000000002"}'
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.GetMarketById
+
+export PAYLOAD='{"limit":10,"offset":0}'
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.GetMarkets
+```
+
 ## Database migrations
 
 Use golang-migrate cli tool
@@ -147,3 +162,13 @@ Can now do:
 cd api/db
 sqlc generate
 ```
+
+### seed the database
+
+Add test data to `seed.sql`
+
+Run:
+
+`psql $DB_URL -f seed.sql`
+
+N.B. Do NOT run on prod!

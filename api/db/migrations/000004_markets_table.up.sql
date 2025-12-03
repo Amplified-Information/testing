@@ -1,0 +1,7 @@
+CREATE TABLE markets (
+  market_id UUID PRIMARY KEY NOT NULL,
+  statement TEXT NOT NULL,
+  is_open BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TIMESTAMP
+);

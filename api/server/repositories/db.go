@@ -1,4 +1,4 @@
-package services
+package repositories
 
 import (
 	"context"
@@ -17,26 +17,26 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type DbService struct {
+type DbRepository struct {
 	db *sql.DB
 }
 
-func (dbService *DbService) CloseDb() error {
-	var err = dbService.db.Close()
+func (dbRepository *DbRepository) CloseDb() error {
+	var err = dbRepository.db.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close database: %v", err)
 	}
 	return nil
 }
 
-func (dbService *DbService) InitDb() error {
+func (dbRepository *DbRepository) InitDb() error {
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_UNAME"), os.Getenv("DB_PWORD"), os.Getenv("DB_NAME"))
 
 	var db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %v", err)
 	}
-	dbService.db = db
+	dbRepository.db = db
 
 	// Verify connection
 	if err = db.Ping(); err != nil {
@@ -47,12 +47,12 @@ func (dbService *DbService) InitDb() error {
 	return nil
 }
 
-func (dbService *DbService) IsDuplicateTxId(txId uuid.UUID) (bool, error) {
-	if dbService.db == nil {
+func (dbRepository *DbRepository) IsDuplicateTxId(txId uuid.UUID) (bool, error) {
+	if dbRepository.db == nil {
 		return false, fmt.Errorf("database not initialized")
 	}
 
-	q := sqlc.New(dbService.db)
+	q := sqlc.New(dbRepository.db)
 	isDuplicate, err := q.IsDuplicateTxId(context.Background(), txId)
 	if err != nil && err != sql.ErrNoRows {
 		return false, fmt.Errorf("failed to check duplicate txId: %v", err)
@@ -61,8 +61,8 @@ func (dbService *DbService) IsDuplicateTxId(txId uuid.UUID) (bool, error) {
 }
 
 // SaveOrderRequest saves an order request to the database
-func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest) (*sqlc.OrderRequest, error) {
-	if dbService.db == nil {
+func (dbRepository *DbRepository) SaveOrderRequest(req *pb_api.PredictionIntentRequest) (*sqlc.OrderRequest, error) {
+	if dbRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
@@ -94,7 +94,7 @@ func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest
 		GeneratedAt: generatedAt,
 	}
 
-	q := sqlc.New(dbService.db)
+	q := sqlc.New(dbRepository.db)
 	newOrderRequest, err := q.CreateOrderRequest(context.Background(), params)
 	if err != nil {
 		return nil, fmt.Errorf("CreateOrderRequest failed: %v", err)
@@ -104,9 +104,9 @@ func (dbService *DbService) SaveOrderRequest(req *pb_api.PredictionIntentRequest
 	return &newOrderRequest, nil
 }
 
-func (dbService *DbService) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderRequestClob, isPartial bool) (*sqlc.Match, error) {
+func (dbRepository *DbRepository) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderRequestClob, isPartial bool) (*sqlc.Match, error) {
 	// Record the match in the database for auditing
-	if dbService.db == nil {
+	if dbRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
@@ -126,7 +126,7 @@ func (dbService *DbService) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderR
 		IsPartial: isPartial,
 	}
 
-	q := sqlc.New(dbService.db)
+	q := sqlc.New(dbRepository.db)
 	match, err := q.CreateMatch(context.Background(), params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to record match for txIds %s and %s: %v", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId, err)
@@ -135,4 +135,78 @@ func (dbService *DbService) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderR
 	log.Printf("Recorded match on database for txIds: {%s, %s}", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId)
 
 	return &match, nil
+}
+
+func (dbRepository *DbRepository) GetMarketById(marketId string) (*sqlc.Market, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	marketUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	q := sqlc.New(dbRepository.db)
+	market, err := q.GetMarket(context.Background(), marketUUID)
+	if err != nil {
+		return nil, fmt.Errorf("GetMarket failed: %v", err)
+	}
+
+	// log.Printf("Fetched market from database: %s", market.MarketID.String())
+	return &market, nil
+}
+
+func (dbRepository *DbRepository) GetMarkets(limit int32, offset int32) ([]sqlc.Market, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbRepository.db)
+	markets, err := q.GetMarkets(context.Background(), sqlc.GetMarketsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetMarkets failed: %v", err)
+	}
+
+	// log.Printf("Fetched %d markets from database", len(markets))
+	return markets, nil
+}
+
+func (dbRepository *DbRepository) CreateMarket(marketId string, statement string) (*sqlc.Market, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	marketUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	// Start a transaction
+	tx, err := dbRepository.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %v", err)
+	}
+
+	// Use the transaction with the query builder
+	q := sqlc.New(tx)
+	market, err := q.CreateMarket(context.Background(), sqlc.CreateMarketParams{
+		MarketID:  marketUUID,
+		Statement: statement,
+	})
+	if err != nil {
+		tx.Rollback() // Rollback the transaction on error
+		return nil, fmt.Errorf("CreateMarket failed: %v", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	log.Printf("Created new market in database: %s", market.MarketID.String())
+	return &market, nil
 }

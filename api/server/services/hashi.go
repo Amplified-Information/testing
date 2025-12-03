@@ -13,19 +13,20 @@ import (
 
 	pb_api "api/gen"
 	"api/server/lib"
+	repositories "api/server/repositories"
 
 	"github.com/google/uuid"
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
 type Hashi struct {
-	dbService     *DbService
+	dbRepository  *repositories.DbRepository
 	natsService   *NatsService
 	hederaService *HederaService
 }
 
-func (h *Hashi) InitHashi(dbService *DbService, natsService *NatsService, hederaService *HederaService) {
-	h.dbService = dbService
+func (h *Hashi) InitHashi(dbRepository *repositories.DbRepository, natsService *NatsService, hederaService *HederaService) {
+	h.dbRepository = dbRepository
 	h.natsService = natsService
 	h.hederaService = hederaService
 
@@ -77,7 +78,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	if err != nil {
 		return "", fmt.Errorf("invalid txId uuid: %v", err)
 	}
-	exists, err := h.dbService.IsDuplicateTxId(txUUID)
+	exists, err := h.dbRepository.IsDuplicateTxId(txUUID)
 	if err != nil {
 		return "", fmt.Errorf("failed to check existing txId: %v", err)
 	}
@@ -158,7 +159,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	/// Now you can (attempt to) put the order on the CLOB (subject to on-chain sig verification)
 
 	// store the OrderRequest in the database
-	_, err = h.dbService.SaveOrderRequest(req)
+	_, err = h.dbRepository.SaveOrderRequest(req)
 	if err != nil {
 		return "", fmt.Errorf("database error: failed to save order request: %v", err)
 	}

@@ -74,6 +74,15 @@ UUID7=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
 grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"txId":"'$UUID7'","net":"'$NET'","marketId":"'$UUID7'","accountId":"'$ACCOUNTID'","marketLimit":"'$MARKET_LIMIT'","priceUsd":'$PRICE_USD',"qty":'$QTY'}' localhost:50051 clob.Clob/PlaceOrder
 ```
 
+Create some markets:
+
+```bash
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001"}' localhost:50051 clob.Clob/AddMarket
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000002"}' localhost:50051 clob.Clob/AddMarket
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003"}' localhost:50051 clob.Clob/AddMarket
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001"}' localhost:50051 clob.Clob/AddMarket
+```
+
 **View full orderbook (non-streaming):**
 
 ```bash

@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from 'react'
 import { BookSnapshot } from './gen/clob'
 import { LedgerId } from '@hashgraph/sdk'
 import { DAppConnector, DAppSigner } from '@hashgraph/hedera-wallet-connect'
+import { MarketResponse } from './gen/api'
 
 // 1. Define a type for your context
 interface AppContextType {
@@ -19,6 +20,8 @@ interface AppContextType {
   setBook: React.Dispatch<React.SetStateAction<BookSnapshot>>
   spenderAllowanceUsd: number
   setSpenderAllowanceUsd: React.Dispatch<React.SetStateAction<number>>
+  market: MarketResponse | undefined
+  setMarket: React.Dispatch<React.SetStateAction<MarketResponse | undefined>>
 }
 
 // 2. Create the context with `undefined` (so we can inject real values later)
@@ -39,7 +42,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isToggled, setIsToggled] = useState<boolean[]>(Array(4).fill(false))
   const [book, setBook] = useState<BookSnapshot>({ bids: [], asks: [] })
   const [spenderAllowanceUsd, setSpenderAllowanceUsd] = useState<number>(0)
-
+  const [market, setMarket] = useState<MarketResponse | undefined>(undefined)
   return (
     <AppContext.Provider
       value={{
@@ -56,7 +59,9 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         book,
         setBook,
         spenderAllowanceUsd,
-        setSpenderAllowanceUsd
+        setSpenderAllowanceUsd,
+        market,
+        setMarket
       }}
     >
       {children}

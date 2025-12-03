@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS order_requests (
-  id SERIAL PRIMARY KEY,
+  id SERIAL PRIMARY KEY, -- TODO: remove this and use tx_id as primary key
   tx_id UUID NOT NULL,
   market_id UUID NOT NULL,
   account_id TEXT NOT NULL,
