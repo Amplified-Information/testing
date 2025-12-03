@@ -14,37 +14,32 @@ const OrderBook = ({ marketId }: { marketId: string }) => {
   const { book, setBook, signerZero } = useAppContext()
  
   useEffect(() => {
-  const controller = new AbortController()
+  const ac = new AbortController()
 
   async function startStream() {
     let call: ServerStreamingCall | undefined
     try {
       call = clobClient.streamBook(
         { marketId, depth: DEPTH },
-        { signal: controller.signal }  // RpcOptions
+        { signal: ac.signal, abort: ac.signal }  // RpcOptions
       )
 
       for await (const msg of call.responses) {
-        if (controller.signal.aborted) {
+        if (ac.signal.aborted) {
           console.log('Stream aborted')
           return
         }
         setBook(msg as BookSnapshot)
       }
     } catch (err) {
-      if (!controller.signal.aborted) {
+      if (!ac.signal.aborted) {
         console.error('streamBook error:', err)
       } else {
         console.log('Stream aborted due to controller signal')
       }
     } finally {
-      // Ensure transport is closed
-      // if (call.s) {
       console.log('finally')
       console.info(call)
-      
-        // call.() // Manually close the transport if supported
-      // }
     }
   }
 
@@ -52,7 +47,7 @@ const OrderBook = ({ marketId }: { marketId: string }) => {
 
   return () => {
     console.log('Aborting order book stream for marketId:', marketId)
-    controller.abort() // cancels the stream on unmount
+    ac.abort() // cancels the stream on unmount
   }
 }, [marketId])
 
