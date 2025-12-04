@@ -25,18 +25,35 @@ const client = Client.forTestnet().setOperator(operatorId, privateKey)
 
 
 const contractId = '0.0.7371263'
-const payloadUtf8 = 'Hello Future'
-const payloadBytes = Buffer.from(payloadUtf8)
-const payloadPrefixedUtf8 = prefixMessageToSign(payloadUtf8)
-const payloadPrefixedBytes = Buffer.from(payloadPrefixedUtf8, 'utf8')
+// const payloadUtf8 = 'Hello Future'
+const payloadUtf8 = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb0d8112759dba60b701cf0f7c27'
+// const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')
+console.log(Buffer.from(payloadUtf8).toString('hex'))
+// const payloadBytes = Buffer.from(payloadUtf8)
+// const payloadPrefixedUtf8 = prefixMessageToSign(payloadUtf8)
+// const payloadPrefixedBytes = Buffer.from(payloadPrefixedUtf8, 'utf8')
 const keccakHex = keccak256(Buffer.from(payloadUtf8)).slice(2)
+console.log(`keccakHex: ${keccakHex}`)
 const keccakUtf8 = Buffer.from(keccakHex, 'hex').toString()
 const keccakPrefixedUtf8 = prefixMessageToSign(keccakUtf8)
 const keccakPrefixedBytes = Buffer.from(keccakPrefixedUtf8, 'utf8')
 
 const sigBytes = privateKey.sign(keccakPrefixedBytes)
 const sigHex = Buffer.from(sigBytes).toString('hex')
-console.log(`sigHex: ${sigHex}`)
+console.log(`sigHex (should match with hashpack!) (len=${sigBytes.length}): ${sigHex}`)
+
+// --------------------------------------------------------------------------
+// CORRESPONDING FRONT_END SIGNATURE VERIFICATION
+// --------------------------------------------------------------------------
+// <button onClick={async () => {
+//   const payloadUtf8 = 'Hello Future'
+//   const keccakHex = keccak256(Buffer.from(payloadUtf8)).slice(2)
+//   console.log(keccakHex)
+//   const signature = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
+//   console.log(`signature (len=${signature.length}): ${Buffer.from(signature).toString('hex')}`)
+// }}>
+//   Test3
+// </button>
 
 const signerSignature: SignerSignature = {
   signature: sigBytes,

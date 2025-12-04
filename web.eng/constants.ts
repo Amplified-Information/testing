@@ -3,7 +3,7 @@ import { PredictionIntentRequest } from './gen/api'
 import { v7 as uuidv7 } from 'uuid'
 
 const networksAvailable = [LedgerId.MAINNET, LedgerId.TESTNET, LedgerId.PREVIEWNET]
-const smartContractId = '0.0.7301026'
+const smartContractId = '0.0.7371725'
 const usdcAddress = '0.0.5449'
 const usdcDecimals = 6
 const TMP_MARKET_ID = '019a7e77-39e2-72a3-9bea-a63bdfa79d20'

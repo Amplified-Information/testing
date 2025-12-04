@@ -7,22 +7,24 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-// Simple Hedera Token Service (HTS) precompile interface (testnet/mainnet share the same precompile)
+// Hedera Token Service (HTS) precompile interface (testnet/mainnet share the same precompile)
+// https://github.com/hashgraph/hedera-smart-contracts/blob/main/contracts/system-contracts/hedera-token-service/IHederaTokenService.sol
 interface IHederaTokenService {
     function associateToken(address account, address token) external returns (int64);
 }
-
+// Hedera Account Service (HAS) precompile interface (testnet/mainnet share the same precompile)
+// https://github.com/hashgraph/hedera-smart-contracts/blob/main/contracts/system-contracts/hedera-account-service/IHederaAccountService.sol
 interface IHederaAccountService {
-    function isAuthorizedRaw(address account, bytes32 messageHash, bytes calldata signatureBlob) external view returns (bool);
+    function isAuthorized(address account, bytes memory message, bytes memory signature) external returns (int64 responseCode, bool authorized);
 }
 
-contract PredictionMarket {
+contract Prism {
     // USDC on Hedera Mainnet: 0x000000000000000000000000000000000006f89a
     // USDC on Hedera Testnet: 0x0000000000000000000000000000000000068cda // 0.0.5449
     IERC20 public immutable collateralToken;
 
-    address constant HTS = address(0x167);
-    address constant HAS = address(0x16a);
+    IHederaTokenService constant HTS = IHederaTokenService(address(0x167));
+    IHederaAccountService constant HAS = IHederaAccountService(address(0x16a));
 
     address owner;
     mapping(address => bool) public associatedTokens;
@@ -39,6 +41,7 @@ contract PredictionMarket {
     event MarketResolved(uint128 marketId, bool outcome);
     event WinningsRedeemed(uint128 marketId, address indexed user, uint256 amount);
     event TokenAssociated(address indexed token);
+    event AccountAuthorizationResponse(int64 responseCode, address account, bool response);
 
     /**
     Only contract owner guard
@@ -57,7 +60,7 @@ contract PredictionMarket {
     }
 
     /**
-    Smart contract contructor to initialize the PredictionMarket with the specified collateral token.
+    Smart contract contructor to initialize the contract with the specified collateral token.
     @param _collateralToken The address of the ERC20 token to be used as collateral (e.g., USDC).
     */
     constructor(address _collateralToken) {
@@ -83,7 +86,7 @@ contract PredictionMarket {
     @param marketId The ID of the market.
     @param signerYes The (signing) address of the account buying YES position tokens.
     @param signerNo The (signing) address of the account buying NO position tokens.
-    @param collateralUsdcAbs The amount of collateral (in USDC) to be used for purchasing position tokens.
+    @param collateralUsdAbsScaled The amount of collateral (in USDC) to be used for purchasing position tokens (scaled to the number of collatoral token decimal places).
     @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
     @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
     @param sigYes The signature of the YES position token purchase transaction.
@@ -93,7 +96,7 @@ contract PredictionMarket {
         uint128 marketId,
         address signerYes,
         address signerNo,
-        uint256 collateralUsdcAbs,
+        uint256 collateralUsdAbsScaled,
         uint128 txIdYes,
         uint128 txIdNo,
         bytes calldata sigYes,
@@ -102,43 +105,19 @@ contract PredictionMarket {
         require(resolutionTimes[marketId] == 0, "Market resolved");
         require(bytes(statements[marketId]).length > 0, "No market statement has been set");
 
-        // // Debugging: Log input data for STATICCALL
-        // bytes memory inputData = abi.encodeWithSelector(
-        //     bytes4(keccak256("associateToken(address,address)")),
-        //     signerYes,
-        //     address(this)
-        // );
-        // debugStaticCallInput(inputData);
-
-        // construct payload (on-chain so cannot fake it):
-        bytes32 msgHash_yes = prefixedHash(txIdYes, marketId, collateralUsdcAbs);
-        bytes32 msgHash_no = prefixedHash(txIdNo, marketId, collateralUsdcAbs);
-        msgHash_yes = msgHash_no;
-
-        // On-chain validation of signatures
-        // require(verifyHash(r_yes, s_yes, 27, msgHash_yes) == signerYes, "Invalid YES signature");
-        // require(verifyHash(r_no, s_no, 27, msgHash_no) == signerNo, "Invalid NO signature");
-
-        // require(
-        //     validateSignature(signerYes, txIdYes, marketId, collateralUsdcAbs, sigYes),
-        //     "Invalid YES signature"
-        // );
-        // require(
-        //     validateSignature(signerNo, txIdNo, marketId, collateralUsdcAbs, sigNo),
-        //     "Invalid NO signature"
-        // );
+        // on-chain signature verification:
+        require(isAuthorized(signerYes, abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
+        require(isAuthorized(signerNo,  abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))), sigNo),  "isAuthorized NO failed");
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
-        require(collateralToken.transferFrom(signerYes, address(this), collateralUsdcAbs), "Transfer failed");
-        require(collateralToken.transferFrom(signerNo, address(this), collateralUsdcAbs), "Transfer failed");
+        require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");
+        require(collateralToken.transferFrom(signerNo, address(this), collateralUsdAbsScaled), "Transfer failed");
+        yesTokens[marketId][signerYes] += collateralUsdAbsScaled; // 1:1 mapping of collateral to position tokens
+        noTokens[marketId][signerNo] += collateralUsdAbsScaled; // 1:1 mapping of collateral to position tokens
 
-        yesTokens[marketId][signerYes] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
-        noTokens[marketId][signerNo] += collateralUsdcAbs; // 1:1 mapping of collateral to position tokens
-
-        totalCollaterals[marketId] += (2 * collateralUsdcAbs);
-
-        emit PositionTokensPurchased(marketId, signerYes, collateralUsdcAbs, false);
-        emit PositionTokensPurchased(marketId, signerNo, collateralUsdcAbs, true);
+        totalCollaterals[marketId] += (2 * collateralUsdAbsScaled);
+        emit PositionTokensPurchased(marketId, signerYes, collateralUsdAbsScaled, false);
+        emit PositionTokensPurchased(marketId, signerNo, collateralUsdAbsScaled, true);
     }
     
     /**
@@ -212,46 +191,69 @@ contract PredictionMarket {
     @param tokenAddress The address of the token to be associated with the contract.
     */
     function associateToken(address tokenAddress) external onlyOwner {
-        (bool success, bytes memory result) = HTS.call(
-            abi.encodeWithSelector(
-                bytes4(keccak256("associateToken(address,address)")),
-                address(this),
-                tokenAddress
-            )
-        );
-        require(success, "HTS call failed");
-        int64 responseCode = abi.decode(result, (int64));
+        (int64 responseCode) = HTS.associateToken(address(this), tokenAddress);
         require(responseCode == 22, "Association not successful");
 
         associatedTokens[tokenAddress] = true;
         emit TokenAssociated(tokenAddress);
+        // (bool success, bytes memory result) = HTS.call(
+        //     abi.encodeWithSelector(
+        //         bytes4(keccak256("associateToken(address,address)")),
+        //         address(this),
+        //         tokenAddress
+        //     )
+        // );
+        // require(success, "HTS call failed");
+        // int64 responseCode = abi.decode(result, (int64));
+        // require(responseCode == 22, "Association not successful");
+
+        // associatedTokens[tokenAddress] = true;
+        // emit TokenAssociated(tokenAddress);
     }
 
 
     /////
     // sig verification functions
     /////
-    function verify(bytes32 r, bytes32 s, uint8 v, bytes32 msgHash) public pure returns (address) {
-        address signer = ecrecover(msgHash, v, r, s);
-        return signer;
-    }
 
     /**
-    Calculate the prefixed message hash.
-    @param txId The transaction ID.
-    @param marketId The market ID.
-    @param collateralUsdcAbs The collateral amount.
-    @return The prefixed message hash.
+    Determines if the signature is valid for the given message and account.
+    It is assumed that the signature is composed of a possibly complex cryptographic key.
+    @param account The account to check the signature against.
+    @param message The message to check the signature against.
+    @param signature A byte-encoded serialized signature (see buildSignatureMap .ts) to check against
+    @return responseCode The response code for the status of the request.  SUCCESS is 22.
     */
-    function prefixedHash(
-        uint128 txId,
-        uint128 marketId,
-        uint256 collateralUsdcAbs
-    ) internal pure returns (bytes32) {
-        bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
-        bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
-        return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
+    function isAuthorized(address account, bytes memory message, bytes memory signature) public returns (bool) {
+      (int64 responseCode, bool authorized) = HAS.isAuthorized(account, message, signature);
+      require(responseCode == 22, "Authorization failed");
+      emit AccountAuthorizationResponse(responseCode, account, authorized);
+      return authorized;
     }
+}
+
+
+    // function verify(bytes32 r, bytes32 s, uint8 v, bytes32 msgHash) public pure returns (address) {
+    //     address signer = ecrecover(msgHash, v, r, s);
+    //     return signer;
+    // }
+
+    // /**
+    // Calculate the prefixed message hash.
+    // @param txId The transaction ID.
+    // @param marketId The market ID.
+    // @param collateralUsdcAbs The collateral amount.
+    // @return The prefixed message hash.
+    // */
+    // function prefixedHash(
+    //     uint128 txId,
+    //     uint128 marketId,
+    //     uint256 collateralUsdcAbs
+    // ) internal pure returns (bytes32) {
+    //     bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
+    //     bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
+    //     return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
+    // }
 
      // /**
     // Internal function to validate a signature.
@@ -448,4 +450,4 @@ contract PredictionMarket {
     // ) internal pure returns (bytes memory) {
     //     return inputData;
     // }
-}
+

@@ -1,6 +1,6 @@
 import { PredictionIntentRequest } from '../gen/api'
 import { useEffect, useState } from 'react'
-import { getMidPrice, floatToBigIntScaledDecimals } from '../lib/utils'
+import { getMidPrice, floatToBigIntScaledDecimals, uuidToBigInt } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
 import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, smartContractId, usdcDecimals } from '../constants'
@@ -16,6 +16,7 @@ import { base64StringToSignatureMap /*, signatureMapToBase64String*/ } from '@ha
 // import { splitSignature } from '../lib/sign'
 // import { splitSignature } from 'ethers'
 // import { splitSignature } from 'ethers/lib/utils'
+
 
 const Signer = ({ marketId }: { marketId: string }) => {
   const { signerZero, networkSelected, spenderAllowanceUsd, setSpenderAllowanceUsd, book, dAppConnector } = useAppContext()
@@ -203,10 +204,27 @@ const Signer = ({ marketId }: { marketId: string }) => {
           try {
             const payload: ObjForSigning = {
               collateralUsd_abs_scaled: floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(),
-              marketId_uuid: predictionIntentRequest.marketId,
-              txId_uuid: predictionIntentRequest.txId
+              marketId_uuid: predictionIntentRequest.marketId.toString(),
+              txId_uuid: predictionIntentRequest.txId.toString()
             }
-            
+
+            // Carefully construct a packed payload for keccak256 hashing
+            // Then sign the keccak256 hash of the packed payload
+            // See: Prism.sol
+            const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
+            const marketId_uuid128 = uuidToBigInt(predictionIntentRequest.marketId)
+            const txId_uuid128 = uuidToBigInt(predictionIntentRequest.txId)
+            // const packedKeccakHex = ethers.solidityPackedKeccak256(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
+            // console.log(packedKeccakHex)
+            const payloadHex = ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
+            console.log(`payloadHex: ${payloadHex}`)
+
+            const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')
+            const keccakHex = keccak256(Buffer.from(payloadUtf8, 'utf8')).slice(2)
+            console.log(`keccakHex: ${keccakHex}`)
+            const signature = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
+            console.log(`signature (len=${signature.length}): ${Buffer.from(signature).toString('hex')}`)
+            return
             const serializedPayload = JSON.stringify(payload)
             console.log(`serializedPayload (utf8): ${serializedPayload}`)
 
@@ -409,11 +427,27 @@ const Signer = ({ marketId }: { marketId: string }) => {
 
       <br/>
       <button onClick={async () => {
-        const payloadUtf8 = 'Hello Future'
+        // const payloadUtf8 = 'Hello Future'
+        // const payloadUtf8 = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb0d8112759dba60b701cf0f7c27'
+        // N.B. yes, keep the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
+        // const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')
         const keccakHex = keccak256(Buffer.from(payloadUtf8)).slice(2)
         console.log(keccakHex)
         const signature = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
         console.log(`signature (len=${signature.length}): ${Buffer.from(signature).toString('hex')}`)
+        /**
+         * Expected output for 'Hello Future':
+        keccakHex: d1b7540d985b3225d67861ad5c3b94fd1249711722acee3ba5a3017f0428b1c0
+
+        sigHex (should match with hashpack!) (len=64): 2c0788d2d4b3f484dd5bc7a92a122e1c4d5ef5cd716579a5c17e031f14d060702dd77ff3d9b9d608cd6a6fdfde9c3e92e6ae67d6ac5e7837e0327631ec77b522
+
+        isValidSig: true
+        - account (hex): 440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6
+        - message/messageHash (hex) (len=80): 19486564657261205369676e6564204d6573736167653a0a3331d1b7540defbfbd5b3225efbfbd7861efbfbd5c3befbfbdefbfbd1249711722efbfbdefbfbd3befbfbdefbfbd017f0428efbfbdefbfbd
+        - signature/signatureMap (hex) (len=103): 0a650a2103b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac078732402c0788d2d4b3f484dd5bc7a92a122e1c4d5ef5cd716579a5c17e031f14d060702dd77ff3d9b9d608cd6a6fdfde9c3e92e6ae67d6ac5e7837e0327631ec77b522
+        contractId: 0.0.7371263, accountId: 0.0.7090546
+        responseCode=22, isAuthorized=true
+         */
       }}>
         Test3
       </button>

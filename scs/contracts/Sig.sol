@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: MIT
+// compile with:
+// solcjs ./contracts/Sig.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done && ls -altr .
+// then do:
+// ts-node 0_deploy.ts
+// then run:
+// ts-node onChainVerify4.ts
+
 pragma solidity >=0.5.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 

@@ -118,7 +118,7 @@ Potential disadvantages:
 
 Every transaction initiated by the user has a digital signature.
 
-`sig` is calculated based on the payload below. The payload to construct a sig is a subset of the fields in `PredictionIntentRequest` in `api.proto`.
+`sig` is calculated based on the payload below (alphabetical ordering). The payload to construct a sig is a subset of the fields in `PredictionIntentRequest` in `api.proto`.
 
 ```golang
 type ObjForSigning struct {
