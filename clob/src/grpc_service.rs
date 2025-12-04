@@ -70,7 +70,7 @@ impl Clob for ClobService {
                 let snapshot = order_book_service.get_book(&inner.market_id, inner.depth as usize).await;
 
                 let result = snapshot.map_err(|e| {
-                    log::error!("Failed to get book snapshot: {}", e);
+                     log::error!("Failed to get book snapshot: {} {}", inner.market_id, e);
                     Status::internal(e.to_string())
                 });
 

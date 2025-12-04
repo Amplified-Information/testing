@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "compile": "solcjs ./contracts/PredictionMarket.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done",
-    "compile2": "solcjs ./contracts/Sig.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done",
+    "compile": "solcjs ./contracts/PredictionMarket.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done && ls -altr .",
+    "compile2": "solcjs ./contracts/Sig.sol --bin --base-path ./node_modules/ -o ./contracts/out && cd contracts/out && for f in *.bin; do [ -e \"$f\" ] || continue; new=\"${f##*_}\"; [ \"$f\" = \"$new\" ] && continue; mv -f -- \"$f\" \"$new\"; done && ls -altr .",
     "deploy": "ts-node ./scripts/0_deploy.ts"
   },
   "dependencies": {
     "@gnosis.pm/conditional-tokens-contracts": "^1.0.3",
     "@noble/secp256k1": "^3.0.0",
-    "@openzeppelin/contracts": "^5.4.0"
+    "@openzeppelin/contracts": "^5.4.0",
+    "@walletconnect/types": "^2.23.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

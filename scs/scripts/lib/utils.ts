@@ -25,8 +25,26 @@ const getEvmAddress = async (client: Client, accountId: string | AccountId) => {
   return data.evm_address
 }
 
+const sig2rsv = (sigHashpackHex: string): [Uint8Array, Uint8Array, number] => {
+  const sigBuffer = Buffer.from(sigHashpackHex, 'hex')
+  if (sigBuffer.length === 65) {
+    const r = sigBuffer.slice(0, 32)
+    const s = sigBuffer.slice(32, 64)
+    const v = sigBuffer[64]
+    return [r, s, v]
+  } else if (sigBuffer.length === 64) {
+    const r = sigBuffer.subarray(0, 32)
+    const s = sigBuffer.subarray(32, 64)
+    const v = 27 // hardcoded for now (could be 28) // TODO
+    return [r, s, v]
+  } else {
+    throw new Error('Invalid signature length')
+  }
+}
+
 export {
   __dirname,
   getPubKey,
-  getEvmAddress
+  getEvmAddress,
+  sig2rsv
 }

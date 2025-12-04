@@ -20,7 +20,9 @@ contract PredictionMarket {
     // USDC on Hedera Mainnet: 0x000000000000000000000000000000000006f89a
     // USDC on Hedera Testnet: 0x0000000000000000000000000000000000068cda // 0.0.5449
     IERC20 public immutable collateralToken;
-    address constant HEDERA_PRECOMPILE = address(0x167);
+
+    address constant HTS = address(0x167);
+    address constant HAS = address(0x16a);
 
     address owner;
     mapping(address => bool) public associatedTokens;
@@ -210,7 +212,7 @@ contract PredictionMarket {
     @param tokenAddress The address of the token to be associated with the contract.
     */
     function associateToken(address tokenAddress) external onlyOwner {
-        (bool success, bytes memory result) = HEDERA_PRECOMPILE.call(
+        (bool success, bytes memory result) = HTS.call(
             abi.encodeWithSelector(
                 bytes4(keccak256("associateToken(address,address)")),
                 address(this),

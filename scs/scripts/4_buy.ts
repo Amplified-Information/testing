@@ -45,7 +45,7 @@ const main = async () => {
     const approveTx = await new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress())
       .setGas(10_000_000)
-      .setFunction('approve',
+      .setFunction('approve', // approve inherited from ERC20 
         new ContractFunctionParameters()
           .addAddress(ContractId.fromString(contractId).toEvmAddress())
           .addUint256((collateralUSDCbig * BigInt(2)).toString())) /** Note: x2 since buy side and sell side are from the same account...**/
@@ -59,7 +59,7 @@ const main = async () => {
     const allowanceQuery = await new ContractCallQuery()
       .setContractId(ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress())
       .setGas(100_000)
-      .setFunction('allowance',
+      .setFunction('allowance', // allowance inherited from ERC20
         new ContractFunctionParameters()
           .addAddress(client.operatorPublicKey!.toEvmAddress())
           .addAddress(ContractId.fromString(contractId).toEvmAddress()))

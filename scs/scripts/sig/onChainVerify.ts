@@ -1,9 +1,9 @@
 import { AccountId, ContractCallQuery, ContractFunctionParameters, ContractId, PublicKey, SignerSignature } from '@hashgraph/sdk'
 import { networkSelected, operatorAccountId, operatorKeyType } from '../constants.ts'
 import { initHederaClient } from '../lib/hedera.ts'
-import { ethers } from 'ethers'
+import { ethers, keccak256 } from 'ethers'
 import { text } from 'stream/consumers'
-import { keccak256 } from '@noble/secp256k1'
+// import { keccak256 } from '@noble/secp256k1'
 
 // CLI args: contractId, tokenId
 // const [contractId, publicKeyHex, payload, sigHex] = process.argv.slice(2)
@@ -74,7 +74,7 @@ const verify = async () => {
   // const r = Uint8Array.from(Buffer.from(rHex, 'hex'))
   // const s = Uint8Array.from(Buffer.from(sHex, 'hex'))
 
-  // await onChainVerify(r, s, v, payloadPrefixedHashedHex)
+  // await onChainVerify(r, s, v, payloadHashedPrefixedHashedHex)
 }
 
 const addPrefix = (input: Uint8Array): string => {

@@ -7,7 +7,7 @@ import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, s
 import ButtonAmount from './ButtonAmount'
 import { getSpenderAllowanceUsd } from '../lib/hedera'
 // import { getSerializedPayloadForSigning, splitSignature } from '../lib/sign'
-// import { keccak256 } from 'ethers'
+import { keccak256 } from 'ethers'
 // import { keccak_256 } from '@noble/hashes/sha3.js'
 import { ethers } from 'ethers'
 import { ObjForSigning } from '../types'
@@ -407,6 +407,16 @@ const Signer = ({ marketId }: { marketId: string }) => {
         Test
       </button>
 
+      <br/>
+      <button onClick={async () => {
+        const payloadUtf8 = 'Hello Future'
+        const keccakHex = keccak256(Buffer.from(payloadUtf8)).slice(2)
+        console.log(keccakHex)
+        const signature = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
+        console.log(`signature (len=${signature.length}): ${Buffer.from(signature).toString('hex')}`)
+      }}>
+        Test3
+      </button>
       <br/>
       <br/>
       <br/>
