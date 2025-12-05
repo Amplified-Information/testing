@@ -9,7 +9,7 @@ import { apiClient } from '../grpcClient'
 const Market = () => {
   const navigate = useNavigate()
   const { marketId } = useParams()
-  const { setMarket } = useAppContext()
+  const { market, setMarket } = useAppContext()
 
   useEffect(() => {
     if (!isValidUUIDv7(marketId!)) {
@@ -29,6 +29,8 @@ const Market = () => {
       <div className={'text-center'}>
         <h3>{}</h3>
         marketId: <b>{marketId}</b>
+        <br/>
+        "{market?.statement}"
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         {/* <div style={{ flex: 1 }}>

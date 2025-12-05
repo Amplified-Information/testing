@@ -10,7 +10,7 @@ import { getSpenderAllowanceUsd } from '../lib/hedera'
 import { keccak256 } from 'ethers'
 // import { keccak_256 } from '@noble/hashes/sha3.js'
 import { ethers } from 'ethers'
-import { ObjForSigning } from '../types'
+// import { ObjForSigning } from '../types'
 import { proto } from '@hashgraph/proto'
 import { base64StringToSignatureMap /*, signatureMapToBase64String*/ } from '@hashgraph/hedera-wallet-connect'
 // import { splitSignature } from '../lib/sign'
@@ -202,11 +202,11 @@ const Signer = ({ marketId }: { marketId: string }) => {
           console.log('Signing OrderIntent...')
           
           try {
-            const payload: ObjForSigning = {
-              collateralUsd_abs_scaled: floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(),
-              marketId_uuid: predictionIntentRequest.marketId.toString(),
-              txId_uuid: predictionIntentRequest.txId.toString()
-            }
+            // const payload: ObjForSigning = {
+            //   collateralUsd_abs_scaled: floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(),
+            //   marketId_uuid: predictionIntentRequest.marketId.toString(),
+            //   txId_uuid: predictionIntentRequest.txId.toString()
+            // }
 
             // Carefully construct a packed payload for keccak256 hashing
             // Then sign the keccak256 hash of the packed payload
@@ -219,22 +219,24 @@ const Signer = ({ marketId }: { marketId: string }) => {
             const payloadHex = ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
             console.log(`payloadHex: ${payloadHex}`)
 
-            const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')
+            // N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
+            const payloadUtf8 = payloadHex // Yes, this is intentional    // Buffer.from(payloadHex, 'hex').toString('utf8')
             const keccakHex = keccak256(Buffer.from(payloadUtf8, 'utf8')).slice(2)
             console.log(`keccakHex: ${keccakHex}`)
-            const signature = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
-            console.log(`signature (len=${signature.length}): ${Buffer.from(signature).toString('hex')}`)
-            return
-            const serializedPayload = JSON.stringify(payload)
-            console.log(`serializedPayload (utf8): ${serializedPayload}`)
+            const sigHex = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
+            console.log(`sigHex (len=${sigHex.length}): ${Buffer.from(sigHex).toString('hex')}`)
 
-            const keccak = ethers.keccak256(Buffer.from(serializedPayload, 'utf8')).slice(2) // remove 0x prefix
-            console.log(`keccak (hex) (len=${keccak.length}): ${keccak}`)
+            setPredictionIntentRequest({ ...predictionIntentRequest, sig: Buffer.from(sigHex).toString('base64') })
+            // const serializedPayload = JSON.stringify(payload)
+            // console.log(`serializedPayload (utf8): ${serializedPayload}`)
 
-            const sig = (await signerZero!.sign([Buffer.from(keccak)]))[0].signature
-            console.log(`Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
+            // const keccak = ethers.keccak256(Buffer.from(serializedPayload, 'utf8')).slice(2) // remove 0x prefix
+            // console.log(`keccak (hex) (len=${keccak.length}): ${keccak}`)
 
-            setPredictionIntentRequest({ ...predictionIntentRequest, sig: Buffer.from(sig).toString('base64') })
+            // const sig = (await signerZero!.sign([Buffer.from(keccak)]))[0].signature
+            // console.log(`Signature (hex) (len=${sig.length}): ${Buffer.from(sig).toString('hex')}`)
+
+            // setPredictionIntentRequest({ ...predictionIntentRequest, sig: Buffer.from(sig).toString('base64') })
           } catch (e) {
             console.error('Error signing')
             console.error(e)
@@ -311,6 +313,9 @@ const Signer = ({ marketId }: { marketId: string }) => {
         Submit order intent
       </button>
 
+      <br/>
+      <br/>
+      <br/>
       <br/>
       <br/>
 
@@ -427,7 +432,7 @@ const Signer = ({ marketId }: { marketId: string }) => {
 
       <br/>
       <button onClick={async () => {
-        // const payloadUtf8 = 'Hello Future'
+        const payloadUtf8 = 'Hello Future'
         // const payloadUtf8 = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb0d8112759dba60b701cf0f7c27'
         // N.B. yes, keep the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
         // const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')

@@ -2,7 +2,7 @@ import {
   ContractCallQuery,
   ContractExecuteTransaction,
   ContractFunctionParameters,
-  ContractId,
+  ContractId
 } from '@hashgraph/sdk'
 import { initHederaClient } from './lib/hedera.ts'
 import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
@@ -18,12 +18,20 @@ const main = async () => {
   // CLI args: contractId, amount
   const [contractId, marketId_uuid7, collateralUSDC/*, nPositionTokens*/] = process.argv.slice(2)
   if (!contractId || !marketId_uuid7 || !collateralUSDC) {
-    console.error(`Usage: ts-node buy.ts <contractId> <marketId_uuid7> <collateralUSDC>`)
+    console.error('Usage: ts-node buy.ts <contractId> <marketId_uuid7> <collateralUSDC>')
     process.exit(1)
   }
   const yesAccount = client.operatorPublicKey!.toEvmAddress() // TODO - make yesAccount and noAccount different accounts...
   const noAccount = client.operatorPublicKey!.toEvmAddress()
   const marketIdBigInt = uuid7_to_uint128(marketId_uuid7)
+
+  // dummy txIds:
+  const txIdYesBigInt = BigInt(Date.now()) // using timestamp as a simple unique txId
+  const txIdNoBigInt = txIdYesBigInt + BigInt(1)
+
+  // dummy sigs:
+  const sigYes = Uint8Array.from([0x01, 0x02, 0x03]) // dummy signature bytes
+  const sigNo = Uint8Array.from([0x04, 0x05, 0x06]) // dummy signature bytes
 
   try {
     client.operatorAccountId!.toEvmAddress()
@@ -36,8 +44,9 @@ const main = async () => {
   console.log(`contractId: ${contractId} - ${ContractId.fromString(contractId).toEvmAddress()}`)
 
   try {
-    const collateralUSDCx10000 = parseFloat(collateralUSDC) * 10000 // rounding up to 4 decimal places acceptable
-    const collateralUSDCbig = BigInt(Math.floor(collateralUSDCx10000)) * BigInt(10 ** netConf[networkSelected].usdcDecimals) / BigInt(10000)
+    const scaler = 10000
+    const collateralUSDCx10000 = parseFloat(collateralUSDC) * scaler // rounding up to 4 decimal places acceptable
+    const collateralUSDCbig = BigInt(Math.floor(collateralUSDCx10000)) * BigInt(10 ** netConf[networkSelected].usdcDecimals) / BigInt(scaler)
     // const nPositionTokensBig = BigInt(nPositionTokens)
     console.log(`Buying ${collateralUSDCbig} position tokens (both buy and sell side) with ${collateralUSDCbig} (USDC base units) as collateral (x2)...`)
     
@@ -82,12 +91,24 @@ const main = async () => {
 
 
      // 4) buy outcome tokens on behalf of another account which has an allowance set (buyPositionTokensOnBehalf)
-    console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`);
+    console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`)
     const params = new ContractFunctionParameters()
-      .addUint128(marketIdBigInt.toString()) // marketId
+      // uint128 marketId,
+      // address signerYes,
+      // address signerNo,
+      // uint256 collateralUsdAbsScaled,
+      // uint128 txIdYes,
+      // uint128 txIdNo,
+      // bytes calldata sigYes,
+      // bytes calldata sigNo
+      .addUint128(marketIdBigInt.toString())
       .addAddress(yesAccount)
       .addAddress(noAccount)
       .addUint256(collateralUSDCbig.toString()) // collateralUSDC
+      .addUint128(txIdYesBigInt.toString()) // txIdYes
+      .addUint128(txIdNoBigInt.toString()) // txIdNo
+      .addBytes(sigYes) // sigYes
+      .addBytes(sigNo) // sigNo
       // .addUint256(nPositionTokensBig.toString()) // nPositionTokens
     const buyTx4 = await new ContractExecuteTransaction()
       .setContractId(contractId)
@@ -99,7 +120,7 @@ const main = async () => {
       .execute(client)
 
     const buyReceipt4 = await buyTx4.getReceipt(client);
-    console.log(`buyPositionTokensOnBehalf(marketId=${marketId_uuid7},...) status:`, buyReceipt4.status.toString());
+    console.log(`buyPositionTokensOnBehalf(marketId=${marketId_uuid7},...) status:`, buyReceipt4.status.toString())
  
  
   //   // getUint256 returns BigNumber-like object; convert to string

@@ -3,6 +3,8 @@ old
 _old
 .env
 
+.terraform
+
 node_modules/
 
 .vscode

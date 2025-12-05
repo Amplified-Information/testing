@@ -1,47 +1,21 @@
 package lib
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
-	"os"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/sha3"
 
 	pb "api/gen"
 )
 
-// func toFixedBytes(v *big.Int, size int) []byte {
-// 	b := v.Bytes() // big-endian, no leading zeros
-// 	if len(b) > size {
-// 		panic("value exceeds fixed size")
-// 	}
-// 	out := make([]byte, size)
-// 	copy(out[size-len(b):], b) // right-align
-// 	return out
-// }
-
-// func Uuid7_to_bigint(uuid7 string) (*big.Int, error) {
-// 	// Remove all hyphens from the UUID7 string
-// 	uuid7Cleaned := strings.ReplaceAll(uuid7, "-", "")
-
-// 	// Prefix with 0x to indicate hexadecimal
-// 	hexString := "0x" + uuid7Cleaned
-
-// 	// Convert the hexadecimal string to a big.Int
-// 	bigIntValue := new(big.Int)
-// 	_, success := bigIntValue.SetString(hexString, 0) // Base 0 auto-detects the prefix
-// 	if !success {
-// 		return nil, fmt.Errorf("failed to convert UUID7 to big.Int: %s", uuid7)
-// 	}
-
-// 	return bigIntValue, nil
-// }
-
 /*
-*
 Convenience function to extract signing payload directly from parameters, rather than the full protobuf object.
 */
 func ExtractPayloadForSigningUsingParams(marketIdUuid string, priceUsd float64, qty float64, txIdUuid string) ([]byte, error) {
@@ -88,69 +62,104 @@ func ExtractPayloadForSigning(req *pb.PredictionIntentRequest) ([]byte, error) {
 	return resultBytes, nil
 }
 
-// func ExtractPayloadForSigning(req *pb.PredictionIntentRequest) ([]byte, error) {
-// 	// see corresponding front-end code: ./lib/sign.ts
-// 	type ObjForSigning struct {
-// 		MarketId    *big.Int // 128-bit
-// 		PriceUsdAbs *big.Int // 256-bit
-// 		TxId        *big.Int // 128-bit
-// 	}
+func AssemblePayloadHexForSigning(req *pb.PredictionIntentRequest) (string, error) {
+	collateralUsdAbsScaled_256, err := FloatToBigIntScaledDecimals(math.Abs(req.PriceUsd * req.Qty))
+	if err != nil {
+		return "", fmt.Errorf("failed to scale PriceUsd: %v", err)
+	}
 
-// 	// Convert UUID7 strings to big.Int
-// 	marketIdBigInt, err := Uuid7_to_bigint(req.MarketId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to convert MarketId: %v", err)
-// 	}
-// 	txIdBigInt, err := Uuid7_to_bigint(req.TxId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to convert TxId: %v", err)
-// 	}
+	marketIdBigInt_128, err := Uuid7_to_bigint(req.MarketId)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert MarketId: %v", err)
+	}
 
-// 	// Get USDC_DECIMALS from environment variable
-// 	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
-// 	usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("invalid USDC_DECIMALS: %w", err)
-// 	}
+	txIdBigInt_128, err := Uuid7_to_bigint(req.TxId)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert TxId: %v", err)
+	}
 
-// 	// priceUsd: Operate in float space to avoid precision loss
-// 	// then convert to big.Int
-// 	priceUsdBigFloat := new(big.Float).SetFloat64(math.Abs(req.PriceUsd) * float64(new(big.Int).Exp(big.NewInt(10), big.NewInt(usdcDecimals), nil).Int64()))
-// 	priceUsdBigInt, _ := priceUsdBigFloat.Int(nil) // Convert to big.Int
+	// this string is the correct fixed length
+	payloadHex := "0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb40e8e9769cb7a1087ecb6d0bd6"
 
-// 	o := ObjForSigning{
-// 		MarketId:    marketIdBigInt, // uint128
-// 		PriceUsdAbs: priceUsdBigInt, // uint256
-// 		TxId:        txIdBigInt,     // uint128
-// 	}
+	payloadHex = fmt.Sprintf( // beautiful :)
+		"%064x%032x%032x",
+		collateralUsdAbsScaled_256,
+		marketIdBigInt_128,
+		txIdBigInt_128,
+	)
+	return payloadHex, nil
+}
 
-// 	// 8-bits * 16 = 128-bits
-// 	// 8-bits * 32 = 256-bits
-// 	out := make([]byte, 0, 16+16+32)
+func Uuid7_to_bigint(uuid7 string) (*big.Int, error) {
+	// Remove all hyphens from the UUID7 string
+	uuid7Cleaned := strings.ReplaceAll(uuid7, "-", "")
 
-// 	// N.B. the order of the fields is critical
-// 	out = append(out, toFixedBytes(o.MarketId, 16)...)
-// 	out = append(out, toFixedBytes(o.PriceUsdAbs, 32)...)
-// 	out = append(out, toFixedBytes(o.TxId, 16)...)
+	// Prefix with 0x to indicate hexadecimal
+	hexString := "0x" + uuid7Cleaned
 
-// 	return out, nil
-// }
+	// Convert the hexadecimal string to a big.Int
+	bigIntValue := new(big.Int)
+	_, success := bigIntValue.SetString(hexString, 0) // Base 0 auto-detects the prefix
+	if !success {
+		return nil, fmt.Errorf("failed to convert UUID7 to big.Int: %s", uuid7)
+	}
+
+	return bigIntValue, nil
+}
+
+func nudgeStrForSigning(keccakHex string) string {
+	// Input keccakHex string
+	// keccakHex := "82f2421684ffafb2fba374c79fa3c718fe8cb4a082f5d4aa056c6565fc487e1b"
+	// returns: efbfbdefbfbd4216efbfbdefbfbdefbfbdefbfbdefbfbdefbfbd74c79fefbfbdefbfbd18efbfbdefbfbdefbfbdefbfbdefbfbdefbfbdd4aa056c6565efbfbd487e1b
+
+	// Decode the hex string into bytes
+	keccakBytes, err := hex.DecodeString(keccakHex)
+	if err != nil {
+		fmt.Printf("Error decoding hex string: %v\n", err)
+		return ""
+	}
+
+	// Replace invalid UTF-8 sequences
+	validUtf8Bytes := replaceInvalidUTF8(keccakBytes)
+
+	// Convert the UTF-8 bytes back to a hex string
+	validUtf8Hex := hex.EncodeToString(validUtf8Bytes)
+
+	return validUtf8Hex
+}
+
+func replaceInvalidUTF8(input []byte) []byte {
+	validUtf8 := make([]byte, 0, len(input))
+	for len(input) > 0 {
+		r, size := utf8.DecodeRune(input)
+		if r == utf8.RuneError && size == 1 {
+			// Replace invalid byte with the UTF-8 replacement character
+			validUtf8 = append(validUtf8, []byte("\uFFFD")...)
+			input = input[size:]
+		} else {
+			validUtf8 = append(validUtf8, input[:size]...)
+			input = input[size:]
+		}
+	}
+	return validUtf8
+}
+
+func PrefixMessageToSign(messageUtf8NotNudged string, N int) string {
+	messageUtf8 := nudgeStrForSigning(messageUtf8NotNudged)
+
+	// Convert the hex string messageUtf8 to a UTF-8 string
+	messageStr, err := Hex2utf8(messageUtf8)
+	if err != nil {
+		fmt.Printf("Error converting hex to UTF-8: %v\n", err)
+		return ""
+	}
+
+	msg := fmt.Sprintf("\x19Hedera Signed Message:\n%d%s", N, messageStr)
+	return msg
+}
 
 func Keccak256(data []byte) []byte {
 	h := sha3.NewLegacyKeccak256()
 	h.Write(data)
 	return h.Sum(nil) // 32 bytes
-}
-
-func FloatToBigIntScaledDecimals(value float64) (*big.Int, error) {
-	// scale the float64s for the number of USDC_DECIMALS
-	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
-	usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid USDC_DECIMALS: %w", err)
-	}
-
-	scaledValue := new(big.Float).Mul(big.NewFloat(value), new(big.Float).SetFloat64(math.Pow10(int(usdcDecimals))))
-	bigIntValue, _ := scaledValue.Int(nil)
-	return bigIntValue, nil
 }

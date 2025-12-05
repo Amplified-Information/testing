@@ -59,11 +59,6 @@ const OrderBook = ({ marketId }: { marketId: string }) => {
     <div>
       OrderBook
       <ul>
-        {/* {book?.bids?.map((bid, idx) => (
-          <li key={`bid-${idx}`} style={{ color: 'green' }}>
-            {bid.count} {bid.price}
-          </li>
-        ))} */}
         
         {(book?.asks ?? []).slice().sort((a, b) => a.priceUsd - b.priceUsd).map((ask, idx) => (
           <li key={`ask-${idx}`}>
@@ -79,13 +74,8 @@ const OrderBook = ({ marketId }: { marketId: string }) => {
             ${bid.priceUsd.toFixed(4)} &mdash; {bid.qty.toFixed(2)}</span>
             &nbsp;{bid.accountId === signerZero?.getAccountId().toString() ? <Cancel txId={bid.txId} /> : ''}
           </li>
-        ))} 
-        
-        {/* {book?.asks?.map((ask, idx) => (
-          <li key={`ask-${idx}`} style={{ color: 'red' }}>
-            {ask.count} {ask.price}
-          </li>
-        ))} */}
+        ))}
+
       </ul>
     </div>
   )

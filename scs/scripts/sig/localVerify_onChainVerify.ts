@@ -20,14 +20,28 @@ const evmAddress = '440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6'
 const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'
 const privateKey = PrivateKey.fromStringECDSA(privateKeyHex)
 const publicKey = privateKey.publicKey
-const publicKeyHex = publicKey.toStringRaw()
+// const publicKeyHex = publicKey.toStringRaw()
 const client = Client.forTestnet().setOperator(operatorId, privateKey)
+
+
+// const hexString = '82f2421684ffafb2fba374c79fa3c718fe8cb4a082f5d4aa056c6565fc487e1b'
+
+// // Convert hex string to a Buffer
+// const buffer = Buffer.from(hexString, 'hex')
+
+// // Interpret the buffer as a UTF-8 string
+// const utf8String = buffer.toString('utf8')
+
+// console.log(utf8String)
+// console.log(Buffer.from(utf8String).toString('hex'))
+// process.exit(0)
 
 
 const contractId = '0.0.7371263'
 // const payloadUtf8 = 'Hello Future'
-const payloadUtf8 = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb0d8112759dba60b701cf0f7c27'
-// const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')
+const payloadHex = '000000000000000000000000000000000000000000000000000000000001ffb80189c0a87e807e808000000000000002019aef10408b70578850c8975f012489'
+// N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
+const payloadUtf8 = payloadHex // Yes, this is intentional     // Buffer.from(payloadHex, 'hex').toString('utf8')
 console.log(Buffer.from(payloadUtf8).toString('hex'))
 // const payloadBytes = Buffer.from(payloadUtf8)
 // const payloadPrefixedUtf8 = prefixMessageToSign(payloadUtf8)
@@ -35,12 +49,20 @@ console.log(Buffer.from(payloadUtf8).toString('hex'))
 const keccakHex = keccak256(Buffer.from(payloadUtf8)).slice(2)
 console.log(`keccakHex: ${keccakHex}`)
 const keccakUtf8 = Buffer.from(keccakHex, 'hex').toString()
+console.log(`keccakUtf8 (hex): ${Buffer.from(keccakUtf8).toString('hex')}`)
+console.log(`keccakUtf8: ${keccakUtf8}`)
 const keccakPrefixedUtf8 = prefixMessageToSign(keccakUtf8)
+console.log(`keccakPrefixedUtf8: ${keccakPrefixedUtf8}`)
 const keccakPrefixedBytes = Buffer.from(keccakPrefixedUtf8, 'utf8')
 
 const sigBytes = privateKey.sign(keccakPrefixedBytes)
 const sigHex = Buffer.from(sigBytes).toString('hex')
 console.log(`sigHex (should match with hashpack!) (len=${sigBytes.length}): ${sigHex}`)
+
+// raw signature verify (protobuf SignatureMap way is further down)
+const isVerifiedRaw = publicKey.verify(keccakPrefixedBytes, sigBytes)
+console.log(`---> isVerifiedRaw (should be true): ***${isVerifiedRaw}***`)
+
 
 // --------------------------------------------------------------------------
 // CORRESPONDING FRONT_END SIGNATURE VERIFICATION
@@ -61,7 +83,7 @@ const signerSignature: SignerSignature = {
   accountId: operatorId
 }
 const isValidSig = verifySignerSignature(keccakUtf8, signerSignature, publicKey)
-console.log(`isValidSig: ${isValidSig}`)
+console.log(`---> isValidSig: ***${isValidSig}***`)
 
 // const keccakHex = keccak256(payloadBytes).slice(2)
 // console.log(`keccakHex: ${keccakHex}`)
@@ -221,7 +243,18 @@ function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
 
 
 function prefixMessageToSign(messageUtf8: string) {
+  console.log('---- prefixMessageToSign -----')
+  console.log(`hex representation of messageUtf8: ${Buffer.from(messageUtf8).toString('hex')}`)
   console.log(messageUtf8.length)
+  console.log(messageUtf8)
+  // const binaryRepresentation = messageUtf8
+  //   .split('')
+  //   .map(char => char.charCodeAt(0).toString(2).padStart(8, '0'))
+  //   .join(' ')
+  // console.log(`Binary representation of messageUtf8: ${binaryRepresentation}`)
+  
+  console.log('---- END prefixMessageToSign -----')
+  // return '\x19Hedera Signed Message:\n' + messageUtf8.length + messageUtf8
   return '\x19Hedera Signed Message:\n' + messageUtf8.length + messageUtf8
 }
 

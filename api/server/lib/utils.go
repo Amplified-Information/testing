@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"math"
+	"math/big"
 	"net/http"
+	"os"
+	"strconv"
 
 	pb "api/gen"
 
@@ -100,4 +105,41 @@ func Int64ToBytes(n int64) []byte {
 
 func BytesToInt64(b []byte) int64 {
 	return int64(binary.BigEndian.Uint64(b))
+}
+
+func FloatToBigIntScaledDecimals(value float64) (*big.Int, error) {
+	// scale the float64s for the number of USDC_DECIMALS
+	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
+	usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid USDC_DECIMALS: %w", err)
+	}
+
+	scaledValue := new(big.Float).Mul(big.NewFloat(value), new(big.Float).SetFloat64(math.Pow10(int(usdcDecimals))))
+	bigIntValue, _ := scaledValue.Int(nil)
+	return bigIntValue, nil
+}
+
+// hex2utf8 converts a hex string to a UTF-8 string.
+// Invalid byte sequences are replaced with the Unicode replacement character.
+func Hex2utf8(hexStr string) (string, error) {
+	// Decode the hex string into bytes
+	bytes, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode hex string: %w", err)
+	}
+
+	// Convert bytes to a UTF-8 string
+	utf8Str := string(bytes)
+	return utf8Str, nil
+}
+
+// utf82hex converts a UTF-8 string back to a hex string.
+func Utf82hex(utf8Str string) string {
+	// Convert the UTF-8 string to bytes
+	bytes := []byte(utf8Str)
+
+	// Encode the bytes as a hex string
+	hexStr := hex.EncodeToString(bytes)
+	return hexStr
 }

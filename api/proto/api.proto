@@ -15,6 +15,8 @@ service ApiService {
   rpc GetMarketById(MarketIdRequest) returns (MarketResponse);
   rpc GetMarkets(LimitOffsetRequest) returns (MarketsResponse);
   rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
+  // rpc MarketHistory(MarketIdRequest)
+  // rpc AddComment
 }
 
 message Empty {}

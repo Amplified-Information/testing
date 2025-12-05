@@ -106,8 +106,8 @@ contract Prism {
         require(bytes(statements[marketId]).length > 0, "No market statement has been set");
 
         // on-chain signature verification:
-        require(isAuthorized(signerYes, abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
-        require(isAuthorized(signerNo,  abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))), sigNo),  "isAuthorized NO failed");
+        // require(isAuthorized(signerYes, abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
+        // require(isAuthorized(signerNo,  abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))), sigNo),  "isAuthorized NO failed");
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
         require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");

@@ -1,7 +1,7 @@
-import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, TokenAssociateTransaction, TokenId } from '@hashgraph/sdk';
-import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
+import { ContractExecuteTransaction, ContractFunctionParameters, ContractId } from '@hashgraph/sdk'
+import { networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { initHederaClient } from './lib/hedera.ts'
-import { uuid7_to_uint128 } from './utils.ts';
+import { uuid7_to_uint128 } from './utils.ts'
 
 const [ client ] = initHederaClient(
   networkSelected,
@@ -47,7 +47,7 @@ const main = async () => {
     const tx = await new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(contractId))
       .setGas(500_000)
-      .setFunction("createNewMarket", params)
+      .setFunction('createNewMarket', params)
       .execute(client)
 
     const receipt = await tx.getReceipt(client)

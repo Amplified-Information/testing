@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -71,16 +72,32 @@ func (h *HederaService) InitHedera() (*hiero.Client, error) {
 	return client, nil
 }
 
-func (h *HederaService) Verify(publicKey *hiero.PublicKey, keccakHex string, signature []byte) (bool, error) {
-	// keccak, err := hex.DecodeString(keccakHex)
-	// if err != nil {
-	// 	return false, fmt.Errorf("failed to decode keccakHex: %w", err)
-	// }
+func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadUtf8 string, sigBase64 string) (bool, error) {
+	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
+	if err != nil {
+		return false, fmt.Errorf("failed to decode signature: %w", err)
+	}
 
-	message := "\x19Hedera Signed Message:\n" + fmt.Sprintf("%d", len(keccakHex)) + keccakHex
-	// log.Printf("Prefixed message for verification (hex):\n\n %s\n\n", message)
+	keccak := lib.Keccak256([]byte(payloadUtf8))
+	// keccakHex := hex.EncodeToString(keccak)
+	keccakHex := fmt.Sprintf("%x", keccak)
+	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
 
-	isValid := publicKey.VerifySignedMessage([]byte(message), signature)
+	log.Printf("sig: %x", sigBytes)
+
+	N := len([]rune(string(keccak)))
+	keccakPrefixedUtf8 := lib.PrefixMessageToSign(keccakHex, N)
+	fmt.Printf("keccakPrefixedUtf8: %s\n", keccakPrefixedUtf8)
+
+	sigHex := fmt.Sprintf("%x", sigBytes)
+	sig := make([]byte, len(sigHex)/2)
+	_, err = hex.Decode(sig, []byte(sigHex))
+	if err != nil {
+		return false, fmt.Errorf("Error decoding signature hex: %v", err)
+	}
+
+	// Verify signature
+	isValid := publicKey.VerifySignedMessage([]byte(keccakPrefixedUtf8), sig)
 	if isValid {
 		return true, nil
 	}
