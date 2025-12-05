@@ -1,7 +1,7 @@
+Set the "payloadHex" parameter (retrieved from front-end)
+
+payload is [CollateralUsdAbsScaled_uint256,marketUUID7_uint128,txIdUUID7_uint128]
+
 ```bash
-cd scripts/sig
-source .env
-
-
-ts-node onChainVerify.ts $SMART_CONTRACT_ID $PUBLIC_KEY_HEX $PAYLOAD_HEX $SIG_HEX
+ts-node localVeify_onChainVerify.ts
 ```

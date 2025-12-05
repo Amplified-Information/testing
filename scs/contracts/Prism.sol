@@ -76,8 +76,8 @@ contract Prism {
     function createNewMarket(uint128 marketId, string memory _statement/*, TODO: uint8 txFee - configure fees per-market? */) external onlyOwner {
         require(keccak256(abi.encodePacked(statements[marketId])) == keccak256(abi.encodePacked("")), "Market already exists");
         statements[marketId] = _statement;
-        resolutionTimes[marketId] = 0; // TODO - necessary? Can be removed?
-        totalCollaterals[marketId] = 0; // TODO - necessary? Can be removed?
+        resolutionTimes[marketId] = 0;
+        totalCollaterals[marketId] = 0;
     }
 
     /**
@@ -106,8 +106,8 @@ contract Prism {
         require(bytes(statements[marketId]).length > 0, "No market statement has been set");
 
         // on-chain signature verification:
-        // require(isAuthorized(signerYes, abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
-        // require(isAuthorized(signerNo,  abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))), sigNo),  "isAuthorized NO failed");
+        require(isAuthorized(signerYes, abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
+        require(isAuthorized(signerNo,  abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))), sigNo),  "isAuthorized NO failed");
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
         require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");
@@ -119,7 +119,7 @@ contract Prism {
         emit PositionTokensPurchased(marketId, signerYes, collateralUsdAbsScaled, false);
         emit PositionTokensPurchased(marketId, signerNo, collateralUsdAbsScaled, true);
     }
-    
+
     /**
     This function allows the oracle to resolve the market by specifying the outcome (YES or NO).
     TODO - restrict to Oracle address
@@ -134,6 +134,9 @@ contract Prism {
        
         emit MarketResolved(marketId, noYes);
     }
+
+    // TODO - handle unresolved markets - user gets their USDC back (minus fees)
+
     
     /**
     This function allows users to redeem their winning position tokens for collateral after the market has been resolved.
@@ -149,7 +152,9 @@ contract Prism {
 
         // TODO - 2% profit redeem fee...
         // TODO - 1% profit fee for the market makers - TODO: how do we keep track of market makers?
-        
+        // collateralToken.transfer(owner, nTokens * 1/50);
+        // collateralToken.transfer(msg.sender, nTokens * 49/50);
+
         // Transfer collateral 1:1
         collateralToken.transfer(msg.sender, nTokens);
 
@@ -163,6 +168,14 @@ contract Prism {
         emit WinningsRedeemed(marketId, msg.sender, nTokens);
 
         return nTokens; // nTokens === amountUSDC (1:1 mapping)
+    }
+
+    /**
+    TODO - implement this function
+    */
+    function redeemOnBehalfOfUser(uint128 marketId, address user_account) external view onlyOwner returns (uint256 amountUSDC) {
+        // transfer - this costs gas - prism.market would pay the gas
+        return 0;
     }
     
     /**
@@ -196,25 +209,10 @@ contract Prism {
 
         associatedTokens[tokenAddress] = true;
         emit TokenAssociated(tokenAddress);
-        // (bool success, bytes memory result) = HTS.call(
-        //     abi.encodeWithSelector(
-        //         bytes4(keccak256("associateToken(address,address)")),
-        //         address(this),
-        //         tokenAddress
-        //     )
-        // );
-        // require(success, "HTS call failed");
-        // int64 responseCode = abi.decode(result, (int64));
-        // require(responseCode == 22, "Association not successful");
-
-        // associatedTokens[tokenAddress] = true;
-        // emit TokenAssociated(tokenAddress);
     }
 
-
-    /////
-    // sig verification functions
-    /////
+    // TODO - implement an admin function to freeze a particular market?
+    // is suspending/freezing the orderbook sufficient, making this function unnecessary?
 
     /**
     Determines if the signature is valid for the given message and account.
@@ -231,223 +229,3 @@ contract Prism {
       return authorized;
     }
 }
-
-
-    // function verify(bytes32 r, bytes32 s, uint8 v, bytes32 msgHash) public pure returns (address) {
-    //     address signer = ecrecover(msgHash, v, r, s);
-    //     return signer;
-    // }
-
-    // /**
-    // Calculate the prefixed message hash.
-    // @param txId The transaction ID.
-    // @param marketId The market ID.
-    // @param collateralUsdcAbs The collateral amount.
-    // @return The prefixed message hash.
-    // */
-    // function prefixedHash(
-    //     uint128 txId,
-    //     uint128 marketId,
-    //     uint256 collateralUsdcAbs
-    // ) internal pure returns (bytes32) {
-    //     bytes32 keccakHash = keccak256(abi.encodePacked(txId, marketId, collateralUsdcAbs));
-    //     bytes memory prefix = "\x19Hedera Signed Message:\n32"; // Prefix with length of keccakHash (32)
-    //     return keccak256(abi.encodePacked(prefix, keccakHash)); // yes, keccak256 hash again - hiero Golang lib also does this
-    // }
-
-     // /**
-    // Internal function to validate a signature.
-    // @param signer The address of the signer.
-    // @param txId The transaction ID.
-    // @param marketId The market ID.
-    // @param collateralUsdcAbs The collateral amount.
-    // @param signature The signature to validate.
-    // @return True if the signature is valid, false otherwise.
-    // */
-    // function validateSignature(
-    //     address signer,
-    //     uint128 txId,
-    //     uint128 marketId,
-    //     uint256 collateralUsdcAbs,
-    //     bytes memory signature
-    // ) internal view returns (bool) {
-    //     bytes32 msgHash = prefixedHash(txId, marketId, collateralUsdcAbs);
-    //     return verifyHash(signature, msgHash);
-    // }
-
-
-    // /**
-    // Validate ECDSA signature using Hedera precompiled contract.
-    // @param signer The address of the signer.
-    // @param messageHash The hash of the signed message.
-    // @param signature The signature to validate.
-    // @return isValid True if the signature is valid, false otherwise.
-    // */
-    // function validateECDSASignature(
-    //     address signer,
-    //     bytes32 messageHash,
-    //     bytes memory signature
-    // ) internal view returns (bool isValid) {
-    //     (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
-    //         abi.encodeWithSignature(
-    //             "validateECDSASignature(address,bytes32,bytes)",
-    //             signer,
-    //             messageHash,
-    //             signature
-    //         )
-    //     );
-    //     require(success, "ECDSA validation failed");
-    //     return abi.decode(result, (bool));
-    // }
-
-    // /**
-    // Validate Ed25519 signature using Hedera precompiled contract.
-    // @param signer The address of the signer.
-    // @param messageHash The hash of the signed message.
-    // @param signature The signature to validate.
-    // @return isValid True if the signature is valid, false otherwise.
-    // */
-    // function validateEd25519Signature(
-    //     address signer,
-    //     bytes32 messageHash,
-    //     bytes memory signature
-    // ) internal view returns (bool isValid) {
-    //     (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
-    //         abi.encodeWithSignature(
-    //             "validateEd25519Signature(address,bytes32,bytes)",
-    //             signer,
-    //             messageHash,
-    //             signature
-    //         )
-    //     );
-    //     require(success, "Ed25519 validation failed");
-    //     return abi.decode(result, (bool));
-    // }
-
-    // /**
-    // Validate ECDSA signature using ecrecover.
-    // Added debugging logs to output the recovered address.
-    // @param signer The address of the expected signer.
-    // @param messageHash The hash of the signed message.
-    // @param signature The signature to validate.
-    // @return isValid True if the signature is valid, false otherwise.
-    // */
-    // function validateECDSASignatureWithECRecover(
-    //     address signer,
-    //     bytes32 messageHash,
-    //     bytes memory signature
-    // ) internal pure returns (bool isValid) {
-    //     require(signature.length == 64 || signature.length == 65, string(abi.encodePacked("Invalid signature length: ", uint2str(signature.length))));
-
-    //     bytes32 r;
-    //     bytes32 s;
-    //     uint8 v;
-
-    //     // Extract r, s, and v from the signature
-    //     assembly {
-    //         r := mload(add(signature, 0x20))
-    //         s := mload(add(signature, 0x40))
-    //     }
-
-    //     if (signature.length == 65) {
-    //         assembly {
-    //             v := byte(0, mload(add(signature, 0x60)))
-    //         }
-    //     } else {
-    //         // Assume a default v value if not provided
-    //         v = 27; // Default to 27, can be adjusted based on context
-    //     }
-
-    //     // Adjust v for compatibility with ecrecover
-    //     if (v < 27) {
-    //         v += 27;
-    //     }
-
-    //     require(v == 27 || v == 28, "Invalid v value");
-
-    //     // Recover the signer's address
-    //     address recoveredSigner = ecrecover(messageHash, v, r, s);
-
-    //     // Debugging log for the recovered address
-    //     require(recoveredSigner != address(0), "Recovered address is zero");
-    //     require(recoveredSigner == signer, string(abi.encodePacked("Recovered address does not match signer: ", toAsciiString(recoveredSigner))));
-
-    //     return recoveredSigner == signer;
-    // }
-
-    //  function validateSignatureWithHedera(
-    //     address signer,
-    //     bytes32 messageHash,
-    //     bytes memory signature
-    // ) internal view returns (bool) {
-    //     (bool success, bytes memory result) = HEDERA_PRECOMPILE.staticcall(
-    //         abi.encodeWithSignature(
-    //             "isAuthorizedRaw(address,bytes32,bytes)",
-    //             signer,
-    //             messageHash,
-    //             signature
-    //         )
-    //     );
-    //     require(success, "isAuthorizedRaw call failed");
-    //     return abi.decode(result, (bool));
-    // }
-
-    // /////
-    // // Helper/debugging functions
-    // /////
-
-    // /**
-    // Helper function to convert address to string.
-    // */
-    // function toAsciiString(address x) internal pure returns (string memory) {
-    //     bytes memory s = new bytes(40);
-    //     for (uint256 i = 0; i < 20; i++) {
-    //         bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2**(8 * (19 - i)))));
-    //         bytes1 hi = bytes1(uint8(b) / 16);
-    //         bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
-    //         s[2 * i] = char(hi);
-    //         s[2 * i + 1] = char(lo);
-    //     }
-    //     return string(abi.encodePacked("0x", s));
-    // }
-
-    // function char(bytes1 b) internal pure returns (bytes1 c) {
-    //     if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
-    //     else return bytes1(uint8(b) + 0x57);
-    // }
-
-    // /**
-    // Helper function to convert uint to string.
-    // */
-    // function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
-    //     if (_i == 0) {
-    //         return "0";
-    //     }
-    //     uint256 j = _i;
-    //     uint256 len;
-    //     while (j != 0) {
-    //         len++;
-    //         j /= 10;
-    //     }
-    //     bytes memory bstr = new bytes(len);
-    //     uint256 k = len;
-    //     while (_i != 0) {
-    //         k = k - 1;
-    //         uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
-    //         bytes1 b1 = bytes1(temp);
-    //         bstr[k] = b1;
-    //         _i /= 10;
-    //     }
-    //     return string(bstr);
-    // }
-
-    // /**
-    // Debugging function to log input data for STATICCALL.
-    // This function will help trace the execution flow and verify the input data.
-    // */
-    // function debugStaticCallInput(
-    //     bytes memory inputData
-    // ) internal pure returns (bytes memory) {
-    //     return inputData;
-    // }
-

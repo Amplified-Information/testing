@@ -1,5 +1,5 @@
 import * as ethers from 'ethers'
-import { arrayify } from './utils.ts'
+import { arrayify } from '../sig/utils.ts'
 import { ContractCallQuery, ContractFunctionParameters, ContractId } from '@hashgraph/sdk'
 import { networkSelected, operatorAccountId, operatorKeyType } from '../constants.ts'
 import { initHederaClient } from '../lib/hedera.ts'
