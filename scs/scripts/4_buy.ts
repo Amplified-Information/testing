@@ -7,6 +7,7 @@ import {
 import { initHederaClient } from './lib/hedera.ts'
 import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { uuid7_to_uint128 } from './utils.ts'
+// import { keccak256 } from 'ethers/crypto'
 
 const [ client, _ ] = initHederaClient(
   networkSelected,
@@ -14,24 +15,48 @@ const [ client, _ ] = initHederaClient(
   operatorKeyType
 )
 
+// const prefixMessageToSign = (messageUtf8: string) => {
+//   return '\x19Hedera Signed Message:\n' + messageUtf8.length + messageUtf8
+// }
+
 const main = async () => {
   // CLI args: contractId, amount
   const [contractId, marketId_uuid7, collateralUSDC/*, nPositionTokens*/] = process.argv.slice(2)
   if (!contractId || !marketId_uuid7 || !collateralUSDC) {
     console.error('Usage: ts-node buy.ts <contractId> <marketId_uuid7> <collateralUSDC>')
+    console.error('Example usage: ts-node buy.ts $SMART_CONTRACT_ID $UUID7 0.0173')
     process.exit(1)
   }
   const yesAccount = client.operatorPublicKey!.toEvmAddress() // TODO - make yesAccount and noAccount different accounts...
   const noAccount = client.operatorPublicKey!.toEvmAddress()
   const marketIdBigInt = uuid7_to_uint128(marketId_uuid7)
 
-  // dummy txIds:
-  const txIdYesBigInt = BigInt(Date.now()) // using timestamp as a simple unique txId
-  const txIdNoBigInt = txIdYesBigInt + BigInt(1)
+  // known keccak and sig
+  const knownKeccakHex = '19486564657261205369676e6564204d6573736167653a0a33310befbfbd5e49efbfbd302060712065efbfbd17efbfbd335fefbfbdefbfbdefbfbdefbfbdefbfbdefbfbddba9efbfbdefbfbdefbfbd6345efbfbd7a32'
+  const knownSigHex = '0a650a2103b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac07873240d0d54810f170b385e9dae222a2f4e42c32b334f43f1d344a1bee93238cee2a2819c6b2c2bc7933054e47772d28bcbae7e98ab56419125bbd301f0884a5340296'
 
-  // dummy sigs:
-  const sigYes = Uint8Array.from([0x01, 0x02, 0x03]) // dummy signature bytes
-  const sigNo = Uint8Array.from([0x04, 0x05, 0x06]) // dummy signature bytes
+  /**
+  // known payloads and signatures for 0.0.7090546
+  // see: sigDemo.go
+  const payload1Hex = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeeb456ec75b4829cb41fdfd67610'
+	const sig1Hex =     '58029b63c4145c35bfcf300c3cd2b307facc18f52b53957f7f10a5816b3b64801e8687cadb06cd07648098fe1c85c7dec252068a249d57c1ff315d6bdba8989a'
+	const payload2Hex = '0000000000000000000000000000000000000000000000000000000000003a980189c0a87e807e808000000000000002019aeeb456ec75b4829cb41fdfd67610'
+	const sig2Hex =     '8a10968171368e9ea94978431068dcbbaacfec1d70ea5956bc349cb6f0cdbb4145a6cec3325b9b8285b51b14b513b4933471c2cd3039ce5a211c0de46319d830'
+  const keccak1Hex = keccak256(Buffer.from(payload1Hex)).slice(2)
+  const keccak2Hex = keccak256(Buffer.from(payload2Hex)).slice(2)
+  const keccak1Utf8 = Buffer.from(keccak1Hex, 'hex').toString()
+  const keccak2Utf8 = Buffer.from(keccak2Hex, 'hex').toString()
+  const keccak1PrefixedUtf8 = prefixMessageToSign(keccak1Utf8)
+  const keccak2PrefixedUtf8 = prefixMessageToSign(keccak2Utf8)
+
+  // assembled prefixed keccaks:
+  const keccakPrefixedYes = Buffer.from(keccak1PrefixedUtf8, 'utf8')
+  const keccakPrefixedNo = Buffer.from(keccak2PrefixedUtf8, 'utf8')
+
+  // assembled signatures:
+  const sigYes =  Buffer.from(sig1Hex, 'hex')
+  const sigNo =   Buffer.from(sig2Hex, 'hex')
+  */
 
   try {
     client.operatorAccountId!.toEvmAddress()
@@ -93,22 +118,22 @@ const main = async () => {
      // 4) buy outcome tokens on behalf of another account which has an allowance set (buyPositionTokensOnBehalf)
     console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`)
     const params = new ContractFunctionParameters()
-      // uint128 marketId,
-      // address signerYes,
-      // address signerNo,
-      // uint256 collateralUsdAbsScaled,
-      // uint128 txIdYes,
-      // uint128 txIdNo,
-      // bytes calldata sigYes,
-      // bytes calldata sigNo
+        // uint128 marketId,
+        // address signerYes,
+        // address signerNo,
+        // uint128 collateralUsdAbsScaled,
+        // bytes calldata keccakPrefixedYes,
+        // bytes calldata keccakPrefixedNo,
+        // bytes calldata sigYes,
+        // bytes calldata sigNo
       .addUint128(marketIdBigInt.toString())
       .addAddress(yesAccount)
       .addAddress(noAccount)
       .addUint256(collateralUSDCbig.toString()) // collateralUSDC
-      .addUint128(txIdYesBigInt.toString()) // txIdYes
-      .addUint128(txIdNoBigInt.toString()) // txIdNo
-      .addBytes(sigYes) // sigYes
-      .addBytes(sigNo) // sigNo
+      .addBytes(Buffer.from(knownKeccakHex, 'hex')) // keccakPrefixedYes
+      .addBytes(Buffer.from(knownKeccakHex, 'hex'))  // keccakPrefixedNo
+      .addBytes(Buffer.from(knownSigHex, 'hex')) // sigYes
+      .addBytes(Buffer.from(knownSigHex, 'hex')) // sigNo
       // .addUint256(nPositionTokensBig.toString()) // nPositionTokens
     const buyTx4 = await new ContractExecuteTransaction()
       .setContractId(contractId)
@@ -119,7 +144,7 @@ const main = async () => {
       )
       .execute(client)
 
-    const buyReceipt4 = await buyTx4.getReceipt(client);
+    const buyReceipt4 = await buyTx4.getReceipt(client)
     console.log(`buyPositionTokensOnBehalf(marketId=${marketId_uuid7},...) status:`, buyReceipt4.status.toString())
  
  

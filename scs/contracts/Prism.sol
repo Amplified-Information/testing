@@ -82,13 +82,14 @@ contract Prism {
 
     /**
     This function allows the CLOB to initiate the buying of YES and NO position tokens atomically on behalf of two accounts "yes" and "no".
+    Requires --optimize flag due to size of the call stack
     TODO - verify the signatures
     @param marketId The ID of the market.
     @param signerYes The (signing) address of the account buying YES position tokens.
     @param signerNo The (signing) address of the account buying NO position tokens.
     @param collateralUsdAbsScaled The amount of collateral (in USDC) to be used for purchasing position tokens (scaled to the number of collatoral token decimal places).
-    @param txIdYes The transaction ID for the YES position token purchase (for constructing sig payload)
-    @param txIdNo The transaction ID for the NO position token purchase (for constructing sig payload)
+    @param keccakPrefixedYes prefixed(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))) - assembled off-chain
+    @param keccakPrefixedNo prefixed(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))) - assembled off-chain
     @param sigYes The signature of the YES position token purchase transaction.
     @param sigNo The signature of the NO position token purchase transaction.
     */
@@ -97,8 +98,8 @@ contract Prism {
         address signerYes,
         address signerNo,
         uint256 collateralUsdAbsScaled,
-        uint128 txIdYes,
-        uint128 txIdNo,
+        bytes calldata keccakPrefixedYes,
+        bytes calldata keccakPrefixedNo,
         bytes calldata sigYes,
         bytes calldata sigNo
     ) external onlyOwner {
@@ -106,8 +107,8 @@ contract Prism {
         require(bytes(statements[marketId]).length > 0, "No market statement has been set");
 
         // on-chain signature verification:
-        require(isAuthorized(signerYes, abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
-        require(isAuthorized(signerNo,  abi.encodePacked(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))), sigNo),  "isAuthorized NO failed");
+        require(isAuthorized(signerYes, keccakPrefixedYes, sigYes), "isAuthorized YES failed");
+        require(isAuthorized(signerNo,  keccakPrefixedNo,  sigNo),  "isAuthorized NO failed");
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
         require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");
@@ -173,10 +174,10 @@ contract Prism {
     /**
     TODO - implement this function
     */
-    function redeemOnBehalfOfUser(uint128 marketId, address user_account) external view onlyOwner returns (uint256 amountUSDC) {
-        // transfer - this costs gas - prism.market would pay the gas
-        return 0;
-    }
+    // function redeemOnBehalfOfUser(uint128 marketId, address user_account) external view onlyOwner returns (uint256 amountUSDC) {
+    //     // transfer - this costs gas - prism.market would pay the gas
+    //     return 0;
+    // }
     
     /**
     Retrieve the number of YES and NO position tokens held by a user for a specific market.

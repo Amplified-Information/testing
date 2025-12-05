@@ -25,6 +25,7 @@ const main = async () => {
       `)
       console.error('Usage: ts-node newMarket.ts <contractId> <marketId_uuid7> <statement>')
       console.error('Usage example: ../node_modules/.bin/ts-node 1_newMarket.ts $SMART_CONTRACT_ID $UUID7 "Bitcoin will be over $100,000 end 2026"')
+      console.error('--> Retrieve $UUID7 and the statement from the database or the frontend...')
       process.exit(1)
     }
 

@@ -37,7 +37,7 @@ const client = Client.forTestnet().setOperator(operatorId, privateKey)
 // process.exit(0)
 
 
-const contractId = '0.0.7371263'
+const contractId = '0.0.7378063' // '0.0.7371263'
 // const payloadUtf8 = 'Hello Future'
 const payloadHex = '000000000000000000000000000000000000000000000000000000000001ffb80189c0a87e807e808000000000000002019aef10408b70578850c8975f012489'
 // N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
@@ -155,7 +155,8 @@ const params = new ContractFunctionParameters()
 const tx = await new ContractExecuteTransaction()
   .setContractId(ContractId.fromString(contractId))
   .setGas(100_000)
-  .setFunction('isAuthorizedPublic', params)
+  .setFunction('isAuthorized', params)
+  // .setFunction('isAuthorizedPublic', params)
   // .setFunction('isAuthorizedRawPublic', params)
   .execute(client)
 
