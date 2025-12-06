@@ -11,7 +11,7 @@ const [ client, _ ] = initHederaClient(
   operatorKeyType
 )
 
-const smartContractBinaryFn = __dirname + '/../../contracts/out/Prism.bin'
+const smartContractBinaryFn = __dirname + '/../../contracts/out/Sig.bin'
 
 const getConstructorParams = () => {
   const collateralToken = ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress() // USD Coin (USDC) on Hedera

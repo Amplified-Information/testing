@@ -29,6 +29,8 @@ contract Prism {
     address owner;
     mapping(address => bool) public associatedTokens;
 
+    mapping(uint128 => bool) public usedTxIds; // to prevent replay attacks
+
     mapping(uint128 => string) public statements;
     mapping(uint128 => bool) public outcomes;               // true = YES wins, false = NO wins
     mapping(uint128 => uint256) public resolutionTimes;
@@ -80,6 +82,10 @@ contract Prism {
         totalCollaterals[marketId] = 0;
     }
 
+    function prefixMessageToSign(bytes32 messageHash) public pure returns (bytes memory) {
+        return abi.encodePacked("\x19Hedera Signed Message:\n", messageHash.length, messageHash);
+    }
+
     /**
     This function allows the CLOB to initiate the buying of YES and NO position tokens atomically on behalf of two accounts "yes" and "no".
     Requires --optimize flag due to size of the call stack
@@ -88,8 +94,8 @@ contract Prism {
     @param signerYes The (signing) address of the account buying YES position tokens.
     @param signerNo The (signing) address of the account buying NO position tokens.
     @param collateralUsdAbsScaled The amount of collateral (in USDC) to be used for purchasing position tokens (scaled to the number of collatoral token decimal places).
-    @param keccakPrefixedYes prefixed(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))) - assembled off-chain
-    @param keccakPrefixedNo prefixed(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo ))) - assembled off-chain
+    @param txIdYes txId of the Yes side 
+    @param txIdNo txId of the No side
     @param sigYes The signature of the YES position token purchase transaction.
     @param sigNo The signature of the NO position token purchase transaction.
     */
@@ -98,17 +104,22 @@ contract Prism {
         address signerYes,
         address signerNo,
         uint256 collateralUsdAbsScaled,
-        bytes calldata keccakPrefixedYes,
-        bytes calldata keccakPrefixedNo,
+        uint128 txIdYes,
+        uint128 txIdNo,
         bytes calldata sigYes,
         bytes calldata sigNo
-    ) external onlyOwner {
+    ) external onlyOwner { // TODO remove onlyOwner?
         require(resolutionTimes[marketId] == 0, "Market resolved");
         require(bytes(statements[marketId]).length > 0, "No market statement has been set");
+        // prevent replay attacks by ensuring unique txIds // TODO - storage size ;(
+        require(!usedTxIds[txIdYes], "Duplicate txIdYes");
+        require(!usedTxIds[txIdNo], "Duplicate txIdNo");
+        usedTxIds[txIdYes] = true;
+        usedTxIds[txIdNo] = true;
 
         // on-chain signature verification:
-        require(isAuthorized(signerYes, keccakPrefixedYes, sigYes), "isAuthorized YES failed");
-        require(isAuthorized(signerNo,  keccakPrefixedNo,  sigNo),  "isAuthorized NO failed");
+        require(isAuthorized(signerYes, prefixMessageToSign(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
+        require(isAuthorized(signerNo,  prefixMessageToSign(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo))),  sigNo),  "isAuthorized NO failed");
 
         // Transfer collateral from the buyer to the contract using the buyer's allowance
         require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");
@@ -215,16 +226,18 @@ contract Prism {
     // TODO - implement an admin function to freeze a particular market?
     // is suspending/freezing the orderbook sufficient, making this function unnecessary?
 
+    // TODO - implement storage pruning...
+
     /**
     Determines if the signature is valid for the given message and account.
     It is assumed that the signature is composed of a possibly complex cryptographic key.
     @param account The account to check the signature against.
     @param message The message to check the signature against.
-    @param signature A byte-encoded serialized signature (see buildSignatureMap .ts) to check against
+    @param signatureMap A byte-encoded serialized signature (see buildSignatureMap .ts) to check against
     @return responseCode The response code for the status of the request.  SUCCESS is 22.
     */
-    function isAuthorized(address account, bytes memory message, bytes memory signature) public returns (bool) {
-      (int64 responseCode, bool authorized) = HAS.isAuthorized(account, message, signature);
+    function isAuthorized(address account, bytes memory message, bytes memory signatureMap) public returns (bool) {
+      (int64 responseCode, bool authorized) = HAS.isAuthorized(account, message, signatureMap);
       require(responseCode == 22, "Authorization failed");
       emit AccountAuthorizationResponse(responseCode, account, authorized);
       return authorized;

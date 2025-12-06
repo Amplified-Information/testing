@@ -40,53 +40,75 @@ interface IHederaAccountService {
 }
 
 contract Sig {
-    IHederaAccountService constant HAS = IHederaAccountService(address(0x16a));
+  IHederaAccountService constant HAS = IHederaAccountService(address(0x16a));
 
-    address owner;
+  address owner;
 
-    event AccountAuthorizationResponse(int64 responseCode, address account, bool response);
- 
-    constructor() {
-      owner = msg.sender;
-    }
+  event AccountAuthorizationResponse(int64 responseCode, address account, bool response);
 
-    /// @notice Verifies if a signature was signed by the account's key(s)
-    /// @param account The account address to verify the signature against
-    /// @param messageHash The hash of the message that was signed
-    /// @param signature The signature to verify
-    /// @return responseCode The response code indicating success or failure
-    /// @return authorized True if the signature is valid for the account, false otherwise
-    function isAuthorizedRawPublic(address account, bytes memory messageHash, bytes memory signature) public returns (int64 responseCode, bool authorized) {
-      (responseCode, authorized) = HAS.isAuthorizedRaw(account, messageHash, signature);
-      // if (responseCode != 22) { // 22 = SUCCESS, HederaResponseCodes.sol
-      //   revert();
-      // }
-      emit AccountAuthorizationResponse(responseCode, account, authorized);
-    }
+  constructor() {
+    owner = msg.sender;
+  }
 
-    // function isAuthorizedRawPublic(address account, bytes memory messageHash, bytes memory signature) public returns(bool success, bytes memory result) {
-    //   (success, result) = address(0x16a).call(abi.encodeWithSelector(IHederaAccountService.isAuthorizedRaw.selector, account, messageHash, signature));
+  /// @notice Verifies if a signature was signed by the account's key(s)
+  /// @param account The account address to verify the signature against
+  /// @param messageHash The hash of the message that was signed
+  /// @param signature The signature to verify
+  /// @return responseCode The response code indicating success or failure
+  /// @return authorized True if the signature is valid for the account, false otherwise
+  function isAuthorizedRawPublic(address account, bytes memory messageHash, bytes memory signature) public returns (int64 responseCode, bool authorized) {
+    (responseCode, authorized) = HAS.isAuthorizedRaw(account, messageHash, signature);
+    // if (responseCode != 22) { // 22 = SUCCESS, HederaResponseCodes.sol
+    //   revert();
     // }
+    emit AccountAuthorizationResponse(responseCode, account, authorized);
+  }
 
-    /// Determines if the signature is valid for the given message and account.
-    /// It is assumed that the signature is composed of a possibly complex cryptographic key.
-    /// @param account The account to check the signature against.
-    /// @param message The message to check the signature against.
-    /// @param signature The signature to check encoded as bytes.
-    /// @return responseCode The response code for the status of the request.  SUCCESS is 22.
-    /// @return authorized True if the signature is valid, false otherwise.
-    function isAuthorizedPublic(address account, bytes memory message, bytes memory signature) public returns (int64 responseCode, bool authorized) {
-      (responseCode, authorized) = HAS.isAuthorized(account, message, signature);
-      if (responseCode != 22) { // 22 = SUCCESS, HederaResponseCodes.sol
-        revert();
-      }
-      emit AccountAuthorizationResponse(responseCode, account, authorized);
+  // function isAuthorizedRawPublic(address account, bytes memory messageHash, bytes memory signature) public returns(bool success, bytes memory result) {
+  //   (success, result) = address(0x16a).call(abi.encodeWithSelector(IHederaAccountService.isAuthorizedRaw.selector, account, messageHash, signature));
+  // }
+
+  /// Determines if the signature is valid for the given message and account.
+  /// It is assumed that the signature is composed of a possibly complex cryptographic key.
+  /// @param account The account to check the signature against.
+  /// @param message The message to check the signature against.
+  /// @param signature The signature to check encoded as bytes.
+  /// @return responseCode The response code for the status of the request.  SUCCESS is 22.
+  /// @return authorized True if the signature is valid, false otherwise.
+  function isAuthorizedPublic(address account, bytes memory message, bytes memory signature) public returns (int64 responseCode, bool authorized) {
+    (responseCode, authorized) = HAS.isAuthorized(account, message, signature);
+    if (responseCode != 22) { // 22 = SUCCESS, HederaResponseCodes.sol
+      revert();
     }
+    emit AccountAuthorizationResponse(responseCode, account, authorized);
+  }
 
-    function hello() external pure returns (string memory) {
-      return "Hello, Hedera!";
-    }
+  function hello() external pure returns (string memory) {
+    return "Hello, Hedera!";
+  }
 
+  function test(
+    uint128 marketId,
+    address signerYes,
+    uint256 collateralUsdAbsScaled,
+    uint128 txIdYes,
+    bytes calldata sigYes
+  ) external returns (uint8){
+    require(isAuthorized(signerYes, prefixMessageToSign(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
+
+    return 0x17;
+  }
+
+  function prefixMessageToSign(bytes32 messageHash) public pure returns (bytes memory) {
+      return abi.encodePacked("\x19Hedera Signed Message:\n", messageHash.length, messageHash);
+  }
+
+  function isAuthorized(address account, bytes memory message, bytes memory signature) public returns (bool) {
+    (int64 responseCode, bool authorized) = HAS.isAuthorized(account, message, signature);
+    require(responseCode == 22, "Authorization failed");
+    emit AccountAuthorizationResponse(responseCode, account, authorized);
+    return authorized;
+  }
 }
 
 
