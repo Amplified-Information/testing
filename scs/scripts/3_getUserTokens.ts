@@ -1,3 +1,9 @@
+/**
+export MARKET_ID_HEX=0189c0a87e807e808000000000000003
+
+ts-node 3_getUserTokens.ts $SMART_CONTRACT_ID $MARKET_ID_HEX 0.0.7090546
+*/
+
 import {
   ContractCallQuery,
   ContractFunctionParameters,

@@ -8,8 +8,8 @@ import {
   PublicKey,
   SignerSignature
 } from '@hashgraph/sdk'
-import { proto } from '@hashgraph/proto'
 import { keccak256 } from 'ethers'
+import { buildSignatureMap } from '../utils.ts'
 
 // --------------------------------------------------------------------------
 // CONFIG
@@ -205,23 +205,23 @@ process.exit(0)
 
 
 
-// Build SignatureMap protobuf
-function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
-  // const signature = privateKey.sign(message)
-  // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
+// // Build SignatureMap protobuf
+// function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
+//   // const signature = privateKey.sign(message)
+//   // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
 
-  const sigPair = proto.SignaturePair.create({
-    pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
-    ECDSASecp256k1: signature                        // OR ed25519 depending on key type
-  })
+//   const sigPair = proto.SignaturePair.create({
+//     pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
+//     ECDSASecp256k1: signature                        // OR ed25519 depending on key type
+//   })
 
-  const sigMap = proto.SignatureMap.create({
-    sigPair: [sigPair]
-  })
+//   const sigMap = proto.SignatureMap.create({
+//     sigPair: [sigPair]
+//   })
 
-  const bytes = proto.SignatureMap.encode(sigMap).finish()
-  return bytes
-}
+//   const bytes = proto.SignatureMap.encode(sigMap).finish()
+//   return bytes
+// }
 
 // // Build SignatureMap protobuf - build using a private key
 // function buildSignatureMapOrig(privateKey: PrivateKey, message: Uint8Array) {

@@ -2,9 +2,9 @@
 import { AccountId, Client, ContractExecuteTransaction, ContractFunctionParameters, ContractId, PrivateKey, PublicKey } from '@hashgraph/sdk'
 import assert from 'assert'
 import { keccak256 } from 'ethers'
-import { proto } from '@hashgraph/proto'
+import { buildSignatureMap } from '../utils.ts' 
 
-const contractId = '0.0.7387361'
+const contractId = '0.0.7388471'
 const operatorId = AccountId.fromString('0.0.7090546')
 const evmAddress = '440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6'
 const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'
@@ -12,8 +12,6 @@ const privateKey = PrivateKey.fromStringECDSA(privateKeyHex)
 const publicKey = privateKey.publicKey
 // const publicKeyHex = publicKey.toStringRaw()
 const client = Client.forTestnet().setOperator(operatorId, privateKey)
-
-
 
 /*
 00000000000000000000000000000000000000000000000000000000000f42400189c0a87e807e808000000000000003019af83a8a7974ecaea255682ea385ba
@@ -36,7 +34,7 @@ const verify_rawSig_hashpack_base64 = () => {
   
   const isVerifiedRaw = publicKey.verify(Buffer.from(keccakPrefixedStr, 'utf-8'), Buffer.from(sigHex, 'hex'))
   // console.log(`keccakPrefixedBytes (hex): ${Buffer.from(Buffer.from(keccakPrefixedStr, 'utf-8')).toString('hex')}`)
-  console.log(`---> isVerifiedRaw (should be true): ***${isVerifiedRaw}***`)
+  console.log('---> isVerifiedRaw (should be true):', isVerifiedRaw)
   assert(isVerifiedRaw, 'Raw signature verification (verify_rawSig_hashpack_utf8) failed')
 }
 
@@ -98,22 +96,22 @@ function prefixMessageToSign(messageUtf8: string) {
   return '\x19Hedera Signed Message:\n' + messageUtf8.length + messageUtf8
 }
 
-function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
-  // const signature = privateKey.sign(message)
-  // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
+// function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
+//   // const signature = privateKey.sign(message)
+//   // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
 
-  const sigPair = proto.SignaturePair.create({
-    pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
-    ECDSASecp256k1: signature                        // OR ed25519 depending on key type
-  })
+//   const sigPair = proto.SignaturePair.create({
+//     pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
+//     ECDSASecp256k1: signature                        // OR ed25519 depending on key type
+//   })
 
-  const sigMap = proto.SignatureMap.create({
-    sigPair: [sigPair]
-  })
+//   const sigMap = proto.SignatureMap.create({
+//     sigPair: [sigPair]
+//   })
 
-  const bytes = proto.SignatureMap.encode(sigMap).finish()
-  return bytes
-}
+//   const bytes = proto.SignatureMap.encode(sigMap).finish()
+//   return bytes
+// }
 
 
 
@@ -148,7 +146,7 @@ const verifyAssembly = async (
   const tx = await new ContractExecuteTransaction()
     .setContractId(ContractId.fromString(contractId))
     .setGas(1_000_000)
-    .setFunction('assemblePayload', params)
+    .setFunction('assemblePrismPayload', params)
     .execute(client)
   
   const record = await tx.getRecord(client)
@@ -201,6 +199,19 @@ interface Val {
   sigHex: string
 }
 const testVals: Val[] = []
+
+// Signing OrderIntent...
+// Signer.tsx:222 x:  0x248c6f0e4d0f54dbc6e396a9c192a22b7d78feeb9e1d4ca85b39500d9ea6c7d5
+// Signer.tsx:223 00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c
+// Signer.tsx:225 packedKeccakHex: 248c6f0e4d0f54dbc6e396a9c192a22b7d78feeb9e1d4ca85b39500d9ea6c7d5
+// Signer.tsx:235 msgToSign (base64) (len=44): JIxvDk0PVNvG45apwZKiK314/uueHUyoWzlQDZ6mx9U=
+// Signer.tsx:236 packedKeccakHex (len=32): 248c6f0e4d0f54dbc6e396a9c192a22b7d78feeb9e1d4ca85b39500d9ea6c7d5
+// Signer.tsx:238 sigHex (len=64): ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b
+// Signer.tsx:36 {"txId":"019af9dc-4e5f-7518-80af-b44d6938149c","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-07T17:29:16.127Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.5,"qty":0.0274,"sig":"rkztvdmz3NlLqOCQnzW7k/9b2KFe+H0k9hCAK3VsxzY6yv0xUdbJEYLv5c7+fW5C0aNWgCLpKPBgEhhP16KCCw=="}
+testVals.push({
+    payloadHex: '00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c',
+    sigHex:     'ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b'
+})
 
 // Signing OrderIntent...
 // Signer.tsx:222 x:  0x4a3b24fd1a048039c3961a79bd42992295c70d81b100adca2b6b1331317e7b6e
@@ -454,6 +465,12 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
   let payloadHex = ''
   let sigHex = ''
 
+  await verifyAssembly(
+    '00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c',
+    'ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b'
+  )
+  // process.exit(0)
+
   await checkSig_onChain(publicKey, testVals[0].payloadHex, testVals[0].sigHex)
   console.log('************************************************')
   
@@ -464,15 +481,18 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
   // await verify_assemblePayload_uft8HashpackSigned()
   // console.log('************************************************')
 
-  // await verifyAssembly()
-  // console.log('************************************************')
+  await verifyAssembly()
+  console.log('************************************************')
+
+  // process.exit(0)
 
   for (const tv of testVals) {
     payloadHex = tv.payloadHex
     sigHex = tv.sigHex
     await verifyAssembly(payloadHex, sigHex)
     console.log('************************************************')
+    // process.exit(0)
   }
 
-  process.exit(0)
+  process.exit(0) // needed at the end
 })()

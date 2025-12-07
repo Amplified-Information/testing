@@ -1,10 +1,11 @@
 // Usage: `ts-node test.ts`
-import { AccountId, Client, ContractExecuteTransaction, ContractFunctionParameters, ContractId, PrivateKey, PublicKey } from '@hashgraph/sdk'
+import { AccountId, Client, ContractExecuteTransaction, ContractFunctionParameters, ContractId, PrivateKey } from '@hashgraph/sdk'
 import { keccak256 } from 'ethers'
 import assert from 'assert'
-import { proto } from '@hashgraph/proto'
+import { buildSignatureMap } from '../utils.ts'
+// import { proto } from '@hashgraph/proto'
 
-const contractId = '0.0.7387173'
+const contractId = '0.0.7388471'
 const operatorId = AccountId.fromString('0.0.7090546')
 const evmAddress = '440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6'
 const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'
@@ -34,7 +35,7 @@ const verify_rawSig_hashpack_utf8 = () => {
   
   const isVerifiedRaw = publicKey.verify(Buffer.from(keccakPrefixedStr, 'utf-8'), Buffer.from(sigHex, 'hex'))
   console.log(`keccakPrefixedBytes (hex): ${Buffer.from(Buffer.from(keccakPrefixedStr, 'utf-8')).toString('hex')}`)
-  console.log(`---> isVerifiedRaw (should be true): ***${isVerifiedRaw}***`)
+  console.log('---> isVerifiedRaw (should be true):', isVerifiedRaw)
   assert(isVerifiedRaw, 'Raw signature verification (verify_rawSig_hashpack_utf8) failed')
 }
 
@@ -59,7 +60,7 @@ const verify_rawSig_hashpack_base64 = () => {
   
   const isVerifiedRaw = publicKey.verify(Buffer.from(keccakPrefixedStr, 'utf-8'), Buffer.from(sigHex, 'hex'))
   // console.log(`keccakPrefixedBytes (hex): ${Buffer.from(Buffer.from(keccakPrefixedStr, 'utf-8')).toString('hex')}`)
-  console.log(`---> isVerifiedRaw (should be true): ***${isVerifiedRaw}***`)
+  console.log('---> isVerifiedRaw (should be true):;', isVerifiedRaw)
   assert(isVerifiedRaw, 'Raw signature verification (verify_rawSig_hashpack_utf8) failed')
 }
 
@@ -222,19 +223,19 @@ function prefixMessageToSign(messageUtf8: string) {
   return '\x19Hedera Signed Message:\n' + messageUtf8.length + messageUtf8
 }
 
-function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
-  // const signature = privateKey.sign(message)
-  // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
+// function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
+//   // const signature = privateKey.sign(message)
+//   // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
 
-  const sigPair = proto.SignaturePair.create({
-    pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
-    ECDSASecp256k1: signature                        // OR ed25519 depending on key type
-  })
+//   const sigPair = proto.SignaturePair.create({
+//     pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
+//     ECDSASecp256k1: signature                        // OR ed25519 depending on key type
+//   })
 
-  const sigMap = proto.SignatureMap.create({
-    sigPair: [sigPair]
-  })
+//   const sigMap = proto.SignatureMap.create({
+//     sigPair: [sigPair]
+//   })
 
-  const bytes = proto.SignatureMap.encode(sigMap).finish()
-  return bytes
-}
+//   const bytes = proto.SignatureMap.encode(sigMap).finish()
+//   return bytes
+// }

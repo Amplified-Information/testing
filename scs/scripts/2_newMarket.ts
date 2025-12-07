@@ -1,3 +1,11 @@
+/*
+ts-node 2_newMarket.ts $SMART_CONTRACT_ID 0189c0a8-7e80-7e80-8000-000000000001 "Will the price of BTC exceed $50,000 by the end of the year?"
+
+ts-node 2_newMarket.ts $SMART_CONTRACT_ID 0189c0a8-7e80-7e80-8000-000000000002 "Will the next US election result in a Democratic president?"
+
+ts-node 2_newMarket.ts $SMART_CONTRACT_ID 0189c0a8-7e80-7e80-8000-000000000003 "Will Ethereum switch to Proof of Stake by the end of the year?"
+*/
+
 import { ContractExecuteTransaction, ContractFunctionParameters, ContractId } from '@hashgraph/sdk'
 import { networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { initHederaClient } from './lib/hedera.ts'

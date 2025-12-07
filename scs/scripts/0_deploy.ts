@@ -1,3 +1,6 @@
+/**
+ts-node 0_deploy.ts Prism
+*/
 import { Client, ContractCreateFlow, ContractId } from '@hashgraph/sdk'
 import { ethers } from 'ethers'
 import * as fs from 'fs'
