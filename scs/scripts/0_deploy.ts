@@ -11,7 +11,14 @@ const [ client, _ ] = initHederaClient(
   operatorKeyType
 )
 
-const smartContractBinaryFn = __dirname + '/../../contracts/out/Sig.bin'
+const [contractName] = process.argv.slice(2)
+if (!contractName) {
+  console.error('Usage: ts-node deploy.ts <contractName>')
+  console.error('Example: ts-node deploy.ts Prism')
+  process.exit(1)
+}
+
+const smartContractBinaryFn = __dirname + `/../../contracts/out/${contractName}.bin`
 
 const getConstructorParams = () => {
   const collateralToken = ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress() // USD Coin (USDC) on Hedera

@@ -9,7 +9,7 @@
 pragma solidity >=0.5.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/utils/Base64.sol";
+import "../node_modules/@openzeppelin/contracts/utils/Base64.sol";
 
 // Simple Hedera Token Service (HTS) precompile interface (testnet/mainnet share the same precompile)
 // https://github.com/hashgraph/hedera-smart-contracts/blob/main/contracts/system-contracts/hedera-account-service/IHederaAccountService.sol
@@ -41,7 +41,7 @@ interface IHederaAccountService {
   ) external returns (int64 responseCode, bool authorized);
 }
 
-contract Sig {
+contract Test {
   IHederaAccountService constant HAS = IHederaAccountService(address(0x16a));
 
   address owner;
@@ -101,12 +101,18 @@ contract Sig {
     return 0x17;
   }
 
+  // TODO - delete
   function prefixMessageToSign(bytes32 messageHash) public pure returns (bytes memory) {
       return abi.encodePacked("\x19Hedera Signed Message:\n", messageHash.length, messageHash);
   }
 
-  function prefixMessageNew(string memory messageHashBase64) public pure returns (bytes memory) {
+  function prefixMessageFixed40(string memory messageHashBase64) public pure returns (bytes memory) {
       return abi.encodePacked("\x19Hedera Signed Message:\n40", messageHashBase64);
+  }
+
+  // TODO - delete
+  function prefixMessageFixed31(bytes32 messageHash) public pure returns (bytes memory) {
+      return abi.encodePacked("\x19Hedera Signed Message:\n31", messageHash);
   }
 
   function isAuthorizedPublicWrapper(address account, bytes memory message, bytes memory signature) public returns (bool) {
@@ -128,15 +134,16 @@ contract Sig {
   }
 
 
-  function test3(uint256 collateralUsd, uint128 marketId, uint128 txId) external pure returns (bytes memory, bytes32, string memory, bytes memory) {
+  function assemblyTest(uint256 collateralUsd, uint128 marketId, uint128 txId) external pure returns (bytes memory, bytes32, bytes memory, string memory, bytes memory) {
     bytes memory assembled = abi.encodePacked(collateralUsd, marketId, txId);
-    bytes32 messageHash = keccak256(assembled);
+    bytes32 keccak = keccak256(assembled);
 
-    string memory postfix = Base64.encode(abi.encodePacked(messageHash));
+    bytes memory prefixedKeccak = prefixMessageFixed31(keccak);
 
-    bytes memory prefixed = prefixMessageNew(postfix);
+    string memory base64 = Base64.encode(abi.encodePacked(keccak)); // string(keccak) ?
+    bytes memory prefixedKeccak64 = prefixMessageFixed40(base64);
     
-    return (assembled, messageHash, postfix, prefixed);
+    return (assembled, keccak, prefixedKeccak, base64, prefixedKeccak64);
   }
 }
 

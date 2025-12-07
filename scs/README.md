@@ -40,6 +40,10 @@ or...
 `cd scs`
 `npm run compile`
 
+To compile the test contract, run:
+
+`npm run compileTest`
+
 **Deploy contract:**
 
 Be sure to set the HEDERA_OPERATOR_KEY in `../shared/.secrets`
@@ -53,13 +57,23 @@ Config is done in `scripts/constants.ts`
 ```bash
 cd scripts
 
-../node_modules/.bin/ts-node 0_deploy.ts
+ts-node 0_deploy.ts Prism
+```
 
-# or...
+To deploy the test contract, run:
 
-npm run compile
-npm run deploy
+```bash
+ts-node 0_deploy.ts Test
+```
 
+You can run the tests in:
+
+`cd scs/scripts/tests`
+
+`ts-node test.ts`
+
+
+```bash
 export SMART_CONTRACT_ID=...
 ```
 
@@ -69,13 +83,13 @@ export SMART_CONTRACT_ID=...
 cd scripts
 
 # associate a token (USD Coin - 0.0.5449) with the smart contract:
-../node_modules/.bin/ts-node 1_associateToken.ts $SMART_CONTRACT_ID 0.0.5449
+ts-node 1_associateToken.ts $SMART_CONTRACT_ID 0.0.5449
 
 # call getUserTokens (readonly):
-../node_modules/.bin/ts-node 2_getUserTokens.ts $SMART_CONTRACT_ID 0.0.3728074
+ts-node 2_getUserTokens.ts $SMART_CONTRACT_ID 0.0.3728074
 
 # send USDC to a smart contract:
-../node_modules/.bin/ts-node 3_buy.ts $SMART_CONTRACT_ID 112233 33442
+ts-node 3_buy.ts $SMART_CONTRACT_ID 112233 33442
 ```
 
 # Sample Hardhat 3 Beta Project (`node:test` and `viem`)
