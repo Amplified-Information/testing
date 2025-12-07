@@ -1,3 +1,4 @@
+// Usage: `ts-node test.ts`
 import { AccountId, Client, ContractExecuteTransaction, ContractFunctionParameters, ContractId, PrivateKey, PublicKey } from '@hashgraph/sdk'
 import { keccak256 } from 'ethers'
 import assert from 'assert'
@@ -196,12 +197,12 @@ const verify_onChain_assembly = async () => {
 
 (async () => {
   console.log('************************************************')
-  // verify_rawSig_hashpack_utf8()
-  // console.log('************************************************')
+  verify_rawSig_hashpack_utf8()
+  console.log('************************************************')
   verify_rawSig_hashpack_base64()
   console.log('************************************************')
-  // await verify_onChain_utf8()
-  // console.log('************************************************')
+  await verify_onChain_utf8()
+  console.log('************************************************')
   await verify_onChain_base64()
   console.log('************************************************')
   await verify_onChain_assembly()

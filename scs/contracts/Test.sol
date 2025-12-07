@@ -145,6 +145,33 @@ contract Test {
     
     return (assembled, keccak, prefixedKeccak, base64, prefixedKeccak64);
   }
+
+  /**
+    This function takes the USDC collateral amount, market ID, and transaction ID and assembles them together
+    Then calculates the keccak256 hash of the assembled payload
+    Then it converts the keccak hash to a base64-encoded string (which will have a fixed length of 44 characters)
+    Finally, it prefixes the base64-encoded string with the Hedera Signed Message header (using a hard-coded input string length of 44 characters)
+    */
+    function assemblePayload(uint256 collateralUsd, uint128 marketId, uint128 txId) external pure returns (bytes memory) {
+      bytes memory assembled = abi.encodePacked(collateralUsd, marketId, txId);
+      bytes32 keccak = keccak256(assembled);
+
+      string memory base64 = Base64.encode(abi.encodePacked(keccak));
+
+      bytes memory prefixedKeccak64 = prefixMessageFixed(base64);
+
+      return prefixedKeccak64;
+    }
+
+    /**
+    This function takes a base64-encoded message has and prefixes it with the Hedera Signed Message header.
+    N.B. the length of the base64-encoded keccak256 hash is always 44 characters.
+    @param messageHashBase64 The base64 message to be prefixed.
+    @return The prefixed message as bytes.
+    */
+    function prefixMessageFixed(string memory messageHashBase64) public pure returns (bytes memory) {
+      return abi.encodePacked("\x19Hedera Signed Message:\n44", messageHashBase64);
+    }
 }
 
 

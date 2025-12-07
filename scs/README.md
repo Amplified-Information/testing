@@ -37,12 +37,12 @@ If we're happy for the user to perform an additional step (first time user), we 
 
 or...
 
-`cd scs`
-`npm run compile`
+`cd scs/scripts`
+`./0_compile.sh Prism`
 
-To compile the test contract, run:
+To compile the test contract (Test.sol), run:
 
-`npm run compileTest`
+`./0_compile.sh Test`
 
 **Deploy contract:**
 
@@ -59,6 +59,10 @@ cd scripts
 
 ts-node 0_deploy.ts Prism
 ```
+Follow the output instructions...
+
+`export SMART_CONTRACT_ID=0.0.7387199`
+
 
 To deploy the test contract, run:
 
@@ -72,6 +76,9 @@ You can run the tests in:
 
 `ts-node test.ts`
 
+`ts-node prism.ts`
+
+etc.
 
 ```bash
 export SMART_CONTRACT_ID=...
