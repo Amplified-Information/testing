@@ -9,6 +9,8 @@
 pragma solidity >=0.5.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/Base64.sol";
+
 // Simple Hedera Token Service (HTS) precompile interface (testnet/mainnet share the same precompile)
 // https://github.com/hashgraph/hedera-smart-contracts/blob/main/contracts/system-contracts/hedera-account-service/IHederaAccountService.sol
 interface IHederaAccountService {
@@ -58,9 +60,9 @@ contract Sig {
   /// @return authorized True if the signature is valid for the account, false otherwise
   function isAuthorizedRawPublic(address account, bytes memory messageHash, bytes memory signature) public returns (int64 responseCode, bool authorized) {
     (responseCode, authorized) = HAS.isAuthorizedRaw(account, messageHash, signature);
-    // if (responseCode != 22) { // 22 = SUCCESS, HederaResponseCodes.sol
-    //   revert();
-    // }
+    if (responseCode != 22) { // 22 = SUCCESS, HederaResponseCodes.sol
+      revert("isAuthorizedRawPublic not a SUCCESS");
+    }
     emit AccountAuthorizationResponse(responseCode, account, authorized);
   }
 
@@ -94,7 +96,7 @@ contract Sig {
     uint128 txIdYes,
     bytes calldata sigYes
   ) external returns (uint8){
-    require(isAuthorized(signerYes, prefixMessageToSign(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
+    require(isAuthorizedPublicWrapper(signerYes, prefixMessageToSign(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
 
     return 0x17;
   }
@@ -103,11 +105,38 @@ contract Sig {
       return abi.encodePacked("\x19Hedera Signed Message:\n", messageHash.length, messageHash);
   }
 
-  function isAuthorized(address account, bytes memory message, bytes memory signature) public returns (bool) {
-    (int64 responseCode, bool authorized) = HAS.isAuthorized(account, message, signature);
-    require(responseCode == 22, "Authorization failed");
-    emit AccountAuthorizationResponse(responseCode, account, authorized);
-    return authorized;
+  function prefixMessageNew(string memory messageHashBase64) public pure returns (bytes memory) {
+      return abi.encodePacked("\x19Hedera Signed Message:\n40", messageHashBase64);
+  }
+
+  function isAuthorizedPublicWrapper(address account, bytes memory message, bytes memory signature) public returns (bool) {
+   (int64 responseCode, bool authorized) = isAuthorizedPublic(account, message, signature);
+   require(responseCode == 22, "isAuthorizedPublicWrapper failed");
+   emit AccountAuthorizationResponse(responseCode, account, authorized);
+   return authorized;
+  }
+
+  function test2() external pure returns (bytes memory, bytes32) {
+    uint256 collateralUsd = 0x0000000000000000000000000000000000000000000000000000000000004e20;
+    uint128 marketId = 0x0189c0a87e807e808000000000000003;
+    uint128 txId = 0x019af3cfbabc70ed8271834875ab221a;
+
+    bytes memory assembled = abi.encodePacked(collateralUsd, marketId, txId);
+    bytes32 messageHash = keccak256(assembled);
+    
+    return (assembled, messageHash);
+  }
+
+
+  function test3(uint256 collateralUsd, uint128 marketId, uint128 txId) external pure returns (bytes memory, bytes32, string memory, bytes memory) {
+    bytes memory assembled = abi.encodePacked(collateralUsd, marketId, txId);
+    bytes32 messageHash = keccak256(assembled);
+
+    string memory postfix = Base64.encode(abi.encodePacked(messageHash));
+
+    bytes memory prefixed = prefixMessageNew(postfix);
+    
+    return (assembled, messageHash, postfix, prefixed);
   }
 }
 

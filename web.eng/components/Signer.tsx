@@ -214,16 +214,27 @@ const Signer = ({ marketId }: { marketId: string }) => {
             const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
             const marketId_uuid128 = uuidToBigInt(predictionIntentRequest.marketId)
             const txId_uuid128 = uuidToBigInt(predictionIntentRequest.txId)
-            // const packedKeccakHex = ethers.solidityPackedKeccak256(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
-            // console.log(packedKeccakHex)
-            const payloadHex = ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
-            console.log(`payloadHex: ${payloadHex}`)
+            const packedHex = [
+              floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(16).padStart(64, '0'),
+              uuidToBigInt(predictionIntentRequest.marketId).toString(16).padStart(32, '0'),
+              uuidToBigInt(predictionIntentRequest.txId).toString(16).padStart(32, '0')
+            ].join('')
+            console.log('x: ', keccak256(Buffer.from(packedHex, 'hex')))
+            console.log(ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2))
+            const packedKeccakHex = ethers.solidityPackedKeccak256(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
+            console.log(`packedKeccakHex: ${packedKeccakHex}`)
+            // const payloadHex = ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
+            // console.log(`payloadHex: ${payloadHex}`)
 
-            // N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
-            const payloadUtf8 = payloadHex // Yes, this is intentional    // Buffer.from(payloadHex, 'hex').toString('utf8')
-            const keccakHex = keccak256(Buffer.from(payloadUtf8, 'utf8')).slice(2)
-            console.log(`keccakHex: ${keccakHex}`)
-            const sigHex = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
+            // // N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
+            // const payloadUtf8 = payloadHex // Yes, this is intentional    // Buffer.from(payloadHex, 'hex').toString('utf8')
+            // const keccakHex = keccak256(Buffer.from(payloadUtf8, 'utf8')).slice(2)
+            // console.log(`keccakHex: ${keccakHex}`)
+            // const sigHex = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
+            const msgToSign64 = Buffer.from(packedKeccakHex, 'hex').toString('base64')
+            console.log(`msgToSign (base64) (len=${msgToSign64.length}): ${msgToSign64}`)
+            console.log(`packedKeccakHex (len=${Buffer.from(packedKeccakHex, 'hex').length}): ${packedKeccakHex}`)
+            const sigHex = (await signerZero!.sign([Buffer.from(packedKeccakHex, 'hex')], { encoding: 'base64' }))[0].signature
             console.log(`sigHex (len=${sigHex.length}): ${Buffer.from(sigHex).toString('hex')}`)
 
             setPredictionIntentRequest({ ...predictionIntentRequest, sig: Buffer.from(sigHex).toString('base64') })
@@ -322,7 +333,7 @@ const Signer = ({ marketId }: { marketId: string }) => {
       <button className='btn' onClick={async () => {
         const msgStr = 'Hello Hedera'
         console.log(`xx msgStr: ${msgStr}`)
-        const msgStrHex = Buffer.from(msgStr, 'utf8').toString('hex')
+        const msgStrHex = Buffer.from(msgStr, 'utf8').toString('hex') // N.B. UTF-8 encoding here!!!  Re-interpreting as UTF-8, can result in invalid characters being replaced with the Unicode replacement character (�, represented as efbfbd in UTF-8).
         console.log(`xx msgStrHex: ${msgStrHex}`)
         const msgHashHex = ethers.keccak256(ethers.toUtf8Bytes(msgStr)).slice(2)  //sha256
         console.log(`xx msgHashHex: ${msgHashHex}`)

@@ -24,22 +24,17 @@ const publicKey = privateKey.publicKey
 const client = Client.forTestnet().setOperator(operatorId, privateKey)
 
 
-// const hexString = '82f2421684ffafb2fba374c79fa3c718fe8cb4a082f5d4aa056c6565fc487e1b'
-
-// // Convert hex string to a Buffer
-// const buffer = Buffer.from(hexString, 'hex')
-
-// // Interpret the buffer as a UTF-8 string
-// const utf8String = buffer.toString('utf8')
-
-// console.log(utf8String)
-// console.log(Buffer.from(utf8String).toString('hex'))
+// const bytes = Buffer.from('201cdbac0a6fb711718d6e453e7193490acf269781dc1ca96a41964c14f5bc0911', 'hex')
+// console.log(bytes.toString())
 // process.exit(0)
 
-
-const contractId = '0.0.7378590'
+const contractId = '0.0.7382975'
 // const payloadUtf8 = 'Hello Future'
-const payloadHex = '000000000000000000000000000000000000000000000000000000000001ffb80189c0a87e807e808000000000000002019aef10408b70578850c8975f012489'
+// const payloadHex = '000000000000000000000000000000000000000000000000000000000001fbd00189c0a87e807e808000000000000002019aef0d6768773499ea9a9727e26c94'
+const payloadHex = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019af3cfbabc70ed8271834875ab221a'
+// 000000000000000000000000000000000000000000000000000000000001fbd0
+// 0189c0a87e807e808000000000000002
+// 019aef0d6768773499ea9a9727e26c94
 // N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
 const payloadUtf8 = payloadHex // Yes, this is intentional     // Buffer.from(payloadHex, 'hex').toString('utf8')
 console.log(Buffer.from(payloadUtf8).toString('hex'))
@@ -85,88 +80,130 @@ const signerSignature: SignerSignature = {
 const isValidSig = verifySignerSignature(keccakUtf8, signerSignature, publicKey)
 console.log(`---> isValidSig: ***${isValidSig}***`)
 
-// const keccakHex = keccak256(payloadBytes).slice(2)
-// console.log(`keccakHex: ${keccakHex}`)
-// const keccakBytes = Buffer.from(keccakHex.slice(2), 'hex')
-// console.log(keccakBytes)
-// const payloadPrefixed = prefixMessageToSign(payload)
-// console.log(payloadPrefixed)
-// const keccakPrefixed = prefixMessageToSign(Buffer.from(keccakHex, 'hex').toString('utf-8'))
-// console.log(keccakPrefixed)
-// const keccakPrefixedKeccakHex = keccak256(Buffer.from(keccakPrefixed, 'utf-8')).slice(2)
-// console.log(`keccakPrefixedKeccakHex: ${keccakPrefixedKeccakHex}`)
-// const keccakPrefixedKeccak = Buffer.from(keccakPrefixedKeccakHex, 'hex')
-// console.log(keccakPrefixedKeccak)
-// const publicKeyHex = '03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787'
-
-// const sigHex = 'f9e2e7f1f175f2a3802ffa92051c583f9ba2b4e65418d2f33c5c65ec4ada9a1d1f41d76dcd0469b247e067a068c679293631a862d54092283844964bc9aa6957'
-
-// Message to sign:
-// d1b7540d985b3225d67861ad5c3b94fd1249711722acee3ba5a3017f0428b1c0
-
-
-// --------------------------------------------------------------------------
-// MESSAGE + SIGNATUREMAP
-// --------------------------------------------------------------------------
-
-
-
-// console.log(`prefixedMessage: ${keccakPrefixed}`)
-
-
-// const msgToSignHex = 'd1b7540d985b3225d67861ad5c3b94fd1249711722acee3ba5a3017f0428b1c0'
-// const msgToSignBytes = Buffer.from(msgToSignHex, 'hex')
-// const msgToSignPrefixed = prefixMessageToSign(msgToSignHex)
-// console.log(`msgToSignHex: ${msgToSignHex}`)
-// console.log(`msgToSignPrefixed: ${msgToSignPrefixed}`)
-// const msgToSign = Buffer.from(msgToSignHex, 'hex')
-// const msgToSignKeccakHex = keccak256(msgToSign).slice(2)
-// const msgToSignKeccak = Buffer.from(msgToSignKeccakHex, 'hex')
-// console.log(`msgToSignKeccakHex: ${msgToSignKeccakHex}`)
-
-// let x = operatorKey.sign(payloadBytes)
-// console.log(`signature: ${Buffer.from(x).toString('hex')}`)
-// x = operatorKey.sign(payloadBytes)
-// console.log(`signature: ${Buffer.from(x).toString('hex')}`)
-// x = operatorKey.sign(keccak)
-// console.log(`signature: ${Buffer.from(x).toString('hex')}`)
-// x = operatorKey.sign(Buffer.from(payloadPrefixed, 'utf-8'))
-// console.log(`signature: ${Buffer.from(x).toString('hex')}`)
-// x = operatorKey.sign(Buffer.from(keccakPrefixedKeccakHex, 'hex'))
-// console.log(`signature: ${Buffer.from(x).toString('hex')}`)
-
 
 const signatureMapBytes = buildSignatureMap(publicKey, sigBytes)
-// const signatureMapBytes = buildSignatureMap(privateKey, payloadBytes)
+
+
+let tx
+let record
+let result
+let params
+
+tx = await new ContractExecuteTransaction()
+  .setContractId(ContractId.fromString(contractId))
+  // .setGas(100_000)
+  .setGas(5_000_000)
+  .setFunction('test2', new ContractFunctionParameters())
+  .execute(client)
+
+record = await tx.getRecord(client)
+result = record.contractFunctionResult
+if (result) {
+  console.log(`result: ${result.getResult(['bytes','bytes32'])}`)
+} else {
+  console.error('No contract function result found.')
+}
+
+
+
+/***
+// 0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019af3cfbabc70ed8271834875ab221a
+// Signer.tsx:219 packedKeccakHex: b29dafe9bf29bb9214f26cc4bc0c55ad43e6af8cc8bf1c7f917e098eff8368c1
+// Signer.tsx:229 msgToSign (base64) (len=44): sp2v6b8pu5IU8mzEvAxVrUPmr4zIvxx/kX4Jjv+DaME=
+// Signer.tsx:230 packedKeccakHex (len=32): b29dafe9bf29bb9214f26cc4bc0c55ad43e6af8cc8bf1c7f917e098eff8368c1
+// Signer.tsx:232 sigHex (len=64): 22c6b576acfe4d926d005d5d70d0300aacc981d5978ae7bd2e42d3d49f53997e4d4a9cdf6d523d0fd1de3b95392cbbada69770bd099854c1af204b3dbc7e3027
+
+params = new ContractFunctionParameters()
+  // address account
+  // bytes memory messageHash
+  // bytes memory signature
+  .addAddress(evmAddress)
+  .addBytes(Buffer.from(prefixMessageToSign('sp2v6b8pu5IU8mzEvAxVrUPmr4zIvxx/kX4Jjv+DaME='))) // works
+  .addBytes(buildSignatureMap(publicKey, Buffer.from('22c6b576acfe4d926d005d5d70d0300aacc981d5978ae7bd2e42d3d49f53997e4d4a9cdf6d523d0fd1de3b95392cbbada69770bd099854c1af204b3dbc7e3027', 'hex'))) // works
+  // .addBytes(Buffer.from('22c6b576acfe4d926d005d5d70d0300aacc981d5978ae7bd2e42d3d49f53997e4d4a9cdf6d523d0fd1de3b95392cbbada69770bd099854c1af204b3dbc7e3027', 'hex'))
+  // .addBytes(Buffer.from(sig, 'hex'))
+
+tx = await new ContractExecuteTransaction()
+  .setContractId(ContractId.fromString(contractId))
+  // .setGas(100_000)
+  .setGas(5_000_000)
+  .setFunction('isAuthorizedPublic', params)
+  .execute(client)
+
+// const receipt = await tx.getReceipt(client)
+record = await tx.getRecord(client)
+result = record.contractFunctionResult
+if (result) {
+  const responseCode = result.getInt64(0)
+  const isAuthorized = result.getBool(1)
+
+  console.log(`contractId: ${contractId}, accountId: ${operatorId.toString()}`)
+  console.log(`responseCode=${responseCode}, isAuthorized=${isAuthorized}`)
+} else {
+  console.error('No contract function result found.')
+}
+***/
+
+// 0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019af3cfbabc70ed8271834875ab221a
+params = new ContractFunctionParameters()
+  // uint256 collateralUsd
+  // uint128 marketId
+  // uint128 txId
+  .addUint256(BigInt('0x0000000000000000000000000000000000000000000000000000000000004e20').toString())
+  .addUint128(BigInt('0x0189c0a87e807e808000000000000003').toString())
+  .addUint128(BigInt('0x019af3cfbabc70ed8271834875ab221a').toString())
+
+tx = await new ContractExecuteTransaction()
+  .setContractId(ContractId.fromString(contractId))
+  // .setGas(100_000)
+  .setGas(5_000_000)
+  .setFunction('test3', params)
+  .execute(client)
+
+// const receipt = await tx.getReceipt(client)
+record = await tx.getRecord(client)
+result = record.contractFunctionResult
+if (result) {
+  console.log(`result: ${result.getResult(['bytes','bytes32','bytes','bytes'])}`)
+} else {
+  console.error('No contract function result found.')
+}
+
+
+
+
 
 
 // --------------------------------------------------------------------------
 // QUERY
 // --------------------------------------------------------------------------
-console.log(`- account (hex): ${evmAddress}`)
+// console.log(`- account (hex): ${evmAddress}`)
 console.log(`- message/messageHash (hex) (len=${keccakPrefixedBytes.length}): ${Buffer.from(keccakPrefixedBytes).toString('hex')}`)
-console.log(`- signature/signatureMap (hex) (len=${signatureMapBytes.length}): ${Buffer.from(signatureMapBytes).toString('hex')}`)
-const params = new ContractFunctionParameters()
-    // uint128 marketId,
-    // address signerYes,
-    // uint256 collateralUsdAbsScaled,
-    // uint128 txIdYes,
-    // bytes calldata sigYes
-  .addUint128(marketIdBigInt.toString())
+// console.log(`- signatureMap (hex) (len=${signatureMapBytes.length}): ${Buffer.from(signatureMapBytes).toString('hex')}`)
+// console.log(`- signature (hex) (len=${sigBytes.length}): ${Buffer.from(sigBytes).toString('hex')}`)
+
+
+// 0x19486564657261205369676e6564204d6573736167653a0a3430737032763662387075354955386d7a45764178567255506d72347a497678782f6b58344a6a762b44614d453d
+// - message/messageHash (hex) (len=81): 19486564657261205369676e6564204d6573736167653a0a3330efbfbdefbfbd72efbfbd78efbfbdcf82132d2defbfbd1fefbfbd24efbfbd476aefbfbdefbfbd36efbfbd48efbfbd365d45efbfbd527a08
+params = new ContractFunctionParameters()
+  // address account,
+  // bytes memory messageHash,
+  // bytes memory signature
   .addAddress(evmAddress)
-  .addBytes(keccakPrefixedBytes) // Buffer.from('INCORRECT'))
+  .addBytes(Buffer.from('b29dafe9bf29bb9214f26cc4bc0c55ad43e6af8cc8bf1c7f917e098eff8368c1', 'hex')) // keccakPrefixedBytes) // Buffer.from('INCORRECT'))
   .addBytes(signatureMapBytes)
   // .addBytes(Buffer.from(sig, 'hex'))
 
-const tx = await new ContractExecuteTransaction()
+tx = await new ContractExecuteTransaction()
   .setContractId(ContractId.fromString(contractId))
-  .setGas(100_000)
-  .setFunction('test', params)
+  // .setGas(100_000)
+  .setGas(5_000_000)
+  .setFunction('isAuthorizedPublic', params)
   .execute(client)
 
 // const receipt = await tx.getReceipt(client)
-const record = await tx.getRecord(client)
-const result = record.contractFunctionResult
+record = await tx.getRecord(client)
+result = record.contractFunctionResult
 if (result) {
   const responseCode = result.getInt64(0)
   const isAuthorized = result.getBool(1)
@@ -177,33 +214,56 @@ if (result) {
   console.error('No contract function result found.')
 }
 
+
 process.exit(0)
 
 
-// console.log('approve status:', receipt.status.toString())
 
-// const params = new ContractFunctionParameters()
-//   .addAddress(evmAddress)
-//   .addBytes(messageBytes)
-//   .addBytes(signatureMapBytes)
 
-// const query = new ContractCallQuery()
-//   .setContractId(ContractId.fromString(contractId))
-//   .setGas(8_000_000)
-//   .setFunction('verifyWithSignatureMap', params)
 
-// // Cost estimation
-// const cost = await query.getCost(client)
-// console.log('Query cost:', cost.toString())
 
-// // Execute
-// const result = await query.setQueryPayment(cost).execute(client)
+params = new ContractFunctionParameters()
+  // uint128 marketId,
+  // address signerYes,
+  // uint256 collateralUsdAbsScaled,
+  // uint128 txIdYes,
+  // bytes calldata sigYes
+  .addUint128(BigInt('0x0189c0a87e807e808000000000000002').toString())
+  .addAddress(evmAddress)
+  .addUint256(BigInt('0x000000000000000000000000000000000000000000000000000000000001fbd0').toString())
+  .addUint128(BigInt('0x019aef0d6768773499ea9a9727e26c94').toString())
+  .addBytes(signatureMapBytes)
 
-// --------------------------------------------------------------------------
-// READ RESULT
-// --------------------------------------------------------------------------
+tx = await new ContractExecuteTransaction()
+  .setContractId(ContractId.fromString(contractId))
+  // .setGas(100_000)
+  .setGas(5_000_000)
+  .setFunction('test', params)
+  .execute(client)
 
-// console.log(record)
+// const receipt = await tx.getReceipt(client)
+record = await tx.getRecord(client)
+result = record.contractFunctionResult
+if (result) {
+  const responseCode = result.getInt64(0)
+  const isAuthorized = result.getBool(1)
+
+  console.log(`contractId: ${contractId}, accountId: ${operatorId.toString()}`)
+  console.log(`responseCode=${responseCode}, isAuthorized=${isAuthorized}`)
+} else {
+  console.error('No contract function result found.')
+}
+
+
+
+
+
+
+
+
+console.log(`contractId: ${contractId}`)
+process.exit(0)
+
 
 
 
@@ -226,25 +286,6 @@ function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
   const bytes = proto.SignatureMap.encode(sigMap).finish()
   return bytes
 }
-
-// // Build SignatureMap protobuf - build using a private key
-// function buildSignatureMapOrig(privateKey: PrivateKey, message: Uint8Array) {
-//   const signature = privateKey.sign(message)
-//   // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
-
-//   // console.log(`publickey: ${privateKey.publicKey.toStringRaw()}`)
-//   const sigPair = proto.SignaturePair.create({
-//     pubKeyPrefix: privateKey.publicKey.toBytesRaw(), // prefix = full key
-//     ECDSASecp256k1: signature                        // OR ed25519 depending on key type
-//   })
-
-//   const sigMap = proto.SignatureMap.create({
-//     sigPair: [sigPair]
-//   })
-
-//   const bytes = proto.SignatureMap.encode(sigMap).finish()
-//   return bytes
-// }
 
 
 function prefixMessageToSign(messageUtf8: string) {
