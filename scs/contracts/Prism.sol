@@ -108,10 +108,6 @@ contract Prism {
     require(isAuthorized(signerYes, assemblePrismPayload(collateralUsdAbsScaled, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");
     require(isAuthorized(signerNo,  assemblePrismPayload(collateralUsdAbsScaled, marketId, txIdNo),  sigObjNo),  "isAuthorized NO failed");
 
-    // on-chain signature verification:
-    // require(isAuthorized(signerYes, prefixMessageToSign(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdYes))), sigYes), "isAuthorized YES failed");
-    // require(isAuthorized(signerNo,  prefixMessageToSign(keccak256(abi.encodePacked(collateralUsdAbsScaled, marketId, txIdNo))),  sigNo),  "isAuthorized NO failed");
-
     // Transfer collateral from the buyer to the contract using the buyer's allowance
     require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");
     require(collateralToken.transferFrom(signerNo, address(this), collateralUsdAbsScaled), "Transfer failed");

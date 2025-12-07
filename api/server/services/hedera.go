@@ -13,7 +13,6 @@ import (
 
 	"api/server/lib"
 
-	"github.com/ethereum/go-ethereum/crypto"
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
@@ -72,23 +71,11 @@ func (h *HederaService) InitHedera() (*hiero.Client, error) {
 	return client, nil
 }
 
-func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadUtf8 string, sigBase64 string) (bool, error) {
+func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadHex string, sigBase64 string) (bool, error) {
 	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode signature: %w", err)
 	}
-
-	keccak := lib.Keccak256([]byte(payloadUtf8))
-	// keccakHex := hex.EncodeToString(keccak)
-	keccakHex := fmt.Sprintf("%x", keccak)
-	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
-
-	log.Printf("sig: %x", sigBytes)
-
-	N := len([]rune(string(keccak)))
-	keccakPrefixedUtf8 := lib.PrefixMessageToSign(keccakHex, N)
-	fmt.Printf("keccakPrefixedUtf8: %s\n", keccakPrefixedUtf8)
-
 	sigHex := fmt.Sprintf("%x", sigBytes)
 	sig := make([]byte, len(sigHex)/2)
 	_, err = hex.Decode(sig, []byte(sigHex))
@@ -96,54 +83,105 @@ func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadUtf8 string, s
 		return false, fmt.Errorf("Error decoding signature hex: %v", err)
 	}
 
-	// Verify signature
-	isValid := publicKey.VerifySignedMessage([]byte(keccakPrefixedUtf8), sig)
+	payload, err := lib.Hex2utf8(payloadHex)
+	keccak := lib.Keccak256([]byte(payload))
+	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
+
+	// JavaScript equivalent (see: test.ts:55):
+	// const keccakHex = keccak256(Buffer.from(payloadHex, 'hex')).slice(2)
+	// const keccak = Buffer.from(keccakHex, 'hex')
+	// const keccak64 = keccak.toString('base64') // an extra step...
+	// const keccakPrefixedStr = prefixMessageToSign(keccak64)
+	// console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
+
+	keccak64 := base64.StdEncoding.EncodeToString(keccak)
+	keccak64PrefixedStr := lib.PrefixMessageToSign(keccak64)
+	// log.Printf("keccak64 (base64) calc'd on back-end: %s", keccak64)
+	// log.Printf("keccak64 (hex) calc'd on back-end: %x", keccak64)
+	// fmt.Printf("keccakPrefixedStr: %s\n", keccak64PrefixedStr)
+	// fmt.Printf("keccakPrefixedStr (hex): %s\n", hex.EncodeToString([]byte(keccak64PrefixedStr)))
+
+	// Now verify the signature
+	isValid := publicKey.VerifySignedMessage([]byte(keccak64PrefixedStr), sig)
 	if isValid {
 		return true, nil
 	}
 	return false, fmt.Errorf("Invalid signature")
 }
 
-/*
-*
-Function to verify a signature
-@param PublicKey publickKey - the public key to verify against
-@param byte[] serializedPayload - the serialisedPayload - see sign.go
-@param string sigBase64 - the signature (base64) to verify against
-@return bool - true if the signature is valid, false otherwise
-*/
-func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, serializedPayload []byte, sigBase64 string) (bool, error) {
-	// keccak256 hash of the serialized payload
-	payloadKeccak := lib.Keccak256(serializedPayload)
-	log.Printf("payloadKeccak (hex) (len=%d): %x", len(payloadKeccak), payloadKeccak)
+// OLD - hashpack utf-8 sig verification
+// func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadUtf8 string, sigBase64 string) (bool, error) {
+// 	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to decode signature: %w", err)
+// 	}
 
-	// Decode Base64 signature
-	sig, err := base64.StdEncoding.DecodeString(sigBase64)
-	if err != nil {
-		return false, fmt.Errorf("failed to decode signature: %w", err)
-	}
-	if len(sig) != 64 {
-		return false, fmt.Errorf("unexpected signature length: %d", len(sig))
-	}
+// 	keccak := lib.Keccak256([]byte(payloadUtf8))
+// 	// keccakHex := hex.EncodeToString(keccak)
+// 	keccakHex := fmt.Sprintf("%x", keccak)
+// 	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
 
-	// Construct the exact signed message bytes (Hedera WalletConnect prefix)
-	// N.B. the payload is prefixed!
-	prefix := "\x19Hedera Signed Message:\n"
-	prefixedPayload := append([]byte(prefix), byte(len(payloadKeccak))) // Append raw byte length
-	prefixedPayload = append(prefixedPayload, payloadKeccak...)
-	log.Printf("prefixedPayload (hex) (len=%d):%x", len(prefixedPayload), prefixedPayload)
+// 	log.Printf("sig: %x", sigBytes)
 
-	log.Printf(publicKey.StringRaw())
-	log.Printf("serializedPayload (hex) (len=%d): %x", len(serializedPayload), serializedPayload)
-	log.Printf("%v", publicKey.VerifySignedMessage(prefixedPayload, sig))
-	log.Printf("%v", publicKey.VerifySignedMessage(crypto.Keccak256(prefixedPayload), sig))
-	log.Printf("%v", publicKey.VerifySignedMessage(payloadKeccak, sig))
-	log.Printf("%v", publicKey.VerifySignedMessage(serializedPayload, sig))
+// 	N := len([]rune(string(keccak)))
+// 	keccakPrefixedUtf8 := lib.PrefixMessageToSign(keccakHex, N)
+// 	fmt.Printf("keccakPrefixedUtf8: %s\n", keccakPrefixedUtf8)
 
-	// Verify signature
-	verified := publicKey.VerifySignedMessage(prefixedPayload, sig) // note: The hiero Golang library will again calc the keccak256 of the prefixed message
-	return verified, nil
-}
+// 	sigHex := fmt.Sprintf("%x", sigBytes)
+// 	sig := make([]byte, len(sigHex)/2)
+// 	_, err = hex.Decode(sig, []byte(sigHex))
+// 	if err != nil {
+// 		return false, fmt.Errorf("Error decoding signature hex: %v", err)
+// 	}
+
+// 	// Verify signature
+// 	isValid := publicKey.VerifySignedMessage([]byte(keccakPrefixedUtf8), sig)
+// 	if isValid {
+// 		return true, nil
+// 	}
+// 	return false, fmt.Errorf("Invalid signature")
+// }
+
+// /*
+// *
+// Function to verify a signature
+// @param PublicKey publickKey - the public key to verify against
+// @param byte[] serializedPayload - the serialisedPayload - see sign.go
+// @param string sigBase64 - the signature (base64) to verify against
+// @return bool - true if the signature is valid, false otherwise
+// */
+// func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, serializedPayload []byte, sigBase64 string) (bool, error) {
+// 	// keccak256 hash of the serialized payload
+// 	payloadKeccak := lib.Keccak256(serializedPayload)
+// 	log.Printf("payloadKeccak (hex) (len=%d): %x", len(payloadKeccak), payloadKeccak)
+
+// 	// Decode Base64 signature
+// 	sig, err := base64.StdEncoding.DecodeString(sigBase64)
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to decode signature: %w", err)
+// 	}
+// 	if len(sig) != 64 {
+// 		return false, fmt.Errorf("unexpected signature length: %d", len(sig))
+// 	}
+
+// 	// Construct the exact signed message bytes (Hedera WalletConnect prefix)
+// 	// N.B. the payload is prefixed!
+// 	prefix := "\x19Hedera Signed Message:\n"
+// 	prefixedPayload := append([]byte(prefix), byte(len(payloadKeccak))) // Append raw byte length
+// 	prefixedPayload = append(prefixedPayload, payloadKeccak...)
+// 	log.Printf("prefixedPayload (hex) (len=%d):%x", len(prefixedPayload), prefixedPayload)
+
+// 	log.Printf(publicKey.StringRaw())
+// 	log.Printf("serializedPayload (hex) (len=%d): %x", len(serializedPayload), serializedPayload)
+// 	log.Printf("%v", publicKey.VerifySignedMessage(prefixedPayload, sig))
+// 	log.Printf("%v", publicKey.VerifySignedMessage(crypto.Keccak256(prefixedPayload), sig))
+// 	log.Printf("%v", publicKey.VerifySignedMessage(payloadKeccak, sig))
+// 	log.Printf("%v", publicKey.VerifySignedMessage(serializedPayload, sig))
+
+// 	// Verify signature
+// 	verified := publicKey.VerifySignedMessage(prefixedPayload, sig) // note: The hiero Golang library will again calc the keccak256 of the prefixed message
+// 	return verified, nil
+// }
 
 func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKey, error) {
 	// TODO... may get rate limited here...
@@ -191,26 +229,26 @@ func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKe
 	return publicKey, nil
 }
 
-/*
-*
-This function determines the type of a given Hedera public key (offline).
-@param publicKey - the public key to check
-*/
-func (h *HederaService) PublicKeyType(publicKey *hiero.PublicKey) (HederaKeyType, error) {
-	decodedKey, err := base64.StdEncoding.DecodeString(publicKey.String())
-	if err != nil {
-		log.Fatalf("Failed to decode public key: %v", err)
-	}
+// /*
+// *
+// This function determines the type of a given Hedera public key (offline).
+// @param publicKey - the public key to check
+// */
+// func (h *HederaService) PublicKeyType(publicKey *hiero.PublicKey) (HederaKeyType, error) {
+// 	decodedKey, err := base64.StdEncoding.DecodeString(publicKey.String())
+// 	if err != nil {
+// 		log.Fatalf("Failed to decode public key: %v", err)
+// 	}
 
-	switch len(decodedKey) {
-	case 32:
-		return ED25519, nil
-	case 33, 65:
-		return ECDSA, nil
-	default:
-		return -1, fmt.Errorf("unknown key type with length: %d", len(decodedKey))
-	}
-}
+// 	switch len(decodedKey) {
+// 	case 32:
+// 		return ED25519, nil
+// 	case 33, 65:
+// 		return ECDSA, nil
+// 	default:
+// 		return -1, fmt.Errorf("unknown key type with length: %d", len(decodedKey))
+// 	}
+// }
 
 func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
@@ -244,16 +282,16 @@ func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, a
 	return amount, nil
 }
 
-func (h *HederaService) GetEvmAlias(accountId hiero.AccountID) (string, error) {
-	info, err := hiero.NewAccountInfoQuery().
-		SetAccountID(accountId).
-		Execute(h.hedera_client)
-	if err != nil {
-		return "", fmt.Errorf("GetEvmAlias failed: %w", err)
-	}
+// func (h *HederaService) GetEvmAlias(accountId hiero.AccountID) (string, error) {
+// 	info, err := hiero.NewAccountInfoQuery().
+// 		SetAccountID(accountId).
+// 		Execute(h.hedera_client)
+// 	if err != nil {
+// 		return "", fmt.Errorf("GetEvmAlias failed: %w", err)
+// 	}
 
-	return info.ContractAccountID, nil
-}
+// 	return info.ContractAccountID, nil
+// }
 
 func (h *HederaService) BuyPositionTokens(
 	marketId string,
@@ -267,6 +305,12 @@ func (h *HederaService) BuyPositionTokens(
 	sigYes64 string,
 	sigNo64 string,
 ) (bool, error) {
+
+	collateralUsdAbs := math.Abs(origPriceUsdYes * qty)
+	collateralUsdAbsScaled, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbs)
+	if err != nil {
+		return false, fmt.Errorf("failed to scale collateralUsdAbs: %v", err)
+	}
 
 	sigYes, err := base64.StdEncoding.DecodeString(sigYes64)
 	if err != nil {
@@ -282,22 +326,23 @@ func (h *HederaService) BuyPositionTokens(
 	log.Printf("sigYes (len=%d): %x", len(sigYes), sigYes)
 	log.Printf("sigNo (len=%d): %x", len(sigNo), sigNo)
 
-	serializedPayloadYes, err := lib.ExtractPayloadForSigningUsingParams(marketId, origPriceUsdYes, qty, txIdUuidYes)
+	serializedPayloadYes, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaled, marketId, txIdUuidYes)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract YES payload for signing: %v", err)
 	}
-	log.Printf("serializedPayloadYes: %s", serializedPayloadYes)
-
-	serializedPayloadNo, err := lib.ExtractPayloadForSigningUsingParams(marketId, origPriceUsdNo, qty, txIdUuidNo)
+	serializedPayloadNo, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaled, marketId, txIdUuidNo)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract NO payload for signing: %v", err)
 	}
+	log.Printf("serializedPayloadYes: %s", serializedPayloadYes)
 	log.Printf("serializedPayloadNo: %s", serializedPayloadNo)
 
+	// keccak := lib.Keccak256([]byte(payload))
+
 	// calculate the keccak256 hash of the serialized payload
-	keccakHashYes := lib.Keccak256(serializedPayloadYes)
+	keccakHashYes := lib.Keccak256([]byte(serializedPayloadYes))
 	log.Printf("keccakHashYes calc'd server-side (hex): %x", keccakHashYes)
-	keccakHashNo := lib.Keccak256(serializedPayloadNo)
+	keccakHashNo := lib.Keccak256([]byte(serializedPayloadNo))
 	log.Printf("keccakHashNo calc'd server-side (hex): %x", keccakHashNo)
 
 	log.Printf("sigYes (hex): %x", sigYes)

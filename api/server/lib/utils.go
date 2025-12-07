@@ -2,7 +2,6 @@ package lib
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -75,27 +74,27 @@ func JsonMarshaller(req *pb.PredictionIntentRequest) ([]byte, error) {
 	return jsonBytesNoSpacesBetweenFields, nil
 }
 
-// SerializePredictionRequestSansSigForSigning creates a base64-encoded JSON string of the request with empty signature
-// Matches the serialization done in Signer.tsx for signature verification
-// Serialize to JSON to base64 encoding, exclude Sig field (similar to how Signer.tsx does it)
-func Serialize64PredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentRequest) (string, error) {
-	// N.B. First temporarily clear the Sig field completely before serialization
-	originalSig := req.Sig
-	req.Sig = ""
-	defer func() {
-		req.Sig = originalSig
-	}()
+// // SerializePredictionRequestSansSigForSigning creates a base64-encoded JSON string of the request with empty signature
+// // Matches the serialization done in Signer.tsx for signature verification
+// // Serialize to JSON to base64 encoding, exclude Sig field (similar to how Signer.tsx does it)
+// func Serialize64PredictionRequest_SansSig_ForSigning(req *pb.PredictionIntentRequest) (string, error) {
+// 	// N.B. First temporarily clear the Sig field completely before serialization
+// 	originalSig := req.Sig
+// 	req.Sig = ""
+// 	defer func() {
+// 		req.Sig = originalSig
+// 	}()
 
-	jsonBytes, err := JsonMarshaller(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to serialize request: %v", err)
-	}
+// 	jsonBytes, err := JsonMarshaller(req)
+// 	if err != nil {
+// 		return "", fmt.Errorf("failed to serialize request: %v", err)
+// 	}
 
-	log.Printf("DEBUG: Go backend JSON for signing: %s", string(jsonBytes))
-	serializedMessageBase64 := base64.StdEncoding.EncodeToString(jsonBytes)
+// 	log.Printf("DEBUG: Go backend JSON for signing: %s", string(jsonBytes))
+// 	serializedMessageBase64 := base64.StdEncoding.EncodeToString(jsonBytes)
 
-	return serializedMessageBase64, nil
-}
+// 	return serializedMessageBase64, nil
+// }
 
 func Int64ToBytes(n int64) []byte {
 	b := make([]byte, 8)

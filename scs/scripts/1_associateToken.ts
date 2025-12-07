@@ -1,5 +1,5 @@
 /**
-ts-node 1_assciateToken.ts $SMART_CONTRACT_ID 0.0.5449
+ts-node 1_associateToken.ts $SMART_CONTRACT_ID 0.0.5449
 */
 import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, TokenId } from '@hashgraph/sdk'
 import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'

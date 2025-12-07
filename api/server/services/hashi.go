@@ -93,7 +93,12 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 	log.Printf("Mirror node response for account %s on network %s: %s", accountId, os.Getenv("HEDERA_NETWORK_SELECTED"), publicKey.String())
 
-	payloadHex, err := lib.AssemblePayloadHexForSigning(req)
+	collateralUsdAbs := math.Abs(req.PriceUsd * req.Qty)
+	collateralUsdAbsScaled, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbs)
+	if err != nil {
+		return "", fmt.Errorf("failed to scale collateralUsdAbs: %v", err)
+	}
+	payloadHex, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaled, req.MarketId, req.TxId)
 	if err != nil {
 		return "", fmt.Errorf("failed to extract payload for signing: %v", err)
 	}
