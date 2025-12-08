@@ -136,7 +136,7 @@ console.log(`---> isValidSig: ***${isValidSig}***`)
 // console.log(`signature: ${Buffer.from(x).toString('hex')}`)
 
 
-const signatureMapBytes = buildSignatureMap(publicKey, sigBytes)
+const signatureMapBytes = buildSignatureMap(publicKey, sigBytes, 'ECDSA') // TODO - retrieve key type (ECDSA or ED25519) from userAccountInfo on mirror node
 // const signatureMapBytes = buildSignatureMap(privateKey, payloadBytes)
 
 

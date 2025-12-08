@@ -31,6 +31,10 @@ message PredictionIntentRequest {
   double price_usd = 7    [json_name = "priceUsd",    (validate.rules).double = {gt: -1.0, lt: 1.0} /* price_usd <0 => sell, price_usd >=0 => buy */];
   double qty = 8          [json_name = "qty",         (validate.rules).double = {gt: 0.0}];
   string sig = 9          [json_name = "sig",         (validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"} /* base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars) */];
+  // passing extra key info - i) avoid lookups ii) handle situation where user has changed their key
+  string public_key = 10  [json_name = "publicKey", (validate.rules).string = {pattern: "^(04|03|02)[0-9a-fA-F]{32,256}$"} /* uncompressed (04...) or compressed (02... or 03...) public key (ed25519, ecdsa, etc.) in hex format */];
+  string evm_address = 11 [json_name = "evmAddress",  (validate.rules).string = {pattern: "^[0-9a-fA-F]{40}$"} /* 20-byte (40 hex chars) EVM address (no 0x prefix) */];
+  uint32 key_type = 12    [json_name = "keyType",     (validate.rules).uint32 = {in: [1, 2]} /* 1 = ed25519, 2 = ecdsa_secp256k1 */];
 }
 
 message StdResponse {

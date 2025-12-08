@@ -72,6 +72,7 @@ func (n *NatsService) Subscribe(subject string, handler nats.MsgHandler) (*nats.
 func (n *NatsService) HandleOrderMatches() error {
 	log.Printf("HandleOrderMatches subscription starting...")
 	_, err := n.Subscribe(lib.NATS_CLOB_MATCHES_WILDCARD, func(msg *nats.Msg) {
+
 		fmt.Printf("NATS %s: %s\n", msg.Subject, string(msg.Data))
 
 		var orderRequestClobTuple [2]pb_clob.OrderRequestClob
@@ -96,6 +97,12 @@ func (n *NatsService) HandleOrderMatches() error {
 		// assert that priceUsd is not 0.0
 		if orderRequestClobTuple[0].PriceUsd == 0.0 {
 			log.Printf("PROBLEM: priceUsd is 0.0 - this is not allowed (txid=%s).", orderRequestClobTuple[0].TxId)
+			return
+		}
+
+		// assert that the keyType is not 0
+		if orderRequestClobTuple[0].KeyType == 0 || orderRequestClobTuple[1].KeyType == 0 {
+			log.Printf("PROBLEM: keyType is 0 - this is not allowed (txid=%s).", orderRequestClobTuple[0].TxId)
 			return
 		}
 
@@ -124,54 +131,28 @@ func (n *NatsService) HandleOrderMatches() error {
 
 		/////
 		// smart contract
-		// Now submit BOTH matches to the smart contract // TODO - atomic txs?
-		// Determine which account recieves the YES and which account receives the NO (price_usd < 0 => NO)
-		// Determine collateral USD (the lesser of the two sides - e.g. partial match)
-		// Example: [{"tx_id":"019a824d-75b4-73af-a19a-11bd6d11afd0","net":"testnet","market_id":"019a7e77-39e2-72a3-9bea-a63bdfa79d20","account_id":"0.0.7090546","market_limit":"limit","price_usd":-0.5,"qty":0.42},{"tx_id":"019a7f37-1f9c-7713-9766-94236e48f261","net":"testnet","market_id":"019a7e77-39e2-72a3-9bea-a63bdfa79d20","account_id":"0.0.7090546","market_limit":"limit","price_usd":0.5,"qty":1.8798}]
-		origPricelUsdYes := orderRequestClobTuple[0].PriceUsd
-		origPricelUsdNo := orderRequestClobTuple[1].PriceUsd
-		accountIdYes := orderRequestClobTuple[0].AccountId
-		accountIdNo := orderRequestClobTuple[1].AccountId
-		txIdUuidYes := orderRequestClobTuple[0].TxId
-		txIdUuidNo := orderRequestClobTuple[1].TxId
-		sigYes_base64 := orderRequestClobTuple[0].Sig
-		sigNo_base64 := orderRequestClobTuple[1].Sig
-
-		// collateralUsdFloat := qty * orderRequestClobTuple[0].PriceUsd // [0] and [1] priceUsd have the same abs value
-		// collateralUsdFloatAbs := math.Abs(collateralUsdFloat)
-
-		// collateralUsdFloat64 := 0.0
-		// if orderRequestClobTuple[0].Qty > orderRequestClobTuple[1].Qty { // [1] is fully matched, [0] is partially matched
-		// 	// this amount ([1] is the lower Qty) of USDC will be taken as collateral
-		// 	collateralUsdFloat64 = orderRequestClobTuple[1].Qty * orderRequestClobTuple[1].PriceUsd
-		// } else { // [1].Qty > [0].Qty ......... [0] is fully matched, [1] is partially matched
-		// 	// this amount ([0] is the lower Qty) of USDC will be taken as collateral
-		// 	collateralUsdFloat64 = orderRequestClobTuple[0].Qty * orderRequestClobTuple[0].PriceUsd
-		// }
-
-		// do we need to flip which accoundId is YES and which accountId is NO?
-		// by default:
-		//   -> [0] is YES, [1] is NO
-		// iff [0].PriceUsd < 0.0
-		//   -> [0] is NO, [1] is YES
-		if orderRequestClobTuple[0].PriceUsd < 0 {
-			origPricelUsdYes, origPricelUsdNo = origPricelUsdNo, origPricelUsdYes
-			accountIdYes, accountIdNo = accountIdNo, accountIdYes
-			txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
-			sigYes_base64, sigNo_base64 = sigNo_base64, sigYes_base64
-		}
+		// Now submit BOTH matches to the smart contract
+		// BuyPositionTokens determines which account recieves the YES and which account receives the NO (price_usd < 0 => NO)
+		/////
 
 		isOK, err := n.hederaService.BuyPositionTokens(
-			orderRequestClobTuple[0].MarketId,                               // marketId[1] and marketId[0] are the same
-			min(orderRequestClobTuple[0].Qty, orderRequestClobTuple[1].Qty), // take the *lower* Qty
-			origPricelUsdYes,
-			origPricelUsdNo,
-			accountIdYes,
-			accountIdNo,
-			txIdUuidYes,
-			txIdUuidNo,
-			sigYes_base64,
-			sigNo_base64,
+			orderRequestClobTuple[0].MarketId, // marketId[1] and marketId[0] MUST always be the same
+			orderRequestClobTuple[0].Qty,
+			orderRequestClobTuple[1].Qty,
+			orderRequestClobTuple[0].PriceUsd,
+			orderRequestClobTuple[1].PriceUsd,
+			orderRequestClobTuple[0].AccountId,
+			orderRequestClobTuple[1].AccountId,
+			orderRequestClobTuple[0].TxId,
+			orderRequestClobTuple[1].TxId,
+			orderRequestClobTuple[0].Sig,
+			orderRequestClobTuple[1].Sig,
+			orderRequestClobTuple[0].PublicKey,
+			orderRequestClobTuple[1].PublicKey,
+			orderRequestClobTuple[0].EvmAddress,
+			orderRequestClobTuple[1].EvmAddress,
+			orderRequestClobTuple[0].KeyType,
+			orderRequestClobTuple[1].KeyType,
 		)
 		if err != nil {
 			log.Printf("Error submitting match to smart contract: %v ", err)

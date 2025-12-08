@@ -122,10 +122,14 @@ Every transaction initiated by the user has a digital signature.
 
 ```golang
 type ObjForSigning struct {
-  CollateralUsdAbsScaled string
-  MarketIdUUID           string
-  TxIdUUID               string
+  BuySell                boolean // buy is 0, sell is 1
+  CollateralUsdAbsScaled uint256
+  EvmAdd                 uint256
+  MarketIdUUID           uint128
+  TxIdUUID               uint128
 }
 ```
 
-See: `getSerializedPayloadForSigning(...)` in ./lib/utils.ts
+See: `assemblePayloadHexForSigning(...)` in ./web.eng/lib/utils.ts
+
+See: `AssemblePayloadHexForSigning(...)` in ./api/server/lib/sign.go

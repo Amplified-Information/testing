@@ -5,9 +5,10 @@ import { useAppContext } from '../AppProvider'
 import NetworkSelector from './NetworkSelector'
 import { getSpenderAllowanceUsd } from '../lib/hedera'
 import GrantAllowance from './GrantAllowance'
+import { getUserAccountInfo } from '../lib/hedera'
 
 const Wallet = () => {
-  const { dAppConnector, setDappConnector, networkSelected, signerZero, setSignerZero, spenderAllowanceUsd, setSpenderAllowanceUsd } = useAppContext()
+  const { dAppConnector, setDappConnector, networkSelected, signerZero, setSignerZero, spenderAllowanceUsd, setSpenderAllowanceUsd, setUserAccountInfo } = useAppContext()
   const [ thinger, setThinger ] = useState(false)
   const [showGrantAllowance, setShowGrantAllowance] = useState(false)
 
@@ -37,6 +38,11 @@ const Wallet = () => {
       updateSpenderAllowance()
     })()
   }, [signerZero])
+
+  useEffect(() => {
+    if (signerZero === undefined) return
+    getUserAccountInfo(networkSelected, signerZero.getAccountId().toString(), setUserAccountInfo)
+  }, [networkSelected, signerZero])
 
   const updateSpenderAllowance = async () => {
     try {
@@ -100,7 +106,7 @@ const Wallet = () => {
   const searchExistingSignerAndConnect = async (_dAppConnector: DAppConnector | undefined) => {
     try {
       if (typeof _dAppConnector === 'undefined') {
-        console.log('_dAppConnector still undefined')
+        console.log('_dAppConnector still undefined') // TODO - is this why the tab keeps popping up?
         return
       }
 

@@ -16,6 +16,7 @@ import (
 
 	pb "api/gen"
 
+	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -141,4 +142,47 @@ func Utf82hex(utf8Str string) string {
 	// Encode the bytes as a hex string
 	hexStr := hex.EncodeToString(bytes)
 	return hexStr
+}
+
+func IsValidNetwork(s string) bool {
+	var validNetworks = map[ValidNetworksType]struct{}{
+		TESTNET:    {},
+		MAINNET:    {},
+		PREVIEWNET: {},
+	}
+
+	_, ok := validNetworks[ValidNetworksType(s)]
+	return ok
+}
+
+func IsValidKeyType(n uint32) bool {
+	var validKeyTypes = map[HederaKeyType]struct{}{
+		KEY_TYPE_ECDSA:   {},
+		KEY_TYPE_ED25519: {},
+	}
+
+	_, ok := validKeyTypes[HederaKeyType(n)]
+	return ok
+}
+
+func PublicKeyForKeyType(publicKeyHex string, keyType HederaKeyType) (*hiero.PublicKey, error) {
+	publicKey := hiero.PublicKey{}
+	switch keyType {
+	case 2: // ECDSA
+		result, err := hiero.PublicKeyFromStringECDSA(publicKeyHex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse publicKeyHex (ECDSA) from bytes: %v", err)
+		}
+		publicKey = result
+	case 1: // ed25519
+		result, err := hiero.PublicKeyFromStringEd25519(publicKeyHex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse publicKeyHex (ed25519) from bytes: %v", err)
+		}
+		publicKey = result
+	default:
+		return nil, fmt.Errorf("unsupported keyType: %d", keyType)
+	}
+
+	return &publicKey, nil
 }

@@ -6,6 +6,16 @@ type Position = {
   no: number
 }
 
+interface UserAccountInfo {
+  account: string
+  evm_address: string
+  key: {
+    _type: 'ECDSA_SECP256K1' | 'ED25519'
+    key: string
+  },
+  ethereum_nonce: number
+}
+
 // see corresponding api code: api/server/lib/sign.go
 // unfortunately, cannot have uint128 and uint256 types in TypeScript
 // using decimal.js for arbitrary precision arithmetic (including decimals, not just integers)  
@@ -17,6 +27,7 @@ type Position = {
 // }
 
 export type {
-  Position
+  Position,
   // ObjForSigning
+  UserAccountInfo
 }

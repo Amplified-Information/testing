@@ -1,3 +1,5 @@
+import { usdcDecimals } from '../constants'
+import { PredictionIntentRequest } from '../gen/api'
 import { BookSnapshot } from '../gen/clob'
 
 const uint8ToBase64 = (bytes: Uint8Array): string => {
@@ -47,6 +49,15 @@ const isValidUUIDv7 = (uuid: string): boolean => {
   return uuidv7Regex.test(uuid)
 }
 
+const assemblePayloadHexForSigning = (predictionIntentRequest: PredictionIntentRequest) => {
+  const packedHex = [
+    floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(16).padStart(64, '0'),
+    uuidToBigInt(predictionIntentRequest.marketId).toString(16).padStart(32, '0'),
+    uuidToBigInt(predictionIntentRequest.txId).toString(16).padStart(32, '0')
+  ].join('')
+  return packedHex
+}
+
 export {
   uint8ToBase64,
   // uint8ToHex,
@@ -54,5 +65,6 @@ export {
   getSpreadPercent,
   floatToBigIntScaledDecimals,
   uuidToBigInt,
-  isValidUUIDv7
+  isValidUUIDv7,
+  assemblePayloadHexForSigning
 }

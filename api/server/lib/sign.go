@@ -5,7 +5,11 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/hiero-ledger/hiero-sdk-go/v2/proto/services"
+	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 	"golang.org/x/crypto/sha3"
+
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 /*
@@ -156,4 +160,58 @@ func Keccak256(data []byte) []byte {
 	h := sha3.NewLegacyKeccak256()
 	h.Write(data)
 	return h.Sum(nil) // 32 bytes
+}
+
+// function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
+//   // const signature = privateKey.sign(message)
+//   // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
+
+//   const sigPair = proto.SignaturePair.create({
+//     pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
+//     ECDSASecp256k1: signature                        // OR ed25519 depending on key type
+//   })
+
+//   const sigMap = proto.SignatureMap.create({
+//     sigPair: [sigPair]
+//   })
+
+//   const bytes = proto.SignatureMap.encode(sigMap).finish()
+//   return bytes
+// }
+
+func BuildSignatureMap(publicKey *hiero.PublicKey, signatureBytes []byte, keyType HederaKeyType) ([]byte, error) {
+	// sigPairs := make([]*services.SignaturePair, 0)
+
+	sigPair := &services.SignaturePair{}
+
+	switch keyType {
+	case KEY_TYPE_ECDSA:
+		ECDSASecp256k1 := &services.SignaturePair_ECDSASecp256K1{
+			ECDSASecp256K1: signatureBytes,
+		}
+
+		sigPair = &services.SignaturePair{
+			PubKeyPrefix: publicKey.Bytes(),
+			Signature:    ECDSASecp256k1,
+		}
+	case KEY_TYPE_ED25519:
+		ED25519 := &services.SignaturePair_Ed25519{
+			Ed25519: signatureBytes,
+		}
+
+		sigPair = &services.SignaturePair{
+			PubKeyPrefix: publicKey.Bytes(),
+			Signature:    ED25519,
+		}
+	default:
+		return nil, fmt.Errorf("unsupported keyType: %d", keyType)
+	}
+
+	sigMap := &services.SignatureMap{
+		SigPair: []*services.SignaturePair{sigPair},
+	}
+
+	// protobuf.Marshal(sigMap)
+
+	return protobuf.Marshal(sigMap) //  []byte(sigMap.String()), nil
 }

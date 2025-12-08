@@ -1,6 +1,8 @@
 import { proto } from '@hashgraph/proto'
 import { PublicKey } from '@hashgraph/sdk'
 
+type HederaKeyType = 'ECDSA' | 'ED25519'
+
 const uuid7_to_uint128 = (uuid7: string): bigint => {
   const hexStr = uuid7.replace(/-/g, '') // Remove hyphens
   if (hexStr.length !== 32) {
@@ -23,21 +25,39 @@ function uint128_to_uuid7(someBigInt: bigint): string {
   return `${timestamp.slice(0,8)}-${timestamp.slice(8)}-${version}${sequence}-${randomData.slice(0, 4)}-${randomData.slice(4)}`
 }
 
-function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
-  // const signature = privateKey.sign(message)
-  // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
+function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array, keyType: HederaKeyType): Uint8Array {
+  
+  switch (keyType) {
+    case 'ECDSA':
+      { 
+        const sigPair = proto.SignaturePair.create({
+          pubKeyPrefix: publicKey.toBytesRaw(),
+          ECDSASecp256k1: signature  // ECDSA
+        })
 
-  const sigPair = proto.SignaturePair.create({
-    pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
-    ECDSASecp256k1: signature                        // OR ed25519 depending on key type
-  })
+        const sigMap = proto.SignatureMap.create({
+          sigPair: [sigPair]
+        })
+        const bytes = proto.SignatureMap.encode(sigMap).finish()
+        return bytes 
+      }
+    case 'ED25519': 
+      { 
+        const sigPair = proto.SignaturePair.create({
+          pubKeyPrefix: publicKey.toBytesRaw(),
+          ed25519: signature // ed25519
+        })
 
-  const sigMap = proto.SignatureMap.create({
-    sigPair: [sigPair]
-  })
-
-  const bytes = proto.SignatureMap.encode(sigMap).finish()
-  return bytes
+        const sigMap = proto.SignatureMap.create({
+          sigPair: [sigPair]
+        })
+        const bytes = proto.SignatureMap.encode(sigMap).finish()
+        return bytes 
+      }
+    default:
+      throw new Error(`Unsupported key type: ${keyType}`)
+  }
+  
 }
 
 export {

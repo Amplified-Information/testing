@@ -35,6 +35,9 @@ impl NatsService {
                             price_usd: order.price_usd,
                             qty: order.qty,
                             sig: order.sig,
+                            public_key: order.public_key,   // passing extra key info - i) avoid lookups ii) handle situation where user has changed their key
+                            evm_address: order.evm_address, 
+                            key_type: order.key_type,
                         })
                         .await;
                 }

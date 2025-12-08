@@ -437,14 +437,17 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
   const keccak64 = keccak.toString('base64') ///// N.B. an extra base64 step...
   const keccakPrefixedStr = prefixMessageToSign(keccak64)
   console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
-  
+
+  const sigObj = buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex'), 'ECDSA') // TODO - retrieve key type (ECDSA or ED25519) from userAccountInfo on mirror node
+  console.log(`sigObj (len=${sigObj.length}): ${Buffer.from(sigObj).toString('hex')}`)
+
   const params = new ContractFunctionParameters() // Sig.sol
     // address account
     // bytes memory message
     // bytes memory signature
     .addAddress(evmAddress)
     .addBytes(Buffer.from(keccakPrefixedStr, 'utf-8')) // Buffer.from('INCORRECT'))
-    .addBytes(buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex')))
+    .addBytes(sigObj)
   
   const tx = await new ContractExecuteTransaction()
     .setContractId(ContractId.fromString(contractId))
@@ -465,15 +468,16 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
   let payloadHex = ''
   let sigHex = ''
 
-  await verifyAssembly(
-    '00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c',
-    'ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b'
-  )
+  // await verifyAssembly(
+  //   '00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c',
+  //   'ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b'
+  // )
   // process.exit(0)
 
   await checkSig_onChain(publicKey, testVals[0].payloadHex, testVals[0].sigHex)
   console.log('************************************************')
   
+  // process.exit(0)
 
   verify_rawSig_hashpack_base64()
   console.log('************************************************')

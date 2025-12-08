@@ -20,6 +20,10 @@ message OrderRequestClob {
   double price_usd = 6 [json_name = "priceUsd"];
   double qty = 7 [json_name = "qty"];
   string sig = 8 [json_name = "sig"];
+  // passing extra key info - i) avoid lookups ii) handle situation where user has changed their key
+  string public_key = 9 [json_name = "publicKey"];
+  string evm_address = 10 [json_name = "evmAddress"];
+  int32 key_type = 11 [json_name = "keyType"];
 }
 
 message OrderResponse {

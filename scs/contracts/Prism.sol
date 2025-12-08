@@ -217,7 +217,7 @@ contract Prism {
   /**
   An internal-only function which determines if a signatureMap object is valid for the given message and account.
   It is assumed that the signature is composed of a possibly complex cryptographic key.
-  @param account The account to check the signature against.
+  @param account The account to check the signature against (a 20 byte identifier)
   @param message The original plaintext data or payload that the signature is derived from. This is the information that was signed to produce the signature.
   @param signatureMap A byte-encoded serialized signature (see buildSignatureMap .ts) to check against
   @return responseCode The response code for the status of the request.  SUCCESS is 22.

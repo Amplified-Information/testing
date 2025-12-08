@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	pb_api "api/gen"
@@ -32,13 +33,9 @@ func (h *Hashi) InitHashi(dbRepository *repositories.DbRepository, natsService *
 }
 
 func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (string, error) {
+	/////
 	// validations
-	// - req.AccountId is a valid Hedera account ID
-	//   req.AccountId has a value >= 0.0.1000
-	// - req.Utc is a valid RFC3339 timestamp is no later than last 5 minutes in the past, no futher than 30 seconds into the future
-	// - req.Signature is valid for req.AccountId's public key
-	// - ensure req.AccountId has provided the smart contract with an allowance >= (req.PriceUsd * req.NShares)
-
+	/////
 	// Validate account ID format and minimum account number
 	accountId, err := hiero.AccountIDFromString(req.AccountId)
 	if err != nil {
@@ -85,14 +82,35 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("duplicate txId: %s", req.TxId)
 	}
 
-	// Validate signature against public key from mirror node
+	// validate that the network sent is valid // os.Getenv("HEDERA_NETWORK_SELECTED")
+	hederaNetwork := strings.ToLower(req.Net)
+	if !lib.IsValidNetwork(hederaNetwork) {
+		return "", fmt.Errorf("invalid network: %s", req.Net)
+	}
+
+
 	// First look up the Hedera accountId against the mirror node
-	publicKey, err := h.hederaService.GetPublicKey(accountId)
+	publicKeyLookedUp, keyTypeLookedUp, err := h.hederaService.GetPublicKey(accountId)
 	if err != nil {
 		return "", fmt.Errorf("failed to get public key: %v", err)
 	}
-	log.Printf("Mirror node response for account %s on network %s: %s", accountId, os.Getenv("HEDERA_NETWORK_SELECTED"), publicKey.String())
+	log.Printf("Mirror node response for account %s on network %s: %s", accountId, hederaNetwork, publicKeyLookedUp.String())
 
+	// keyType sent from the front-end (no 0x prefix) must match the keyType looked up on the mirror node
+	if !lib.IsValidKeyType(req.KeyType) {
+		return "", fmt.Errorf("keyType mismatch: expected %d, got %d", keyTypeLookedUp, req.KeyType)
+	}
+
+	// public key sent from the front-end (no 0x prefix) must match the public key looked up on the mirror node
+	publicKey, err := hiero.PublicKeyFromString(req.PublicKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse public key from string: %v", err)
+	}
+	if publicKeyLookedUp.String() != publicKey.String() || publicKey.String() == "" {
+		return "", fmt.Errorf("public key mismatch: expected %s, got %s", publicKeyLookedUp.String(), publicKey.String())
+	}
+
+	// Now it's safe to proceed with the publicKey passed from the frontend...
 	collateralUsdAbs := math.Abs(req.PriceUsd * req.Qty)
 	collateralUsdAbsScaled, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbs)
 	if err != nil {
@@ -106,9 +124,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	payloadUtf8 := payloadHex // Yes, this is intentional
 	log.Printf("payloadUtf8: %s", payloadUtf8)
 
-	// log.Printf("Parameters passed to VerifySig(...): \n\t- publicKey (hex, looked up): %s\n\t- payloadKeccak (base64, calculated server-side based on payload): %s\n\t- sig (base64, extracted from payload): %s\n", publicKey.String(), base64.StdEncoding.EncodeToString(keccakHash), req.Sig)
-	// isValidSig, err := h.hederaService.VerifySig(publicKey, keccakHash, req.Sig)
-	isValidSig, err := h.hederaService.Verify(publicKey, payloadUtf8, req.Sig)
+	isValidSig, err := h.hederaService.VerifySig(&publicKey, payloadUtf8, req.Sig)
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
@@ -151,7 +167,7 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	/// OK - All validations passed
 	/// Now you can (attempt to) put the order on the CLOB (subject to on-chain sig verification)
 
-	// store the OrderRequest in the database
+	// store the OrderRequest in the database - the txid must be unique or this fails
 	_, err = h.dbRepository.SaveOrderRequest(req)
 	if err != nil {
 		return "", fmt.Errorf("database error: failed to save order request: %v", err)

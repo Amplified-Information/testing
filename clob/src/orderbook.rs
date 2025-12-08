@@ -25,8 +25,16 @@ impl OrderBookService {
     }
 
     pub async fn add_market(&self, market_id: String/*, nats_service: &nats::NatsService */) {
+        // prevent overwriting existing market!
+        if self.order_books.read().await.contains_key(&market_id) {
+            log::error!("Attempt to create a market ({}) which already exists in OrderBookService", market_id);
+            return;
+        }
+
         let mut order_books = self.order_books.write().await;
-        order_books.insert(market_id, Arc::new(RwLock::new(OrderBook::new(&self.nats_service))));
+        order_books.insert(market_id.clone(), Arc::new(RwLock::new(OrderBook::new(&self.nats_service))));
+
+        log::info!("New market {} added to OrderBookService", market_id);
     }
 
     // pub async fn remove_market(&self, market_id: &str) {

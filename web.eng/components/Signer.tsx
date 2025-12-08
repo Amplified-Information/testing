@@ -1,6 +1,6 @@
 import { PredictionIntentRequest } from '../gen/api'
 import { useEffect, useState } from 'react'
-import { getMidPrice, floatToBigIntScaledDecimals, uuidToBigInt } from '../lib/utils'
+import { getMidPrice, floatToBigIntScaledDecimals, uuidToBigInt, assemblePayloadHexForSigning } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
 import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, smartContractId, usdcDecimals } from '../constants'
@@ -13,13 +13,14 @@ import { ethers } from 'ethers'
 // import { ObjForSigning } from '../types'
 import { proto } from '@hashgraph/proto'
 import { base64StringToSignatureMap /*, signatureMapToBase64String*/ } from '@hashgraph/hedera-wallet-connect'
+import { v7 as uuidv7 } from 'uuid'
 // import { splitSignature } from '../lib/sign'
 // import { splitSignature } from 'ethers'
 // import { splitSignature } from 'ethers/lib/utils'
 
 
 const Signer = ({ marketId }: { marketId: string }) => {
-  const { signerZero, networkSelected, spenderAllowanceUsd, setSpenderAllowanceUsd, book, dAppConnector } = useAppContext()
+  const { signerZero, networkSelected, spenderAllowanceUsd, setSpenderAllowanceUsd, book, dAppConnector, userAccountInfo } = useAppContext()
   const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>({...defaultPredictionIntentRequest(), marketId: marketId})
   const [thinger, setThinger] = useState<boolean>(false)
   const [buySell, setBuySell] = useState<'buy' | 'sell'>('buy')
@@ -80,10 +81,25 @@ const Signer = ({ marketId }: { marketId: string }) => {
 
   const resetTx = () => {
     setPredictionIntentRequest({
-      ...defaultPredictionIntentRequest(),
-      marketId: marketId
+      // ...defaultPredictionIntentRequest(),
+      ...predictionIntentRequest,
+      txId: uuidv7(),
+      sig: '',
+      qty: 0,
+      priceUsd: 0.0,
+      marketId: marketId,
+      generatedAt: new Date().toISOString()
     })
   }
+
+  useEffect(() => {
+    setPredictionIntentRequest({
+      ...predictionIntentRequest,
+      publicKeyHex: userAccountInfo ? userAccountInfo.key.key : '',
+      keyType: userAccountInfo ? (userAccountInfo.key._type === 'ED25519' ? 1 : userAccountInfo.key._type === 'ECDSA_SECP256K1' ? 2 : 0) : 0,
+      evmAddress: userAccountInfo ? userAccountInfo.evm_address.slice(2) : ''
+    })
+  }, [userAccountInfo])
 
   // function arrayify(data: string): Uint8Array {
   //   if (typeof data !== 'string' || !data.startsWith('0x')) {
@@ -214,11 +230,9 @@ const Signer = ({ marketId }: { marketId: string }) => {
             const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
             const marketId_uuid128 = uuidToBigInt(predictionIntentRequest.marketId)
             const txId_uuid128 = uuidToBigInt(predictionIntentRequest.txId)
-            const packedHex = [
-              floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(16).padStart(64, '0'),
-              uuidToBigInt(predictionIntentRequest.marketId).toString(16).padStart(32, '0'),
-              uuidToBigInt(predictionIntentRequest.txId).toString(16).padStart(32, '0')
-            ].join('')
+
+            const packedHex = assemblePayloadHexForSigning(predictionIntentRequest)
+
             console.log('x: ', keccak256(Buffer.from(packedHex, 'hex')))
             console.log(ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2))
             const packedKeccakHex = ethers.solidityPackedKeccak256(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
@@ -443,14 +457,17 @@ const Signer = ({ marketId }: { marketId: string }) => {
 
       <br/>
       <button onClick={async () => {
-        const payloadUtf8 = 'Hello Future'
-        // const payloadUtf8 = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb0d8112759dba60b701cf0f7c27'
-        // N.B. yes, keep the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
-        // const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')
-        const keccakHex = keccak256(Buffer.from(payloadUtf8)).slice(2)
-        console.log(keccakHex)
-        const signature = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
-        console.log(`signature (len=${signature.length}): ${Buffer.from(signature).toString('hex')}`)
+        console.log(userAccountInfo)
+        // console.log(signerZero!.getAccountKey().toString())
+        // console.log(signerZero!)
+        // const payloadUtf8 = 'Hello Future'
+        // // const payloadUtf8 = '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb0d8112759dba60b701cf0f7c27'
+        // // N.B. yes, keep the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
+        // // const payloadUtf8 = Buffer.from(payloadHex, 'hex').toString('utf8')
+        // const keccakHex = keccak256(Buffer.from(payloadUtf8)).slice(2)
+        // console.log(keccakHex)
+        // const signature = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
+        // console.log(`signature (len=${signature.length}): ${Buffer.from(signature).toString('hex')}`)
         /**
          * Expected output for 'Hello Future':
         keccakHex: d1b7540d985b3225d67861ad5c3b94fd1249711722acee3ba5a3017f0428b1c0

@@ -1,7 +1,7 @@
 import { AccountId, ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk'
 import { TMP_MARKET_ID, usdcAddress, usdcDecimals } from '../constants'
 import { DAppSigner } from '@hashgraph/hedera-wallet-connect'
-import { Position } from '../types'
+import { Position, UserAccountInfo } from '../types'
 
 const getActiveMarkets = async (accountId: AccountId): Promise<string[]> => {
   void accountId
@@ -24,6 +24,21 @@ const getSpenderAllowanceUsd = async (networkSelected: LedgerId, smartContractId
     }
     const data = await response.json()
     return data.allowances[0]?.amount / (10 ** usdcDecimals) || 0
+  } catch (error) {
+    console.error('Error fetching allowance:', error)
+    throw error
+  }
+}
+
+const getUserAccountInfo = async (networkSelected: LedgerId, accountId: string, setUserAccountInfo: React.Dispatch<React.SetStateAction<UserAccountInfo | undefined>>) => {
+  try {
+    const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}`
+    const response = await fetch(mirrornode)
+    if (!response.ok) {
+      throw new Error('Network response was not ok')
+    }
+    const data = await response.json()
+    setUserAccountInfo(data)
   } catch (error) {
     console.error('Error fetching allowance:', error)
     throw error
@@ -56,5 +71,6 @@ const grantAllowanceUsd = async (signerZero: DAppSigner, contractId: string, amo
 export { 
   getAllPositions, 
   getSpenderAllowanceUsd, 
-  grantAllowanceUsd 
+  grantAllowanceUsd,
+  getUserAccountInfo
 }

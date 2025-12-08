@@ -51,8 +51,8 @@ const main = async () => {
 
   const operatorPublicKey = PublicKey.fromString(publicKeyHex)
   const account = client.operatorPublicKey!.toEvmAddress() 
-  const sigObj = Buffer.from(buildSignatureMap(operatorPublicKey, Buffer.from(sigRawHex, 'hex')))
-  
+  // TODO - retrieve ECDSA or ED25519 from userAccountInfo on mirror node
+  const sigObj = Buffer.from(buildSignatureMap(operatorPublicKey, Buffer.from(sigRawHex, 'hex'), 'ECDSA'))
   
   // known keccak and sig - see ./api/server/lib/demo/sigDemo.go
   // const knownKeccakHex = '19486564657261205369676e6564204d6573736167653a0a33310befbfbd5e49efbfbd302060712065efbfbd17efbfbd335fefbfbdefbfbdefbfbdefbfbdefbfbdefbfbddba9efbfbdefbfbdefbfbd6345efbfbd7a32'

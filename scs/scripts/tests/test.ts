@@ -90,7 +90,7 @@ const verify_onChain_utf8 = async () => {
     // bytes memory signature
     .addAddress(evmAddress)
     .addBytes(Buffer.from(keccakPrefixedStr, 'utf-8')) // Buffer.from('INCORRECT'))
-    .addBytes(buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex')))
+    .addBytes(buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex'), 'ECDSA')) // TODO - retrieve key type (ECDSA or ED25519) from userAccountInfo on mirror node
   
   const tx = await new ContractExecuteTransaction()
     .setContractId(ContractId.fromString(contractId))
@@ -134,7 +134,7 @@ const verify_onChain_base64 = async () => {
     // bytes memory signature
     .addAddress(evmAddress)
     .addBytes(Buffer.from(keccakPrefixedStr, 'utf-8')) // Buffer.from('INCORRECT'))
-    .addBytes(buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex')))
+    .addBytes(buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex'), 'ECDSA')) // TODO - retrieve key type (ECDSA or ED25519) from userAccountInfo on mirror node
   
   const tx = await new ContractExecuteTransaction()
     .setContractId(ContractId.fromString(contractId))

@@ -25,13 +25,6 @@ type HederaService struct {
 // 	Key     string
 // }
 
-type HederaKeyType int
-
-const (
-	ECDSA HederaKeyType = iota
-	ED25519
-)
-
 func (h *HederaService) InitHedera() (*hiero.Client, error) {
 	networkSelected := os.Getenv("HEDERA_NETWORK_SELECTED")
 	operatorIdStr := os.Getenv("HEDERA_OPERATOR_ID")
@@ -71,7 +64,7 @@ func (h *HederaService) InitHedera() (*hiero.Client, error) {
 	return client, nil
 }
 
-func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadHex string, sigBase64 string) (bool, error) {
+func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, payloadHex string, sigBase64 string) (bool, error) {
 	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode signature: %w", err)
@@ -183,17 +176,19 @@ func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadHex string, si
 // 	return verified, nil
 // }
 
-func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKey, error) {
+func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKey, lib.HederaKeyType, error) {
+	keyType := lib.HederaKeyType(0)
+
 	// TODO... may get rate limited here...
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", os.Getenv("HEDERA_NETWORK_SELECTED"), accountId)
 	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to query mirror node: %v", err)
+		return nil, keyType, fmt.Errorf("failed to query mirror node: %v", err)
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("mirror node returned status code %d", resp.StatusCode)
+		return nil, keyType, fmt.Errorf("mirror node returned status code %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -206,27 +201,34 @@ func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKe
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&jsonParseResult); err != nil {
-		return nil, fmt.Errorf("failed to parse mirror node response: %v", err)
+		return nil, keyType, fmt.Errorf("failed to parse mirror node response: %v", err)
 	}
 
 	publicKey := &hiero.PublicKey{}
 	if strings.HasPrefix(strings.ToUpper(jsonParseResult.Key.Type_), "ECDSA") {
 		key, err := hiero.PublicKeyFromStringECDSA(jsonParseResult.Key.Key)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse public key (ECDSA) from string: %v", err)
+			return nil, keyType, fmt.Errorf("failed to parse public key (ECDSA) from string: %v", err)
 		}
 		publicKey = &key
 	} else if strings.HasPrefix(strings.ToUpper(jsonParseResult.Key.Type_), "ED25519") {
 		key, err := hiero.PublicKeyFromStringEd25519(jsonParseResult.Key.Key)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse public key (ED25519) from string: %v", err)
+			return nil, keyType, fmt.Errorf("failed to parse public key (ED25519) from string: %v", err)
 		}
 		publicKey = &key
 	} else {
-		return nil, fmt.Errorf("unsupported key type: %s", jsonParseResult.Key.Type_)
+		return nil, keyType, fmt.Errorf("unsupported key type: %s", jsonParseResult.Key.Type_)
 	}
 
-	return publicKey, nil
+	switch strings.ToUpper(jsonParseResult.Key.Type_) {
+	case "ECDSA_SECP256K1":
+		keyType = lib.KEY_TYPE_ECDSA
+	case "ED25519":
+		keyType = lib.KEY_TYPE_ED25519
+	}
+
+	return publicKey, keyType, nil
 }
 
 // /*
@@ -295,7 +297,8 @@ func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, a
 
 func (h *HederaService) BuyPositionTokens(
 	marketId string,
-	qty float64,
+	origQtyYes float64,
+	origQtyNo float64,
 	origPriceUsdYes float64,
 	origPriceUsdNo float64,
 	accountIdYes string,
@@ -304,12 +307,43 @@ func (h *HederaService) BuyPositionTokens(
 	txIdUuidNo string,
 	sigYes64 string,
 	sigNo64 string,
+	publicKeyYesHex string,
+	publicKeyNoHex string,
+	evmYes string,
+	evmNo string,
+	keyTypeYes int32,
+	keyTypeNo int32,
 ) (bool, error) {
 
-	collateralUsdAbs := math.Abs(origPriceUsdYes * qty)
-	collateralUsdAbsScaled, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbs)
+	// do we need to flip which accoundId is YES and which accountId is NO?
+	if origPriceUsdNo < 0 && origPriceUsdYes > 0 { // Yes side get YES position tokens, No side gets NO position tokens
+		// canonical situation - the ordering is correct as-is
+	} else if origPriceUsdYes < 0 && origPriceUsdNo > 0 { // Yes side gets NO position tokens, No side gets YES position tokens
+		origQtyYes, origQtyNo = origQtyNo, origQtyYes
+		origPriceUsdYes, origPriceUsdNo = origPriceUsdNo, origPriceUsdYes
+		accountIdYes, accountIdNo = accountIdNo, accountIdYes
+		txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
+		sigYes64, sigNo64 = sigNo64, sigYes64
+		publicKeyYesHex, publicKeyNoHex = publicKeyNoHex, publicKeyYesHex
+		evmYes, evmNo = evmNo, evmYes
+		keyTypeYes, keyTypeNo = keyTypeNo, keyTypeYes
+	} else {
+		// all other situations (including == 0.0) can never happen:
+		return false, fmt.Errorf("invalid price_usd values for YES and NO positions: %f, %f", origPriceUsdYes, origPriceUsdNo)
+	}
+
+	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
+	collateralUsdAbsYes := math.Abs(origPriceUsdYes * origQtyYes)
+	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsYes)
 	if err != nil {
-		return false, fmt.Errorf("failed to scale collateralUsdAbs: %v", err)
+		return false, fmt.Errorf("failed to scale collateralUsdAbsYes: %v", err)
+	}
+
+	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
+	collateralUsdAbsNo := math.Abs(origPriceUsdNo * origQtyNo)
+	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsNo)
+	if err != nil {
+		return false, fmt.Errorf("failed to scale collateralUsdAbsNo: %v", err)
 	}
 
 	sigYes, err := base64.StdEncoding.DecodeString(sigYes64)
@@ -326,41 +360,98 @@ func (h *HederaService) BuyPositionTokens(
 	log.Printf("sigYes (len=%d): %x", len(sigYes), sigYes)
 	log.Printf("sigNo (len=%d): %x", len(sigNo), sigNo)
 
-	serializedPayloadYes, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaled, marketId, txIdUuidYes)
+	serializedPayloadYes, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaledYes, marketId, txIdUuidYes)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract YES payload for signing: %v", err)
 	}
-	serializedPayloadNo, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaled, marketId, txIdUuidNo)
+	serializedPayloadNo, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaledNo, marketId, txIdUuidNo)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract NO payload for signing: %v", err)
 	}
 	log.Printf("serializedPayloadYes: %s", serializedPayloadYes)
 	log.Printf("serializedPayloadNo: %s", serializedPayloadNo)
 
-	// keccak := lib.Keccak256([]byte(payload))
-
 	// calculate the keccak256 hash of the serialized payload
-	keccakHashYes := lib.Keccak256([]byte(serializedPayloadYes))
-	log.Printf("keccakHashYes calc'd server-side (hex): %x", keccakHashYes)
-	keccakHashNo := lib.Keccak256([]byte(serializedPayloadNo))
-	log.Printf("keccakHashNo calc'd server-side (hex): %x", keccakHashNo)
+	payloadYes, _ := lib.Hex2utf8(serializedPayloadYes)
+	payloadNo, _ := lib.Hex2utf8(serializedPayloadNo)
+	keccakYes := lib.Keccak256([]byte(payloadYes))
+	keccakNo := lib.Keccak256([]byte(payloadNo))
+	log.Printf("keccakYes calc'd server-side (hex): %x", keccakYes)
+	log.Printf("keccakNo calc'd server-side (hex): %x", keccakNo)
 
-	log.Printf("sigYes (hex): %x", sigYes)
-	log.Printf("sigNo (hex): %x", sigNo)
+	// create a hiero public key for the hex string and key type (ecdasa/ed25519)
+	publicKeyYes, err := lib.PublicKeyForKeyType(publicKeyYesHex, lib.HederaKeyType(keyTypeYes))
+	if err != nil {
+		return false, fmt.Errorf("failed to get publicKeyYes: %v", err)
+	}
+	publicKeyNo, err := lib.PublicKeyForKeyType(publicKeyNoHex, lib.HederaKeyType(keyTypeNo))
+	if err != nil {
+		return false, fmt.Errorf("failed to get publicKeyNo: %v", err)
+	}
 
 	/////
 	// OK
 	// now call the smart contract...
 	/////
-	// .addBytes32(r)
-	// .addBytes32(s)
-	// .addUint8(v)
-	// .addBytes32(keccak)
-	// params := hiero.NewContractFunctionParameters()
-	// params.AddBytes32(r)
-	// params.AddBytes32(s)
-	// params.AddUint8(v)
-	// params.AddBytes32(keccakHash)
+	marketIdBig, err := lib.Uuid7_to_bigint(marketId)
+	if err != nil {
+		return false, fmt.Errorf("failed to convert marketId to bigint: %w", err)
+	}
+
+	txIdYesBig, err := lib.Uuid7_to_bigint(txIdUuidYes)
+	if err != nil {
+		return false, fmt.Errorf("failed to convert txIdUuidYes to bigint: %w", err)
+	}
+	txIdNoBig, err := lib.Uuid7_to_bigint(txIdUuidNo)
+	if err != nil {
+		return false, fmt.Errorf("failed to convert txIdUuidNo to bigint: %w", err)
+	}
+
+	// partial fills MUST take the *lower* Usd collateral value
+	collateralUsdAbsScaledMin := collateralUsdAbsScaledYes
+	if collateralUsdAbsScaledNo.Cmp(collateralUsdAbsScaledYes) < 0 {
+		collateralUsdAbsScaledMin = collateralUsdAbsScaledNo
+	}
+
+	// sigObjYes and sigObjNo (Hedera format signature objects)
+	sigObjYes, err := lib.BuildSignatureMap(publicKeyYes, sigYes, lib.HederaKeyType(keyTypeYes))
+	sigObjNo, err := lib.BuildSignatureMap(publicKeyNo, sigNo, lib.HederaKeyType(keyTypeNo))
+	log.Printf("sigYes (keyType=%d) (hex): %x", keyTypeYes, sigYes)
+	log.Printf("sigNo (keyType=%d) (hex): %x", keyTypeNo, sigNo)
+
+	params := hiero.NewContractFunctionParameters()
+	// uint128 marketId,
+	// address signerYes,
+	// address signerNo,
+	// uint256 collateralUsdAbsScaled,
+	// uint128 txIdYes,
+	// uint128 txIdNo,
+	// bytes calldata sigObjYes,
+	// bytes calldata sigObjNo
+	params.AddUint128BigInt(marketIdBig)               // marketId
+	params.AddAddress(accountIdYes)                    // signerYes
+	params.AddAddress(accountIdNo)                     // signerNo
+	params.AddUint256BigInt(collateralUsdAbsScaledMin) //collateralUsdAbsScaled
+	params.AddUint128BigInt(txIdYesBig)                // txIdYes
+	params.AddUint128BigInt(txIdNoBig)                 // txIdNo
+	params.AddUint128(sigObjYes)                       // sigObjYes
+	params.AddUint128(sigObjNo)                        // sigObjNo
+
+	log.Printf("Prepared smart contract parameters for BuyPositionTokens")
+	log.Println("marketIdBig:", marketIdBig.String())
+	log.Println("accountIdYes:", accountIdYes)
+	log.Println("accountIdNo:", accountIdNo)
+	log.Println("collateralUsdAbsScaledYes:", collateralUsdAbsScaledYes.String())
+	log.Println("txIdYesBig:", txIdYesBig.String())
+	log.Println("txIdNoBig:", txIdNoBig.String())
+	log.Printf("sigObjYes (len=%d): %x", len(sigObjYes), sigObjYes)
+	log.Printf("sigObjNo (len=%d): %x", len(sigObjNo), sigObjNo)
+
+	/////
+	// db
+	// Record the tx on the database (auditing)
+	/////
+
 	return false, nil
 }
 
