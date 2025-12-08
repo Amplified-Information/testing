@@ -84,13 +84,16 @@ const verify_onChain_utf8 = async () => {
   const keccakPrefixedStr = prefixMessageToSign(keccak.toString())
   console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
   
+  const sigObj = buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex'), 'ECDSA')
+  console.log(`sigObj (len=${sigObj.length}): ${Buffer.from(sigObj).toString('hex')}`)
+  
   const params = new ContractFunctionParameters() // Sig.sol
     // address account
     // bytes memory message
     // bytes memory signature
     .addAddress(evmAddress)
     .addBytes(Buffer.from(keccakPrefixedStr, 'utf-8')) // Buffer.from('INCORRECT'))
-    .addBytes(buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex'), 'ECDSA')) // TODO - retrieve key type (ECDSA or ED25519) from userAccountInfo on mirror node
+    .addBytes(buildSignatureMap(publicKey, sigObj, 'ECDSA'))
   
   const tx = await new ContractExecuteTransaction()
     .setContractId(ContractId.fromString(contractId))
@@ -115,11 +118,14 @@ Signer.tsx:236 packedKeccakHex (len=32): cb09968b7bbfdf738d9eb128ab7cf9aac3cc855
 Signer.tsx:238 sigHex (len=64): 3e57400eac06b5de22413b5720f014e26b6392f1d0c286a4868086b8629241e42322ad35206229f8032344cf3987c619dd0cd5abd975ee002b1515f098907753
 Signer.tsx:36 {"txId":"019af83a-8a79-74ec-aea2-55682ea385ba","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-07T09:52:57.465Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.012,"qty":83.33333333333333,"sig":"PldADqwGtd4iQTtXIPAU4mtjkvHQwoakhoCGuGKSQeQjIq01IGIp+AMjRM85h8YZ3QzVq9l17gArFRXwmJB3Uw=="}
 */
-const verify_onChain_base64 = async () => {
+const verify_onChain_base64 = async (
+  payloadHex = '00000000000000000000000000000000000000000000000000000000000f42400189c0a87e807e808000000000000003019af83a8a7974ecaea255682ea385ba',
+  sigHex = '3e57400eac06b5de22413b5720f014e26b6392f1d0c286a4868086b8629241e42322ad35206229f8032344cf3987c619dd0cd5abd975ee002b1515f098907753'
+) => {
   console.log('--- verify_onChain_base64 ---')
 
-  const payloadHex = '00000000000000000000000000000000000000000000000000000000000f42400189c0a87e807e808000000000000003019af83a8a7974ecaea255682ea385ba'
-  const sigHex = '3e57400eac06b5de22413b5720f014e26b6392f1d0c286a4868086b8629241e42322ad35206229f8032344cf3987c619dd0cd5abd975ee002b1515f098907753'
+  // const payloadHex = '00000000000000000000000000000000000000000000000000000000000f42400189c0a87e807e808000000000000003019af83a8a7974ecaea255682ea385ba'
+  // const sigHex = '3e57400eac06b5de22413b5720f014e26b6392f1d0c286a4868086b8629241e42322ad35206229f8032344cf3987c619dd0cd5abd975ee002b1515f098907753'
 
   const keccakHex = keccak256(Buffer.from(payloadHex, 'hex')).slice(2)
   const keccak = Buffer.from(keccakHex, 'hex')
@@ -127,6 +133,9 @@ const verify_onChain_base64 = async () => {
   const keccak64 = keccak.toString('base64') // N.B. an extra base64 step...
   const keccakPrefixedStr = prefixMessageToSign(keccak64)
   console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
+
+  const sigObj = buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex'), 'ECDSA')
+  console.log(`sigObj (len=${sigObj.length}): ${Buffer.from(sigObj).toString('hex')}`)
   
   const params = new ContractFunctionParameters() // Sig.sol
     // address account
@@ -134,7 +143,7 @@ const verify_onChain_base64 = async () => {
     // bytes memory signature
     .addAddress(evmAddress)
     .addBytes(Buffer.from(keccakPrefixedStr, 'utf-8')) // Buffer.from('INCORRECT'))
-    .addBytes(buildSignatureMap(publicKey, Buffer.from(sigHex, 'hex'), 'ECDSA')) // TODO - retrieve key type (ECDSA or ED25519) from userAccountInfo on mirror node
+    .addBytes(sigObj) // TODO - retrieve key type (ECDSA or ED25519) from userAccountInfo on mirror node
   
   const tx = await new ContractExecuteTransaction()
     .setContractId(ContractId.fromString(contractId))
@@ -197,18 +206,36 @@ const verify_onChain_assembly = async () => {
 
 
 (async () => {
-  console.log('************************************************')
-  verify_rawSig_hashpack_utf8()
-  console.log('************************************************')
-  verify_rawSig_hashpack_base64()
-  console.log('************************************************')
-  await verify_onChain_utf8()
-  console.log('************************************************')
-  await verify_onChain_base64()
-  console.log('************************************************')
-  await verify_onChain_assembly()
-  console.log('************************************************')
+  // console.log('************************************************')
+  // verify_rawSig_hashpack_utf8()
+  // console.log('************************************************')
+  // verify_rawSig_hashpack_base64()
+  // console.log('************************************************')
+  // await verify_onChain_utf8()
+  // console.log('************************************************')
+  // await verify_onChain_base64()
+  // console.log('************************************************')
+  // await verify_onChain_assembly()
+  // console.log('************************************************')
 
+
+  /*
+  Signing OrderIntent...
+  Signer.tsx:236 x:  0x9780a56cb3995026668e68fbe6a67e3b2ae989d42652d019cb3234cec499e131
+  Signer.tsx:237 0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019aff572be977ddb2218f89374938a0
+  Signer.tsx:239 packedKeccakHex: 9780a56cb3995026668e68fbe6a67e3b2ae989d42652d019cb3234cec499e131
+  Signer.tsx:249 msgToSign (base64) (len=44): l4ClbLOZUCZmjmj75qZ+OyrpidQmUtAZyzI0zsSZ4TE=
+  Signer.tsx:250 packedKeccakHex (len=32): 9780a56cb3995026668e68fbe6a67e3b2ae989d42652d019cb3234cec499e131
+  Signer.tsx:252 sigHex (len=64): d1f6afd134b6d62d957bc27175c8a218fd75470bbe24e589d812dcf010195491113a9ffa91f93d1e4099ffaad1eb9d830efd4b38193e882c529a2deeaeee837f
+  Signer.tsx:37 {"txId":"019aff57-2be9-77dd-b221-8f89374938a0","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-08T19:01:34.313Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":-0.5,"qty":0.04,"sig":"0fav0TS21i2Ve8JxdciiGP11Rwu+JOWJ2BLc8BAZVJEROp/6kfk9HkCZ/6rR652DDv1LOBk+iCxSmi3uru6Dfw==","publicKeyHex":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
+  */
+  await verify_onChain_base64(
+    '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019affb15a7674d797ca656231a57ad1',
+    '4f225d58efe01e391d2e30e6e28dc6530dd4b6b23016ee3fde698b8c3ccb3ea1102bad8685f323c1d700dc71fc6201390e733de2eef51a361e8b80ce57e8332b'
+  )
+
+//  0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019aff9a648276dbb6926fb6fdf2285b
+//  2f9580d85fbb5fe62a2d93ffb9e9e8d1a1700017a0e1c1fb1daa2f8040d2b7db69619f5b6cb5e830fac29565b124fd19745e995cf102e7b4cd9d1d8d23fc0479
   process.exit(0)
 })()
 

@@ -182,36 +182,71 @@ func Keccak256(data []byte) []byte {
 func BuildSignatureMap(publicKey *hiero.PublicKey, signatureBytes []byte, keyType HederaKeyType) ([]byte, error) {
 	// sigPairs := make([]*services.SignaturePair, 0)
 
-	sigPair := &services.SignaturePair{}
+	// sigPair := &services.SignaturePair{}
+	sigMap := &services.SignatureMap{}
+	// proto.SignaturePair{}
 
 	switch keyType {
 	case KEY_TYPE_ECDSA:
-		ECDSASecp256k1 := &services.SignaturePair_ECDSASecp256K1{
+		fmt.Println("ECDSA")
+		// ECDSASecp256k1 := &services.SignaturePair_ECDSASecp256K1{
+		// 	ECDSASecp256K1: signatureBytes,
+		// }
+
+		// sigPair = &services.SignaturePair{
+		// 	PubKeyPrefix: publicKey.Bytes(),
+		// 	Signature:    ECDSASecp256k1,
+		// }
+		ecdsaPair := &services.SignaturePair_ECDSASecp256K1{
 			ECDSASecp256K1: signatureBytes,
 		}
 
-		sigPair = &services.SignaturePair{
-			PubKeyPrefix: publicKey.Bytes(),
-			Signature:    ECDSASecp256k1,
+		sigPair := &services.SignaturePair{
+			PubKeyPrefix: publicKey.BytesRaw(), // or Bytes(), depending on your key source
+			Signature:    ecdsaPair,
 		}
+
+		sigMap = &services.SignatureMap{
+			SigPair: []*services.SignaturePair{sigPair},
+		}
+
 	case KEY_TYPE_ED25519:
-		ED25519 := &services.SignaturePair_Ed25519{
+		fmt.Println("ED25519")
+		// ED25519 := &services.SignaturePair_Ed25519{
+		// 	Ed25519: signatureBytes,
+		// }
+
+		// sigPair = &services.SignaturePair{
+		// 	PubKeyPrefix: publicKey.Bytes(),
+		// 	Signature:    ED25519,
+		// }
+		ed25519Pair := &services.SignaturePair_Ed25519{
 			Ed25519: signatureBytes,
 		}
 
-		sigPair = &services.SignaturePair{
-			PubKeyPrefix: publicKey.Bytes(),
-			Signature:    ED25519,
+		sigPair := &services.SignaturePair{
+			PubKeyPrefix: publicKey.BytesRaw(), // or Bytes(), depending on your key source
+			Signature:    ed25519Pair,
+		}
+
+		sigMap = &services.SignatureMap{
+			SigPair: []*services.SignaturePair{sigPair},
 		}
 	default:
 		return nil, fmt.Errorf("unsupported keyType: %d", keyType)
 	}
 
-	sigMap := &services.SignatureMap{
-		SigPair: []*services.SignaturePair{sigPair},
-	}
+	// sigMap := &services.SignatureMap{
+	// 	SigPair: []*services.SignaturePair{sigPair},
+	// }
 
 	// protobuf.Marshal(sigMap)
 
-	return protobuf.Marshal(sigMap) //  []byte(sigMap.String()), nil
+	// return protobuf.Marshal(sigMap) //  []byte(sigMap.String()), nil
+
+	bytes, err := protobuf.Marshal(sigMap)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }

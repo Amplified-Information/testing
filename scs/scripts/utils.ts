@@ -39,7 +39,7 @@ function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array, keyType:
           sigPair: [sigPair]
         })
         const bytes = proto.SignatureMap.encode(sigMap).finish()
-        return bytes 
+        return bytes
       }
     case 'ED25519': 
       { 
