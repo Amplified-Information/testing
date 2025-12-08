@@ -45,18 +45,6 @@ func (m *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsRe
 		limit = int32(DB_MAX_ROWS)
 	}
 
-	// var x *pb_api.MarketResponse = &pb_api.MarketResponse{
-	// 	MarketId:   "123e4567-e89b-12d3-a456-426614174000",
-	// 	Statement:  "Will the price of Bitcoin be above $50,000 on 2024-12-31?",
-	// 	IsOpen:     true,
-	// 	CreatedAt:  "2025-01-01T00:00:00Z",
-	// 	ResolvedAt: "2025-12-31T23:59:59Z",
-	// }
-	// var responses *pb_api.MarketsResponse = &pb_api.MarketsResponse{
-	// 	Markets: []*pb_api.MarketResponse{x},
-	// }
-	// return responses, nil
-
 	markets, err := m.dbRepository.GetMarkets(limit, offset)
 	if err != nil {
 		return nil, err

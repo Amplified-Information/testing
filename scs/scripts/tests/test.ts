@@ -206,17 +206,17 @@ const verify_onChain_assembly = async () => {
 
 
 (async () => {
-  // console.log('************************************************')
-  // verify_rawSig_hashpack_utf8()
-  // console.log('************************************************')
-  // verify_rawSig_hashpack_base64()
-  // console.log('************************************************')
-  // await verify_onChain_utf8()
-  // console.log('************************************************')
-  // await verify_onChain_base64()
-  // console.log('************************************************')
-  // await verify_onChain_assembly()
-  // console.log('************************************************')
+  console.log('************************************************')
+  verify_rawSig_hashpack_utf8()
+  console.log('************************************************')
+  verify_rawSig_hashpack_base64()
+  console.log('************************************************')
+  await verify_onChain_utf8()
+  console.log('************************************************')
+  await verify_onChain_base64()
+  console.log('************************************************')
+  await verify_onChain_assembly()
+  console.log('************************************************')
 
 
   /*
@@ -234,8 +234,6 @@ const verify_onChain_assembly = async () => {
     '4f225d58efe01e391d2e30e6e28dc6530dd4b6b23016ee3fde698b8c3ccb3ea1102bad8685f323c1d700dc71fc6201390e733de2eef51a361e8b80ce57e8332b'
   )
 
-//  0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019aff9a648276dbb6926fb6fdf2285b
-//  2f9580d85fbb5fe62a2d93ffb9e9e8d1a1700017a0e1c1fb1daa2f8040d2b7db69619f5b6cb5e830fac29565b124fd19745e995cf102e7b4cd9d1d8d23fc0479
   process.exit(0)
 })()
 

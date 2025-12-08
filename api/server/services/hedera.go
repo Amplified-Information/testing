@@ -231,27 +231,6 @@ func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKe
 	return publicKey, keyType, nil
 }
 
-// /*
-// *
-// This function determines the type of a given Hedera public key (offline).
-// @param publicKey - the public key to check
-// */
-// func (h *HederaService) PublicKeyType(publicKey *hiero.PublicKey) (HederaKeyType, error) {
-// 	decodedKey, err := base64.StdEncoding.DecodeString(publicKey.String())
-// 	if err != nil {
-// 		log.Fatalf("Failed to decode public key: %v", err)
-// 	}
-
-// 	switch len(decodedKey) {
-// 	case 32:
-// 		return ED25519, nil
-// 	case 33, 65:
-// 		return ECDSA, nil
-// 	default:
-// 		return -1, fmt.Errorf("unknown key type with length: %d", len(decodedKey))
-// 	}
-// }
-
 func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
 
@@ -283,17 +262,6 @@ func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, a
 	amount := float64(result.Allowances[0].Amount) / math.Pow(10, float64(usdcDecimals))
 	return amount, nil
 }
-
-// func (h *HederaService) GetEvmAlias(accountId hiero.AccountID) (string, error) {
-// 	info, err := hiero.NewAccountInfoQuery().
-// 		SetAccountID(accountId).
-// 		Execute(h.hedera_client)
-// 	if err != nil {
-// 		return "", fmt.Errorf("GetEvmAlias failed: %w", err)
-// 	}
-
-// 	return info.ContractAccountID, nil
-// }
 
 func (h *HederaService) BuyPositionTokens(
 	marketId string,
@@ -447,6 +415,27 @@ func (h *HederaService) BuyPositionTokens(
 	log.Printf("sigObjYes (len=%d): %x", len(sigObjYes), sigObjYes)
 	log.Printf("sigObjNo (len=%d): %x", len(sigObjNo), sigObjNo)
 
+	// TODO - submit to the smart contract :)
+	// tx := hiero.NewContractExecuteTransaction().
+	// 		SetContractID(hiero.ContractID.(os.Getenv("HEDERA_SMART_CONTRACT_ID"))).
+	// 		SetGas(10000000)
+
+	// hiero.NewContractExecuteTransaction().
+	// SetContractID(hiero.Contrac(os.Getenv("HEDERA_SMART_CONTRACT_ID"))).
+	// SetGas(1000000).
+	// SetFunction("buyPositionTokensOnBehalfAtomic", params).
+	// Execute(h.hedera_client)
+
+	// buyPositionTokensOnBehalfAtomic
+	// uint128 marketId,
+	// address signerYes,
+	// address signerNo,
+	// uint256 collateralUsdAbsScaled,
+	// uint128 txIdYes,
+	// uint128 txIdNo,
+	// bytes calldata sigObjYes,
+	// bytes calldata sigObjNo
+
 	/////
 	// db
 	// Record the tx on the database (auditing)
@@ -454,115 +443,3 @@ func (h *HederaService) BuyPositionTokens(
 
 	return false, nil
 }
-
-// func (h *HederaService) BuyPositionTokensOld(_accountIdYes string, _accountIdNo string, collateralUsdAbsFloat64 float64, marketIdUuid string, txIdUuidYes string, txIdUuidNo string, sigYes []byte, sigNo []byte) error {
-// 	// amount := orderRequestClob.PriceUsd * orderRequestClob.NShares
-
-// 	// implement smart contract interaction to buy shares
-// 	// call function buyPositionTokensOnBehalf(address buyer, uint256 amount) external { ... }
-// 	// Create contract function call
-// 	smartContractIdStr := os.Getenv("SMART_CONTRACT_ID")
-// 	smartContractId, err := hiero.ContractIDFromString(smartContractIdStr)
-// 	if err != nil {
-// 		return fmt.Errorf("invalid SMART_CONTRACT_ID: %w", err)
-// 	}
-
-// 	accountIdYes, err := hiero.AccountIDFromString(_accountIdYes)
-// 	if err != nil {
-// 		return fmt.Errorf("BuyPositionTokens: invalid AccountId: %w", err)
-// 	}
-// 	accountIdNo, err := hiero.AccountIDFromString(_accountIdNo)
-// 	if err != nil {
-// 		return fmt.Errorf("BuyPositionTokens: invalid AccountId: %w", err)
-// 	}
-
-// 	evmAliasYes, err := h.GetEvmAlias(accountIdYes)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to get alias key: %v", err)
-// 	}
-// 	evmAliasNo, err := h.GetEvmAlias(accountIdNo)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to get alias key: %v", err)
-// 	}
-
-// 	// translate variables to suitable format, prior to submission to smart contract:
-// 	// marketIdBigInt, err := lib.Uuid7_to_bigint(marketIdUuid)
-// 	// if err != nil {
-// 	// 	return fmt.Errorf("failed to convert marketId to bigint: %w", err)
-// 	// }
-
-// 	// collateralUsd_abs_scaled_bigint, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsFloat64)
-// 	// if err != nil {
-// 	// 	return fmt.Errorf("failed to scale collateral USD: %w", err)
-// 	// }
-
-// 	// txIdUuidYesBigInt, err := lib.Uuid7_to_bigint(txIdUuidYes)
-// 	// if err != nil {
-// 	// 	return fmt.Errorf("failed to convert txIdUuidYes to bigint: %w", err)
-// 	// }
-// 	// txIdUuidNoBigInt, err := lib.Uuid7_to_bigint(txIdUuidNo)
-// 	// if err != nil {
-// 	// 	return fmt.Errorf("failed to convert txIdUuidNo to bigint: %w", err)
-// 	// }
-
-// 	// sigYesBytes, err := base64.StdEncoding.DecodeString(sigYesBase64)
-// 	// if err != nil {
-// 	// 	return fmt.Errorf("failed to decode sigYesBase64: %w", err)
-// 	// }
-// 	// sigNoBytes, err := base64.StdEncoding.DecodeString(sigNoBase64)
-// 	// if err != nil {
-// 	// 	return fmt.Errorf("failed to decode sigNoBase64: %w", err)
-// 	// }
-
-// 	// set up the smart contract parameters:
-// 	// note:
-// 	// UUIDv7 fits into a 128-bit unsigned integer register
-// 	// hiero.ToPaddedBytes(someBigUintAbs, 16) // 16 * 8-bits = 128-bit uint
-// 	// hiero.ToPaddedBytes(someBigUintAbs, 32) // 32 * 8-bits = 256-bit uint
-// 	log.Printf("marketIdBigInt (bigint.String()): %s", marketIdBigInt.String())
-// 	log.Printf("marketIdBigInt (hex): %x", marketIdBigInt)
-// 	log.Printf("evmAliasYes: %s", evmAliasYes)
-// 	log.Printf("evmAliasNo: %s", evmAliasNo)
-// 	log.Printf("collateralUsdAbsFloat64: %f", collateralUsdAbsFloat64)
-// 	log.Printf("collateralUsd_abs_scaled_bigint: %s", collateralUsd_abs_scaled_bigint.String())
-// 	log.Printf("sigYes (hex) (len=%d): %x", len(sigYes), sigYes)
-// 	log.Printf("sigNo (hex) (len=%d): %x", len(sigNo), sigNo)
-// 	params := hiero.NewContractFunctionParameters()
-// 	params.AddUint128BigInt(marketIdBigInt)                  // marketId: uint256
-// 	params.AddAddress(evmAliasYes)                           // signerYes: address
-// 	params.AddAddress(evmAliasNo)                            // signerNo: address
-// 	params.AddUint256BigInt(collateralUsd_abs_scaled_bigint) // collateralUsdcAbs: uint256
-// 	params.AddUint128BigInt(txIdUuidYesBigInt)               // txIdYes: uint128
-// 	params.AddUint128BigInt(txIdUuidNoBigInt)                // txIdNo: uint128
-// 	params.AddBytes(sigYesBytes)                             // sigYes: bytes (calldata)
-// 	params.AddBytes(sigNoBytes)                              // sigNo: bytes (calldata)
-
-// 	log.Printf("Attempting to allocate position tokens on-chain (marketId=%s): accountIdYes=%s, accountIdNo=%s, collateralUsdAbs=%f, txIdYesUuid=%s (sigYesBase64=%s), txIdNoUuid=%s (sigNoBase64=%s)", marketIdUuid, evmAliasYes, evmAliasNo, collateralUsdAbsFloat64, txIdUuidYes, sigYesBase64, txIdUuidNo, sigNoBase64)
-
-// 	contractCall := hiero.NewContractExecuteTransaction().
-// 		SetContractID(smartContractId).
-// 		SetGas(10_000_000). // paid by us...
-// 		SetFunction("buyPositionTokensOnBehalfAtomic", params)
-
-// 	// Execute transaction
-// 	txResponse, err := contractCall.Execute(h.hedera_client)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to execute contract call (contractId=%s): %w", smartContractIdStr, err)
-// 		// TODO - put the order back on the CLOB?...
-// 	}
-
-// 	// Get receipt
-// 	receipt, err := txResponse.GetReceipt(h.hedera_client)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to get receipt (contractId=%s): %w", smartContractIdStr, err)
-// 		// TODO - put the order back on the CLOB?...
-// 	}
-
-// 	if receipt.Status != hiero.StatusSuccess {
-// 		return fmt.Errorf("contract execution failed with status (contractId=%s): %s", smartContractIdStr, receipt.Status)
-// 		// TODO - put the order back on the CLOB?...
-// 	}
-
-// 	log.Printf("Successfully sent $USDC %d (scaled with USDC decimals) collateral from both accountId=%s (YES) and accountId=%s (NO). Smart contract Id: %s. Hedera txId: %s", collateralUsd_abs_scaled_bigint.Uint64(), _accountIdYes, _accountIdNo, smartContractIdStr, txResponse.TransactionID.String())
-// 	return nil
-// }
