@@ -9,14 +9,15 @@ Signer.tsx:238 sigHex (len=64): ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24
 Signer.tsx:36 {"txId":"019af9dc-4e5f-7518-80af-b44d6938149c","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-07T17:29:16.127Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.5,"qty":0.0274,"sig":"rkztvdmz3NlLqOCQnzW7k/9b2KFe+H0k9hCAK3VsxzY6yv0xUdbJEYLv5c7+fW5C0aNWgCLpKPBgEhhP16KCCw=="}
 
 # export SMART_CONTRACT_ID=0.0.7388577
-export PUBLIC_KEY_HEX=03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787
 
-export PAYLOAD_HEX=00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c
-export MARKET_ID_HEX=0189c0a87e807e808000000000000003
-export TX_ID_HEX=019af9dc4e5f751880afb44d6938149c
-export SIG_RAW_HEX=ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b
+export PUBLIC_KEY=03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787
+# N.B. PAYLOAD is constructed using the marketId and txId below (collateral USD is 0.0137 converted to a hex 256-bit uint):
+# export MARKET_ID=0189c0a87e807e808000000000000003
+# export TX_ID=019af9dc4e5f751880afb44d6938149c
+export PAYLOAD=00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c
+export SIG_RAW=ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b
 
-ts-node 4_buy.ts $SMART_CONTRACT_ID $PAYLOAD_HEX $SIG_RAW_HEX $PUBLIC_KEY_HEX
+ts-node 4_buy.ts $SMART_CONTRACT_ID $PAYLOAD $SIG_RAW $PUBLIC_KEY
 */
 
 import {
@@ -171,7 +172,8 @@ const main = async () => {
         // uint128 marketId,
         // address signerYes,
         // address signerNo,
-        // uint256 collateralUsdAbsScaled,
+        // uint256 collateralUsdAbsScaledYes
+        // uint256 collateralUsdAbsScaledNo,
         // uint128 txIdYes,
         // uint128 txIdNo,
         // bytes calldata sigObjYes,
@@ -179,7 +181,8 @@ const main = async () => {
       .addUint128(marketId.toString()) // marketId
       .addAddress(account) // signerYes
       .addAddress(account) // signerNo // TODO - have a yes/no distinction
-      .addUint256(collateralUsdAbsScaled.toString()) // collateralUsdAbsScaled
+      .addUint256(collateralUsdAbsScaled.toString()) // collateralUsdAbsScaledYes
+      .addUint256(collateralUsdAbsScaled.toString()) // collateralUsdAbsScaledNo // TODO - have a yes/no distinction
       .addUint128(txId.toString()) // txIdYes
       .addUint128(txId.toString())  // txIdNo // TODO - have a yes/no distinction
       .addBytes(sigObj) // sigObjYes

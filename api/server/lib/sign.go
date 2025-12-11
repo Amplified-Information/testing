@@ -52,6 +52,20 @@ func Uuid7_to_bigint(uuid7 string) (*big.Int, error) {
 	return bigIntValue, nil
 }
 
+// func Uuid7_to_bytes(uuid7 string) ([]byte, error) {
+// 	// Remove all hyphens from the UUID7 string
+// 	uuid7Cleaned := strings.ReplaceAll(uuid7, "-", "")
+
+// 	// Prefix with 0x to indicate hexadecimal
+// 	hexString := "0x" + uuid7Cleaned
+
+// 	bytes, err := hex.DecodeString(hexString)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to decode UUID7 hex string: %s", uuid7)
+// 	}
+// 	return bytes, nil
+// }
+
 func PrefixMessageToSign(messageStr string) string {
 	msg := fmt.Sprintf("\x19Hedera Signed Message:\n44%s", messageStr) // fixed length 44 for base64-encoded keccak256 hash
 	return msg
@@ -106,4 +120,39 @@ func BuildSignatureMap(publicKey *hiero.PublicKey, signatureBytes []byte, keyTyp
 		return nil, err
 	}
 	return bytes, nil
+}
+
+func FloatToBigIntScaledDecimals(value float64, nDecimals int) (*big.Int, error) {
+	// JavaScript version - utils.ts
+	// const floatToBigIntScaledDecimals = (value: number, nDecimals: number): bigint => {
+	// 	const [integerPart, fractionalPart = ''] = value.toString().split('.')
+	// 	const scaledValue = '' + integerPart + '' + fractionalPart.padEnd(nDecimals, '0').slice(0, nDecimals)
+	// 	return BigInt(scaledValue)
+	// }
+	valueStr := fmt.Sprintf("%f", value)
+	parts := strings.Split(valueStr, ".")
+	integerPart := parts[0]
+	fractionalPart := ""
+	if len(parts) == 2 {
+		fractionalPart = parts[1]
+	}
+	if len(parts) > 2 {
+		return nil, fmt.Errorf("invalid float value: %f", value)
+	}
+
+	// Pad or truncate the fractional part to nDecimals
+	if len(fractionalPart) < nDecimals {
+		fractionalPart = fractionalPart + strings.Repeat("0", nDecimals-len(fractionalPart))
+	} else if len(fractionalPart) > nDecimals {
+		fractionalPart = fractionalPart[:nDecimals]
+	}
+
+	scaledValueStr := integerPart + fractionalPart
+	scaledValueBigInt := new(big.Int)
+	_, ok := scaledValueBigInt.SetString(scaledValueStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert scaled value to big.Int: %s", scaledValueStr)
+	}
+
+	return scaledValueBigInt, nil
 }

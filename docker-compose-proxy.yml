@@ -1,0 +1,11 @@
+services:
+  envoy:
+    image: ghcr.io/prismmarketlabs/envoy:0.1.0
+    env_file:
+      - ./proxy/.config.local
+    network_mode: "host"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./proxy/envoy.yaml:/etc/envoy/envoy.yaml
+    restart: always

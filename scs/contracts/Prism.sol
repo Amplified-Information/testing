@@ -80,7 +80,8 @@ contract Prism {
   @param marketId The ID of the market.
   @param signerYes The (signing) address of the account buying YES position tokens.
   @param signerNo The (signing) address of the account buying NO position tokens.
-  @param collateralUsdAbsScaled The amount of collateral (in USDC) to be used for purchasing position tokens (scaled to the number of collatoral token decimal places).
+  @param collateralUsdAbsScaledYes Yes side amount of collateral (in USDC) to be used for purchasing position tokens (scaled to the number of collatoral token decimal places).
+  @param collateralUsdAbsScaledNo  No side amount of collateral (in USDC) to be used for purchasing position tokens (scaled to the number of collatoral token decimal places).
   @param txIdYes txId of the Yes side 
   @param txIdNo txId of the No side
   @param sigObjYes The signatureObject (includes the key type) of the YES transaction
@@ -90,7 +91,8 @@ contract Prism {
     uint128 marketId,
     address signerYes,
     address signerNo,
-    uint256 collateralUsdAbsScaled,
+    uint256 collateralUsdAbsScaledYes, // need to send Yes and No collateral amounts for sig verification
+    uint256 collateralUsdAbsScaledNo,
     uint128 txIdYes,
     uint128 txIdNo,
     bytes calldata sigObjYes,
@@ -101,12 +103,19 @@ contract Prism {
     // prevent replay attacks by ensuring unique txIds // TODO - storage size ;(
     require(!usedTxIds[txIdYes], "Duplicate txIdYes");
     require(!usedTxIds[txIdNo], "Duplicate txIdNo");
-    usedTxIds[txIdYes] = true;
-    usedTxIds[txIdNo] = true;
+
+    uint256 collateralUsdAbsScaled = 0;
+    if (collateralUsdAbsScaledYes > collateralUsdAbsScaledNo) {
+      collateralUsdAbsScaled = collateralUsdAbsScaledYes;
+      usedTxIds[txIdNo] = true; // the lower side (NO) is mmarked as used
+    } else {
+      collateralUsdAbsScaled = collateralUsdAbsScaledNo; // always transfer the lower amount of collateral (partial match)
+      usedTxIds[txIdYes] = true; // the lower side (YES) is marked as used
+    }
 
     // on-chain signature verifiaction using an on-chain assembled payload:
-    require(isAuthorized(signerYes, assemblePrismPayload(collateralUsdAbsScaled, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");
-    require(isAuthorized(signerNo,  assemblePrismPayload(collateralUsdAbsScaled, marketId, txIdNo),  sigObjNo),  "isAuthorized NO failed");
+    require(isAuthorized(signerYes, assemblePrismPayload(collateralUsdAbsScaledYes, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");
+    require(isAuthorized(signerNo,  assemblePrismPayload(collateralUsdAbsScaledNo, marketId, txIdNo),  sigObjNo),  "isAuthorized NO failed");
 
     // Transfer collateral from the buyer to the contract using the buyer's allowance
     require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");

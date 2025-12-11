@@ -87,7 +87,7 @@ func (n *NatsService) HandleOrderMatches() error {
 			return
 		}
 
-		// assert that the two priceUsd's cancel each other out
+		// assert that the two priceUsd's cancel each other out - TODO - this is an invalid assertion because a high bid can be higher than the lowest ask and vice-versa
 		priceDiff := orderRequestClobTuple[0].PriceUsd + orderRequestClobTuple[1].PriceUsd
 		if priceDiff != 0.0 {
 			log.Printf("PROBLEM: orderRequestClobTuple[0] + orderRequestClobTuple[1] is %f and not 0.0", priceDiff)
@@ -141,8 +141,8 @@ func (n *NatsService) HandleOrderMatches() error {
 			orderRequestClobTuple[1].Qty,
 			orderRequestClobTuple[0].PriceUsd,
 			orderRequestClobTuple[1].PriceUsd,
-			orderRequestClobTuple[0].AccountId,
-			orderRequestClobTuple[1].AccountId,
+			orderRequestClobTuple[0].EvmAddress,
+			orderRequestClobTuple[1].EvmAddress,
 			orderRequestClobTuple[0].TxId,
 			orderRequestClobTuple[1].TxId,
 			orderRequestClobTuple[0].Sig,

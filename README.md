@@ -15,6 +15,26 @@ This project is divided into a number of folders:
 
 Please use ghcr (Github container registry) only for images.
 
+https://github.com/orgs/PrismMarketLabs/packages
+
+Create a PAT here: https://github.com/settings/tokens/new - check `read:packages`, `write:packages` and `delete:packages`
+
+Call the token "ghcr"
+
+```bash
+ export PAT=ghp_...
+echo $PAT | docker login ghcr.io -u zoikhash --password-stdin # note: use your github username, "zoikhash" in this case
+# you may have to install `pass` and `docker-credential-pass`
+# or delete '{ "credsStore": "pass" }' from ~/.docker/config.json
+```
+
+Docker build instructions are at the top of the Dockerfiles
+
+```bash
+docker build -t ghcr.io/prismmarketlabs/envoy:0.1.0 . # Note the org name is all lowercase. Note the verison number
+docker push ghcr.io/prismmarketlabs/envoy:0.1.0
+```
+
 ```bash
 export PAT=<personal_access_token>
 echo $PAT | docker login ghcr.io --username MuzanHash --password-stdin
@@ -124,7 +144,7 @@ Every transaction initiated by the user has a digital signature.
 type ObjForSigning struct {
   BuySell                boolean // buy is 0, sell is 1
   CollateralUsdAbsScaled uint256
-  EvmAdd                 uint256
+  EvmAdd                 uint256 // a 20-byte EVM address is 160-bits
   MarketIdUUID           uint128
   TxIdUUID               uint128
 }

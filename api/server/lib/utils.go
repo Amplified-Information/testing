@@ -8,11 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
-	"math/big"
 	"net/http"
-	"os"
-	"strconv"
 
 	pb "api/gen"
 
@@ -85,18 +81,18 @@ func BytesToInt64(b []byte) int64 {
 	return int64(binary.BigEndian.Uint64(b))
 }
 
-func FloatToBigIntScaledDecimals(value float64) (*big.Int, error) {
-	// scale the float64s for the number of USDC_DECIMALS
-	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
-	usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid USDC_DECIMALS: %w", err)
-	}
+// func FloatToBigIntScaledDecimals(value float64) (*big.Int, error) {
+// 	// scale the float64s for the number of USDC_DECIMALS
+// 	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
+// 	usdcDecimals, err := strconv.ParseInt(usdcDecimalsStr, 10, 64)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("invalid USDC_DECIMALS: %w", err)
+// 	}
 
-	scaledValue := new(big.Float).Mul(big.NewFloat(value), new(big.Float).SetFloat64(math.Pow10(int(usdcDecimals))))
-	bigIntValue, _ := scaledValue.Int(nil)
-	return bigIntValue, nil
-}
+// 	scaledValue := new(big.Float).Mul(big.NewFloat(value), new(big.Float).SetFloat64(math.Pow10(int(usdcDecimals))))
+// 	bigIntValue, _ := scaledValue.Int(nil)
+// 	return bigIntValue, nil
+// }
 
 // hex2utf8 converts a hex string to a UTF-8 string.
 // Invalid byte sequences are replaced with the Unicode replacement character.

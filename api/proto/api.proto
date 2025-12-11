@@ -15,7 +15,7 @@ service ApiService {
   rpc GetMarketById(MarketIdRequest) returns (MarketResponse);
   rpc GetMarkets(LimitOffsetRequest) returns (MarketsResponse);
   rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
-  // rpc MarketHistory(MarketIdRequest)
+  rpc PriceHistory(PriceRequest) returns (PriceHistoryResponse);
   // rpc AddComment
 }
 
@@ -65,4 +65,16 @@ message MarketsResponse {
 message NewMarketRequest {
   string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
   string statement = 2 [json_name = "statement", (validate.rules).string = {min_len: 10, max_len: 500}];
+}
+
+message PriceRequest {
+  string market_id = 1 [json_name = "marketId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  int32 offset = 2    [json_name = "offset",    (validate.rules).int32 = {gte: 0} /* offset in ticks */];
+  int32 limit = 3     [json_name = "limit",     (validate.rules).int32 = {gt: 0, lte: 1000} /* max 1000 ticks per request */];
+  string zoom = 4     [json_name = "zoom",      (validate.rules).string = {in: ["1m", "5m", "15m", "30m", "1h", "6h", "12h", "1d"]} /* zoom levels: 1 minute, 5 minutes, 15 minutes, 30 minutes, 1 hour, 6 hours, 12 hours, 1 day */];
+}
+
+message PriceHistoryResponse {
+  repeated float ticks = 1;
+  string from = 2 [json_name = "from"];
 }

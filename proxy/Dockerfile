@@ -1,7 +1,9 @@
+# docker build -t ghcr.io/prismmarketlabs/envoy:<version> .
 FROM envoyproxy/envoy:contrib-v1.35-latest
 
 COPY ./envoy.yaml /etc/envoy/envoy.yaml
 
+# ensure this config is available in .config.ENV
 ENV ENVOY_PORT=$ENVOY_PORT
 ENV ENVOY_ADMIN_PORT=$ENVOY_ADMIN_PORT
 ENV ENVOY_WEB_HOST=$ENVOY_WEB_HOST
@@ -13,7 +15,7 @@ ENV ENVOY_CLOB_PORT=$ENVOY_CLOB_PORT
 
 EXPOSE $ENVOY_PORT
 # Warning: Expose the admin interface port
-EXPOSE $ENVOY_ADMIN_PORT
+# EXPOSE $ENVOY_ADMIN_PORT
 
 # Command to run Envoy with the specified configuration file
 CMD ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]

@@ -1,1 +1,0 @@
-ALTER TABLE order_requests DROP COLUMN IF EXISTS net;

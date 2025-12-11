@@ -83,15 +83,18 @@ func (dbRepository *DbRepository) SaveOrderRequest(req *pb_api.PredictionIntentR
 	generatedAt = generatedAt.UTC()
 
 	params := sqlc.CreateOrderRequestParams{
-		TxID:        txUUID,
-		Net:         req.Net,
-		MarketID:    marketUUID,
-		AccountID:   req.AccountId,
-		MarketLimit: req.MarketLimit,
-		PriceUsd:    req.PriceUsd,
-		Qty:         req.Qty,
-		Sig:         req.Sig,
-		GeneratedAt: generatedAt,
+		TxID:         txUUID,
+		Net:          req.Net,
+		MarketID:     marketUUID,
+		AccountID:    req.AccountId,
+		MarketLimit:  req.MarketLimit,
+		PriceUsd:     req.PriceUsd,
+		Qty:          req.Qty,
+		Sig:          req.Sig,
+		GeneratedAt:  generatedAt,
+		PublicKeyHex: req.PublicKey,
+		Evmaddress:   req.EvmAddress,
+		Keytype:      int32(req.KeyType),
 	}
 
 	q := sqlc.New(dbRepository.db)
@@ -209,4 +212,60 @@ func (dbRepository *DbRepository) CreateMarket(marketId string, statement string
 
 	log.Printf("Created new market in database: %s", market.MarketID.String())
 	return &market, nil
+}
+
+func (dbRepository *DbRepository) SavePriceHistory(marketId string, price float64) error {
+	if dbRepository.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	marketUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	params := sqlc.InsertPriceParams{
+		MarketID: marketUUID,
+		Price:    fmt.Sprintf("%f", price), // use of NUMERIC(18,10) avoids floating point imprecision
+		Ts:       time.Now().UTC(),
+	}
+
+	q := sqlc.New(dbRepository.db)
+	err = q.InsertPrice(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("InsertPriceHistory failed: %v", err)
+	}
+
+	log.Printf("DB: marketId %s price = %f", marketId, price)
+	return nil
+}
+
+func (dbRepository *DbRepository) CreateSettlement(txIdUuid1 string, txIdUuid2 string, txHash string) error {
+	if dbRepository.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	txId1, err := uuid.Parse(txIdUuid1)
+	if err != nil {
+		return fmt.Errorf("invalid txId1 uuid: %v", err)
+	}
+
+	txId2, err := uuid.Parse(txIdUuid2)
+	if err != nil {
+		return fmt.Errorf("invalid txId2 uuid: %v", err)
+	}
+
+	params := sqlc.CreateSettlementParams{
+		TxId1:  txId1,
+		TxId2:  txId2,
+		TxHash: txHash,
+	}
+
+	q := sqlc.New(dbRepository.db)
+	err = q.CreateSettlement(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("CreateSettlement failed: %v", err)
+	}
+
+	return nil
 }

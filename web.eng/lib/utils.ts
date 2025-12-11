@@ -49,7 +49,7 @@ const isValidUUIDv7 = (uuid: string): boolean => {
   return uuidv7Regex.test(uuid)
 }
 
-const assemblePayloadHexForSigning = (predictionIntentRequest: PredictionIntentRequest) => {
+const assemblePayloadHexForSigning = (predictionIntentRequest: PredictionIntentRequest): string => {
   const packedHex = [
     floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(16).padStart(64, '0'),
     uuidToBigInt(predictionIntentRequest.marketId).toString(16).padStart(32, '0'),

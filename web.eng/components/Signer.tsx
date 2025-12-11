@@ -1,6 +1,6 @@
 import { PredictionIntentRequest } from '../gen/api'
 import { useEffect, useState } from 'react'
-import { getMidPrice, floatToBigIntScaledDecimals, uuidToBigInt, assemblePayloadHexForSigning } from '../lib/utils'
+import { getMidPrice, floatToBigIntScaledDecimals, assemblePayloadHexForSigning } from '../lib/utils'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
 import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, smartContractId, usdcDecimals } from '../constants'
@@ -227,16 +227,23 @@ const Signer = ({ marketId }: { marketId: string }) => {
             // Carefully construct a packed payload for keccak256 hashing
             // Then sign the keccak256 hash of the packed payload
             // See: Prism.sol
-            const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
-            const marketId_uuid128 = uuidToBigInt(predictionIntentRequest.marketId)
-            const txId_uuid128 = uuidToBigInt(predictionIntentRequest.txId)
+            //// const marketId_uuid128 = uuidToBigInt(predictionIntentRequest.marketId)
+            //// const txId_uuid128 = uuidToBigInt(predictionIntentRequest.txId)
 
             const packedHex = assemblePayloadHexForSigning(predictionIntentRequest)
+            console.log(`packedHex: ${packedHex}`)
+            const packedKeccakHex = keccak256(Buffer.from(packedHex, 'hex')).slice(2)
+            console.log(`packedKeccakHex (len=${Buffer.from(packedKeccakHex, 'hex').length}): ${packedKeccakHex}`)
 
-            console.log('x: ', keccak256(Buffer.from(packedHex, 'hex')))
-            console.log(ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2))
-            const packedKeccakHex = ethers.solidityPackedKeccak256(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
-            console.log(`packedKeccakHex: ${packedKeccakHex}`)
+            //// console.log('x: ', keccak256(Buffer.from(packedHex, 'hex')))
+            //// // TODO - put this packing into a function ".AssemblePayloadHexForSigning()" (including the Math.abs bit)
+            //// const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
+            //// console.log(ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2))
+            //// const packedKeccakHex = ethers.solidityPackedKeccak256(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
+            //// console.log(`packedKeccakHex: ${packedKeccakHex}`)
+
+
+           
             // const payloadHex = ethers.solidityPacked(['uint256','uint128','uint128'],[collateralUsd_abs_scaled,marketId_uuid128,txId_uuid128]).slice(2)
             // console.log(`payloadHex: ${payloadHex}`)
 
@@ -247,10 +254,10 @@ const Signer = ({ marketId }: { marketId: string }) => {
             // const sigHex = (await signerZero!.sign([Buffer.from(keccakHex, 'hex')]))[0].signature
             const msgToSign64 = Buffer.from(packedKeccakHex, 'hex').toString('base64')
             console.log(`msgToSign (base64) (len=${msgToSign64.length}): ${msgToSign64}`)
-            console.log(`packedKeccakHex (len=${Buffer.from(packedKeccakHex, 'hex').length}): ${packedKeccakHex}`)
+            // console.log(`packedKeccakHex (len=${Buffer.from(packedKeccakHex, 'hex').length}): ${packedKeccakHex}`)
             const sigHex = (await signerZero!.sign([Buffer.from(packedKeccakHex, 'hex')], { encoding: 'base64' }))[0].signature
-            console.log(`sigHex (len=${sigHex.length}): ${Buffer.from(sigHex).toString('hex')}`)
-
+            console.log(`sig (hex) (len=${sigHex.length}): ${Buffer.from(sigHex).toString('hex')}`)
+            console.log(`sig (base64): ${Buffer.from(sigHex).toString('base64')}`)
             setPredictionIntentRequest({ ...predictionIntentRequest, sig: Buffer.from(sigHex).toString('base64') })
             // const serializedPayload = JSON.stringify(payload)
             // console.log(`serializedPayload (utf8): ${serializedPayload}`)

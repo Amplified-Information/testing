@@ -48,6 +48,10 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("invalid timestamp format: %v", err)
 	}
 
+	// TODO - validate the evmAddress is 20 bytes hex
+	// TODO - validate the publicKey is valid
+	// TODO - validate the publicKey type is valid
+
 	now := time.Now().UTC()
 	allowedPastSeconds, err := strconv.Atoi(os.Getenv("TIMESTAMP_ALLOWED_PAST_SECONDS"))
 	if err != nil {
@@ -88,7 +92,6 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("invalid network: %s", req.Net)
 	}
 
-
 	// First look up the Hedera accountId against the mirror node
 	publicKeyLookedUp, keyTypeLookedUp, err := h.hederaService.GetPublicKey(accountId)
 	if err != nil {
@@ -112,7 +115,11 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 
 	// Now it's safe to proceed with the publicKey passed from the frontend...
 	collateralUsdAbs := math.Abs(req.PriceUsd * req.Qty)
-	collateralUsdAbsScaled, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbs)
+	usdcDecimals, err := strconv.ParseUint(os.Getenv("USDC_DECIMALS"), 10, 64)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse USDC_DECIMALS: %v", err)
+	}
+	collateralUsdAbsScaled, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbs, int(usdcDecimals))
 	if err != nil {
 		return "", fmt.Errorf("failed to scale collateralUsdAbs: %v", err)
 	}
@@ -148,10 +155,6 @@ func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	usdcAddress, err := hiero.ContractIDFromString(os.Getenv("USDC_ADDRESS"))
 	if err != nil {
 		return "", fmt.Errorf("failed to validate USDC_ADDRESS: %v", err)
-	}
-	usdcDecimals, err := strconv.ParseUint(os.Getenv("USDC_DECIMALS"), 10, 64)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse USDC_DECIMALS: %v", err)
 	}
 
 	spenderAllowanceUsd, err := h.hederaService.GetSpenderAllowanceUsd(*_networkSelected, accountId, _smartContractId, usdcAddress, usdcDecimals)

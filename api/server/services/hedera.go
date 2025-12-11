@@ -7,23 +7,21 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strconv"
 	"strings"
 
 	"os"
 
 	"api/server/lib"
+	repositories "api/server/repositories"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
 type HederaService struct {
 	hedera_client *hiero.Client
+	dbRepository  *repositories.DbRepository
 }
-
-// type PublicKey struct {
-// 	KeyType string
-// 	Key     string
-// }
 
 func (h *HederaService) InitHedera() (*hiero.Client, error) {
 	networkSelected := os.Getenv("HEDERA_NETWORK_SELECTED")
@@ -81,18 +79,9 @@ func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, payloadHex string,
 	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
 
 	// JavaScript equivalent (see: test.ts:55):
-	// const keccakHex = keccak256(Buffer.from(payloadHex, 'hex')).slice(2)
-	// const keccak = Buffer.from(keccakHex, 'hex')
-	// const keccak64 = keccak.toString('base64') // an extra step...
-	// const keccakPrefixedStr = prefixMessageToSign(keccak64)
-	// console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
 
-	keccak64 := base64.StdEncoding.EncodeToString(keccak)
+	keccak64 := base64.StdEncoding.EncodeToString(keccak) // N.B. this line is required for base64 hashpack encoding
 	keccak64PrefixedStr := lib.PrefixMessageToSign(keccak64)
-	// log.Printf("keccak64 (base64) calc'd on back-end: %s", keccak64)
-	// log.Printf("keccak64 (hex) calc'd on back-end: %x", keccak64)
-	// fmt.Printf("keccakPrefixedStr: %s\n", keccak64PrefixedStr)
-	// fmt.Printf("keccakPrefixedStr (hex): %s\n", hex.EncodeToString([]byte(keccak64PrefixedStr)))
 
 	// Now verify the signature
 	isValid := publicKey.VerifySignedMessage([]byte(keccak64PrefixedStr), sig)
@@ -101,80 +90,6 @@ func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, payloadHex string,
 	}
 	return false, fmt.Errorf("Invalid signature")
 }
-
-// OLD - hashpack utf-8 sig verification
-// func (h *HederaService) Verify(publicKey *hiero.PublicKey, payloadUtf8 string, sigBase64 string) (bool, error) {
-// 	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
-// 	if err != nil {
-// 		return false, fmt.Errorf("failed to decode signature: %w", err)
-// 	}
-
-// 	keccak := lib.Keccak256([]byte(payloadUtf8))
-// 	// keccakHex := hex.EncodeToString(keccak)
-// 	keccakHex := fmt.Sprintf("%x", keccak)
-// 	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
-
-// 	log.Printf("sig: %x", sigBytes)
-
-// 	N := len([]rune(string(keccak)))
-// 	keccakPrefixedUtf8 := lib.PrefixMessageToSign(keccakHex, N)
-// 	fmt.Printf("keccakPrefixedUtf8: %s\n", keccakPrefixedUtf8)
-
-// 	sigHex := fmt.Sprintf("%x", sigBytes)
-// 	sig := make([]byte, len(sigHex)/2)
-// 	_, err = hex.Decode(sig, []byte(sigHex))
-// 	if err != nil {
-// 		return false, fmt.Errorf("Error decoding signature hex: %v", err)
-// 	}
-
-// 	// Verify signature
-// 	isValid := publicKey.VerifySignedMessage([]byte(keccakPrefixedUtf8), sig)
-// 	if isValid {
-// 		return true, nil
-// 	}
-// 	return false, fmt.Errorf("Invalid signature")
-// }
-
-// /*
-// *
-// Function to verify a signature
-// @param PublicKey publickKey - the public key to verify against
-// @param byte[] serializedPayload - the serialisedPayload - see sign.go
-// @param string sigBase64 - the signature (base64) to verify against
-// @return bool - true if the signature is valid, false otherwise
-// */
-// func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, serializedPayload []byte, sigBase64 string) (bool, error) {
-// 	// keccak256 hash of the serialized payload
-// 	payloadKeccak := lib.Keccak256(serializedPayload)
-// 	log.Printf("payloadKeccak (hex) (len=%d): %x", len(payloadKeccak), payloadKeccak)
-
-// 	// Decode Base64 signature
-// 	sig, err := base64.StdEncoding.DecodeString(sigBase64)
-// 	if err != nil {
-// 		return false, fmt.Errorf("failed to decode signature: %w", err)
-// 	}
-// 	if len(sig) != 64 {
-// 		return false, fmt.Errorf("unexpected signature length: %d", len(sig))
-// 	}
-
-// 	// Construct the exact signed message bytes (Hedera WalletConnect prefix)
-// 	// N.B. the payload is prefixed!
-// 	prefix := "\x19Hedera Signed Message:\n"
-// 	prefixedPayload := append([]byte(prefix), byte(len(payloadKeccak))) // Append raw byte length
-// 	prefixedPayload = append(prefixedPayload, payloadKeccak...)
-// 	log.Printf("prefixedPayload (hex) (len=%d):%x", len(prefixedPayload), prefixedPayload)
-
-// 	log.Printf(publicKey.StringRaw())
-// 	log.Printf("serializedPayload (hex) (len=%d): %x", len(serializedPayload), serializedPayload)
-// 	log.Printf("%v", publicKey.VerifySignedMessage(prefixedPayload, sig))
-// 	log.Printf("%v", publicKey.VerifySignedMessage(crypto.Keccak256(prefixedPayload), sig))
-// 	log.Printf("%v", publicKey.VerifySignedMessage(payloadKeccak, sig))
-// 	log.Printf("%v", publicKey.VerifySignedMessage(serializedPayload, sig))
-
-// 	// Verify signature
-// 	verified := publicKey.VerifySignedMessage(prefixedPayload, sig) // note: The hiero Golang library will again calc the keccak256 of the prefixed message
-// 	return verified, nil
-// }
 
 func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKey, lib.HederaKeyType, error) {
 	keyType := lib.HederaKeyType(0)
@@ -263,6 +178,34 @@ func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, a
 	return amount, nil
 }
 
+/*
+*
+This function takes a number of input parameters from the YES and NO side
+- performs validation
+- determines which side (YES or NO) gets the YES or NO position tokens (the negative USD side gets the NO, the positive side gets the YES)
+- in the event of a partial match, the lower collatoralUsd amount (priceUsd * qty) is used for the collateral
+- constructs sigObjYes/sigObjNo off-chain. sigObjYes and sigObjNo have key type information embedded in them
+- submits to the buyPositionTokensOnBehalfAtomic(...) function on the Prism smart contract
+
+* @param marketId - nique market ID for the transaction (UUIDv7 string)
+* @param origQtyYes - quantity of YES position tokens requested by the user when they originally placed the order
+* @param origQtyNo - quantity of NO position tokens requested by the user when they originally placed the order
+* @param origPriceUsdYes - price (USD) of the market when the user originally placed the order (negative number => YES, positive number => NO)
+* @param origPriceUsdNo - price (USD) of the market when the user originally placed the order (negative number => YES, positive number => NO)
+* @param txIdUuidYes -
+* @param txIdUuidNo -
+* @param sigYes64 -
+* @param sigNo64 -
+* @param publicKeyYesHex -
+* @param publicKeyNoHex -
+* @param evmYes -
+* @param evmNo -
+* @param keyTypeYes -
+* @param keyTypeNo -
+
+* @return bool - Returns true if the transaction is successful, otherwise false.
+* @return error - Returns an error if the transaction fails or the receipt cannot be retrieved.
+*/
 func (h *HederaService) BuyPositionTokens(
 	marketId string,
 	origQtyYes float64,
@@ -283,36 +226,53 @@ func (h *HederaService) BuyPositionTokens(
 	keyTypeNo int32,
 ) (bool, error) {
 
-	// do we need to flip which accoundId is YES and which accountId is NO?
-	if origPriceUsdNo < 0 && origPriceUsdYes > 0 { // Yes side get YES position tokens, No side gets NO position tokens
-		// canonical situation - the ordering is correct as-is
-	} else if origPriceUsdYes < 0 && origPriceUsdNo > 0 { // Yes side gets NO position tokens, No side gets YES position tokens
-		origQtyYes, origQtyNo = origQtyNo, origQtyYes
-		origPriceUsdYes, origPriceUsdNo = origPriceUsdNo, origPriceUsdYes
-		accountIdYes, accountIdNo = accountIdNo, accountIdYes
-		txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
-		sigYes64, sigNo64 = sigNo64, sigYes64
-		publicKeyYesHex, publicKeyNoHex = publicKeyNoHex, publicKeyYesHex
-		evmYes, evmNo = evmNo, evmYes
-		keyTypeYes, keyTypeNo = keyTypeNo, keyTypeYes
-	} else {
-		// all other situations (including == 0.0) can never happen:
-		return false, fmt.Errorf("invalid price_usd values for YES and NO positions: %f, %f", origPriceUsdYes, origPriceUsdNo)
-	}
+	// TODO - do this swapping on-chain
+	// // do we need to flip which accoundId is YES and which accountId is NO?
+	// if origPriceUsdNo < 0 && origPriceUsdYes > 0 { // Yes side get YES position tokens, No side gets NO position tokens
+	// 	// canonical situation - the ordering is correct as-is
+	// } else if origPriceUsdYes < 0 && origPriceUsdNo > 0 { // Yes side gets NO position tokens, No side gets YES position tokens
+	// 	origQtyYes, origQtyNo = origQtyNo, origQtyYes
+	// 	origPriceUsdYes, origPriceUsdNo = origPriceUsdNo, origPriceUsdYes
+	// 	accountIdYes, accountIdNo = accountIdNo, accountIdYes
+	// 	txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
+	// 	sigYes64, sigNo64 = sigNo64, sigYes64
+	// 	publicKeyYesHex, publicKeyNoHex = publicKeyNoHex, publicKeyYesHex
+	// 	evmYes, evmNo = evmNo, evmYes
+	// 	keyTypeYes, keyTypeNo = keyTypeNo, keyTypeYes
+	// } else {
+	// 	// all other situations (including == 0.0) can never happen:
+	// 	return false, fmt.Errorf("invalid price_usd values for YES and NO positions: %f, %f", origPriceUsdYes, origPriceUsdNo)
+	// }
 
+	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
+	usdcDecimals, err := strconv.ParseUint(usdcDecimalsStr, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("invalid USDC_DECIMALS: %w", err)
+	}
 	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
-	collateralUsdAbsYes := math.Abs(origPriceUsdYes * origQtyYes)
-	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsYes)
+	// const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
+	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(math.Abs(origPriceUsdYes*origQtyYes), int(usdcDecimals))
 	if err != nil {
 		return false, fmt.Errorf("failed to scale collateralUsdAbsYes: %v", err)
 	}
 
-	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
-	collateralUsdAbsNo := math.Abs(origPriceUsdNo * origQtyNo)
-	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsNo)
+	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(math.Abs(origPriceUsdNo*origQtyNo), int(usdcDecimals))
 	if err != nil {
 		return false, fmt.Errorf("failed to scale collateralUsdAbsNo: %v", err)
 	}
+
+	// collateralUsdAbsYes := math.Abs(origPriceUsdYes * origQtyYes)
+	// collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsYes)
+	// if err != nil {
+	// 	return false, fmt.Errorf("failed to scale collateralUsdAbsYes: %v", err)
+	// }
+
+	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
+	// collateralUsdAbsNo := math.Abs(origPriceUsdNo * origQtyNo)
+	// collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsNo)
+	// if err != nil {
+	// 	return false, fmt.Errorf("failed to scale collateralUsdAbsNo: %v", err)
+	// }
 
 	sigYes, err := base64.StdEncoding.DecodeString(sigYes64)
 	if err != nil {
@@ -375,11 +335,11 @@ func (h *HederaService) BuyPositionTokens(
 		return false, fmt.Errorf("failed to convert txIdUuidNo to bigint: %w", err)
 	}
 
-	// partial fills MUST take the *lower* Usd collateral value
-	collateralUsdAbsScaledMin := collateralUsdAbsScaledYes
-	if collateralUsdAbsScaledNo.Cmp(collateralUsdAbsScaledYes) < 0 {
-		collateralUsdAbsScaledMin = collateralUsdAbsScaledNo
-	}
+	// partial fills MUST take the *lower* Usd collateral value - this comparison is done on-chain
+	// collateralUsdAbsScaledMin := collateralUsdAbsScaledYes
+	// if collateralUsdAbsScaledNo.Cmp(collateralUsdAbsScaledYes) < 0 {
+	// 	collateralUsdAbsScaledMin = collateralUsdAbsScaledNo
+	// }
 
 	// sigObjYes and sigObjNo (Hedera format signature objects)
 	sigObjYes, err := lib.BuildSignatureMap(publicKeyYes, sigYes, lib.HederaKeyType(keyTypeYes))
@@ -387,11 +347,31 @@ func (h *HederaService) BuyPositionTokens(
 	log.Printf("sigYes (keyType=%d) (hex): %x", keyTypeYes, sigYes)
 	log.Printf("sigNo (keyType=%d) (hex): %x", keyTypeNo, sigNo)
 
+	/////
+	// submit to the smart contract :)
+	/////
+	/*
+		TypeScript code that works - buy 4_buy.ts:
+
+		const buyTx4 = await new ContractExecuteTransaction()
+			.setContractId(contractId)
+			.setGas(2_000_000) // approx 1 million per USDC transfer (two USDC transfers in the atomic function)
+			.setFunction(
+				'buyPositionTokensOnBehalfAtomic',
+				params
+			)
+			.execute(client)
+
+		const buyReceipt4 = await buyTx4.getReceipt(client)
+		console.log(`buyPositionTokensOnBehalf(marketId=${marketId},...) status:`, buyReceipt4.status.toString())
+
+	*/
 	params := hiero.NewContractFunctionParameters()
 	// uint128 marketId,
 	// address signerYes,
 	// address signerNo,
-	// uint256 collateralUsdAbsScaled,
+	// uint256 collateralUsdAbsScaledYes,
+	// uint256 collateralUsdAbsScaledNo,
 	// uint128 txIdYes,
 	// uint128 txIdNo,
 	// bytes calldata sigObjYes,
@@ -399,47 +379,71 @@ func (h *HederaService) BuyPositionTokens(
 	params.AddUint128BigInt(marketIdBig)               // marketId
 	params.AddAddress(accountIdYes)                    // signerYes
 	params.AddAddress(accountIdNo)                     // signerNo
-	params.AddUint256BigInt(collateralUsdAbsScaledMin) //collateralUsdAbsScaled
+	params.AddUint256BigInt(collateralUsdAbsScaledYes) // collateralUsdAbsScaledYes
+	params.AddUint256BigInt(collateralUsdAbsScaledNo)  // collateralUsdAbsScaledNo
 	params.AddUint128BigInt(txIdYesBig)                // txIdYes
 	params.AddUint128BigInt(txIdNoBig)                 // txIdNo
-	params.AddUint128(sigObjYes)                       // sigObjYes
-	params.AddUint128(sigObjNo)                        // sigObjNo
+	params.AddBytes(sigObjYes)                         // sigObjYes
+	params.AddBytes(sigObjNo)                          // sigObjNo
 
 	log.Printf("Prepared smart contract parameters for BuyPositionTokens")
-	log.Println("marketIdBig:", marketIdBig.String())
+	log.Println("marketIdBytes (hex):", hex.EncodeToString(marketIdBig.Bytes()))
 	log.Println("accountIdYes:", accountIdYes)
 	log.Println("accountIdNo:", accountIdNo)
 	log.Println("collateralUsdAbsScaledYes:", collateralUsdAbsScaledYes.String())
-	log.Println("txIdYesBig:", txIdYesBig.String())
-	log.Println("txIdNoBig:", txIdNoBig.String())
+	log.Println("collateralUsdAbsScaledNo:", collateralUsdAbsScaledNo.String())
+	log.Println("txIdYesBig (hex):", hex.EncodeToString(txIdYesBig.Bytes()))
+	log.Println("txIdNoBig (hex):", hex.EncodeToString(txIdNoBig.Bytes()))
 	log.Printf("sigObjYes (len=%d): %x", len(sigObjYes), sigObjYes)
 	log.Printf("sigObjNo (len=%d): %x", len(sigObjNo), sigObjNo)
 
-	// TODO - submit to the smart contract :)
-	// tx := hiero.NewContractExecuteTransaction().
-	// 		SetContractID(hiero.ContractID.(os.Getenv("HEDERA_SMART_CONTRACT_ID"))).
-	// 		SetGas(10000000)
+	contractID, err := hiero.ContractIDFromString(
+		os.Getenv("SMART_CONTRACT_ID"),
+	)
+	if err != nil {
+		return false, fmt.Errorf("invalid contract ID: %v", err)
+	}
 
-	// hiero.NewContractExecuteTransaction().
-	// SetContractID(hiero.Contrac(os.Getenv("HEDERA_SMART_CONTRACT_ID"))).
-	// SetGas(1000000).
-	// SetFunction("buyPositionTokensOnBehalfAtomic", params).
-	// Execute(h.hedera_client)
+	tx, err := hiero.NewContractExecuteTransaction().
+		SetContractID(contractID).
+		SetGas(5_000_000). // TODO - can this be lowered? 2M in 4_buy.ts
+		SetFunction("buyPositionTokensOnBehalfAtomic", params).
+		Execute(h.hedera_client)
+	if err != nil {
+		return false, fmt.Errorf("failed to execute contract: %v", err)
+	}
 
-	// buyPositionTokensOnBehalfAtomic
-	// uint128 marketId,
-	// address signerYes,
-	// address signerNo,
-	// uint256 collateralUsdAbsScaled,
-	// uint128 txIdYes,
-	// uint128 txIdNo,
-	// bytes calldata sigObjYes,
-	// bytes calldata sigObjNo
+	receipt, err := tx.GetReceipt(h.hedera_client)
+	if err != nil {
+		return false, fmt.Errorf("failed to get transaction receipt: %v", err)
+	}
+
+	log.Printf("buyPositionTokensOnBehalfAtomic(marketId=%s, ...) status: %s", marketId, receipt.Status.String())
 
 	/////
 	// db
-	// Record the tx on the database (auditing)
+	// - Record the tx on the database (auditing)
+	// - record the price on the price table
 	/////
 
-	return false, nil
+	// record the successful on-chain settlement
+	txHash := receipt.TransactionID.String()
+	log.Printf("TransactionID (txHash) for successful settlement: %s", txHash)
+	err = h.dbRepository.CreateSettlement(txIdUuidYes, txIdUuidNo, txHash)
+	if err != nil {
+		return false, fmt.Errorf("Error logging a successful tx to settlements table: %v", err)
+	}
+
+	// record the price
+	err = h.dbRepository.SavePriceHistory(marketId, origPriceUsdYes) // TODO - check this
+	if err != nil {
+		return false, fmt.Errorf("Error saving price history for market %s: %v", marketId, err)
+	}
+	err = h.dbRepository.SavePriceHistory(marketId, origPriceUsdNo)
+	if err != nil {
+		return false, fmt.Errorf("Error saving price history for market %s: %v", marketId, err)
+	}
+
+	// if we get here, return true
+	return true, nil
 }

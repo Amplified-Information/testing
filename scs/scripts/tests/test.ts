@@ -130,6 +130,7 @@ const verify_onChain_base64 = async (
   const keccakHex = keccak256(Buffer.from(payloadHex, 'hex')).slice(2)
   const keccak = Buffer.from(keccakHex, 'hex')
   // keccak[0] = keccak[0] ^ 0xff // Slightly perturb the first byte
+  console.log(`keccak (hex): ${keccak.toString('hex')}`)
   const keccak64 = keccak.toString('base64') // N.B. an extra base64 step...
   const keccakPrefixedStr = prefixMessageToSign(keccak64)
   console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
@@ -230,8 +231,8 @@ const verify_onChain_assembly = async () => {
   Signer.tsx:37 {"txId":"019aff57-2be9-77dd-b221-8f89374938a0","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-08T19:01:34.313Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":-0.5,"qty":0.04,"sig":"0fav0TS21i2Ve8JxdciiGP11Rwu+JOWJ2BLc8BAZVJEROp/6kfk9HkCZ/6rR652DDv1LOBk+iCxSmi3uru6Dfw==","publicKeyHex":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
   */
   await verify_onChain_base64(
-    '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019affb15a7674d797ca656231a57ad1',
-    '4f225d58efe01e391d2e30e6e28dc6530dd4b6b23016ee3fde698b8c3ccb3ea1102bad8685f323c1d700dc71fc6201390e733de2eef51a361e8b80ce57e8332b'
+    '0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000003019aff572be977ddb2218f89374938a0',
+    'd1f6afd134b6d62d957bc27175c8a218fd75470bbe24e589d812dcf010195491113a9ffa91f93d1e4099ffaad1eb9d830efd4b38193e882c529a2deeaeee837f'
   )
 
   process.exit(0)
@@ -247,20 +248,3 @@ function prefixMessageToSign(messageUtf8: string) {
   console.log(messageUtf8.length)
   return '\x19Hedera Signed Message:\n' + messageUtf8.length + messageUtf8
 }
-
-// function buildSignatureMap(publicKey: PublicKey, signature: Uint8Array) {
-//   // const signature = privateKey.sign(message)
-//   // console.log(`signature: ${Buffer.from(signature).toString('hex')}`)
-
-//   const sigPair = proto.SignaturePair.create({
-//     pubKeyPrefix: publicKey.toBytesRaw(),            // prefix = full key
-//     ECDSASecp256k1: signature                        // OR ed25519 depending on key type
-//   })
-
-//   const sigMap = proto.SignatureMap.create({
-//     sigPair: [sigPair]
-//   })
-
-//   const bytes = proto.SignatureMap.encode(sigMap).finish()
-//   return bytes
-// }
