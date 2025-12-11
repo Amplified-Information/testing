@@ -21,6 +21,16 @@ There are 3 EC2 boxes deployed on AWS for each environment
 | monolith  | `web`, `api`, `clob` | A single, unified application containing multiple functionalities.          |
 | data      | `eventbus`, `db`     | Manages storage, retrieval, and processing of application data.             |
 
+Note: the proxy has a fixed IP address
+
+| environment | IP address     | hostname         |
+|-------------|----------------|------------------|
+| dev         | 54.210.115.180 | dev.prism.market |
+| uat         | TBC            | TBC              |
+| prod        | TBC            | prism.market     |
+
+*Note: in future, we will use load balancers and not fixed IP addresses.*
+
 Infra design:
 
 ![alt text](resources/Predict.drawio.png)
