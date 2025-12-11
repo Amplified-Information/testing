@@ -10,6 +10,7 @@ This project is divided into a number of folders:
 - `api`: a public backend for `web`
 - `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication
+- `resources`: a version-controlled area to store artifacts, design files, images, etc.
 
 ## Infra components
 
@@ -38,6 +39,24 @@ Infra design:
 AWS:
 
 ![alt text](resources/awsEC2.png)
+
+## Versioning
+
+Each service MUST be versioned. The VERSION file must be kept up-to-date with the latest version of the individual service.
+
+Semver (semantic versioning) MUST be used.
+
+If the version changes, the VERSION file MUST be updated and checked in accordingly.
+
+For example, build a new docker image using the latest VERSION file.
+
+`docker build -t ghcr.io/prismmarketlabs/proxy:$(cat VERSION) .`
+
+`docker push ghcr.io/prismmarketlabs/proxy:$(cat VERSION)`
+
+*Note: the latest version doesn't always get deployed*
+
+*Note: version numbers should never go down, always advancing*
 
 ## Docker container registry
 
