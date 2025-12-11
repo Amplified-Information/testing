@@ -1,11 +1,19 @@
+# docker compose -f docker-compose-proxy.yml up -d 
 services:
   envoy:
     image: ghcr.io/prismmarketlabs/envoy:0.1.0
-    env_file:
-      - ./proxy/.config.local
     network_mode: "host"
     ports:
-      - "8080:8080"
+      - "${ENVOY_PORT}:${ENVOY_PORT}"
     volumes:
       - ./proxy/envoy.yaml:/etc/envoy/envoy.yaml
     restart: always
+    environment:
+      - ENVOY_PORT=${ENVOY_PORT}
+      - ENVOY_ADMIN_PORT=${ENVOY_ADMIN_PORT}
+      - ENVOY_WEB_HOST=${ENVOY_WEB_HOST}
+      - ENVOY_WEB_PORT=${ENVOY_WEB_PORT}
+      - ENVOY_API_HOST=${ENVOY_API_HOST}
+      - ENVOY_API_PORT=${ENVOY_API_PORT}
+      - ENVOY_CLOB_HOST=${ENVOY_CLOB_HOST}
+      - ENVOY_CLOB_PORT=${ENVOY_CLOB_PORT}

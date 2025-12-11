@@ -10,6 +10,12 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "aws_az" {
+  description = "The AWS availability zone"
+  type        = string
+  default     = "us-east-1a"
+}
+
 variable "aws_key_dev" {
   description = "The name of the key pair to use for SSH access"
   type        = string

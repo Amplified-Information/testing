@@ -1,0 +1,21 @@
+# docker compose -f docker-compose-data.yml up -d
+services:
+  db:
+    image: postgres:18.1
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_UNAME}
+      POSTGRES_PASSWORD: ${DB_PWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - /mnt/external/postgresdata:/var/lib/postgresql
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    network_mode: "host"
+  nats:
+    image: nats:2.12
+    restart: always
+    ports:
+      - "${NATS_PORT}:${NATS_PORT}"
+      - "${NATS_PORT_MONITOR}:${NATS_PORT_MONITOR}"
+    network_mode: "host"

@@ -2,12 +2,26 @@
 
 Cloud platform -agnostic infrastructure deployment files (Terraform)
 
+### Manually-created resources
+
+The following resources (static - not to be deleted) should be created manually for each env:
+
+- EIP (elastic IP address)
+- EBS (elastic block storage) for persistent data storage
+
 ### AWS elastic IP addresses
 
 | Environment | Allocation ID               | Public IP       | Network border group |
 |-------------|-----------------------------|-----------------|----------------------|
 | dev         | eipalloc-0a06fd4140fafdd3c  | 54.210.115.180  | us-east-1            |
 | prod        |                             | TBC             |                      |
+
+### AWS EBS resources
+
+| Environment | Volume Id                   | Name            | Size   |
+| ------------|-----------------------------|-----------------|--------|
+| dev         | vol-0d3a782bdfffc34aa       | datamnt_dev     | 4GB    |
+| prod        | TBC                         | datamnt_prod    | 20GB   |
 
 ### AWS login
 
@@ -57,7 +71,6 @@ Eventually we may move to kubernetes.
 System design diagram:
 
 ![alt text](../resources/Predict.drawio.png)
-
 
 ### terraform
 

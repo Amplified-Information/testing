@@ -12,6 +12,17 @@ This project is divided into a number of folders:
 - `eventbus`: event bus for pub/sub message communication
 - `resources`: a version-controlled area to store artifacts, design files, images, etc.
 
+## Quickstart
+
+```bash
+# load all env vars
+
+# now do:
+docker compose -f docker-compose-proxy.yml up -d
+docker compose -f docker-compose-data.yml up -d
+docker compose -f docker-compose-monolith.yml up -d
+```
+
 ## Infra components
 
 There are 3 EC2 boxes deployed on AWS for each environment
@@ -54,7 +65,7 @@ For example, build a new docker image using the latest VERSION file.
 
 `docker push ghcr.io/prismmarketlabs/proxy:$(cat VERSION)`
 
-*Note: the latest version doesn't always get deployed*
+*Note: the latest version doesn't just get deployed automatically - a release is assembled together using a number of known-to-be stable service versions*
 
 *Note: version numbers should never go down, always advancing*
 
