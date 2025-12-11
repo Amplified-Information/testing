@@ -11,6 +11,24 @@ This project is divided into a number of folders:
 - `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication
 
+## Infra components
+
+There are 3 EC2 boxes deployed on AWS for each environment
+
+| EC2 name  | Services             | Description                                                                 |
+|-----------|----------------------|-----------------------------------------------------------------------------|
+| proxy     | `proxy`              | Handles traffic routing and acts as an intermediary between services.       |
+| monolith  | `web`, `api`, `clob` | A single, unified application containing multiple functionalities.          |
+| data      | `eventbus`, `db`     | Manages storage, retrieval, and processing of application data.             |
+
+Infra design:
+
+![alt text](resources/Predict.drawio.png)
+
+AWS:
+
+![alt text](resources/awsEC2.png)
+
 ## Docker container registry
 
 Please use ghcr (Github container registry) only for images.
@@ -55,13 +73,17 @@ All releases **must** be recorded in `release-manifest.yaml`
 
 There is an **intentional separation** between **configuration** (`.config.ENV`) and **secrets** (`secrets.ENV`):
 
-Create the following files (use `.config.ENV.example` and `.secrets.ENV.example` for reference):
-
 ```bash
+# Safe to check in these files
 .config.local
 .config.dev
 .config.prod
+```
 
+Create the following files (use `.secrets.ENV.example` for reference):
+
+```bash
+# Do NOT check in files containing secrets
 .secrets.local
 .secrets.dev
 .secrets.prod
