@@ -53,7 +53,7 @@ Infra design:
 
 ![alt text](resources/Predict.drawio.png)
 
-AWS:
+AWS (dev):
 
 ![alt text](resources/awsEC2.png)
 
@@ -63,13 +63,18 @@ Each service MUST be versioned.
 
 Semver (semantic versioning) MUST be used.
 
-For example, build a new docker image using the latest VERSION:
+For example, build a new docker image using the service NAME and the latest VERSION:
 
-`export VERSION=0.1.0`
+```bash
+export NAME=eventbus
+export VERSION=0.1.0
+```
 
-`docker build -t ghcr.io/prismmarketlabs/proxy:${VERSION} .`
+*Note: NAME must be one of {api, clob, db, eventbus, proxy, web, web.eng}*
 
-`docker push ghcr.io/prismmarketlabs/proxy:$(VERSION)`
+`docker build -t ghcr.io/prismmarketlabs/${NAME}$:${VERSION} .`
+
+`docker push ghcr.io/prismmarketlabs/${NAME}:$(VERSION)`
 
 *Note: the latest version doesn't just get deployed automatically - a release is assembled together using a number of known-to-be stable service versions*
 
