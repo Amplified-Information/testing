@@ -95,7 +95,7 @@ const Signer = ({ marketId }: { marketId: string }) => {
   useEffect(() => {
     setPredictionIntentRequest({
       ...predictionIntentRequest,
-      publicKeyHex: userAccountInfo ? userAccountInfo.key.key : '',
+      publicKey: userAccountInfo ? userAccountInfo.key.key : '',
       keyType: userAccountInfo ? (userAccountInfo.key._type === 'ED25519' ? 1 : userAccountInfo.key._type === 'ECDSA_SECP256K1' ? 2 : 0) : 0,
       evmAddress: userAccountInfo ? userAccountInfo.evm_address.slice(2) : ''
     })

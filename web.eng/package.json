@@ -1,7 +1,7 @@
 {
   "scripts": {
     "dev": "vite",
-    "gen": "rm -rf gen && mkdir -p gen && protoc -I=../api/proto -I=../clob/proto --ts_out=gen ../api/proto/*.proto ../clob/proto/*.proto",
+    "gen": "rm -rf gen && mkdir -p gen && ./node_modules/.bin/protoc -I=../api/proto -I=../clob/proto --ts_out=gen ../api/proto/*.proto ../clob/proto/*.proto",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -34,7 +34,6 @@
     "eslint": "^9.37.0",
     "globals": "^16.4.0",
     "jiti": "^2.6.1",
-    "tsc": "^2.0.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.1",
     "vite": "^7.1.10"

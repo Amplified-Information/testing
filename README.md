@@ -16,6 +16,12 @@ This project is divided into a number of folders:
 
 ```bash
 # load all env vars
+source ./api/loadEnv.sh local
+source ./clob/loadEnv.sh local
+source ./db/loadEnv.sh local
+source ./eventbus/loadEnv.sh local
+source ./proxy/loadEnv.sh local
+# source ./web/loadEnv.sh local # note: the web app is zero config
 
 # now do:
 docker compose -f docker-compose-proxy.yml up -d
@@ -53,17 +59,17 @@ AWS:
 
 ## Versioning
 
-Each service MUST be versioned. The VERSION file must be kept up-to-date with the latest version of the individual service.
+Each service MUST be versioned.
 
 Semver (semantic versioning) MUST be used.
 
-If the version changes, the VERSION file MUST be updated and checked in accordingly.
+For example, build a new docker image using the latest VERSION:
 
-For example, build a new docker image using the latest VERSION file.
+`export VERSION=0.1.0`
 
-`docker build -t ghcr.io/prismmarketlabs/proxy:$(cat VERSION) .`
+`docker build -t ghcr.io/prismmarketlabs/proxy:${VERSION} .`
 
-`docker push ghcr.io/prismmarketlabs/proxy:$(cat VERSION)`
+`docker push ghcr.io/prismmarketlabs/proxy:$(VERSION)`
 
 *Note: the latest version doesn't just get deployed automatically - a release is assembled together using a number of known-to-be stable service versions*
 
@@ -107,7 +113,7 @@ All images **must** use [semantic versioning](https://semver.org/).
 
 ## Releases
 
-All releases **must** be recorded in `release-manifest.yaml`
+All releases are specified in `docker-compose-SERVICE.ENV.yml` override files.
 
 [Semantic versioning](https://semver.org/) **must** be used.
 
@@ -132,29 +138,51 @@ Create the following files (use `.secrets.ENV.example` for reference):
 ### local
 
 ```bash
-source .config.local
-source .secrets.local
-./release-deploy.sh v0.0.1 local
+# load all config/secrets:
+source ./api/loadEnv.sh local
+source ./clob/loadEnv.sh local
+source ./db/loadEnv.sh local
+source ./eventbus/loadEnv.sh local
+source ./proxy/loadEnv.sh local
+
+docker compose -f docker-compose-proxy.yml up -d
+docker compose -f docker-compose-monolith.yml up -d
+docker compose -f docker-compose-data.yml up -d
 ```
 
 ### dev
 
-Login to dev box. Run:
+Login to each of the dev boxes. Run:
 
 ```bash
-source .config.dev
-source .secrets.dev
-./release-deploy.sh v0.0.1 dev
+# On Proxy:
+source ./proxy/loadEnv.sh local
+docker compose -f docker-compose-proxy.yml -f docker-compose-proxy.dev.yml up -d
+# On Monolith:
+source ./api/loadEnv.sh local
+source ./clob/loadEnv.sh local
+docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.dev.yml up -d
+# On Data:
+source ./db/loadEnv.sh local
+source ./eventbus/loadEnv.sh local
+docker compose -f docker-compose-data.yml -f docker-compose-data.dev.yml up -d
 ```
 
 ### prod
 
-Login to prod box. Run:
+Login to each of the prod boxes. Run:
 
 ```bash
-source .config.prod
-source .secrets.prod
-./release-deploy.sh v0.0.1 prod
+# On Proxy:
+docker compose -f docker-compose-proxy.yml -f docker-compose-proxy.prod.yml up -d
+# On Monolith:
+source ./api/loadEnv.sh local
+source ./clob/loadEnv.sh local
+docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.prod.yml up -d
+# On Data
+source ./db/loadEnv.sh local
+source ./eventbus/loadEnv.sh local
+docker compose -f docker-compose-data.yml -f docker-compose-data.prod.yml up -d
 ```
 
 ### docker

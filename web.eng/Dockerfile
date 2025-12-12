@@ -1,0 +1,29 @@
+# BUILD stage
+# cd prism
+# docker build -f ./web.eng/Dockerfile -t ghcr.io/prismmarketlabs/web:0.1.0 .
+FROM node:24 AS build
+
+WORKDIR /app/web
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY ./web.eng /app/web
+
+# need to copy the protobuf definitions which are outside the web directory:
+COPY ./api/proto /app/api/proto
+COPY ./clob/proto /app/clob/proto
+RUN npm run gen
+
+RUN npm run build
+
+# RUN stage
+# docker run -p 5173:80 ghcr.io/prismmarketlabs/web:0.1.0
+FROM nginx:alpine
+
+COPY --from=build /app/web/dist /usr/share/nginx/html
+
+EXPOSE 5173
+
+CMD ["nginx", "-g", "daemon off;"]

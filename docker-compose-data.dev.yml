@@ -1,0 +1,5 @@
+services:
+  db:
+    image: postgres:18.1
+  nats:
+    image: nats:2.12

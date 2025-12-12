@@ -121,6 +121,13 @@ func main() {
 	hashiService.InitHashi(&dbRepository, &natsService, &hederaService)
 	// TODO: defer hashiService cleanup
 
+	// initialize price service
+	priceService := services.PriceService{}
+	err = priceService.InitPriceService(&dbRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize Price service: %v", err)
+	}
+
 	// sNow start gRPC service
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT")))
 	if err != nil {

@@ -1,5 +1,5 @@
 import { GrpcWebFetchTransport } from '@protobuf-ts/grpcweb-transport'
-import { ClobClient } from './gen/clob.client'
+import { ClobClient } from './gen/clob.client.ts'
 import { ApiServiceClient } from './gen/api.client'
 
 const transport = new GrpcWebFetchTransport({

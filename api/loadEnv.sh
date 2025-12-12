@@ -17,12 +17,15 @@ if [[ ! " ${VALID_ENVS[@]} " =~ " ${ENV} " ]]; then
   exit 1
 fi
 
+# Resolve the directory of the script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "Loading environment: $ENV"
 
 set -a # automatically export all variables
 # Load environment-specific configuration
-source .config.$ENV
-source .secrets.$ENV
+source "$SCRIPT_DIR/.config.$ENV"
+source "$SCRIPT_DIR/.secrets.$ENV"
 set +a # turn off auto-export
 
 echo "\"$ENV\" environment loaded successfully."

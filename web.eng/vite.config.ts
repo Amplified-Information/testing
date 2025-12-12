@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({}), // Pass an empty options object to resolve the error
     tailwindcss()
   ],
   // resolve: {  // shared constants
@@ -13,9 +13,14 @@ export default defineConfig({
   //     '@shared': path.resolve(__dirname, '../shared'),
   //   },
   // },
-  base: '/', // also change main.tsx
+  base: './', // also change main.tsx
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        // preserveModules: true
+      }
+    }
     // assetsDir: 'assets',
     // rollupOptions: {
     //   // Copy 404.html to root for GitHub Pages SPA routing
@@ -30,7 +35,7 @@ export default defineConfig({
     host: '0.0.0.0', // N.B. needed for envoy
     port: 5173
     // port: 8080
-  }
+  },
 
   // server: {   // proxy API requests to backend server
   //   port: 3000, // your Vite dev server port
@@ -61,5 +66,17 @@ export default defineConfig({
   //     '@reown/appkit',
   //     '@reown/appkit/*'
   //   ]
+  // }
+  optimizeDeps: {
+    exclude: [
+      // 'lit',
+      '@protobuf-ts/runtime-rpc'
+    ]
+  }
+  // resolve: {
+  //   alias: {
+  //     'lit/directives/ref.js': require.resolve('lit/directives/ref.js'),
+  //     'lit/directives/if-defined.js': require.resolve('lit/directives/if-defined.js')
+  //   }
   // }
 })

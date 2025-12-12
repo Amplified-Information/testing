@@ -1,13 +1,13 @@
 # docker compose -f docker-compose-proxy.yml up -d 
 services:
-  envoy:
-    image: ghcr.io/prismmarketlabs/envoy:0.1.0
-    network_mode: "host"
+  proxy:
+    image: envoyproxy/envoy:contrib-v1.35-latest
+    restart: always
     ports:
       - "${ENVOY_PORT}:${ENVOY_PORT}"
+    network_mode: "host"
     volumes:
       - ./proxy/envoy.yaml:/etc/envoy/envoy.yaml
-    restart: always
     environment:
       - ENVOY_PORT=${ENVOY_PORT}
       - ENVOY_ADMIN_PORT=${ENVOY_ADMIN_PORT}

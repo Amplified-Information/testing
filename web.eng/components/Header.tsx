@@ -4,6 +4,7 @@ import Wallet from './Wallet'
 import Positions from './Positions'
 import { smartContractId } from '../constants'
 import { useNavigate } from 'react-router'
+import logo from '../img/logo.svg'
 
 const Header = () => {
   const { networkSelected } = useAppContext()
@@ -14,7 +15,7 @@ const Header = () => {
       <div className="flex items-center gap-2" onClick={() => {
         navigate('/')
       }}>
-        <img src='../img/logo.svg' />
+        <img src={logo} />
         <span className="font-semibold">Predict</span>
         
       </div>

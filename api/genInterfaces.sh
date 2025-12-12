@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# sudo apt-get install -y protobuf-compiler
+# RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
+# RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+# RUN go install github.com/envoyproxy/protoc-gen-validate@v1.2.1
+
 rm -rf gen
 mkdir -p gen/clob
 
@@ -30,4 +35,6 @@ protoc \
 
 echo "Done."
 echo -e "Protobufs generated in gen:\n"
+echo $(pwd)
+
 ls -al gen/

@@ -31,7 +31,7 @@ const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
     priceUsd: 0.5,
     qty: 0,
     sig: '',
-    publicKeyHex: '',
+    publicKey: '',
     evmAddress: '0123456789012345678901234567890123456789',
     keyType: 0 // 1 = ed25519, 2 = ecdsa_secp256k1, 0 would be rejected
   }

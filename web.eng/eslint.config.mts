@@ -18,5 +18,5 @@ export default defineConfig([
     }
   },
   tseslint.configs.recommended,
-  { ignores: ['gen'] }
+  { ignores: ['gen', 'old'] } // Added 'old' folder to ignores
 ])
