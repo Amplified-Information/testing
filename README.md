@@ -45,7 +45,7 @@ Note: the proxy has a fixed IP address
 |-------------|----------------|------------------|
 | dev         | 54.210.115.180 | dev.prism.market |
 | uat         | TBC            | TBC              |
-| prod        | TBC            | prism.market     |
+| prod        | 100.29.115.146 | prism.market     |
 
 *Note: in future, we will use load balancers and not fixed IP addresses.*
 

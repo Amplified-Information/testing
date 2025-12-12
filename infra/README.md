@@ -14,7 +14,7 @@ The following resources (static - not to be deleted) should be created manually 
 | Environment | Allocation ID               | Public IP       | Network border group |
 |-------------|-----------------------------|-----------------|----------------------|
 | dev         | eipalloc-0a06fd4140fafdd3c  | 54.210.115.180  | us-east-1            |
-| prod        |                             | TBC             |                      |
+| prod        |                             | 100.29.115.146  | us-east-1            |
 
 ### AWS EBS resources
 
