@@ -8,6 +8,7 @@ The following resources (static - not to be deleted) should be created manually 
 
 - EIP (elastic IP address)
 - EBS (elastic block storage) for persistent data storage
+- S3 bucket - a landing zone for deploying docker-compose* files
 
 ### AWS elastic IP addresses
 
@@ -22,6 +23,74 @@ The following resources (static - not to be deleted) should be created manually 
 | ------------|-----------------------------|-----------------|--------|
 | dev         | vol-0d3a782bdfffc34aa       | datamnt_dev     | 4GB    |
 | prod        | TBC                         | datamnt_prod    | 20GB   |
+
+### S3 bucket
+
+| Environent |  Name                | arn                                | region    | url                                                       |
+| -----------|----------------------|------------------------------------|-----------|-----------------------------------------------------------|
+| all        | prismlabs-deployment | arn:aws:s3:::prismlabs-deployment  | us-east-1 | https://prismlabs-deployment.s3.us-east-1.amazonaws.com/* |
+
+A new S3 bucket called `prismlabs-deployment` has been set up.
+
+One-time setup (clickops):
+
+- Block all public access
+- ACLs disabled (AWS IAM is used for access)
+- Enable bucket key
+
+Next create two new policies:
+
+1. Create a new policy called `s3-landing-zone-policy` (so github Actions can add files to S3):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowWriteToSpecificBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectAcl",
+        "s3:AbortMultipartUpload",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-ci-artifacts-bucket",
+        "arn:aws:s3:::my-ci-artifacts-bucket/*"
+      ]
+    }
+  ]
+}
+```
+
+2. Create another new policy called `ec2-s3-reader` (so the EC2 instance can read the S3)
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "ec2.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+- Now create a new IAM user: IAM -> users
+- Create user called `github-actions-s3-writer`
+- Attach the policy `s3-landing-zone-policy` to `github-actions-s3-writer`
+
+github actions will need the following info:
+
+```bash
+AWS_ACCESS_KEY_ID=<>      # "github-actions-s3-writer" user from IAM
+AWS_SECRET_ACCESS_KEY=<>	# from IAM
+AWS_REGION=us-east-1
+S3_BUCKET=prismlabs-deployment 
+```
 
 ### AWS login
 

@@ -28,15 +28,37 @@ variable "aws_key_prod" {
   default     = "prod"
 }
 
+variable "fixed_ip_proxy" {
+  description = "The fixed private IP address for the proxy instance"
+  type        = string
+  default     = "10.0.1.10"
+}
+
+variable "fixed_ip_monolith" {
+  description = "The fixed private IP address for the monolith instance"
+  type        = string
+  default     = "10.0.1.11"
+}
+
+variable "fixed_ip_data" {
+  description = "The fixed private IP address for the data instance"
+  type        = string
+  default     = "10.0.1.12"
+}
+
 locals {
   install_script = <<-EOF
 #!/bin/bash
 sudo apt-get update -y && sudo apt-get dist-upgrade -y
 
+# Enable automatic security updates
+sudo apt-get install -y unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades
+
 sudo apt-get install -y unzip jq
 
-# add a 'prism' user for running prism services
-sudo useradd prism
+# add a 'internal' user for running internal services
+sudo useradd internal
 
 # Docker
 # remove any conflicting packages:
@@ -69,7 +91,7 @@ sudo systemctl enable docker
 sudo systemctl status docker
 
 sudo usermod -aG docker admin # N.B. 'admin' is the default user on AWS Debian AMIs
-sudo usermod -aG docker prism
+sudo usermod -aG docker internal
 sudo systemctl restart docker
 
 # fail2ban
@@ -77,6 +99,15 @@ sudo apt-get install -y fail2ban
 sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
 sudo systemctl status fail2ban
+
+
+# ssh password so the 'internal' user can access boxes on 10.0.1.0/24 using ssh password auth:
+echo "internal:$6$UjG7OyUN1qVaHENZ$RvQl8XNox9k8Qzl151LuhE4uJSLBe9TNGrN0lZ13QrvzH5tOg7LtfEOveVjPYuNI2wCOGq0NUZA3b7d4yH8Iz." | sudo chpasswd
+# Allow password authentication in SSH
+sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# Restart SSH service to apply changes
+sudo systemctl restart sshd
 
 EOF
 }

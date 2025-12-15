@@ -1,5 +1,12 @@
+# cd prism/clob
+# export VERSION=0.1.0
+# docker build -t ghcr.io/prismmarketlabs/clob:$VERSION .
+# docker push ghcr.io/prismmarketlabs/clob:$VERSION
+# 
+# source loadEnv.sh local
+# docker run -p 50051:50051 -e HOST=$HOST -e PORT=$PORT -e CLOB_MATCHING_INTERVAL_SECONDS=$CLOB_MATCHING_INTERVAL_SECONDS -e NATS_HOST=$NATS_HOST -e NATS_PORT=$NATS_PORT ghcr.io/prismmarketlabs/clob:$VERSION
+
 # BUILD stage
-# docker build -f clob/Dockerfile -t ghcr.io/prismmarketlabs/clob:VERSION .
 FROM rust:latest AS builder
 
 WORKDIR /app/clob
@@ -7,12 +14,11 @@ WORKDIR /app/clob
 RUN apt-get update
 RUN apt-get install -y protobuf-compiler
 
-COPY ./clob /app/clob
+COPY . /app/clob
 
 RUN cargo build --release
 
 # RUN stage
-# docker run --env-file ./clob/.config.local --env-file ./clob/.secrets.local ghcr.io/prismmarketlabs/clob:VERSION
 # A minimal Debian 13 base image for the final stage
 FROM debian:bookworm-slim
 

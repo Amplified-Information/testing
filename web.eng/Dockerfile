@@ -1,6 +1,10 @@
+# cd prism # yes, need access to protos in other dirs
+# export VERSION=0.1.0
+# docker build -f ./web.eng/Dockerfile -t ghcr.io/prismmarketlabs/web.eng:$VERSION .
+# docker push ghcr.io/prismmarketlabs/web.eng:$VERSION
+# docker run -p 5173:80 ghcr.io/prismmarketlabs/web.eng:$VERSION
+
 # BUILD stage
-# cd prism
-# docker build -f ./web.eng/Dockerfile -t ghcr.io/prismmarketlabs/web:0.1.0 .
 FROM node:24 AS build
 
 WORKDIR /app/web
@@ -19,11 +23,10 @@ RUN npm run gen
 RUN npm run build
 
 # RUN stage
-# docker run -p 5173:80 ghcr.io/prismmarketlabs/web:0.1.0
 FROM nginx:alpine
 
 COPY --from=build /app/web/dist /usr/share/nginx/html
 
-EXPOSE 5173
+# EXPOSE 5173
 
 CMD ["nginx", "-g", "daemon off;"]

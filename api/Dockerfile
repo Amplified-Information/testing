@@ -1,6 +1,12 @@
 # BUILD stage
 # cd prism
-# docker build -f api/Dockerfile -t ghcr.io/prismmarketlabs/api:VERSION .
+# export VERSION=0.1.0
+# docker build -f api/Dockerfile -t ghcr.io/prismmarketlabs/api:$VERSION .
+# docker push ghcr.io/prismmarketlabs/api:$VERSION
+# 
+# source loadEnv.sh local
+# docker run -p 8888:8888 -e HOST=$HOST -e PORT=$PORT -e HEDERA_OPERATOR_ID=$HEDERA_OPERATOR_ID -e HEDERA_NETWORK_SELECTED=$HEDERA_NETWORK_SELECTED -e HEDERA_OPERATOR_KEY_TYPE=$HEDERA_OPERATOR_KEY_TYPE -e HEDERA_OPERATOR_KEY=$HEDERA_OPERATOR_KEY -e DB_HOST=$DB_HOST -e DB_PORT=$DB_PORT -e DB_UNAME=$DB_UNAME -e DB_PWORD=$DB_PWORD -e DB_NAME=$DB_NAME -e DB_MAX_ROWS=$DB_MAX_ROWS ghcr.io/prismmarketlabs/api:$VERSION
+
 FROM golang:1.25 AS builder
 
 WORKDIR /app/api
@@ -27,27 +33,26 @@ RUN sh /app/api/genInterfaces.sh
 RUN go build -o main ./server/
 
 # RUN stage
-# docker run --env-file ./api/.config.local --env-file ./api/.secrets.local ghcr.io/prismmarketlabs/api:VERSION
 # A minimal Debian 13 base image for the final stage
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-ENV HOST=${HOST} \
-  PORT=${PORT} \
-  HEDERA_OPERATOR_ID=${HEDERA_OPERATOR_ID} \
-  HEDERA_OPERATOR_KEY_TYPE=${HEDERA_OPERATOR_KEY_TYPE} \
-  DB_HOST=${DB_HOST} \
-  DB_PORT=${DB_PORT} \
-  DB_UNAME=${DB_UNAME} \
-  DB_NAME=${DB_NAME} \
-  DB_MAX_ROWS=${DB_MAX_ROWS} \
-  \
-  HEDERA_OPERATOR_KEY=${HEDERA_OPERATOR_KEY} \
-  DB_PWORD=${DB_PWORD}
+# ENV HOST=${HOST} \
+#   PORT=${PORT} \
+#   HEDERA_OPERATOR_ID=${HEDERA_OPERATOR_ID} \
+#   HEDERA_OPERATOR_KEY_TYPE=${HEDERA_OPERATOR_KEY_TYPE} \
+#   DB_HOST=${DB_HOST} \
+#   DB_PORT=${DB_PORT} \
+#   DB_UNAME=${DB_UNAME} \
+#   DB_NAME=${DB_NAME} \
+#   DB_MAX_ROWS=${DB_MAX_ROWS} \
+#   \
+#   HEDERA_OPERATOR_KEY=${HEDERA_OPERATOR_KEY} \
+#   DB_PWORD=${DB_PWORD}
 
 COPY --from=builder /app/api/main .
 
-EXPOSE 8888
+# EXPOSE 8888
 
 CMD ["./main"]

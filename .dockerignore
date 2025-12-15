@@ -9,7 +9,7 @@
 # Ignore large directories
 resources/
 scs/
-target
+target/
 node_modules/
 
 # Ignore build artifacts

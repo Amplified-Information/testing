@@ -196,6 +196,16 @@ View container CPU/memory usage:
 
 `docker stats`
 
+View the env vars available in an image:
+
+`docker run --env-file .config.local --env-file .secrets.local --rm ghcr.io/prismmarketlabs/db:$VERSION env`
+
+In your Dockerfiles, try to avoid:
+
+- ARG
+- ENV
+- "latest" images - use a specific version
+
 ### Screencast transcode
 
 Reduce to 480p:
