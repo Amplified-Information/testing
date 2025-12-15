@@ -1,33 +1,24 @@
-module "security_groups" {
-  source = "../modules/security_groups"
-  aws_az = var.aws_az # passing a variable to the security_groups module
+module "shared" {
+  source = "../shared"
+  env  = "dev"
+  aws_key = "dev"
+  aws_az = "us-east-1a"
 }
-
-provider "aws" {
-  region = var.aws_region
-}
-
-
-
-
-
-
-
 
 resource "aws_instance" "bastion_dev" {
-  ami           = var.prism_ami
+  ami           = module.shared.ami
   instance_type = "t3.nano"
-  key_name      = var.aws_key_dev
-  availability_zone = var.aws_az
+  key_name      = module.shared.aws_key
+  availability_zone = module.shared.aws_az
   
   associate_public_ip_address = true # bastion needs a public IP
 
-  subnet_id              = module.security_groups.aws_subnet_id
+  subnet_id              = module.shared.aws_subnet_id
 
   vpc_security_group_ids = [
-    module.security_groups.closed_network_id, 
-    module.security_groups.allow_internal_id,
-    module.security_groups.ssh_id # SSH is allowed to Bastion
+    module.shared.closed_network_id,
+    module.shared.allow_internal_id,
+    module.shared.ssh_id # SSH is allowed to Bastion
   ]
 
   tags = {
@@ -81,24 +72,24 @@ EOF
 
 
 resource "aws_instance" "proxy_dev" {
-  ami           = var.prism_ami
+  ami           = module.shared.ami
   instance_type = "t3.nano"
-  key_name      = var.aws_key_dev
-  availability_zone = var.aws_az
+  key_name      = module.shared.aws_key
+  availability_zone = module.shared.aws_az
 
-  subnet_id              = module.security_groups.aws_subnet_id
-  private_ip             = var.fixed_ip_proxy
+  subnet_id              = module.shared.aws_subnet_id
+  private_ip             = module.shared.fixed_ip_proxy
 
   vpc_security_group_ids = [
-    module.security_groups.closed_network_id, 
-    module.security_groups.allow_internal_id,
-    # module.security_groups.ssh_id, # no external SSH access to proxy instance
-    module.security_groups.web_traffic_id
+    module.shared.closed_network_id, 
+    module.shared.allow_internal_id,
+    module.shared.ssh_id, # no external SSH access to proxy instance TODO - remove
+    module.shared.web_traffic_id
   ]
 
   user_data = <<-EOF
     #!/bin/bash
-    ${local.install_script}
+    ${module.shared.install_script}
   EOF
 
   tags = {
@@ -113,23 +104,23 @@ resource "aws_eip_association" "proxy_dev_eip_assoc" {
 
 
 resource "aws_instance" "monolith_dev" {
-  ami           = var.prism_ami
+  ami           = module.shared.ami
   instance_type = "t3.micro"
-  key_name      = var.aws_key_dev
-  availability_zone = var.aws_az
+  key_name      = module.shared.aws_key
+  availability_zone = module.shared.aws_az
 
-  subnet_id              = module.security_groups.aws_subnet_id
-  private_ip             = var.fixed_ip_monolith
+  subnet_id              = module.shared.aws_subnet_id
+  private_ip             = module.shared.fixed_ip_monolith
 
   vpc_security_group_ids = [
-    module.security_groups.closed_network_id,
-    module.security_groups.allow_internal_id
-    # module.security_groups.ssh_id # no external SSH access to data instance
+    module.shared.closed_network_id,
+    module.shared.allow_internal_id
+    # module.shared.ssh_id # no external SSH access to data instance
   ]
 
   user_data = <<-EOF
     #!/bin/bash
-    ${local.install_script}
+    ${module.shared.install_script}
   EOF
 
   tags = {
@@ -139,23 +130,23 @@ resource "aws_instance" "monolith_dev" {
 
 
 resource "aws_instance" "data_dev" {
-  ami           = var.prism_ami
+  ami           = module.shared.ami
   instance_type = "t3.nano"
-  key_name      = var.aws_key_dev
-  availability_zone = var.aws_az # must be the same as the EBS volume
+  key_name      = module.shared.aws_key
+  availability_zone = module.shared.aws_az # must be the same as the EBS volume
 
-  subnet_id              = module.security_groups.aws_subnet_id
-  private_ip             = var.fixed_ip_data
+  subnet_id              = module.shared.aws_subnet_id
+  private_ip             = module.shared.fixed_ip_data
 
   vpc_security_group_ids = [
-    module.security_groups.closed_network_id,
-    module.security_groups.allow_internal_id
-    # module.security_groups.ssh_id # no external SSH access to data instance
+    module.shared.closed_network_id,
+    module.shared.allow_internal_id
+    # module.shared.ssh_id # no external SSH access to data instance
   ]
 
   user_data = <<-EOF
     #!/bin/bash
-    ${local.install_script}
+    ${module.shared.install_script}
 
     # prepare mount point for postgres data volume
     mkdir -p /mnt/external
@@ -193,10 +184,10 @@ resource "aws_volume_attachment" "data_dev_volume_attachment" {
 #####
 # Outputs
 #####
-# output "proxy_dev_public_dns" {
-#   description = "Public DNS name of the proxy_dev instance"
-#   value       = aws_instance.proxy_dev.public_dns
-# }
+output "proxy_dev_public_dns" {
+  description = "Public DNS name of the proxy_dev instance"
+  value       = aws_instance.proxy_dev.public_dns
+}
 
 output "proxy_dev_private_dns" {
   description = "Private DNS name of the proxy_dev instance"

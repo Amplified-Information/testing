@@ -1,7 +1,94 @@
-# passed variables from parent module
-variable "aws_az" { # accepts the value passed to it from the parent module
-  description = "The availability zone to associate resources with"
+#####
+# variable definitions
+#####
+variable "env" {
   type        = string
+  description = "Environment (dev, uat, prod)"
+}
+output "env" { value = var.env }
+
+variable "aws_key" {
+  description = "The name of the key pair to use for SSH access"
+  type        = string
+}
+output "aws_key" { value = var.aws_key }
+
+variable "aws_az" {
+  description = "The AWS availability zone"
+  type        = string
+  default     = "us-east-1a"
+}
+output "aws_az" { value = var.aws_az }
+
+output "ami" { value = "ami-0f9c27b471bdcd702" } // Debian 13
+output "aws_region" { value = "us-east-1" }
+output "fixed_ip_proxy" { value = "10.0.1.10" }
+output "fixed_ip_monolith" { value = "10.0.1.11" }
+output "fixed_ip_data" { value = "10.0.1.12" }
+output "install_script" {
+  value = <<-EOF
+#!/bin/bash
+sudo apt-get update -y && sudo apt-get dist-upgrade -y
+
+# Enable automatic security updates
+sudo apt-get install -y unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades
+
+sudo apt-get install -y unzip jq
+
+# add a 'internal' user for running internal services
+sudo useradd internal
+
+# Docker
+# remove any conflicting packages:
+sudo apt remove $(dpkg --get-selections docker.io docker-compose docker-doc podman-docker containerd runc | cut -f1)
+
+# Add Docker's official GPG key:
+sudo apt update
+sudo apt install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+sudo tee /etc/apt/sources.list.d/docker.sources <<DOCKER_EOF
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.asc
+DOCKER_EOF
+
+sudo apt-get update -y && sudo apt-get dist-upgrade -y
+
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+newgrp docker # admin user must be in the docker group
+
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo systemctl status docker
+
+sudo usermod -aG docker admin # N.B. 'admin' is the default user on AWS Debian AMIs
+sudo usermod -aG docker internal
+sudo systemctl restart docker
+
+# fail2ban
+sudo apt-get install -y fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+sudo systemctl status fail2ban
+
+
+# ssh password so the 'internal' user can access boxes on 10.0.1.0/24 using ssh password auth:
+echo "internal:$6$UjG7OyUN1qVaHENZ$RvQl8XNox9k8Qzl151LuhE4uJSLBe9TNGrN0lZ13QrvzH5tOg7LtfEOveVjPYuNI2wCOGq0NUZA3b7d4yH8Iz." | sudo tee -a /etc/shadow > /dev/null
+# Allow password authentication in SSH
+sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# Restart SSH service to apply changes
+sudo systemctl restart sshd
+
+EOF
 }
 
 
@@ -13,7 +100,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
-    Name = "prism-vpc"
+    Name = "${var.env}-vpc"
   }
 }
 
@@ -23,7 +110,7 @@ resource "aws_subnet" "main" {
   availability_zone       = var.aws_az
   map_public_ip_on_launch = false
   tags = {
-    Name = "prism-subnet"
+    Name = "${var.env}-subnet"
   }
 }
 
@@ -41,7 +128,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "prism-igw"
+    Name = "${var.env}-igw"
   }
 }
 
@@ -54,7 +141,7 @@ resource "aws_route_table" "main" {
   }
 
   tags = {
-    Name = "prism-route-table"
+    Name = "${var.env}-route-table"
   }
 }
 
@@ -170,4 +257,10 @@ output "web_traffic_id" {
 output "aws_subnet_id" {
   description = "ID of the main subnet"
   value       = aws_subnet.main.id
+}
+
+
+output "vpc_id" {
+  description = "ID of the main VPC"
+  value       = aws_vpc.main.id
 }
