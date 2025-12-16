@@ -8,7 +8,9 @@ admin:
     socket_address:
       address: 0.0.0.0
       port_value: 9901
-
+# TODO 
+# - add a subset of endpoints to port 8090 for public access
+# - full suite of endpoints is available on 8080 - only for access on 10.0.1.0/24
 static_resources:
   listeners:
     - name: listener_0

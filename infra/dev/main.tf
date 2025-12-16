@@ -1,26 +1,28 @@
 module "shared" {
   source = "../shared"
   env  = "dev"
-  aws_key = "dev"
+  aws_key_bastion = "dev-bastion"
+  aws_key_internal = "dev"
+  aws_region = "us-east-1"
   aws_az = "us-east-1a"
+  eip = "eipalloc-0a06fd4140fafdd3c"
 }
 
 resource "aws_instance" "bastion_dev" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
-  key_name      = module.shared.aws_key
+  key_name      = module.shared.aws_key_bastion
   availability_zone = module.shared.aws_az
   
   associate_public_ip_address = true # bastion needs a public IP
   
-  subnet_id              = module.shared.aws_subnet_id
+  subnet_id              = module.shared.aws_subnet_public_id # PUBLIC subnet
+
   vpc_security_group_ids = [
-    module.shared.disable_ipv6_ingress_id,
-    # module.shared.disable_egress_id,
     module.shared.allow_web_egress_id,
+    module.shared.allow_web_ingress_id,
     module.shared.allow_internal_id,
-    module.shared.allow_ssh_ingress_id, # SSH is allowed to Bastion
-    # module.shared.allow_web_ingress_id,
+    module.shared.allow_ssh_ingress_id # SSH is allowed to Bastion
   ]
 
   tags = {
@@ -31,50 +33,62 @@ resource "aws_instance" "bastion_dev" {
 #!/bin/bash
 ${module.shared.install_base}
 
-# create non-root bastion user
-useradd -m -s /bin/bash bastion
+sudo apt-get install ufw -y
 
-# give bastion sudo privileges without password (optional)
-usermod -aG sudo bastion
-
-# setup SSH directory
-mkdir -p /home/bastion/.ssh
-chown bastion:bastion /home/bastion/.ssh
-chmod 700 /home/bastion/.ssh
-
-# remove any existing authorized_keys for default user
-rm -f /home/ubuntu/.ssh/authorized_keys
-rm -f /home/ec2-user/.ssh/authorized_keys
-
-# copy a non-privileged public key
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDS4Y4saImPHrW8GwlgArdpiTRXUjgNZyR8WgUUa8mnOMscSEuw9qfzKHbzCNOwBpvkajJAmogInYPGyVqZB64+i0ZGUKW4q6onyhlO3ZuwyEKVHW30ZjQuon526U6PmcvtfB7rsgzw8IXUPGLyK6J7cBsvjMWdcniIIpJ/4AGbD/xD19mODs8FAq6TL+O/XFLDHJ4woCsz3dqtmY4I2/En0JW5S6cLIuueYMHlrnWYz5vTI8ruXMgXOCY8ghtZb+vwbV43SlUtRhj50yEU+cnYf7O0dFZSOUlxYwn3Xv/QjDcIRnW137ewxVYXP54Q46NhHU4HSiG3Ns4Tzzt33i/yKO/R1/52MUEzyPk/6njQmHh7R/zqOShuXEPLlIRl4qW0lk02W9ufQTigTBMrnmpESPE2KU/lyywf2BJCjwxZUYIVGZy6zMcrSoYKzQ8v4kyIeTyRTxKGTSOszfmCBdwJF3Q2S2PoNFuqo23y4O5myBxdAMgFO/QQNRmENpGoNk9ih6DVp59wsgm9enxDntCU7rsT1nR69npDEFyFZ0Jj4zssu9RFaDrzPlp+lJ7aB8xymR7RqtM9ATq4/0mQg6LF0oZ82vOAKr/3R2e+3inGZdCwc+EZSxpoKfDUg8QVyqgYUm49dfbSjodpzhcKQvHbA7EPLViEJ/+ZdPUfn/nmnQ==" > /home/bastion/.ssh/authorized_keys
-chown bastion:bastion /home/bastion/.ssh/authorized_keys
-chmod 600 /home/bastion/.ssh/authorized_keys
-
+# UFW - only allow ssh
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw enable
 EOF
 }
 
 
+# # Public network interface for the proxy server
+# resource "aws_network_interface" "proxy_public" {
+#   subnet_id       = aws_subnet.public.id
+#   private_ips     = ["10.0.0.10"] # IP in the public subnet range
+#   security_groups = [
+#     module.shared.allow_web_ingress_id,
+#     module.shared.allow_ssh_ingress_id
+#   ]
+
+#   tags = { Name = "${module.shared.env}-proxy-public" }
+# }
+# # Private network interface for the proxy server
+# resource "aws_network_interface" "proxy_private" {
+#   subnet_id       = aws_subnet.private.id
+#   private_ips     = ["10.0.1.10"] # IP in the private subnet range
+#   security_groups = [
+#     module.shared.allow_internal_id
+#   ]
+
+#   tags = { Name = "${module.shared.env}-proxy-private"}
+# }
 resource "aws_instance" "proxy_dev" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
-  key_name      = module.shared.aws_key
+  key_name      = module.shared.aws_key_internal
   availability_zone = module.shared.aws_az
 
-  subnet_id              = module.shared.aws_subnet_id
+  subnet_id              = module.shared.aws_subnet_private_id
   private_ip             = module.shared.fixed_ip_proxy
 
   vpc_security_group_ids = [
-    module.shared.disable_ipv6_ingress_id,
-    # module.shared.disable_egress_id,
     module.shared.allow_web_egress_id,
+    module.shared.allow_web_ingress_id,
     module.shared.allow_internal_id,
     # module.shared.allow_ssh_ingress_id
-    module.shared.allow_web_ingress_id,
+    module.shared.allow_ssh_from_public_subnet_id
   ]
+
+  iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM
 
   user_data = <<-EOF
     #!/bin/bash
+
+    hostnamectl set-hostname proxy # script needs to know
+
     ${module.shared.install_base}
     ${module.shared.install_docker_runner}
   EOF
@@ -85,7 +99,7 @@ resource "aws_instance" "proxy_dev" {
 }
 # Associate the 'dev' elastic IP with the proxy_dev instance
 resource "aws_eip_association" "proxy_dev_eip_assoc" {
-  allocation_id = "eipalloc-0a06fd4140fafdd3c"
+  allocation_id = module.shared.eip
   instance_id   = aws_instance.proxy_dev.id
 }
 
@@ -93,23 +107,27 @@ resource "aws_eip_association" "proxy_dev_eip_assoc" {
 resource "aws_instance" "monolith_dev" {
   ami           = module.shared.ami
   instance_type = "t3.micro"
-  key_name      = module.shared.aws_key
+  key_name      = module.shared.aws_key_internal
   availability_zone = module.shared.aws_az
 
-  subnet_id              = module.shared.aws_subnet_id
+  subnet_id              = module.shared.aws_subnet_private_id
   private_ip             = module.shared.fixed_ip_monolith
 
   vpc_security_group_ids = [
-    module.shared.disable_ipv6_ingress_id,
-    # module.shared.disable_egress_id,
     module.shared.allow_web_egress_id,
+    module.shared.allow_web_ingress_id,
     module.shared.allow_internal_id,
     # module.shared.allow_ssh_ingress_id
-    # module.shared.allow_web_ingress_id,
+    module.shared.allow_ssh_from_public_subnet_id
   ]
+
+  iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM
 
   user_data = <<-EOF
     #!/bin/bash
+
+    hostnamectl set-hostname monolith # script needs to know
+
     ${module.shared.install_base}
     ${module.shared.install_docker_runner}
   EOF
@@ -123,23 +141,27 @@ resource "aws_instance" "monolith_dev" {
 resource "aws_instance" "data_dev" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
-  key_name      = module.shared.aws_key
+  key_name      = module.shared.aws_key_internal
   availability_zone = module.shared.aws_az # must be the same as the EBS volume
 
-  subnet_id              = module.shared.aws_subnet_id
+  subnet_id              = module.shared.aws_subnet_private_id
   private_ip             = module.shared.fixed_ip_data
 
    vpc_security_group_ids = [
-    module.shared.disable_ipv6_ingress_id,
-    # module.shared.disable_egress_id,
     module.shared.allow_web_egress_id,
+    module.shared.allow_web_ingress_id,
     module.shared.allow_internal_id,
     # module.shared.allow_ssh_ingress_id
-    module.shared.allow_web_ingress_id,
+    module.shared.allow_ssh_from_public_subnet_id
   ]
+
+  iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM
 
   user_data = <<-EOF
     #!/bin/bash
+
+    hostnamectl set-hostname data # script needs to know
+
     ${module.shared.install_base}
     ${module.shared.install_docker_runner}
 

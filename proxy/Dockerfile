@@ -4,8 +4,7 @@
 # docker push ghcr.io/prismmarketlabs/proxy:$VERSION
 #
 # source loadEnv.sh local
-# TODO: don't use env-files
-# docker run --env-file .config.local --env-file .secrets.local ghcr.io/prismmarketlabs/proxy:$VERSION
+# docker run ghcr.io/prismmarketlabs/proxy:$VERSION
 
 # BUILD stage
 FROM envoyproxy/envoy:contrib-v1.35-latest

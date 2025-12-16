@@ -57,6 +57,8 @@ AWS (dev):
 
 ![alt text](resources/awsEC2.png)
 
+For further information, see the infra [README](infra/README.md)
+
 ## Versioning
 
 Each service MUST be versioned.

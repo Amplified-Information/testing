@@ -7,11 +7,17 @@ variable "env" {
 }
 output "env" { value = var.env }
 
-variable "aws_key" {
-  description = "The name of the key pair to use for SSH access"
+variable "aws_key_internal" {
+  description = "The name of the key pair to use for SSH access to internal boxes"
   type        = string
 }
-output "aws_key" { value = var.aws_key }
+output "aws_key_internal" { value = var.aws_key_internal }
+
+variable "aws_key_bastion" {
+  description = "The name of the key pair to use for SSH access to the bastion host"
+  type        = string
+}
+output "aws_key_bastion" { value = var.aws_key_bastion }
 
 variable "aws_az" {
   description = "The AWS availability zone"
@@ -20,8 +26,19 @@ variable "aws_az" {
 }
 output "aws_az" { value = var.aws_az }
 
+variable "eip" {
+  description = "The Elastic IP for the environment"
+  type        = string
+}
+output "eip" { value = var.eip }
+
+variable "aws_region" {
+  description = "The AWS region to use"
+  type        = string
+}
+output "aws_region" { value = var.aws_region }
+
 output "ami" { value = "ami-0f9c27b471bdcd702" } // Debian 13
-output "aws_region" { value = "us-east-1" }
 output "fixed_ip_proxy" { value = "10.0.1.10" }
 output "fixed_ip_monolith" { value = "10.0.1.11" }
 output "fixed_ip_data" { value = "10.0.1.12" }
@@ -29,6 +46,8 @@ output "fixed_ip_data" { value = "10.0.1.12" }
 output "install_base" {
   value = <<-EOF
 #!/bin/bash
+
+sleep 20 # wait for networking to come up
 
 sudo apt-get update -y && sudo apt-get dist-upgrade -y
 
@@ -44,14 +63,6 @@ sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
 sudo systemctl status fail2ban
 
-# harden SSH
-sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-sed -i 's/^ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
-
-# restart SSH service
-systemctl restart ssh
-
 EOF
 }
 
@@ -59,16 +70,8 @@ output "install_docker_runner" {
   value = <<-EOF
 #!/bin/bash
 
-# 'internal' user for running internal services
-sudo useradd -m internal
-
-# ssh password so the 'internal' user can access boxes on 10.0.1.0/24 using ssh password auth:
-sudo usermod -p '$6$UjG7OyUN1qVaHENZ$RvQl8XNox9k8Qzl151LuhE4uJSLBe9TNGrN0lZ13QrvzH5tOg7LtfEOveVjPYuNI2wCOGq0NUZA3b7d4yH8Iz.' internal
-# Allow password authentication in SSH
-sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
-sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-# Restart SSH service to apply changes
-sudo systemctl restart sshd
+# S3 cli (for pulling container images and configs):
+sudo apt install -y awscli
 
 # Docker
 # remove any conflicting packages:
@@ -104,67 +107,233 @@ sudo usermod -aG docker admin # N.B. 'admin' is the default user on AWS Debian A
 sudo usermod -aG docker internal
 sudo systemctl restart docker
 
+
+
+
+
+
+
+#####
+# Devops: Create a deploy.sh script
+#####
+cat <<'SCRIPT' > /home/admin/deploy.sh
+#!/bin/bash
+
+# Variables
+ENVIRONMENT="${var.env}"
+AWS_REGION="${var.aws_region}"
+SECRET_NAME="read_ghcr"
+MACHINE=$(hostname) # should be 'proxy', 'monolith', or 'data'
+S3_BUCKET="prismlabs-deployment"
+
+login_to_github() {
+  echo "Logging in to GitHub Container Registry..."
+  GITHUB_PAT=$(aws ssm get-parameter --name "$SECRET_NAME" --with-decryption --region "$AWS_REGION" | jq ".Parameter.Value" -r)
+  if [ -z "$GITHUB_PAT" ]; then
+    echo "Failed to retrieve GitHub PAT from AWS Secrets Manager."
+    exit 1
+  fi
+  echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+}
+
+pull_docker_compose_files() {
+  echo "Retrieving Docker Compose files from S3..."
+  FILES=$(aws s3 ls "s3://$S3_BUCKET" --region "$AWS_REGION" | awk '{print $4}')
+
+  FILTERED_FILES=$(echo "$FILES" | grep "docker-compose-$MACHINE" | grep "$ENVIRONMENT")
+
+  if [ -z "$FILTERED_FILES" ]; then
+    echo "No matching Docker Compose files found for MACHINE=$MACHINE and ENVIRONMENT=$ENVIRONMENT."
+    exit 1
+  fi
+
+  for file in $FILTERED_FILES; do
+    echo "Downloading $file..."
+    aws s3 cp "s3://$S3_BUCKET/docker-compose/$file" "./$file" --region "$AWS_REGION"
+  done
+}
+
+redeploy_if_changed() {
+  echo "Checking for changes in Docker Compose files..."
+  BASE_FILE="docker-compose-$MACHINE.yml"
+  ENV_FILE="docker-compose-$MACHINE.$ENVIRONMENT.yml"
+
+  # Temporary files for comparison
+  TMP_BASE_FILE="/tmp/$BASE_FILE"
+  TMP_ENV_FILE="/tmp/$ENV_FILE"
+
+  # Check if the files exist
+  if [ ! -f "$BASE_FILE" ] || [ ! -f "$ENV_FILE" ]; then
+    touch /tmp/$BASE_FILE
+    touch /tmp/$ENV_FILE
+  fi
+
+  # Calculate hashes and compare
+  if [ -f "$TMP_BASE_FILE" ] && [ -f "$TMP_ENV_FILE" ]; then
+    BASE_HASH_NEW=$(sha256sum "$BASE_FILE" | awk '{print $1}')
+    BASE_HASH_OLD=$(sha256sum "$TMP_BASE_FILE" | awk '{print $1}')
+    ENV_HASH_NEW=$(sha256sum "$ENV_FILE" | awk '{print $1}')
+    ENV_HASH_OLD=$(sha256sum "$TMP_ENV_FILE" | awk '{print $1}')
+
+    if [ "$BASE_HASH_NEW" == "$BASE_HASH_OLD" ] && [ "$ENV_HASH_NEW" == "$ENV_HASH_OLD" ]; then
+      echo "No changes detected in Docker Compose files. Skipping redeploy."
+      return
+    fi
+  fi
+
+  # Got here? Re-deploy the service...
+
+  # but first, copy new files to /tmp for future comparison
+  cp "$BASE_FILE" "$TMP_BASE_FILE"
+  cp "$ENV_FILE" "$TMP_ENV_FILE"
+
+  echo "Changes detected in Docker Compose files. Redeploying..."
+  docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
+}
+
+main() {
+  login_to_github
+  pull_docker_compose_files
+  redeploy_if_changed
+}
+
+main
+SCRIPT
+
+# Make the deploy.sh script executable
+chown admin:admin /home/admin/deploy.sh
+chmod +x /home/admin/deploy.sh
+
 EOF
 }
 
 
+
+
+
+
 #####
-# VPC and Subnet
+# VPC
 #####
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
+
+  # Request an Amazon-provided IPv6 CIDR block
+  assign_generated_ipv6_cidr_block = true
+
   tags = {
     Name = "${var.env}-vpc"
   }
 }
 
-resource "aws_subnet" "main" {
+#####
+# Private Subnet
+#####
+resource "aws_subnet" "private" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
+  ipv6_cidr_block          = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 1) # first /64 from VPC
   availability_zone       = var.aws_az
   map_public_ip_on_launch = false
-  tags = {
-    Name = "${var.env}-subnet"
-  }
+
+  tags = { Name = "${var.env}-private-subnet" }
+}
+
+#####
+# Public Subnet
+#####
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.0.0/24"
+  ipv6_cidr_block          = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 0) # first /64 from VPC
+  availability_zone       = var.aws_az
+  map_public_ip_on_launch = true
+
+  tags = { Name = "${var.env}-public-subnet" }
 }
 
 
-
-
-
-
-
-
-###
-# Internet Gateway, Route Table, and Association
-###
+#####
+# Internet Gateway
+#####
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
+  tags = { Name = "${var.env}-igw" }
+}
+
+#####
+# NAT Gateway for IPv4 (IPv6 doesn't need NAT)
+#####
+resource "aws_eip" "nat" { # need another Elastic IP for the NAT Gateway
+  tags = { Name = "${var.env}-nat" }
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public.id
+
   tags = {
-    Name = "${var.env}-igw"
+    Name = "${var.env}-nat"
   }
 }
 
-resource "aws_route_table" "main" {
+
+#####
+# Route Table for Private Subnet
+#####
+resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
+  # IPv4 default route via NAT
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  # IPv6 default route directly via IGW
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_internet_gateway.main.id
+  }
+
+  tags = { Name = "${var.env}-private-rt" }
+}
+
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+#####
+# Route Table for Public Subnet
+#####
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  # IPv4 via IGW
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
 
-  tags = {
-    Name = "${var.env}-route-table"
+  # IPv6 via IGW
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_internet_gateway.main.id
   }
+
+  tags = { Name = "${var.env}-public-rt" }
 }
 
-resource "aws_route_table_association" "main" {
-  subnet_id      = aws_subnet.main.id
-  route_table_id = aws_route_table.main.id
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
 }
+
+
 
 
 
@@ -173,28 +342,6 @@ resource "aws_route_table_association" "main" {
 #####
 # Security Groups
 #####
-resource "aws_security_group" "disable_ipv6_ingress" {
-  name        = "disable_ipv6_ingress"
-  description = "Security group blocking all IPv6 traffic"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port      = 0
-    to_port        = 0
-    protocol       = "-1"
-    ipv6_cidr_blocks = []
-  }
-}
-
-resource "aws_security_group" "disable_egress" {
-  name   = "disable_egress"
-  vpc_id = aws_vpc.main.id
-
-  revoke_rules_on_delete = true
-
-  # No egress blocks at all
-}
-
 resource "aws_security_group" "allow_web_egress" {
   name   = "allow_web_egress"
   vpc_id = aws_vpc.main.id
@@ -232,6 +379,44 @@ resource "aws_security_group" "allow_web_egress" {
   }
 }
 
+resource "aws_security_group" "allow_web_ingress" {
+  name        = "allow_web_ingress"
+  description = "Security group allowing HTTP (port 80) and HTTPS (port 443) ingress for IPv4 and IPv6"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "Allow inbound HTTP traffic"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow inbound HTTP traffic ipv6"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description = "Allow inbound HTTPS traffic"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow inbound HTTPS traffic ipv6"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
 resource "aws_security_group" "allow_internal" {
   name        = "allow_internal"
   description = "Allow internal traffic between instances"
@@ -264,44 +449,112 @@ resource "aws_security_group" "allow_ssh_ingress" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  ingress {
+    description = "Allow inbound SSH traffic ipv6"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    ipv6_cidr_blocks = ["::/0"]
+  }
 }
 
-resource "aws_security_group" "allow_web_ingress" {
-  name        = "allow_web_ingress"
-  description = "Security group allowing HTTP (port 80) and HTTPS (port 443) ingress for IPv4"
+resource "aws_security_group" "allow_ssh_from_public_subnet" {
+  name        = "allow_ssh_from_public_subnet"
+  description = "Allow ssh traffic from the public subnet"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "Allow inbound HTTP traffic"
-    from_port   = 80
-    to_port     = 80
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "Allow inbound HTTPS traffic"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["10.0.0.0/24"] # Public subnet CIDR 10.0.0.0/24 and NOT 10.0.1.0/24
   }
 }
+
+
+#####
+# IAM roles
+# - view files with `aws s3 ls s3://prismlabs-deployment --region us-east-1`
+# - access `aws ssm get-parameter ...` - so can acccess the "read_ghcr" secret
+#####
+
+resource "aws_iam_role" "combined_role" {
+   name = "${var.env}-combined-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "combined_policy" {
+  name        = "${var.env}-combined-policy"
+  description = "Combined policy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      // S3 read access
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ],
+        Resource = [
+          "arn:aws:s3:::prismlabs-deployment",
+          "arn:aws:s3:::prismlabs-deployment/*"
+        ]
+      },
+      // ssm read access
+      {
+        Effect = "Allow",
+        Action = "ssm:GetParameter",
+        Resource = "arn:aws:ssm:us-east-1:063088900305:parameter/read_ghcr"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "combined_policy_attach" {
+  role       = aws_iam_role.combined_role.name
+  policy_arn = aws_iam_policy.combined_policy.arn
+}
+
+resource "aws_iam_instance_profile" "combined_instance_profile" {
+  name = "${var.env}-combined-instance-profile"
+  role = aws_iam_role.combined_role.name
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 #####
 # Outputs
 #####
-output "disable_ipv6_ingress_id" {
-  value       = aws_security_group.disable_ipv6_ingress.id
-}
-
-output "disable_egress_id" {
-  value       = aws_security_group.disable_egress.id
-}
-
 output "allow_web_egress_id" {
   value       = aws_security_group.allow_web_egress.id
+}
+
+output "allow_web_ingress_id" {
+  value       = aws_security_group.allow_web_ingress.id
 }
 
 output "allow_internal_id" {
@@ -312,18 +565,31 @@ output "allow_ssh_ingress_id" {
   value       = aws_security_group.allow_ssh_ingress.id
 }
 
-output "allow_web_ingress_id" {
-  value       = aws_security_group.allow_web_ingress.id
+output "allow_ssh_from_public_subnet_id" {
+  value       = aws_security_group.allow_ssh_from_public_subnet.id
 }
 
 
 
-output "aws_subnet_id" {
-  description = "ID of the main subnet"
-  value       = aws_subnet.main.id
+
+output "aws_subnet_public_id" {
+  description = "ID of the public subnet"
+  value       = aws_subnet.public.id
+}
+
+output "aws_subnet_private_id" {
+  description = "ID of the private subnet"
+  value       = aws_subnet.private.id
 }
 
 output "vpc_id" {
   description = "ID of the main VPC"
   value       = aws_vpc.main.id
+}
+
+
+
+
+output "combined_iam_policy_name" {
+  value = aws_iam_instance_profile.combined_instance_profile.name
 }
