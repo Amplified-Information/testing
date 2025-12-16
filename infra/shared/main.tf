@@ -25,9 +25,11 @@ output "aws_region" { value = "us-east-1" }
 output "fixed_ip_proxy" { value = "10.0.1.10" }
 output "fixed_ip_monolith" { value = "10.0.1.11" }
 output "fixed_ip_data" { value = "10.0.1.12" }
-output "install_script" {
+
+output "install_base" {
   value = <<-EOF
 #!/bin/bash
+
 sudo apt-get update -y && sudo apt-get dist-upgrade -y
 
 # Enable automatic security updates
@@ -36,8 +38,37 @@ sudo dpkg-reconfigure -plow unattended-upgrades
 
 sudo apt-get install -y unzip jq
 
-# add a 'internal' user for running internal services
-sudo useradd internal
+# fail2ban
+sudo apt-get install -y fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+sudo systemctl status fail2ban
+
+# harden SSH
+sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+sed -i 's/^ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
+
+# restart SSH service
+systemctl restart ssh
+
+EOF
+}
+
+output "install_docker_runner" {
+  value = <<-EOF
+#!/bin/bash
+
+# 'internal' user for running internal services
+sudo useradd -m internal
+
+# ssh password so the 'internal' user can access boxes on 10.0.1.0/24 using ssh password auth:
+sudo usermod -p '$6$UjG7OyUN1qVaHENZ$RvQl8XNox9k8Qzl151LuhE4uJSLBe9TNGrN0lZ13QrvzH5tOg7LtfEOveVjPYuNI2wCOGq0NUZA3b7d4yH8Iz.' internal
+# Allow password authentication in SSH
+sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# Restart SSH service to apply changes
+sudo systemctl restart sshd
 
 # Docker
 # remove any conflicting packages:
@@ -72,21 +103,6 @@ sudo systemctl status docker
 sudo usermod -aG docker admin # N.B. 'admin' is the default user on AWS Debian AMIs
 sudo usermod -aG docker internal
 sudo systemctl restart docker
-
-# fail2ban
-sudo apt-get install -y fail2ban
-sudo systemctl enable fail2ban
-sudo systemctl start fail2ban
-sudo systemctl status fail2ban
-
-
-# ssh password so the 'internal' user can access boxes on 10.0.1.0/24 using ssh password auth:
-echo "internal:$6$UjG7OyUN1qVaHENZ$RvQl8XNox9k8Qzl151LuhE4uJSLBe9TNGrN0lZ13QrvzH5tOg7LtfEOveVjPYuNI2wCOGq0NUZA3b7d4yH8Iz." | sudo tee -a /etc/shadow > /dev/null
-# Allow password authentication in SSH
-sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
-sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-# Restart SSH service to apply changes
-sudo systemctl restart sshd
 
 EOF
 }
@@ -157,17 +173,10 @@ resource "aws_route_table_association" "main" {
 #####
 # Security Groups
 #####
-resource "aws_security_group" "closed_network" {
-  name        = "default_closed_network"
-  description = "Security group blocking all IPv4 and IPv6 traffic"
+resource "aws_security_group" "disable_ipv6_ingress" {
+  name        = "disable_ipv6_ingress"
+  description = "Security group blocking all IPv6 traffic"
   vpc_id      = aws_vpc.main.id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
     from_port      = 0
@@ -175,34 +184,81 @@ resource "aws_security_group" "closed_network" {
     protocol       = "-1"
     ipv6_cidr_blocks = []
   }
+}
+
+resource "aws_security_group" "disable_egress" {
+  name   = "disable_egress"
+  vpc_id = aws_vpc.main.id
+
+  revoke_rules_on_delete = true
+
+  # No egress blocks at all
+}
+
+resource "aws_security_group" "allow_web_egress" {
+  name   = "allow_web_egress"
+  vpc_id = aws_vpc.main.id
 
   egress {
-    from_port      = 0
-    to_port        = 0
-    protocol       = "-1"
-    ipv6_cidr_blocks = []
+    description      = "Allow IPv4 outbound traffic on port 80"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description      = "Allow IPv4 outbound traffic on port 443"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description      = "Allow all IPv6 outbound traffic on port 80"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    description      = "Allow all IPv6 outbound traffic on port 443"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    ipv6_cidr_blocks = ["::/0"]
   }
 }
 
 resource "aws_security_group" "allow_internal" {
-  name        = "allow-internal"
+  name        = "allow_internal"
   description = "Allow internal traffic between instances"
   vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.1.0/24"]  # allow internal subnet
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["10.0.1.0/24"]  # allow internal subnet
   }
 }
 
-resource "aws_security_group" "ssh" {
-  name          = "default_ssh_access"
+resource "aws_security_group" "allow_ssh_ingress" {
+  name          = "allow_ssh_ingress"
   description   = "Security group allowing SSH (port 22) ingress for IPv4"
   vpc_id      = aws_vpc.main.id
 
   ingress {
+    description = "Allow inbound SSH traffic"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -210,12 +266,13 @@ resource "aws_security_group" "ssh" {
   }
 }
 
-resource "aws_security_group" "web_traffic" {
-  name        = "default_web_traffic"
+resource "aws_security_group" "allow_web_ingress" {
+  name        = "allow_web_ingress"
   description = "Security group allowing HTTP (port 80) and HTTPS (port 443) ingress for IPv4"
   vpc_id      = aws_vpc.main.id
 
   ingress {
+    description = "Allow inbound HTTP traffic"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -223,6 +280,7 @@ resource "aws_security_group" "web_traffic" {
   }
 
   ingress {
+    description = "Allow inbound HTTPS traffic"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -234,31 +292,36 @@ resource "aws_security_group" "web_traffic" {
 #####
 # Outputs
 #####
-output "closed_network_id" {
-  description = "ID of the closed network security group"
-  value       = aws_security_group.closed_network.id
+output "disable_ipv6_ingress_id" {
+  value       = aws_security_group.disable_ipv6_ingress.id
+}
+
+output "disable_egress_id" {
+  value       = aws_security_group.disable_egress.id
+}
+
+output "allow_web_egress_id" {
+  value       = aws_security_group.allow_web_egress.id
 }
 
 output "allow_internal_id" {
-  description = "ID of the allow internal traffic security group"
   value       = aws_security_group.allow_internal.id
 }
 
-output "ssh_id" {
-  description = "ID of the SSH security group"
-  value       = aws_security_group.ssh.id
+output "allow_ssh_ingress_id" {
+  value       = aws_security_group.allow_ssh_ingress.id
 }
 
-output "web_traffic_id" {
-  description = "ID of the web traffic security group"
-  value       = aws_security_group.web_traffic.id
+output "allow_web_ingress_id" {
+  value       = aws_security_group.allow_web_ingress.id
 }
+
+
 
 output "aws_subnet_id" {
   description = "ID of the main subnet"
   value       = aws_subnet.main.id
 }
-
 
 output "vpc_id" {
   description = "ID of the main VPC"

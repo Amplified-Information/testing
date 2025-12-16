@@ -12,13 +12,15 @@ resource "aws_instance" "bastion_dev" {
   availability_zone = module.shared.aws_az
   
   associate_public_ip_address = true # bastion needs a public IP
-
+  
   subnet_id              = module.shared.aws_subnet_id
-
   vpc_security_group_ids = [
-    module.shared.closed_network_id,
+    module.shared.disable_ipv6_ingress_id,
+    # module.shared.disable_egress_id,
+    module.shared.allow_web_egress_id,
     module.shared.allow_internal_id,
-    module.shared.ssh_id # SSH is allowed to Bastion
+    module.shared.allow_ssh_ingress_id, # SSH is allowed to Bastion
+    # module.shared.allow_web_ingress_id,
   ]
 
   tags = {
@@ -27,11 +29,7 @@ resource "aws_instance" "bastion_dev" {
 
   user_data = <<-EOF
 #!/bin/bash
-sudo apt-get update -y && sudo apt-get dist-upgrade -y
-
-# Enable automatic security updates
-sudo apt-get install -y unattended-upgrades
-sudo dpkg-reconfigure -plow unattended-upgrades
+${module.shared.install_base}
 
 # create non-root bastion user
 useradd -m -s /bin/bash bastion
@@ -53,20 +51,6 @@ echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDS4Y4saImPHrW8GwlgArdpiTRXUjgNZyR8Wg
 chown bastion:bastion /home/bastion/.ssh/authorized_keys
 chmod 600 /home/bastion/.ssh/authorized_keys
 
-# fail2ban
-sudo apt-get install -y fail2ban
-sudo systemctl enable fail2ban
-sudo systemctl start fail2ban
-sudo systemctl status fail2ban
-
-# harden SSH
-sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-sed -i 's/^ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
-
-# restart SSH service
-systemctl restart ssh
-
 EOF
 }
 
@@ -81,15 +65,18 @@ resource "aws_instance" "proxy_dev" {
   private_ip             = module.shared.fixed_ip_proxy
 
   vpc_security_group_ids = [
-    module.shared.closed_network_id, 
+    module.shared.disable_ipv6_ingress_id,
+    # module.shared.disable_egress_id,
+    module.shared.allow_web_egress_id,
     module.shared.allow_internal_id,
-    module.shared.ssh_id, # no external SSH access to proxy instance TODO - remove
-    module.shared.web_traffic_id
+    # module.shared.allow_ssh_ingress_id
+    module.shared.allow_web_ingress_id,
   ]
 
   user_data = <<-EOF
     #!/bin/bash
-    ${module.shared.install_script}
+    ${module.shared.install_base}
+    ${module.shared.install_docker_runner}
   EOF
 
   tags = {
@@ -113,14 +100,18 @@ resource "aws_instance" "monolith_dev" {
   private_ip             = module.shared.fixed_ip_monolith
 
   vpc_security_group_ids = [
-    module.shared.closed_network_id,
-    module.shared.allow_internal_id
-    # module.shared.ssh_id # no external SSH access to data instance
+    module.shared.disable_ipv6_ingress_id,
+    # module.shared.disable_egress_id,
+    module.shared.allow_web_egress_id,
+    module.shared.allow_internal_id,
+    # module.shared.allow_ssh_ingress_id
+    # module.shared.allow_web_ingress_id,
   ]
 
   user_data = <<-EOF
     #!/bin/bash
-    ${module.shared.install_script}
+    ${module.shared.install_base}
+    ${module.shared.install_docker_runner}
   EOF
 
   tags = {
@@ -138,15 +129,19 @@ resource "aws_instance" "data_dev" {
   subnet_id              = module.shared.aws_subnet_id
   private_ip             = module.shared.fixed_ip_data
 
-  vpc_security_group_ids = [
-    module.shared.closed_network_id,
-    module.shared.allow_internal_id
-    # module.shared.ssh_id # no external SSH access to data instance
+   vpc_security_group_ids = [
+    module.shared.disable_ipv6_ingress_id,
+    # module.shared.disable_egress_id,
+    module.shared.allow_web_egress_id,
+    module.shared.allow_internal_id,
+    # module.shared.allow_ssh_ingress_id
+    module.shared.allow_web_ingress_id,
   ]
 
   user_data = <<-EOF
     #!/bin/bash
-    ${module.shared.install_script}
+    ${module.shared.install_base}
+    ${module.shared.install_docker_runner}
 
     # prepare mount point for postgres data volume
     mkdir -p /mnt/external
