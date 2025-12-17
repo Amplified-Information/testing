@@ -64,7 +64,8 @@ resource "aws_instance" "proxy_dev" {
     module.shared.allow_web_ingress_id,
     module.shared.allow_internal_id,
     # module.shared.allow_ssh_ingress_id
-    module.shared.allow_ssh_from_public_subnet_id
+    module.shared.allow_ssh_from_public_subnet_id,
+    module.shared.allow_8090_from_internet_id
   ]
 
   iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM

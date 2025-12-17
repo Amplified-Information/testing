@@ -533,6 +533,18 @@ resource "aws_security_group" "allow_ssh_from_public_subnet" {
   }
 }
 
+resource "aws_security_group" "allow_8090_from_internet" {
+  name        = "allow_8090_from_internet"
+  description = "Allow 8090 traffic from the internet"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 8090
+    to_port     = 8090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Allow from anywhere on the internet
+  }
+}
 
 #####
 # IAM roles
@@ -631,6 +643,10 @@ output "allow_ssh_ingress_id" {
 
 output "allow_ssh_from_public_subnet_id" {
   value       = aws_security_group.allow_ssh_from_public_subnet.id
+}
+
+output "allow_8090_from_internet_id" {
+  value       = aws_security_group.allow_8090_from_internet.id
 }
 
 
