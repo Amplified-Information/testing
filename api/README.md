@@ -73,25 +73,25 @@ Or...
 Grab the JSON.stringified payload from the console.log:
 
 ```bash
-export PORT=8888
+export API_PORT=8888
 export PAYLOAD='{"txid":"019a2bc2-d729-7407-acb7-fff6e81daa11","marketId":"019a2bc2-d729-7407-acb8-003b2e4fe475","generated_at":"2025-10-28T16:59:40.713Z","accountId":"0.0.7090546","buySell":"buy","priceUsd":0.5,"nShares":10,"sig":""}'
 
-grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.PredictIntent
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$API_PORT api.ApiService.PredictIntent
 ```
 
 Retrieve markets from the database:
 
 ```bash
-export PORT=8888
+export API_PORT=8888
 
 export PAYLOAD="{}"
-grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.GetMarketById
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$API_PORT api.ApiService.GetMarketById
 
 export PAYLOAD='{"market_id":"0189c0a8-7e80-7e80-8000-000000000002"}'
-grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.GetMarketById
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$API_PORT api.ApiService.GetMarketById
 
 export PAYLOAD='{"limit":10,"offset":0}'
-grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$PORT api.ApiService.GetMarkets
+grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$API_PORT api.ApiService.GetMarkets
 ```
 
 ## Database migrations

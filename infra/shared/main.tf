@@ -47,15 +47,37 @@ output "install_base" {
   value = <<-EOF
 #!/bin/bash
 
-sleep 20 # wait for networking to come up
+wait_for_machine_ready() {
+  local retries=100
+  local delay=5
 
-sudo apt-get update -y && sudo apt-get dist-upgrade -y
+  for ((i=1; i<=retries; i++)); do
+    echo "Checking if the machine is ready (attempt $i)..."
+    if curl -I --silent http://google.com | head -n 1 | grep "HTTP" > /dev/null; then
+      echo "Machine is ready."
+      return 0
+    fi
+
+    echo "Machine not ready. Retrying in $delay seconds..."
+    sleep "$delay"
+  done
+
+  echo "Machine did not become ready after $((retries * delay)) seconds."
+  return 1
+}
+
+###
+# First, wait for the machine to be ready
+###
+wait_for_machine_ready || exit 1
+
+sudo apt-get update
+sudo apt-get install -y unzip jq
 
 # Enable automatic security updates
 sudo apt-get install -y unattended-upgrades
-sudo dpkg-reconfigure -plow unattended-upgrades
+sudo DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -plow unattended-upgrades
 
-sudo apt-get install -y unzip jq
 
 # fail2ban
 sudo apt-get install -y fail2ban
@@ -79,7 +101,7 @@ sudo apt remove $(dpkg --get-selections docker.io docker-compose docker-doc podm
 
 # Add Docker's official GPG key:
 sudo apt update
-sudo apt install ca-certificates curl
+sudo apt install -y ca-certificates curl 
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
@@ -140,17 +162,27 @@ pull_docker_compose_files() {
   echo "Retrieving Docker Compose files from S3..."
   FILES=$(aws s3 ls "s3://$S3_BUCKET" --region "$AWS_REGION" | awk '{print $4}')
 
-  FILTERED_FILES=$(echo "$FILES" | grep "docker-compose-$MACHINE" | grep "$ENVIRONMENT")
+  # Filter for the base file and the environment-specific file
+  BASE_FILE="docker-compose-$MACHINE.yml"
+  ENV_FILE="docker-compose-$MACHINE.$ENVIRONMENT.yml"
 
-  if [ -z "$FILTERED_FILES" ]; then
-    echo "No matching Docker Compose files found for MACHINE=$MACHINE and ENVIRONMENT=$ENVIRONMENT."
+  if ! echo "$FILES" | grep -q "$BASE_FILE"; then
+    echo "Base file $BASE_FILE not found in S3 bucket."
     exit 1
   fi
 
-  for file in $FILTERED_FILES; do
-    echo "Downloading $file..."
-    aws s3 cp "s3://$S3_BUCKET/docker-compose/$file" "./$file" --region "$AWS_REGION"
-  done
+  if ! echo "$FILES" | grep -q "$ENV_FILE"; then
+    echo "Environment file $ENV_FILE not found in S3 bucket."
+    exit 1
+  fi
+
+  # Download the base file
+  echo "Downloading $BASE_FILE..."
+  aws s3 cp "s3://$S3_BUCKET/$BASE_FILE" "./$BASE_FILE" --region "$AWS_REGION"
+
+  # Download the environment-specific file
+  echo "Downloading $ENV_FILE..."
+  aws s3 cp "s3://$S3_BUCKET/$ENV_FILE" "./$ENV_FILE" --region "$AWS_REGION"
 }
 
 redeploy_if_changed() {

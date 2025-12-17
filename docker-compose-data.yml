@@ -13,7 +13,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
 
       POSTGRES_PASSWORD: ${DB_PWORD}
-  eventhub:
+  eventbus:
     image: nats:2.12
     restart: always
     ports:

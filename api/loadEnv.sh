@@ -20,12 +20,36 @@ fi
 # Resolve the directory of the script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "Loading environment: $ENV"
-
 set -a # automatically export all variables
-# Load environment-specific configuration
-source "$SCRIPT_DIR/.config.$ENV"
-source "$SCRIPT_DIR/.secrets.$ENV"
+
+# 1. load configuration
+echo "*** Loading configuration files..."
+source "$SCRIPT_DIR/.config" # load base config
+source "$SCRIPT_DIR/.config.$ENV" # env-specific config override
+echo "Loaded configuration from .config and .config.$ENV."
+echo ""
+# 2. load secrets
+echo "*** Loading secrets from .secrets file..."
+sed -i -e '$a\' "$SCRIPT_DIR/.secrets" # .secrets must end with a newline to ensure the last line is processed
+while IFS= read -r key; do # loop through each key in .secrets
+  # Ignore lines that start with '#' (a comment)
+  [[ "$key" =~ ^#.*$ ]] && continue
+
+  key="${key%%=*}" # extract the part before "="
+  # get the value from AWS SSM
+  echo "aws ssm get-parameter --name \"/prism/$ENV/$key\" ..."
+  value="$(aws ssm get-parameter --name "/prism/$ENV/$key" --with-decryption | jq '.Parameter.Value' -r)"
+  
+  # Check if the value is empty
+  if [ -z "$value" ]; then
+    echo "Error: Missing value for key '$key'. Do you have the correct IAM permission?"
+    return 1
+  fi
+
+  # Export the parameter
+  export "$key"="$value"
+done < "$SCRIPT_DIR/.secrets"
+
 set +a # turn off auto-export
 
 echo "\"$ENV\" environment loaded successfully."

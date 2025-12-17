@@ -59,7 +59,7 @@ func (s *server) CreateMarket(ctx context.Context, req *pb_api.NewMarketRequest)
 
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
-	vars := []string{"HOST", "PORT", "SMART_CONTRACT_ID", "HEDERA_OPERATOR_ID", "HEDERA_NETWORK_SELECTED", "HEDERA_OPERATOR_KEY_TYPE", "HEDERA_OPERATOR_KEY", "NATS_URL", "DB_HOST", "DB_PORT", "DB_UNAME", "DB_PWORD", "DB_NAME", "DB_MAX_ROWS", "USDC_ADDRESS", "USDC_DECIMALS", "TIMESTAMP_ALLOWED_FUTURE_SECONDS", "TIMESTAMP_ALLOWED_PAST_SECONDS"}
+	vars := []string{"API_HOST", "API_PORT", "SMART_CONTRACT_ID", "HEDERA_OPERATOR_ID", "HEDERA_NETWORK_SELECTED", "HEDERA_OPERATOR_KEY_TYPE", "HEDERA_OPERATOR_KEY", "NATS_URL", "DB_HOST", "DB_PORT", "DB_UNAME", "DB_PWORD", "DB_NAME", "DB_MAX_ROWS", "USDC_ADDRESS", "USDC_DECIMALS", "TIMESTAMP_ALLOWED_FUTURE_SECONDS", "TIMESTAMP_ALLOWED_PAST_SECONDS"}
 	vals := make(map[string]string)
 
 	var missing []string
@@ -129,7 +129,7 @@ func main() {
 	}
 
 	// sNow start gRPC service
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT")))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT")))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -145,7 +145,7 @@ func main() {
 		marketsService: marketsService,
 	})
 
-	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
+	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT"))
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}

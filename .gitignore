@@ -13,6 +13,5 @@ node_modules/
 /target/release/
 /target/debug/
 
-.secrets
 .secrets.*
 !.secrets.ENV.example

@@ -124,22 +124,57 @@ All releases are specified in `docker-compose-SERVICE.ENV.yml` override files.
 
 [Semantic versioning](https://semver.org/) **must** be used.
 
-There is an **intentional separation** between **configuration** (`.config.ENV`) and **secrets** (`secrets.ENV`):
+There is an **intentional separation** between **configuration** (`.config.ENV`) and **secrets** (`secrets`):
 
 ```bash
-# Safe to check in these files
+# Safe to check-in these files
+.config
 .config.local
 .config.dev
 .config.prod
 ```
 
-Create the following files (use `.secrets.ENV.example` for reference):
+```bash
+# Safe to check-in these files, however, do NOT check in the secret itself. Only checkin the references to the secret on `aws ssm`
+.secrets # environment is handled by `source loadEnv.sh local`
+```
+
+**N.B. do NOT check in secrets - only check-in references to secrets**
+
+### AWS secrets
+
+Use `aws ssm` to store and retrieve secrets for a particular environment.
+
+View all secrets
+
+`aws ssm describe-parameters --parameter-filters Key=Type,Values=SecureString`
+
+Store a secret:
 
 ```bash
-# Do NOT check in files containing secrets
-.secrets.local
-.secrets.dev
-.secrets.prod
+export ENV=local
+ aws ssm put-parameter --name "/prism/$ENV/DB_PWORD" --value "XXXX" --type SecureString --overwrite
+```
+
+Retrieve all secrets:
+
+```bash
+export ENV=local
+aws ssm get-parameters-by-path --path "/prism/$ENV" | grep "Name"
+```
+
+Retrieve a secret:
+
+```bash
+export ENV=local
+aws ssm get-parameter --name "/prism/$ENV/DB_PWORD" --with-decryption
+```
+
+Delete a secret:
+
+```bash
+export ENV=local
+aws ssm delete-parameter --name "/prism/$ENV/DB_PWORD"
 ```
 
 ### local
@@ -163,15 +198,15 @@ Login to each of the dev boxes. Run:
 
 ```bash
 # On Proxy:
-source ./proxy/loadEnv.sh local
+source ./proxy/loadEnv.sh dev
 docker compose -f docker-compose-proxy.yml -f docker-compose-proxy.dev.yml up -d
 # On Monolith:
-source ./api/loadEnv.sh local
-source ./clob/loadEnv.sh local
+source ./api/loadEnv.sh dev
+source ./clob/loadEnv.sh dev
 docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.dev.yml up -d
 # On Data:
-source ./db/loadEnv.sh local
-source ./eventbus/loadEnv.sh local
+source ./db/loadEnv.sh dev
+source ./eventbus/loadEnv.sh dev
 docker compose -f docker-compose-data.yml -f docker-compose-data.dev.yml up -d
 ```
 
@@ -183,12 +218,12 @@ Login to each of the prod boxes. Run:
 # On Proxy:
 docker compose -f docker-compose-proxy.yml -f docker-compose-proxy.prod.yml up -d
 # On Monolith:
-source ./api/loadEnv.sh local
-source ./clob/loadEnv.sh local
+source ./api/loadEnv.sh prod
+source ./clob/loadEnv.sh prod
 docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.prod.yml up -d
 # On Data
-source ./db/loadEnv.sh local
-source ./eventbus/loadEnv.sh local
+source ./db/loadEnv.sh prod
+source ./eventbus/loadEnv.sh prod
 docker compose -f docker-compose-data.yml -f docker-compose-data.prod.yml up -d
 ```
 
@@ -200,7 +235,7 @@ View container CPU/memory usage:
 
 View the env vars available in an image:
 
-`docker run --env-file .config.local --env-file .secrets.local --rm ghcr.io/prismmarketlabs/db:$VERSION env`
+`docker run --env-file .config.local --rm ghcr.io/prismmarketlabs/db:$VERSION env`
 
 In your Dockerfiles, try to avoid:
 
