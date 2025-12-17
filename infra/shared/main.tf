@@ -72,7 +72,7 @@ wait_for_machine_ready() {
 wait_for_machine_ready || exit 1
 
 sudo apt-get update
-sudo apt-get install -y unzip jq
+sudo apt-get install -y unzip jq yq
 
 # Enable automatic security updates
 sudo apt-get install -y unattended-upgrades
@@ -150,7 +150,7 @@ AWS_REGION="${var.aws_region}"
 SECRET_NAME="read_ghcr"
 MACHINE=$(hostname) # should be 'proxy', 'monolith', or 'data'
 S3_BUCKET="prismlabs-deployment"
-SERVICES="api clob db eventbus proxy web"
+# Retrieve the service names from docker-compose-$MACHINE.yml:
 
 login_to_github() {
   echo "Logging in to GitHub Container Registry..."
@@ -160,18 +160,6 @@ login_to_github() {
     exit 1
   fi
   echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
-}
-
-pull_config_secret_files() {
-  echo "Retrieving .config* files, .secret file and loadEnv.sh from S3..."
-  for SERVICE in $SERVICES; do
-    echo "Pulling .config*, .secrets and loadEnv.sh for $SERVICE..."
-    mkdir -p "./$SERVICE" # Ensure the local folder exists
-
-    aws s3 cp "s3://$S3_BUCKET/$SERVICE" "./$SERVICE/" --recursive --region "$AWS_REGION"
-
-    chmod +x "./$SERVICE/loadEnv.sh" # make loadEnv.sh executable
-  done
 }
 
 pull_docker_compose_files() {
@@ -199,6 +187,19 @@ pull_docker_compose_files() {
   # Download the environment-specific file
   echo "Downloading $ENV_FILE..."
   aws s3 cp "s3://$S3_BUCKET/$ENV_FILE" "./$ENV_FILE" --region "$AWS_REGION"
+}
+
+pull_config_secret_files() {
+  echo "Retrieving .config* files, .secret file and loadEnv.sh from S3..."
+  # Loop through each service as defined in the docker-compose file under "services"
+  for SERVICE in $(yq '.services | keys | join(" ")' ./docker-compose-$MACHINE.yml | tr -d '"'); do
+    echo "Pulling .config*, .secrets and loadEnv.sh for $SERVICE..."
+    mkdir -p "./$SERVICE" # Ensure the local folder exists
+
+    aws s3 cp "s3://$S3_BUCKET/$SERVICE" "./$SERVICE/" --recursive --region "$AWS_REGION"
+
+    chmod +x "./$SERVICE/loadEnv.sh" # make loadEnv.sh executable
+  done
 }
 
 redeploy_if_changed() {
@@ -243,8 +244,8 @@ redeploy_if_changed() {
 
 main() {
   login_to_github
-  pull_config_secret_files
   pull_docker_compose_files
+  pull_config_secret_files
   redeploy_if_changed
 }
 
