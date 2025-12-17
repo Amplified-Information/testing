@@ -1,39 +1,46 @@
-# docker compose -f docker-compose-monolith.yml up -d
+# source ./api/loadEnv.sh local
+# source ./clob/loadEnv.sh local
+
+# docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.dev.yml up -d
 services:
-  web:
-    image: ghcr.io/prismmarketlabs/web:0.1.0
-    restart: always
-    ports:
-      - "5173:80" # TODO: change to env var
-    network_mode: "host"
   api:
-    image: ghcr.io/prismmarketlabs/api:0.1.1
+    image: ghcr.io/prismmarketlabs/api:0.1.0
     restart: always
     ports:
-      - "8888:8888" # TODO: change to env var
-    network_mode: "host"
+      - "8888:8888"
     environment:
-      HOST: ${HOST}
-      PORT: ${PORT}
+      API_HOST: ${API_HOST}
+      API_PORT: ${API_PORT}
       HEDERA_OPERATOR_ID: ${HEDERA_OPERATOR_ID}
+      HEDERA_NETWORK_SELECTED: ${HEDERA_NETWORK_SELECTED}
       HEDERA_OPERATOR_KEY_TYPE: ${HEDERA_OPERATOR_KEY_TYPE}
+      HEDERA_OPERATOR_KEY: ${HEDERA_OPERATOR_KEY}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_UNAME: ${DB_UNAME}
+      DB_PWORD: ${DB_PWORD}
       DB_NAME: ${DB_NAME}
       DB_MAX_ROWS: ${DB_MAX_ROWS}
+      SMART_CONTRACT_ID: ${SMART_CONTRACT_ID}
+      NATS_URL: ${NATS_URL}
+      USDC_ADDRESS: ${USDC_ADDRESS}
+      USDC_DECIMALS: ${USDC_DECIMALS}
+      TIMESTAMP_ALLOWED_FUTURE_SECONDS: ${TIMESTAMP_ALLOWED_FUTURE_SECONDS}
+      TIMESTAMP_ALLOWED_PAST_SECONDS: ${TIMESTAMP_ALLOWED_PAST_SECONDS}
 
-      HEDERA_OPERATOR_KEY: ${HEDERA_OPERATOR_KEY}
-      DB_PWORD: ${DB_PWORD}
   clob:
     image: ghcr.io/prismmarketlabs/clob:0.1.0
     restart: always
     ports:
-      - "50051:50051" # TODO: change to env var
-    network_mode: "host"
+      - "50051:50051"
     environment:
-      HOST: ${HOST}
-      PORT: ${PORT}
+      CLOB_PORT: ${CLOB_PORT}
       CLOB_MATCHING_INTERVAL_SECONDS: ${CLOB_MATCHING_INTERVAL_SECONDS}
       NATS_HOST: ${NATS_HOST}
       NATS_PORT: ${NATS_PORT}
+
+  web:
+    image: ghcr.io/prismmarketlabs/web:0.1.0
+    restart: always
+    ports:
+      - "5173:80"

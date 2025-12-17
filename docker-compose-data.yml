@@ -1,3 +1,6 @@
+# source ./db/loadEnv.sh local
+# source ./eventbus/loadEnv.sh local
+
 # docker compose -f docker-compose-data.yml -f docker-compose-data.dev.yml up -d
 services:
   db:

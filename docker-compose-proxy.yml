@@ -1,3 +1,5 @@
+# source ./proxy/loadEnv.sh local
+
 # docker compose -f docker-compose-proxy.yml up -d 
 services:
   proxy:
