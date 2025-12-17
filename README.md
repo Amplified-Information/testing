@@ -31,24 +31,6 @@ docker compose -f docker-compose-monolith.yml up -d
 
 ## Infra components
 
-There are 3 EC2 boxes deployed on AWS for each environment
-
-| EC2 name  | Services             | Description                                                                 |
-|-----------|----------------------|-----------------------------------------------------------------------------|
-| proxy     | `proxy`              | Handles traffic routing and acts as an intermediary between services.       |
-| monolith  | `web`, `api`, `clob` | A single, unified application containing multiple functionalities.          |
-| data      | `eventbus`, `db`     | Manages storage, retrieval, and processing of application data.             |
-
-Note: the proxy has a fixed IP address
-
-| environment | IP address     | hostname         |
-|-------------|----------------|------------------|
-| dev         | 54.210.115.180 | dev.prism.market |
-| uat         | TBC            | TBC              |
-| prod        | 100.29.115.146 | prism.market     |
-
-*Note: in future, we will use load balancers and not fixed IP addresses.*
-
 Infra design:
 
 ![alt text](resources/Predict.drawio.png)

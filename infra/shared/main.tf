@@ -164,12 +164,10 @@ pull_config_secret_files() {
   for SERVICE in "$SERVICES[@]"; do
     echo "Pulling .config*, .secrets and loadEnv.sh for $SERVICE..."
     mkdir -p "./$SERVICE" # Ensure the local folder exists
-    aws s3 cp "s3://$S3_BUCKET/$SERVICE/.config" "./$SERVICE/" --region "$AWS_REGION" --recursive --exclude "*" --include ".config*"
-    aws s3 cp "s3://$S3_BUCKET/$SERVICE/.secrets" "./$SERVICE/" --region "$AWS_REGION" --recursive --exclude "*" --include ".secrets*"
-    aws s3 cp "s3://$S3_BUCKET/$SERVICE/loadEnv.sh" "./$SERVICE/" --region "$AWS_REGION"
-    
-    # make loadEnv.sh executable
-    chmod + x "./$SERVICE/loadEnv.sh"
+
+    aws s3 cp "s3://$S3_BUCKET/$SERVICE" "./$SERVICE/" --recursive --region "$AWS_REGION"
+
+    chmod +x "./$SERVICE/loadEnv.sh" # make loadEnv.sh executable
   done
 }
 
@@ -566,7 +564,10 @@ resource "aws_iam_policy" "combined_policy" {
       {
         Effect = "Allow",
         Action = "ssm:GetParameter",
-        Resource = "arn:aws:ssm:us-east-1:063088900305:parameter/read_ghcr"
+        Resource = [
+          "arn:aws:ssm:us-east-1:063088900305:parameter/read_ghcr",
+          "arn:aws:ssm:us-east-1:063088900305:parameter/prism/*"    # TODO reduce scope for /prism/prod/*
+        ]
       }
     ]
   })
