@@ -8,13 +8,4 @@
 
 FROM postgres:18-alpine
 
-# ENV POSTGRES_USER=${DB_UNAME}
-# ENV POSTGRES_PASSWORD=${DB_PWORD}
-# ENV POSTGRES_DB=${DB_NAME}
-
-# EXPOSE 5432
-
-# Add any custom initialization scripts (optional)
-# COPY ./init.sql /docker-entrypoint-initdb.d/
-
 CMD ["postgres"]

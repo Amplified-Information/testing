@@ -6,16 +6,9 @@ services:
     image: ghcr.io/prismmarketlabs/proxy:0.1.0
     restart: always
     ports:
-      - "${ENVOY_PORT}:${ENVOY_PORT}"
-    network_mode: "host"
-    # volumes:
-    #   - ./proxy/envoy.yaml:/etc/envoy/envoy.yaml
+      - "8090:8090"
+      - "9901:9901" # admin port - be careful!
     environment:
-      - ENVOY_PORT=${ENVOY_PORT}
-      - ENVOY_ADMIN_PORT=${ENVOY_ADMIN_PORT}
-      - ENVOY_WEB_HOST=${ENVOY_WEB_HOST}
-      - ENVOY_WEB_PORT=${ENVOY_WEB_PORT}
-      - ENVOY_API_HOST=${ENVOY_API_HOST}
-      - ENVOY_API_PORT=${ENVOY_API_PORT}
-      - ENVOY_CLOB_HOST=${ENVOY_CLOB_HOST}
-      - ENVOY_CLOB_PORT=${ENVOY_CLOB_PORT}
+      ENVOY_HOST_CLOB: ${ENVOY_HOST_CLOB}
+      ENVOY_HOST_API: ${ENVOY_HOST_API}
+      ENVOY_HOST_WEB: ${ENVOY_HOST_WEB}

@@ -1,11 +1,13 @@
 module "shared" {
   source = "../shared"
+  
   env  = "dev"
   aws_key_bastion = "dev-bastion"
   aws_key_internal = "dev"
   aws_region = "us-east-1"
   aws_az = "us-east-1a"
   eip = "eipalloc-0a06fd4140fafdd3c"
+  ebs_volume_id = "vol-0d3a782bdfffc34aa"
 }
 
 resource "aws_instance" "bastion_dev" {
@@ -26,45 +28,28 @@ resource "aws_instance" "bastion_dev" {
   ]
 
   tags = {
-    Name = "dev.bastion"
+    Name = "${module.shared.env}.bastion"
   }
 
   user_data = <<-EOF
-#!/bin/bash
-${module.shared.install_base}
+    #!/bin/bash
+    ${module.shared.install_base}
 
-sudo apt-get install ufw -y
+    sudo apt-get install ufw -y
 
-# UFW - only allow ssh
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow ssh
-ufw enable
-EOF
+    # UFW - only allow ssh
+    ufw default deny incoming
+    ufw default allow outgoing
+    ufw allow ssh
+    ufw enable
+
+    # for good measure
+    reboot
+  EOF
 }
 
 
-# # Public network interface for the proxy server
-# resource "aws_network_interface" "proxy_public" {
-#   subnet_id       = aws_subnet.public.id
-#   private_ips     = ["10.0.0.10"] # IP in the public subnet range
-#   security_groups = [
-#     module.shared.allow_web_ingress_id,
-#     module.shared.allow_ssh_ingress_id
-#   ]
 
-#   tags = { Name = "${module.shared.env}-proxy-public" }
-# }
-# # Private network interface for the proxy server
-# resource "aws_network_interface" "proxy_private" {
-#   subnet_id       = aws_subnet.private.id
-#   private_ips     = ["10.0.1.10"] # IP in the private subnet range
-#   security_groups = [
-#     module.shared.allow_internal_id
-#   ]
-
-#   tags = { Name = "${module.shared.env}-proxy-private"}
-# }
 resource "aws_instance" "proxy_dev" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
@@ -97,7 +82,7 @@ resource "aws_instance" "proxy_dev" {
   EOF
 
   tags = {
-    Name = "dev.proxy"
+    Name = "${module.shared.env}.proxy"
   }
 }
 # Associate the 'dev' elastic IP with the proxy_dev instance
@@ -105,6 +90,8 @@ resource "aws_eip_association" "proxy_dev_eip_assoc" {
   allocation_id = module.shared.eip
   instance_id   = aws_instance.proxy_dev.id
 }
+
+
 
 
 resource "aws_instance" "monolith_dev" {
@@ -139,7 +126,7 @@ resource "aws_instance" "monolith_dev" {
   EOF
 
   tags = {
-    Name = "dev.monolith"
+    Name = "${module.shared.env}.monolith"
   }
 }
 
@@ -194,14 +181,14 @@ resource "aws_instance" "data_dev" {
   EOF
 
   tags = {
-    Name = "dev.data"
+    Name = "${module.shared.env}.data"
   }
 }
 # Attach the EBS volume to the data_dev instance
 resource "aws_volume_attachment" "data_dev_volume_attachment" {
   device_name = "/dev/xvdf"
   instance_id = aws_instance.data_dev.id
-  volume_id   = "vol-0d3a782bdfffc34aa"
+  volume_id   = module.shared.ebs_volume_id
 }
 
 

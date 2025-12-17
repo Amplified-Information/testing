@@ -38,6 +38,12 @@ variable "aws_region" {
 }
 output "aws_region" { value = var.aws_region }
 
+variable "ebs_volume_id" {
+  description = "The EBS volume ID to attach to the data instance"
+  type        = string
+}
+output "ebs_volume_id" { value = var.ebs_volume_id }
+
 output "ami" { value = "ami-0f9c27b471bdcd702" } // Debian 13
 output "fixed_ip_proxy" { value = "10.0.1.10" }
 output "fixed_ip_monolith" { value = "10.0.1.11" }

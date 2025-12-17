@@ -34,6 +34,7 @@ services:
     ports:
       - "50051:50051"
     environment:
+      CLOB_HOST: ${CLOB_HOST}
       CLOB_PORT: ${CLOB_PORT}
       CLOB_MATCHING_INTERVAL_SECONDS: ${CLOB_MATCHING_INTERVAL_SECONDS}
       NATS_HOST: ${NATS_HOST}

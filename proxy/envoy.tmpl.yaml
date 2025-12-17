@@ -1,3 +1,8 @@
+# yes, hard-code the values as much as possible for security
+# but leave host addresses configurable via environment variables
+# - ${ENVOY_HOST_CLOB}
+# - ${ENVOY_HOST_API}
+# - ${ENVOY_HOST_WEB}
 admin:
   access_log:
     - name: envoy.access_loggers.file
@@ -17,7 +22,7 @@ static_resources:
       address:
         socket_address: {
           address: 0.0.0.0,
-          port_value: 8080
+          port_value: 8090 # public port
         }
       filter_chains:
         - filters:
@@ -97,6 +102,16 @@ static_resources:
                         max_age: "1728000s"
                         expose_headers: "custom-header-1,grpc-status,grpc-message"
               http_filters:
+                # - name: envoy.filters.http.grpc_json_transcoder # auto-magically translates REST to gRPC
+                #   typed_config:
+                #     "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_json_transcoder.v3.GrpcJsonTranscoder
+                #     proto_descriptor: "/path/to/descriptor.pb"
+                #     services: ["clob_service", "api_service"]
+                #     print_options:
+                #       add_whitespace: true
+                #       always_print_primitive_fields: true
+                #       always_print_enums_as_ints: false
+                #       preserve_proto_field_names: false
                 - name: envoy.filters.http.grpc_web
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
@@ -123,7 +138,7 @@ static_resources:
               - endpoint:
                   address:
                     socket_address:
-                      address: 127.0.0.1   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
+                      address: ${ENVOY_HOST_CLOB}   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 50051
     - name: api_service
       connect_timeout: 1s
@@ -141,7 +156,7 @@ static_resources:
               - endpoint:
                   address:
                     socket_address:
-                      address: 127.0.0.1   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
+                      address: ${ENVOY_HOST_API}   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 8888
     - name: web_service
       connect_timeout: 1s
@@ -155,5 +170,5 @@ static_resources:
               - endpoint:
                   address:
                     socket_address:
-                      address: 127.0.0.1
+                      address: ${ENVOY_HOST_WEB}   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 5173
