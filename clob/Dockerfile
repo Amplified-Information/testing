@@ -4,7 +4,7 @@
 # docker push ghcr.io/prismmarketlabs/clob:$VERSION
 # 
 # source loadEnv.sh local
-# docker run -p 50051:50051 -e CLOB_HOST=$CLOB_HOST -e CLOB_PORT=$CLOB_PORT -e CLOB_MATCHING_INTERVAL_SECONDS=$CLOB_MATCHING_INTERVAL_SECONDS -e NATS_HOST=$NATS_HOST -e NATS_PORT=$NATS_PORT ghcr.io/prismmarketlabs/clob:$VERSION
+# docker run -p 50051:50051 -e CLOB_PORT=$CLOB_PORT -e CLOB_MATCHING_INTERVAL_SECONDS=$CLOB_MATCHING_INTERVAL_SECONDS -e NATS_HOST=$NATS_HOST -e NATS_PORT=$NATS_PORT ghcr.io/prismmarketlabs/clob:$VERSION
 
 # BUILD stage
 FROM rust:latest AS builder

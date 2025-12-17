@@ -1,22 +1,20 @@
-# docker compose -f docker-compose-data.yml up -d
+# docker compose -f docker-compose-data.yml -f docker-compose-data.dev.yml up -d
 services:
   db:
-    image: postgres:18.1
+    image: ghcr.io/prismmarketlabs/db:0.1.0
     restart: always
     volumes:
-      - /mnt/external/postgresdata:/var/lib/postgresql
+      - /mnt/external/postgresdata:/var/lib/postgresql/data
     ports:
-      - "${DB_PORT}:${DB_PORT}"
-    network_mode: "host"
+      - "5432:5432"
     environment:
       POSTGRES_USER: ${DB_UNAME}
+      POSTGRES_PASSWORD: ${DB_PWORD}
       POSTGRES_DB: ${DB_NAME}
 
-      POSTGRES_PASSWORD: ${DB_PWORD}
   eventbus:
-    image: nats:2.12
+    image: ghcr.io/prismmarketlabs/eventbus:0.1.0
     restart: always
     ports:
-      - "${NATS_PORT}:${NATS_PORT}"
-      - "${NATS_PORT_MONITOR}:${NATS_PORT_MONITOR}"
-    network_mode: "host"
+      - "4222:4222"
+      - "6222:6222"

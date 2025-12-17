@@ -1,5 +1,5 @@
 services:
   db:
-    image: postgres:18.1
-  nats:
-    image: nats:2.12
+    image: ghcr.io/prismmarketlabs/db:0.1.0
+  eventbus:
+    image: ghcr.io/prismmarketlabs/eventbus:0.1.0

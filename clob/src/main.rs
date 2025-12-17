@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     SimpleLogger::new().init().unwrap();
 
     let port = std::env::var("CLOB_PORT").unwrap_or_else(|_| panic!("Failed to read env var CLOB_PORT"));
-    let host = std::env::var("CLOB_HOST").unwrap_or_else(|_| panic!("Failed to read env var CLOB_HOST"));
+    let host = "0.0.0.0";
     let nats_host: String = std::env::var("NATS_HOST").unwrap_or_else(|_| panic!("Failed to read env var NATS_HOST"));
     let nats_port: String = std::env::var("NATS_PORT").unwrap_or_else(|_| panic!("Failed to read env var NATS_PORT"));
     // let clob_matching_interval_seconds: u64 = std::env::var("CLOB_MATCHING_INTERVAL_SECONDS").unwrap_or_else(|_| "5".to_string()).parse().unwrap_or_else(|_| panic!("Failed to read env var CLOB_MATCHING_INTERVAL_SECONDS"));
