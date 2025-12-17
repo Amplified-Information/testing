@@ -2,7 +2,7 @@
 old
 gen
 .env
-.secrets
+
 
 # Dependencies
 node_modules/
