@@ -147,6 +147,7 @@ AWS_REGION="${var.aws_region}"
 SECRET_NAME="read_ghcr"
 MACHINE=$(hostname) # should be 'proxy', 'monolith', or 'data'
 S3_BUCKET="prismlabs-deployment"
+SERVICES=("api" "clob" "db" "eventbus" "proxy" "web")
 
 login_to_github() {
   echo "Logging in to GitHub Container Registry..."
@@ -156,6 +157,20 @@ login_to_github() {
     exit 1
   fi
   echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+}
+
+pull_config_secret_files() {
+  echo "Retrieving .config* files, .secret file and loadEnv.sh from S3..."
+  for SERVICE in "$SERVICES[@]"; do
+    echo "Pulling .config*, .secrets and loadEnv.sh for $SERVICE..."
+    mkdir -p "./$SERVICE" # Ensure the local folder exists
+    aws s3 cp "s3://$S3_BUCKET/$SERVICE/.config" "./$SERVICE/" --region "$AWS_REGION" --recursive --exclude "*" --include ".config*"
+    aws s3 cp "s3://$S3_BUCKET/$SERVICE/.secrets" "./$SERVICE/" --region "$AWS_REGION" --recursive --exclude "*" --include ".secrets*"
+    aws s3 cp "s3://$S3_BUCKET/$SERVICE/loadEnv.sh" "./$SERVICE/" --region "$AWS_REGION"
+    
+    # make loadEnv.sh executable
+    chmod + x "./$SERVICE/loadEnv.sh"
+  done
 }
 
 pull_docker_compose_files() {
@@ -225,6 +240,7 @@ redeploy_if_changed() {
 
 main() {
   login_to_github
+  pull_config_secret_files
   pull_docker_compose_files
   redeploy_if_changed
 }

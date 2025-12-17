@@ -16,7 +16,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} # github-actions-s3-writer
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
@@ -29,10 +29,11 @@ jobs:
 
       - name: Sync .config* and .secrets files to S3
         run: |
-          for dir in api clob db eventbus proxy web web.eng; do
+          for dir in api clob db eventbus proxy web; do
             aws s3 cp $dir s3://prismlabs-deployment/$dir/ \
               --recursive \
               --exclude "*" \
               --include ".config*" \
-              --include ".secrets"
+              --include ".secrets" \
+              --include "loadEnv.sh"
           done
