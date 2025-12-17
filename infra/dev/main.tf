@@ -91,6 +91,9 @@ resource "aws_instance" "proxy_dev" {
 
     ${module.shared.install_base}
     ${module.shared.install_docker_runner}
+
+    # for good measure
+    reboot
   EOF
 
   tags = {
@@ -130,6 +133,9 @@ resource "aws_instance" "monolith_dev" {
 
     ${module.shared.install_base}
     ${module.shared.install_docker_runner}
+
+    # for good measure
+    reboot
   EOF
 
   tags = {
@@ -182,6 +188,9 @@ resource "aws_instance" "data_dev" {
     # internal user needs access to the /mnt/external area
     mkdir -p /mnt/external/postgresdata
     chown -R internal:internal /mnt/external
+
+    # for good measure
+    reboot
   EOF
 
   tags = {

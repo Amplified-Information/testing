@@ -120,14 +120,17 @@ sudo apt-get update -y && sudo apt-get dist-upgrade -y
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 newgrp docker # admin user must be in the docker group
+sudo usermod -aG docker admin
 
 sudo systemctl start docker
 sudo systemctl enable docker
 sudo systemctl status docker
 
 sudo usermod -aG docker admin # N.B. 'admin' is the default user on AWS Debian AMIs
-sudo usermod -aG docker internal
+
 sudo systemctl restart docker
+
+newgrp docker # don't have to logout and log back in again...
 
 
 
@@ -147,7 +150,7 @@ AWS_REGION="${var.aws_region}"
 SECRET_NAME="read_ghcr"
 MACHINE=$(hostname) # should be 'proxy', 'monolith', or 'data'
 S3_BUCKET="prismlabs-deployment"
-SERVICES=("api" "clob" "db" "eventbus" "proxy" "web")
+SERVICES="api clob db eventbus proxy web"
 
 login_to_github() {
   echo "Logging in to GitHub Container Registry..."
@@ -161,7 +164,7 @@ login_to_github() {
 
 pull_config_secret_files() {
   echo "Retrieving .config* files, .secret file and loadEnv.sh from S3..."
-  for SERVICE in "$SERVICES[@]"; do
+  for SERVICE in $SERVICES; do
     echo "Pulling .config*, .secrets and loadEnv.sh for $SERVICE..."
     mkdir -p "./$SERVICE" # Ensure the local folder exists
 
@@ -207,11 +210,9 @@ redeploy_if_changed() {
   TMP_BASE_FILE="/tmp/$BASE_FILE"
   TMP_ENV_FILE="/tmp/$ENV_FILE"
 
-  # Check if the files exist
-  if [ ! -f "$BASE_FILE" ] || [ ! -f "$ENV_FILE" ]; then
-    touch /tmp/$BASE_FILE
-    touch /tmp/$ENV_FILE
-  fi
+  # Ensure the /tmp files exist
+  touch /tmp/$BASE_FILE
+  touch /tmp/$ENV_FILE
 
   # Calculate hashes and compare
   if [ -f "$TMP_BASE_FILE" ] && [ -f "$TMP_ENV_FILE" ]; then
@@ -233,6 +234,10 @@ redeploy_if_changed() {
   cp "$ENV_FILE" "$TMP_ENV_FILE"
 
   echo "Changes detected in Docker Compose files. Redeploying..."
+
+  # Load environment variables (reads .config* files and loads .secrets from AWS SSM)
+  source ./$MACHINE/loadEnv.sh $ENVIRONMENT
+  # Deploy with docker compose
   docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
 }
 
@@ -249,6 +254,9 @@ SCRIPT
 # Make the deploy.sh script executable
 chown admin:admin /home/admin/deploy.sh
 chmod +x /home/admin/deploy.sh
+
+# and run it:
+/home/admin/deploy.sh
 
 EOF
 }
@@ -566,7 +574,7 @@ resource "aws_iam_policy" "combined_policy" {
         Action = "ssm:GetParameter",
         Resource = [
           "arn:aws:ssm:us-east-1:063088900305:parameter/read_ghcr",
-          "arn:aws:ssm:us-east-1:063088900305:parameter/prism/*"    # TODO reduce scope for /prism/prod/*
+          "arn:aws:ssm:us-east-1:063088900305:parameter/*"    # TODO reduce scope for /prod/*
         ]
       }
     ]

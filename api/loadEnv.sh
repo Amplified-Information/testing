@@ -37,8 +37,8 @@ while IFS= read -r key; do # loop through each key in .secrets
 
   key="${key%%=*}" # extract the part before "="
   # get the value from AWS SSM
-  echo "aws ssm get-parameter --name \"/prism/$ENV/$key\" ..."
-  value="$(aws ssm get-parameter --name "/prism/$ENV/$key" --with-decryption | jq '.Parameter.Value' -r)"
+  echo "aws ssm get-parameter --name \"/$ENV/$key\" ..."
+  value="$(aws ssm get-parameter --name "/$ENV/$key" --with-decryption | jq '.Parameter.Value' -r)"
   
   # Check if the value is empty
   if [ -z "$value" ]; then

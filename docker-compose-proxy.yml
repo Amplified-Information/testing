@@ -6,8 +6,8 @@ services:
     ports:
       - "${ENVOY_PORT}:${ENVOY_PORT}"
     network_mode: "host"
-    volumes:
-      - ./proxy/envoy.yaml:/etc/envoy/envoy.yaml
+    # volumes:
+    #   - ./proxy/envoy.yaml:/etc/envoy/envoy.yaml
     environment:
       - ENVOY_PORT=${ENVOY_PORT}
       - ENVOY_ADMIN_PORT=${ENVOY_ADMIN_PORT}

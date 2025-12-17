@@ -139,28 +139,34 @@ Store a secret:
 
 ```bash
 export ENV=local
- aws ssm put-parameter --name "/prism/$ENV/DB_PWORD" --value "XXXX" --type SecureString --overwrite
+ aws ssm put-parameter --name "/$ENV/DB_PWORD" --value "XXXX" --type SecureString --overwrite
 ```
 
 Retrieve all secrets:
 
 ```bash
 export ENV=local
-aws ssm get-parameters-by-path --path "/prism/$ENV" | grep "Name"
+aws ssm get-parameters-by-path --path "/$ENV" | grep "Name"
+```
+
+Or...
+
+```bash
+aws ssm describe-parameters --query "Parameters[?Type=='SecureString'].Name" --output text
 ```
 
 Retrieve a secret:
 
 ```bash
 export ENV=local
-aws ssm get-parameter --name "/prism/$ENV/DB_PWORD" --with-decryption
+aws ssm get-parameter --name "/$ENV/DB_PWORD" --with-decryption
 ```
 
 Delete a secret:
 
 ```bash
 export ENV=local
-aws ssm delete-parameter --name "/prism/$ENV/DB_PWORD"
+aws ssm delete-parameter --name "/$ENV/DB_PWORD"
 ```
 
 ### local
