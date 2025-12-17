@@ -65,8 +65,8 @@ Now create a new policy called `s3-landing-zone-policy` (so github Actions can a
 - Now create a new IAM user: IAM -> users
 - Create user called `github-actions-s3-writer`
 - Attach the policy `s3-landing-zone-policy` to `github-actions-s3-writer`
-- Retrieve the access key (`AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY` for the user `github-actions-s3-writer`) from the AWS IAM web UI
-- Add `AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY` to github "Repository secrets" https://github.com/PrismMarketLabs/Hedera-Prediction/settings/secrets/actions
+- Retrieve the access key (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` for the user `github-actions-s3-writer`) from the AWS IAM web UI
+- Add `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` to github "Repository secrets" https://github.com/PrismMarketLabs/Hedera-Prediction/settings/secrets/actions
 - the github action `s3-upload.yml` should now run
 
 ### EC2 boxes accessing the files on S3
