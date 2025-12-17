@@ -54,8 +54,8 @@ Now create a new policy called `s3-landing-zone-policy` (so github Actions can a
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::my-ci-artifacts-bucket",
-        "arn:aws:s3:::my-ci-artifacts-bucket/*"
+        "arn:aws:s3:::prismlabs-deployment",
+        "arn:aws:s3:::prismlabs-deployment/*"
       ]
     }
   ]

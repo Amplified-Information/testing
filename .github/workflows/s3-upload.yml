@@ -34,5 +34,5 @@ jobs:
               --recursive \
               --exclude "*" \
               --include ".config*" \
-              --include ".secrets*"
+              --include ".secrets"
           done
