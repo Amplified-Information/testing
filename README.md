@@ -147,7 +147,11 @@ Use `aws ssm` to store and retrieve secrets for a particular environment.
 
 View all secrets
 
-`aws ssm describe-parameters --parameter-filters Key=Type,Values=SecureString`
+```bash
+cat `find . -name ".secrets*"` | sort | uniq
+
+aws ssm describe-parameters --parameter-filters Key=Type,Values=SecureString | grep "Name" | grep local
+```
 
 Store a secret:
 
