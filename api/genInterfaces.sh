@@ -5,13 +5,12 @@
 # RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 # RUN go install github.com/envoyproxy/protoc-gen-validate@v1.2.1
 
-
-
-# Ensure DB_URL is set and has a minimum length of 4
-if [[ -z "$DB_URL" || ${#DB_URL} -lt 4 ]]; then
-  echo "Error: DB_URL is not set or is too short."
+# db/schema.sql must exist (location is set in sqlc.yaml config file)
+if [ ! -f "db/schema.sql" ]; then
+  echo "Error: db/schema.sql does not exist."
   exit 1
 fi
+
 
 
 rm -rf gen
@@ -19,9 +18,6 @@ mkdir -p gen/clob
 
 echo "Generating sqlc interfaces..."
 cd db
-# dump the latest db schema:
-pg_dump $DB_URL --schema-only | sed '/^\\/d' > schema.sql
-# now generate the sqlc based on schema.sql and the sqlc.yaml config:
 sqlc generate
 cd ..
 echo "-> sqlc interfaces generated."

@@ -19,6 +19,13 @@ RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
 RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 RUN go install github.com/envoyproxy/protoc-gen-validate@v1.2.1
 
+# install pg client tools (including pg_dump) to allow for DB debugging, migrations, and seeding:
+RUN apt-get install -y ca-certificates curl gnupg
+RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+RUN CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)-pgdg && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $CODENAME main" > /etc/apt/sources.list.d/pgdg.list
+RUN apt-get update
+RUN apt-get install -y postgresql-client-18
+
 COPY ./api/go.mod ./api/go.sum ./
 RUN go mod download
 
@@ -40,6 +47,9 @@ WORKDIR /app
 
 # copy the main binary
 COPY --from=builder /app/api/main .
+
+# copy the migrations files to migrate the DB, if needed
+COPY --from=builder /app/api/db/migrations .
 
 # copy the seed.sql to seed the initial DB, if needed
 COPY --from=builder /app/api/db/seed.sql .

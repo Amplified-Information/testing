@@ -150,7 +150,7 @@ migrate -database $DB_URL -path db/migrations down
 N.B. maintain a database schema:
 
 ```bash
-cd db
+cd api/db
 pg_dump $DB_URL --schema-only | sed '/^\\/d' > schema.sql
 ```
 
