@@ -38,21 +38,10 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# ENV API_HOST=${API_HOST} \
-#   API_PORT=${API_PORT} \
-#   HEDERA_OPERATOR_ID=${HEDERA_OPERATOR_ID} \
-#   HEDERA_OPERATOR_KEY_TYPE=${HEDERA_OPERATOR_KEY_TYPE} \
-#   DB_HOST=${DB_HOST} \
-#   DB_PORT=${DB_PORT} \
-#   DB_UNAME=${DB_UNAME} \
-#   DB_NAME=${DB_NAME} \
-#   DB_MAX_ROWS=${DB_MAX_ROWS} \
-#   \
-#   HEDERA_OPERATOR_KEY=${HEDERA_OPERATOR_KEY} \
-#   DB_PWORD=${DB_PWORD}
-
+# copy the main binary
 COPY --from=builder /app/api/main .
 
-# EXPOSE 8888
+# copy the seed.sql to seed the initial DB, if needed
+COPY --from=builder /app/api/db/seed.sql .
 
 CMD ["./main"]

@@ -35,6 +35,7 @@ output "eip" { value = var.eip }
 variable "aws_region" {
   description = "The AWS region to use"
   type        = string
+  default     = "us-east-1"
 }
 output "aws_region" { value = var.aws_region }
 
@@ -195,9 +196,12 @@ pull_docker_compose_files() {
   # Download the environment-specific file
   echo "Downloading $ENV_FILE..."
   aws s3 cp "s3://$S3_BUCKET/$ENV_FILE" "./$ENV_FILE" --region "$AWS_REGION"
+
+  # symlink the base file to docker-compose.yml (for docker compose logging, etc.)
+  ln -s "$BASE_FILE" docker-compose.yml
 }
 
-pull_config_secret_files() {
+pull_config_secrets_files() {
   echo "Retrieving .config* files, .secret file and loadEnv.sh from S3..."
   # Loop through each service as defined in the docker-compose file under "services"
   for SERVICE in $(yq '.services | keys | join(" ")' ./docker-compose-$MACHINE.yml | tr -d '"'); do
@@ -207,6 +211,13 @@ pull_config_secret_files() {
     aws s3 cp "s3://$S3_BUCKET/$SERVICE" "./$SERVICE/" --recursive --region "$AWS_REGION"
 
     chmod +x "./$SERVICE/loadEnv.sh" # make loadEnv.sh executable
+  done
+}
+
+load_env_vars() {
+  # Load environment variables (reads .config* files and loads .secrets from AWS SSM)
+  for SERVICE in $(yq '.services | keys | join(" ")' ./docker-compose-$MACHINE.yml | tr -d '"'); do
+    source ./$SERVICE/loadEnv.sh $ENVIRONMENT
   done
 }
 
@@ -243,11 +254,6 @@ redeploy_if_changed() {
   cp "$ENV_FILE" "$TMP_ENV_FILE"
 
   echo "Changes detected in Docker Compose files. Redeploying..."
-
-  # Load environment variables (reads .config* files and loads .secrets from AWS SSM)
-  for SERVICE in $(yq '.services | keys | join(" ")' ./docker-compose-$MACHINE.yml | tr -d '"'); do
-    source ./$SERVICE/loadEnv.sh $ENVIRONMENT
-  done
   
   # Deploy with docker compose
   docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
@@ -256,7 +262,8 @@ redeploy_if_changed() {
 main() {
   login_to_github
   pull_docker_compose_files
-  pull_config_secret_files
+  pull_config_secrets_files
+  load_env_vars
   redeploy_if_changed
 }
 
@@ -275,8 +282,43 @@ chmod +x /home/admin/deploy.sh
 EOF
 }
 
+output "install_bastion" {
+  value = <<-EOF
+#!/bin/bash
 
+sudo apt-get install ufw -y
 
+# UFW - only allow ssh
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw enable
+EOF
+}
+
+output "install_data" {
+  value = <<-EOF
+#!/bin/bash
+
+# prepare mount point for postgres data volume
+mkdir -p /mnt/external
+
+# Check if volume is formatted; format only if needed (i.e. only format on first boot, not on reboots)
+if ! file -s /dev/xvdf | grep -q "filesystem"; then
+  mkfs -t ext4 /dev/xvdf
+fi
+
+# Add to fstab if not present (auto-mount on reboots)
+grep -q "/dev/xvdf" /etc/fstab || echo "/dev/xvdf /mnt/external ext4 defaults,nofail 0 2" >> /etc/fstab
+
+# Now mount all:
+mount -a
+
+# internal user needs access to the /mnt/external area
+mkdir -p /mnt/external/postgresdata
+chown -R internal:internal /mnt/external
+EOF
+}
 
 
 

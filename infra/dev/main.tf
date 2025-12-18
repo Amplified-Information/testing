@@ -4,8 +4,6 @@ module "shared" {
   env  = "dev"
   aws_key_bastion = "dev-bastion"
   aws_key_internal = "dev"
-  aws_region = "us-east-1"
-  aws_az = "us-east-1a"
   eip = "eipalloc-0a06fd4140fafdd3c"
   ebs_volume_id = "vol-0d3a782bdfffc34aa"
 }
@@ -38,14 +36,7 @@ resource "aws_instance" "bastion_dev" {
   user_data = <<-EOF
     #!/bin/bash
     ${module.shared.install_base}
-
-    sudo apt-get install ufw -y
-
-    # UFW - only allow ssh
-    ufw default deny incoming
-    ufw default allow outgoing
-    ufw allow ssh
-    ufw enable
+    ${module.shared.install_bastion}
 
     # for good measure
     reboot
@@ -173,24 +164,7 @@ resource "aws_instance" "data_dev" {
 
     ${module.shared.install_base}
     ${module.shared.install_docker_runner}
-
-    # prepare mount point for postgres data volume
-    mkdir -p /mnt/external
-
-    # Check if volume is formatted; format only if needed (i.e. only format on first boot, not on reboots)
-    if ! file -s /dev/xvdf | grep -q "filesystem"; then
-      mkfs -t ext4 /dev/xvdf
-    fi
-
-    # Add to fstab if not present (auto-mount on reboots)
-    grep -q "/dev/xvdf" /etc/fstab || echo "/dev/xvdf /mnt/external ext4 defaults,nofail 0 2" >> /etc/fstab
-
-    # Now mount all:
-    mount -a
-
-    # internal user needs access to the /mnt/external area
-    mkdir -p /mnt/external/postgresdata
-    chown -R internal:internal /mnt/external
+    ${module.shared.install_data}
 
     # for good measure
     reboot
