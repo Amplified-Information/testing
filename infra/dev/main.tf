@@ -16,15 +16,19 @@ resource "aws_instance" "bastion_dev" {
   key_name      = module.shared.aws_key_bastion
   availability_zone = module.shared.aws_az
   
-  associate_public_ip_address = true # bastion needs a public IP
+  associate_public_ip_address = true                            # bastion needs a public IP
   
-  subnet_id              = module.shared.aws_subnet_public_id # PUBLIC subnet
+  subnet_id              = module.shared.aws_subnet_public_id   # PUBLIC subnet
+  private_ip             = module.shared.fixed_ip_bastion
 
   vpc_security_group_ids = [
     module.shared.allow_web_egress_id,
     module.shared.allow_web_ingress_id,
-    module.shared.allow_internal_id,
-    module.shared.allow_ssh_ingress_id # SSH is allowed to Bastion
+    module.shared.allow_internal_vpc_id,
+    # module.shared.allow_internal_private_subnet_id,
+    module.shared.allow_ssh_ingress_id                          # SSH is allowed to Bastion
+    # module.shared.allow_ssh_from_public_subnet_id,
+    # module.shared.allow_8090_from_internet_id
   ]
 
   tags = {
@@ -56,16 +60,19 @@ resource "aws_instance" "proxy_dev" {
   key_name      = module.shared.aws_key_internal
   availability_zone = module.shared.aws_az
 
-  subnet_id              = module.shared.aws_subnet_private_id
+  subnet_id              = module.shared.aws_subnet_public_id # PUBLIC subnet
   private_ip             = module.shared.fixed_ip_proxy
 
   vpc_security_group_ids = [
     module.shared.allow_web_egress_id,
     module.shared.allow_web_ingress_id,
-    module.shared.allow_internal_id,
+    module.shared.allow_internal_vpc_id,
+    # module.shared.allow_internal_private_subnet_id,
     # module.shared.allow_ssh_ingress_id
     module.shared.allow_ssh_from_public_subnet_id,
-    module.shared.allow_8090_from_internet_id
+    module.shared.allow_8090_from_internet_id,
+    # module.shared.allow_proxy_ingress_id,
+    module.shared.allow_monolith_egress_id,
   ]
 
   iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM
@@ -107,9 +114,13 @@ resource "aws_instance" "monolith_dev" {
   vpc_security_group_ids = [
     module.shared.allow_web_egress_id,
     module.shared.allow_web_ingress_id,
-    module.shared.allow_internal_id,
-    # module.shared.allow_ssh_ingress_id
-    module.shared.allow_ssh_from_public_subnet_id
+    # module.shared.allow_internal_vpc_id,
+    module.shared.allow_internal_private_subnet_id,
+    # module.shared.allow_ssh_ingress_id,
+    module.shared.allow_ssh_from_public_subnet_id,
+    # module.shared.allow_8090_from_internet_id, 
+    module.shared.allow_proxy_ingress_id,
+    # module.shared.allow_monolith_egress_id,
   ]
 
   iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM
@@ -136,7 +147,7 @@ resource "aws_instance" "data_dev" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
   key_name      = module.shared.aws_key_internal
-  availability_zone = module.shared.aws_az # must be the same as the EBS volume
+  availability_zone = module.shared.aws_az                      # must be the same as the EBS volume
 
   subnet_id              = module.shared.aws_subnet_private_id
   private_ip             = module.shared.fixed_ip_data
@@ -144,9 +155,13 @@ resource "aws_instance" "data_dev" {
    vpc_security_group_ids = [
     module.shared.allow_web_egress_id,
     module.shared.allow_web_ingress_id,
-    module.shared.allow_internal_id,
-    # module.shared.allow_ssh_ingress_id
-    module.shared.allow_ssh_from_public_subnet_id
+    # module.shared.allow_internal_vpc_id,
+    module.shared.allow_internal_private_subnet_id,
+    # module.shared.allow_ssh_ingress_id,
+    module.shared.allow_ssh_from_public_subnet_id,
+    # module.shared.allow_8090_from_internet_id,
+    # module.shared.allow_proxy_ingress_id,
+    # module.shared.allow_monolith_egress_id,
   ]
 
   iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM

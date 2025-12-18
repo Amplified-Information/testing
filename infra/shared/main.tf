@@ -45,7 +45,8 @@ variable "ebs_volume_id" {
 output "ebs_volume_id" { value = var.ebs_volume_id }
 
 output "ami" { value = "ami-0f9c27b471bdcd702" } // Debian 13
-output "fixed_ip_proxy" { value = "10.0.1.10" }
+output "fixed_ip_bastion" { value = "10.0.0.9" } // N.B. bastion is on the public subnet 
+output "fixed_ip_proxy" { value = "10.0.0.10" } // N.B. proxy is on the public subnet 
 output "fixed_ip_monolith" { value = "10.0.1.11" }
 output "fixed_ip_data" { value = "10.0.1.12" }
 
@@ -79,6 +80,7 @@ wait_for_machine_ready || exit 1
 
 sudo apt-get update
 sudo apt-get install -y unzip jq yq
+sudo apt-get install -y dnsutils telnet
 
 # Enable automatic security updates
 sudo apt-get install -y unattended-upgrades
@@ -243,7 +245,10 @@ redeploy_if_changed() {
   echo "Changes detected in Docker Compose files. Redeploying..."
 
   # Load environment variables (reads .config* files and loads .secrets from AWS SSM)
-  source ./$MACHINE/loadEnv.sh $ENVIRONMENT
+  for SERVICE in $(yq '.services | keys | join(" ")' ./docker-compose-$MACHINE.yml | tr -d '"'); do
+    source ./$SERVICE/loadEnv.sh $ENVIRONMENT
+  done
+  
   # Deploy with docker compose
   docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
 }
@@ -257,6 +262,8 @@ main() {
 
 main
 SCRIPT
+
+
 
 # Make the deploy.sh script executable
 chown admin:admin /home/admin/deploy.sh
@@ -359,6 +366,13 @@ resource "aws_route_table" "private" {
     ipv6_cidr_block = "::/0"
     gateway_id      = aws_internet_gateway.main.id
   }
+
+  # instead use security groups for internal traffic
+  # # N.B. Ensure there's a route to the private subnet for internal communication (e.g. proxy accessed on EIP can access 10.0.1.0/24 network)
+  # route {
+  #   cidr_block = "10.0.1.0/24" # private subnet CIDR
+  #   gateway_id = aws_internet_gateway.main.id
+  # }
 
   tags = { Name = "${var.env}-private-rt" }
 }
@@ -478,8 +492,28 @@ resource "aws_security_group" "allow_web_ingress" {
   }
 }
 
-resource "aws_security_group" "allow_internal" {
-  name        = "allow_internal"
+resource "aws_security_group" "allow_internal_vpc" {
+  name        = "allow_internal_vpc"
+  description = "Allow internal traffic between instances"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.0.0/16"] # Allow traffic within the VPC
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.0.0/16"] # Allow traffic within the VPC
+  }
+}
+
+resource "aws_security_group" "allow_internal_private_subnet" {
+  name        = "allow_internal_private_subnet"
   description = "Allow internal traffic between instances"
   vpc_id      = aws_vpc.main.id
 
@@ -497,6 +531,7 @@ resource "aws_security_group" "allow_internal" {
     cidr_blocks = ["10.0.1.0/24"]  # allow internal subnet
   }
 }
+
 
 resource "aws_security_group" "allow_ssh_ingress" {
   name          = "allow_ssh_ingress"
@@ -543,6 +578,60 @@ resource "aws_security_group" "allow_8090_from_internet" {
     to_port     = 8090
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] # Allow from anywhere on the internet
+  }
+}
+
+resource "aws_security_group" "allow_proxy_ingress" {
+  name        = "allow_proxy_ingress"
+  description = "Allow proxy ingress traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 8888
+    to_port     = 8888
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/24"] # Public subnet CIDR
+  }
+
+  ingress {
+    from_port   = 50051
+    to_port     = 50051
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/24"]
+  }
+
+  ingress {
+    from_port   = 5173
+    to_port     = 5173
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/24"]
+  }
+}
+
+resource "aws_security_group" "allow_monolith_egress" {
+  name        = "allow_monolith_egress"
+  description = "Allow monolith egress traffic"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    from_port   = 8888
+    to_port     = 8888
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.1.0/24"] # Private subnet CIDR
+  }
+
+  egress {
+    from_port   = 50051
+    to_port     = 50051
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.1.0/24"]
+  }
+
+  egress {
+    from_port   = 5173
+    to_port     = 5173
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.1.0/24"]
   }
 }
 
@@ -633,8 +722,12 @@ output "allow_web_ingress_id" {
   value       = aws_security_group.allow_web_ingress.id
 }
 
-output "allow_internal_id" {
-  value       = aws_security_group.allow_internal.id
+output "allow_internal_vpc_id" {
+  value       = aws_security_group.allow_internal_vpc.id
+}
+
+output "allow_internal_private_subnet_id" {
+  value       = aws_security_group.allow_internal_private_subnet.id
 }
 
 output "allow_ssh_ingress_id" {
@@ -647,6 +740,14 @@ output "allow_ssh_from_public_subnet_id" {
 
 output "allow_8090_from_internet_id" {
   value       = aws_security_group.allow_8090_from_internet.id
+}
+
+output "allow_proxy_ingress_id" {
+  value       = aws_security_group.allow_proxy_ingress.id
+}
+
+output "allow_monolith_egress_id" {
+  value       = aws_security_group.allow_monolith_egress.id
 }
 
 

@@ -184,5 +184,9 @@ Tear down AWS resources:
 
 `terraform destroy`
 
-## docker-compose
+##  AWS security groups
+
+AWS limits the number of security groups that can be applied to a EC2 resource to 5.
+
+Request an increase here (e.g. to 8): https://us-east-1.console.aws.amazon.com/servicequotas/home/services/vpc/quotas/L-2AFB9258
 

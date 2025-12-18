@@ -3,11 +3,11 @@
 This project is divided into a number of folders:
 
 - `scs`: on-chain smart contracts
-- `clob`: an off-chain CLOB to manage cryptographically signed buy/sell order intents
-- `infra`: infrastructure-as-code (platform agnostic)
+- `clob`: an off-chain CLOB which matches cryptographically signed buy/sell order intents
+- `infra`: infrastructure-as-code (AWS-orientated)
 - `web`: a web front-end
 - `web.eng`: an engineering front-end
-- `api`: a public backend for `web`
+- `api`: an API backend
 - `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication
 - `resources`: a version-controlled area to store artifacts, design files, images, etc.
@@ -28,6 +28,15 @@ docker compose -f docker-compose-proxy.yml up -d
 docker compose -f docker-compose-data.yml up -d
 docker compose -f docker-compose-monolith.yml up -d
 ```
+
+Access the application at:
+
+| Environment | URI                        |
+|-------------|----------------------------|
+| `local`     | http://localhost:8090      |
+| `dev`       | http://54.210.115.180:8090 |
+| ...         | ...                        |
+| `prod`      | http://100.29.115.146:8090 |
 
 ## Infra components
 
