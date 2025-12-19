@@ -2,7 +2,7 @@
 # - Ensure you have given the Role:Write for the above step (default is Read only)
 # - Ensure "Workflow permissions" has "Read and write permissions" enabled https://github.com/organizations/PrismMarketLabs/settings/actions
 
-name: Build and Push (api)
+name: build/push (api)
 
 on:
   push:
@@ -34,7 +34,8 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
       with:
-        context: .
+        # N.B.
+        context: . # can view proto files off the root
         file: ./api/Dockerfile
         push: true
         tags: |
