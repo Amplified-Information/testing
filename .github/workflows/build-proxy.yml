@@ -1,3 +1,5 @@
+# - Ensure this repo is added to GitHub Container Registry - otherwise the push to ghcr.io will fail https://github.com/orgs/PrismMarketLabs/packages
+# - Ensure "Workflow permissions" has "Read and write permissions" enabled https://github.com/organizations/PrismMarketLabs/settings/actions
 name: Build and Push Proxy
 
 on:
@@ -24,7 +26,7 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: ghcr.io
-        username: ${{ github.actor }}
+        username: ${{ github.actor }}           # available by default in Actions
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push Docker image
