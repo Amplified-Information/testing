@@ -2,12 +2,12 @@
 # - Ensure you have given the Role:Write for the above step (default is Read only)
 # - Ensure "Workflow permissions" has "Read and write permissions" enabled https://github.com/organizations/PrismMarketLabs/settings/actions
 
-name: Build and Push (proxy)
+name: Build and Push (api)
 
 on:
   push:
     paths:
-      - 'proxy/**'
+      - 'api/**'
 
 permissions:
   contents: read
@@ -34,8 +34,9 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
       with:
-        context: ./proxy
+        context: .
+        paths: ./api
         push: true
         tags: |
-          ghcr.io/prismmarketlabs/proxy:${{ github.sha}}
-          ghcr.io/prismmarketlabs/proxy:latest
+          ghcr.io/prismmarketlabs/api:${{ github.sha}}
+          ghcr.io/prismmarketlabs/api:latest
