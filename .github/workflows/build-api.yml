@@ -35,7 +35,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        paths: ./api
+        file: ./api/Dockerfile
         push: true
         tags: |
           ghcr.io/prismmarketlabs/api:${{ github.sha}}
