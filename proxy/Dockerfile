@@ -4,7 +4,7 @@
 # docker push ghcr.io/prismmarketlabs/proxy:$VERSION
 #
 # source loadEnv.sh local
-# docker run -p 8090:8090 -p 9901:9901 -e ENVOY_HOST_CLOB=${ENVOY_HOST_CLOB} -e ENVOY_HOST_API=${ENVOY_HOST_API} -e ENVOY_HOST_WEB=${ENVOY_HOST_WEB} ghcr.io/prismmarketlabs/proxy:$VERSION
+# docker run -p 8090:8090 -p 9901:9901 -e IS_BASIC_AUTH_DISABLED=${IS_BASIC_AUTH_DISABLED} -e ENVOY_HOST_CLOB=${ENVOY_HOST_CLOB} -e ENVOY_HOST_API=${ENVOY_HOST_API} -e ENVOY_HOST_WEB=${ENVOY_HOST_WEB} ghcr.io/prismmarketlabs/proxy:$VERSION
 
 # BUILD stage
 FROM envoyproxy/envoy:contrib-v1.35-latest

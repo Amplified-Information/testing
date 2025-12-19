@@ -102,6 +102,23 @@ static_resources:
                         max_age: "1728000s"
                         expose_headers: "custom-header-1,grpc-status,grpc-message"
               http_filters:
+                - name: envoy.filters.http.basic_auth
+                  disabled: ${BASIC_AUTH_DISABLED}
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuth
+                    users:
+                      # generate with: `echo -n "<some_password>" | openssl dgst -binary -sha1 | openssl base64`. N.B. the {SHA} prefix is required
+                      inline_string: |-
+                        admin:{SHA}cb139wnHtEw+LxCG6hOFfbtg3Vs=
+                - name: envoy.filters.http.grpc_web
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
+                - name: envoy.filters.http.cors
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+                - name: envoy.filters.http.router
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
                 # - name: envoy.filters.http.grpc_json_transcoder # auto-magically translates REST to gRPC
                 #   typed_config:
                 #     "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_json_transcoder.v3.GrpcJsonTranscoder
@@ -112,15 +129,6 @@ static_resources:
                 #       always_print_primitive_fields: true
                 #       always_print_enums_as_ints: false
                 #       preserve_proto_field_names: false
-                - name: envoy.filters.http.grpc_web
-                  typed_config:
-                    "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
-                - name: envoy.filters.http.cors
-                  typed_config:
-                    "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
-                - name: envoy.filters.http.router
-                  typed_config:
-                    "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
     - name: clob_service
       connect_timeout: 1s
