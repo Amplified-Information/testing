@@ -1,5 +1,7 @@
 # - Ensure this repo is added to GitHub Container Registry - otherwise the push to ghcr.io will fail https://github.com/orgs/PrismMarketLabs/packages
+# - Ensure you have given the Role:Write for the above step (default is Read only)
 # - Ensure "Workflow permissions" has "Read and write permissions" enabled https://github.com/organizations/PrismMarketLabs/settings/actions
+
 name: Build and Push Proxy
 
 on:
