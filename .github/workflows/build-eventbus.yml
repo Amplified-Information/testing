@@ -41,3 +41,5 @@ jobs:
         tags: |
           ghcr.io/prismmarketlabs/eventbus:${{ github.sha}}
           ghcr.io/prismmarketlabs/eventbus:latest
+        cache-from: type=registry,ref=ghcr.io/prismmarketlabs/eventbus:buildcache
+        cache-to: type=registry,ref=ghcr.io/prismmarketlabs/eventbus:buildcache,mode=max

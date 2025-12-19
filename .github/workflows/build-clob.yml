@@ -41,3 +41,5 @@ jobs:
         tags: |
           ghcr.io/prismmarketlabs/clob:${{ github.sha}}
           ghcr.io/prismmarketlabs/clob:latest
+        cache-from: type=registry,ref=ghcr.io/prismmarketlabs/clob:buildcache
+        cache-to: type=registry,ref=ghcr.io/prismmarketlabs/clob:buildcache,mode=max

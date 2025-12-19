@@ -1,4 +1,4 @@
-name: Upload Files to S3
+name: push deployment files to S3
 
 on:
   push:

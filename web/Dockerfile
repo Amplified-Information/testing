@@ -24,4 +24,3 @@ FROM nginx:alpine
 COPY --from=build /app/web/dist /usr/share/nginx/html
 
 CMD ["nginx", "-g", "daemon off;"]
-
