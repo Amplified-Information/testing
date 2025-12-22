@@ -2,7 +2,7 @@
 import { AccountId, Client, ContractExecuteTransaction, ContractFunctionParameters, ContractId, PrivateKey } from '@hashgraph/sdk'
 import { keccak256 } from 'ethers'
 import assert from 'assert'
-import { buildSignatureMap } from '../utils.ts'
+import { buildSignatureMap } from '../lib/utils.ts'
 // import { proto } from '@hashgraph/proto'
 
 const contractId = '0.0.7388471'
@@ -104,7 +104,10 @@ const verify_onChain_utf8 = async () => {
   const record = await tx.getRecord(client)
   const result = record.contractFunctionResult
   if (result) {
-    console.log(`result: ${result.getResult(['int64', 'bool'])}`)
+    const statusCode = result.getInt64(0)
+    const isAuthzd = result.getBool(1)
+    console.log(`statusCode: ${statusCode}, isAuthzd: ${isAuthzd}`, isAuthzd ? '✅' : '❌')
+    // console.log(`result: ${result.getResult(['int64', 'bool'])}`)
   } else {
     console.error('No contract function result found.')
   }
@@ -155,7 +158,10 @@ const verify_onChain_base64 = async (
   const record = await tx.getRecord(client)
   const result = record.contractFunctionResult
   if (result) {
-    console.log(`result: ${result.getResult(['int64', 'bool'])}`)
+    const statusCode = result.getInt64(0)
+    const isAuthzd = result.getBool(1)
+    console.log(`statusCode: ${statusCode}, isAuthzd: ${isAuthzd}`, isAuthzd ? '✅' : '❌')
+    // console.log(`result: ${result.getResult(['int64', 'bool'])}`)
   } else {
     console.error('No contract function result found.')
   }

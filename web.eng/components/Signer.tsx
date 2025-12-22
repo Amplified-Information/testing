@@ -6,17 +6,12 @@ import { useAppContext } from '../AppProvider'
 import { defaultPredictionIntentRequest, priceUsdStepSize, midPriceUsdDefault, smartContractId, usdcDecimals } from '../constants'
 import ButtonAmount from './ButtonAmount'
 import { getSpenderAllowanceUsd } from '../lib/hedera'
-// import { getSerializedPayloadForSigning, splitSignature } from '../lib/sign'
 import { keccak256 } from 'ethers'
-// import { keccak_256 } from '@noble/hashes/sha3.js'
 import { ethers } from 'ethers'
-// import { ObjForSigning } from '../types'
 import { proto } from '@hashgraph/proto'
-import { base64StringToSignatureMap /*, signatureMapToBase64String*/ } from '@hashgraph/hedera-wallet-connect'
+import { base64StringToSignatureMap } from '@hashgraph/hedera-wallet-connect'
 import { v7 as uuidv7 } from 'uuid'
-// import { splitSignature } from '../lib/sign'
-// import { splitSignature } from 'ethers'
-// import { splitSignature } from 'ethers/lib/utils'
+
 
 
 const Signer = ({ marketId }: { marketId: string }) => {
@@ -230,11 +225,11 @@ const Signer = ({ marketId }: { marketId: string }) => {
             //// const marketId_uuid128 = uuidToBigInt(predictionIntentRequest.marketId)
             //// const txId_uuid128 = uuidToBigInt(predictionIntentRequest.txId)
 
-            const packedHex = assemblePayloadHexForSigning(predictionIntentRequest)
+            const packedHex = assemblePayloadHexForSigning(predictionIntentRequest, usdcDecimals)
             console.log(`packedHex: ${packedHex}`)
             const packedKeccakHex = keccak256(Buffer.from(packedHex, 'hex')).slice(2)
             console.log(`packedKeccakHex (len=${Buffer.from(packedKeccakHex, 'hex').length}): ${packedKeccakHex}`)
-
+            console.log('verify at: https://emn178.github.io/online-tools/keccak_256.html')
             //// console.log('x: ', keccak256(Buffer.from(packedHex, 'hex')))
             //// // TODO - put this packing into a function ".AssemblePayloadHexForSigning()" (including the Math.abs bit)
             //// const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()

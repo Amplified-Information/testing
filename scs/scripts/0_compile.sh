@@ -9,7 +9,7 @@ fi
 
 CONTRACT_NAME=$1
 
-solcjs ../contracts/$CONTRACT_NAME.sol --bin --optimize -o ../contracts/out 
+solc ../contracts/$CONTRACT_NAME.sol --bin --optimize --via-ir --allow-paths ../node_modules/ -o ../contracts/out --overwrite
 
 cd ../contracts/out
 

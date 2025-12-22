@@ -1,4 +1,3 @@
-import { usdcDecimals } from '../constants'
 import { PredictionIntentRequest } from '../gen/api'
 import { BookSnapshot } from '../gen/clob'
 
@@ -49,9 +48,19 @@ const isValidUUIDv7 = (uuid: string): boolean => {
   return uuidv7Regex.test(uuid)
 }
 
-const assemblePayloadHexForSigning = (predictionIntentRequest: PredictionIntentRequest): string => {
+/**
+ * Assembles a payload hex string for signing from the PredictionIntentRequest object
+ * See: prism/README.md for format definition details
+ * Also see: ./api/server/lib/sign.go
+ * @param predictionIntentRequest PredictionIntentRequest object from front-end
+ * @param usdcDecimals number of decimals for USDC
+ * @returns a long string conforming to the format
+ */
+const assemblePayloadHexForSigning = (predictionIntentRequest: PredictionIntentRequest, usdcDecimals: number): string => {
   const packedHex = [
+    predictionIntentRequest.priceUsd < 0 ? '01': '00', // 1 => sell, 0 => buy
     floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(16).padStart(64, '0'),
+    predictionIntentRequest.evmAddress.replace(/^0x/, '').toLowerCase().padStart(40, '0'), // note: an evm address is exactly 20 bytes = 40 hex chars
     uuidToBigInt(predictionIntentRequest.marketId).toString(16).padStart(32, '0'),
     uuidToBigInt(predictionIntentRequest.txId).toString(16).padStart(32, '0')
   ].join('')

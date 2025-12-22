@@ -9,13 +9,13 @@ import {
   SignerSignature
 } from '@hashgraph/sdk'
 import { keccak256 } from 'ethers'
-import { buildSignatureMap } from '../utils.ts'
+import { buildSignatureMap } from '../lib/utils.ts'
 
 // --------------------------------------------------------------------------
 // CONFIG
 // --------------------------------------------------------------------------
 
-const operatorId = AccountId.fromString('0.0.7090546')
+const operatorId = AccountId.fromString('0.0.7090546') // Test.sol
 const evmAddress = '440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6'
 const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'
 const privateKey = PrivateKey.fromStringECDSA(privateKeyHex)

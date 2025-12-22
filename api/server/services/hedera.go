@@ -12,6 +12,8 @@ import (
 
 	"os"
 
+	pb_api "api/gen"
+	pb_clob "api/gen/clob"
 	"api/server/lib"
 	repositories "api/server/repositories"
 
@@ -206,43 +208,29 @@ This function takes a number of input parameters from the YES and NO side
 * @return bool - Returns true if the transaction is successful, otherwise false.
 * @return error - Returns an error if the transaction fails or the receipt cannot be retrieved.
 */
-func (h *HederaService) BuyPositionTokens(
-	marketId string,
-	origQtyYes float64,
-	origQtyNo float64,
-	origPriceUsdYes float64,
-	origPriceUsdNo float64,
-	accountIdYes string,
-	accountIdNo string,
-	txIdUuidYes string,
-	txIdUuidNo string,
-	sigYes64 string,
-	sigNo64 string,
-	publicKeyYesHex string,
-	publicKeyNoHex string,
-	evmYes string,
-	evmNo string,
-	keyTypeYes int32,
-	keyTypeNo int32,
-) (bool, error) {
+func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sideNo *pb_clob.OrderRequestClob) (bool, error) {
+	// validate that sideYes.MarketId == sideNo.MarketId and sideYes.MarketId != ""
+	if sideYes.MarketId != sideNo.MarketId || sideYes.MarketId == "" {
+		return false, fmt.Errorf("market IDs do not match or invalid: %s vs %s", sideYes.MarketId, sideNo.MarketId)
+	}
 
-	// TODO - do this swapping on-chain
-	// // do we need to flip which accoundId is YES and which accountId is NO?
-	// if origPriceUsdNo < 0 && origPriceUsdYes > 0 { // Yes side get YES position tokens, No side gets NO position tokens
-	// 	// canonical situation - the ordering is correct as-is
-	// } else if origPriceUsdYes < 0 && origPriceUsdNo > 0 { // Yes side gets NO position tokens, No side gets YES position tokens
-	// 	origQtyYes, origQtyNo = origQtyNo, origQtyYes
-	// 	origPriceUsdYes, origPriceUsdNo = origPriceUsdNo, origPriceUsdYes
-	// 	accountIdYes, accountIdNo = accountIdNo, accountIdYes
-	// 	txIdUuidYes, txIdUuidNo = txIdUuidNo, txIdUuidYes
-	// 	sigYes64, sigNo64 = sigNo64, sigYes64
-	// 	publicKeyYesHex, publicKeyNoHex = publicKeyNoHex, publicKeyYesHex
-	// 	evmYes, evmNo = evmNo, evmYes
-	// 	keyTypeYes, keyTypeNo = keyTypeNo, keyTypeYes
-	// } else {
-	// 	// all other situations (including == 0.0) can never happen:
-	// 	return false, fmt.Errorf("invalid price_usd values for YES and NO positions: %f, %f", origPriceUsdYes, origPriceUsdNo)
-	// }
+	// validate that a price is not zero
+	if sideYes.PriceUsd == 0.0 || sideNo.PriceUsd == 0.0 {
+		return false, fmt.Errorf("priceUsd cannot be zero: %f vs %f", sideYes.PriceUsd, sideNo.PriceUsd)
+	}
+
+	// validate that one price is negative and one price is positive
+	if (sideYes.PriceUsd > 0 && sideNo.PriceUsd > 0) || (sideYes.PriceUsd < 0 && sideNo.PriceUsd < 0) {
+		return false, fmt.Errorf("both prices have the same sign: %f vs %f", sideYes.PriceUsd, sideNo.PriceUsd)
+	}
+
+	// OK - proceed
+
+	// sideYes should have the positive priceUsd, sideNo should have the negative priceUsd
+	if sideYes.PriceUsd <= 0 {
+		// flip yes and no sides
+		sideYes, sideNo = sideNo, sideYes
+	}
 
 	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
 	usdcDecimals, err := strconv.ParseUint(usdcDecimalsStr, 10, 64)
@@ -251,35 +239,22 @@ func (h *HederaService) BuyPositionTokens(
 	}
 	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
 	// const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
-	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(math.Abs(origPriceUsdYes*origQtyYes), int(usdcDecimals))
+	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideYes.PriceUsd*sideYes.Qty), int(usdcDecimals))
 	if err != nil {
 		return false, fmt.Errorf("failed to scale collateralUsdAbsYes: %v", err)
 	}
 
-	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(math.Abs(origPriceUsdNo*origQtyNo), int(usdcDecimals))
+	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideNo.PriceUsd*sideNo.Qty), int(usdcDecimals))
 	if err != nil {
 		return false, fmt.Errorf("failed to scale collateralUsdAbsNo: %v", err)
 	}
 
-	// collateralUsdAbsYes := math.Abs(origPriceUsdYes * origQtyYes)
-	// collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsYes)
-	// if err != nil {
-	// 	return false, fmt.Errorf("failed to scale collateralUsdAbsYes: %v", err)
-	// }
-
-	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
-	// collateralUsdAbsNo := math.Abs(origPriceUsdNo * origQtyNo)
-	// collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbsNo)
-	// if err != nil {
-	// 	return false, fmt.Errorf("failed to scale collateralUsdAbsNo: %v", err)
-	// }
-
-	sigYes, err := base64.StdEncoding.DecodeString(sigYes64)
+	sigYes, err := base64.StdEncoding.DecodeString(sideYes.Sig) // Sig is base64-encoded
 	if err != nil {
 		log.Printf("Error decoding sigYes64 from base64: %v", err)
 		return false, err
 	}
-	sigNo, err := base64.StdEncoding.DecodeString(sigNo64)
+	sigNo, err := base64.StdEncoding.DecodeString(sideNo.Sig) // Sig is base64-encoded
 	if err != nil {
 		log.Printf("Error decoding sigNo64 from base64: %v", err)
 		return false, err
@@ -288,14 +263,28 @@ func (h *HederaService) BuyPositionTokens(
 	log.Printf("sigYes (len=%d): %x", len(sigYes), sigYes)
 	log.Printf("sigNo (len=%d): %x", len(sigNo), sigNo)
 
-	serializedPayloadYes, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaledYes, marketId, txIdUuidYes)
+	serializedPayloadYes, err := lib.AssemblePayloadHexForSigning(&pb_api.PredictionIntentRequest{
+		PriceUsd:   sideYes.PriceUsd,
+		Qty:        sideYes.Qty,
+		MarketId:   sideYes.MarketId,
+		EvmAddress: sideYes.EvmAddress,
+		TxId:       sideYes.TxId,
+	}, usdcDecimals)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract YES payload for signing: %v", err)
 	}
-	serializedPayloadNo, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaledNo, marketId, txIdUuidNo)
+
+	serializedPayloadNo, err := lib.AssemblePayloadHexForSigning(&pb_api.PredictionIntentRequest{
+		PriceUsd:   sideNo.PriceUsd,
+		Qty:        sideNo.Qty,
+		MarketId:   sideNo.MarketId,
+		EvmAddress: sideNo.EvmAddress,
+		TxId:       sideNo.TxId,
+	}, usdcDecimals)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract NO payload for signing: %v", err)
 	}
+
 	log.Printf("serializedPayloadYes: %s", serializedPayloadYes)
 	log.Printf("serializedPayloadNo: %s", serializedPayloadNo)
 
@@ -308,11 +297,11 @@ func (h *HederaService) BuyPositionTokens(
 	log.Printf("keccakNo calc'd server-side (hex): %x", keccakNo)
 
 	// create a hiero public key for the hex string and key type (ecdasa/ed25519)
-	publicKeyYes, err := lib.PublicKeyForKeyType(publicKeyYesHex, lib.HederaKeyType(keyTypeYes))
+	publicKeyYes, err := lib.PublicKeyForKeyType(sideYes.PublicKey, lib.HederaKeyType(sideYes.KeyType))
 	if err != nil {
 		return false, fmt.Errorf("failed to get publicKeyYes: %v", err)
 	}
-	publicKeyNo, err := lib.PublicKeyForKeyType(publicKeyNoHex, lib.HederaKeyType(keyTypeNo))
+	publicKeyNo, err := lib.PublicKeyForKeyType(sideNo.PublicKey, lib.HederaKeyType(sideNo.KeyType))
 	if err != nil {
 		return false, fmt.Errorf("failed to get publicKeyNo: %v", err)
 	}
@@ -321,64 +310,33 @@ func (h *HederaService) BuyPositionTokens(
 	// OK
 	// now call the smart contract...
 	/////
-	marketIdBig, err := lib.Uuid7_to_bigint(marketId)
+	marketIdBig, err := lib.Uuid7_to_bigint(sideYes.MarketId) // same for yes and no sides
 	if err != nil {
 		return false, fmt.Errorf("failed to convert marketId to bigint: %w", err)
 	}
 
-	txIdYesBig, err := lib.Uuid7_to_bigint(txIdUuidYes)
+	txIdYesBig, err := lib.Uuid7_to_bigint(sideYes.TxId)
 	if err != nil {
 		return false, fmt.Errorf("failed to convert txIdUuidYes to bigint: %w", err)
 	}
-	txIdNoBig, err := lib.Uuid7_to_bigint(txIdUuidNo)
+	txIdNoBig, err := lib.Uuid7_to_bigint(sideNo.TxId)
 	if err != nil {
 		return false, fmt.Errorf("failed to convert txIdUuidNo to bigint: %w", err)
 	}
 
-	// partial fills MUST take the *lower* Usd collateral value - this comparison is done on-chain
-	// collateralUsdAbsScaledMin := collateralUsdAbsScaledYes
-	// if collateralUsdAbsScaledNo.Cmp(collateralUsdAbsScaledYes) < 0 {
-	// 	collateralUsdAbsScaledMin = collateralUsdAbsScaledNo
-	// }
-
 	// sigObjYes and sigObjNo (Hedera format signature objects)
-	sigObjYes, err := lib.BuildSignatureMap(publicKeyYes, sigYes, lib.HederaKeyType(keyTypeYes))
-	sigObjNo, err := lib.BuildSignatureMap(publicKeyNo, sigNo, lib.HederaKeyType(keyTypeNo))
-	log.Printf("sigYes (keyType=%d) (hex): %x", keyTypeYes, sigYes)
-	log.Printf("sigNo (keyType=%d) (hex): %x", keyTypeNo, sigNo)
+	sigObjYes, err := lib.BuildSignatureMap(publicKeyYes, sigYes, lib.HederaKeyType(sideYes.KeyType))
+	sigObjNo, err := lib.BuildSignatureMap(publicKeyNo, sigNo, lib.HederaKeyType(sideNo.KeyType))
+	log.Printf("sigYes (keyType=%d) (hex): %x", sideYes.KeyType, sigYes)
+	log.Printf("sigNo (keyType=%d) (hex): %x", sideNo.KeyType, sigNo)
 
 	/////
 	// submit to the smart contract :)
 	/////
-	/*
-		TypeScript code that works - buy 4_buy.ts:
-
-		const buyTx4 = await new ContractExecuteTransaction()
-			.setContractId(contractId)
-			.setGas(2_000_000) // approx 1 million per USDC transfer (two USDC transfers in the atomic function)
-			.setFunction(
-				'buyPositionTokensOnBehalfAtomic',
-				params
-			)
-			.execute(client)
-
-		const buyReceipt4 = await buyTx4.getReceipt(client)
-		console.log(`buyPositionTokensOnBehalf(marketId=${marketId},...) status:`, buyReceipt4.status.toString())
-
-	*/
 	params := hiero.NewContractFunctionParameters()
-	// uint128 marketId,
-	// address signerYes,
-	// address signerNo,
-	// uint256 collateralUsdAbsScaledYes,
-	// uint256 collateralUsdAbsScaledNo,
-	// uint128 txIdYes,
-	// uint128 txIdNo,
-	// bytes calldata sigObjYes,
-	// bytes calldata sigObjNo
 	params.AddUint128BigInt(marketIdBig)               // marketId
-	params.AddAddress(accountIdYes)                    // signerYes
-	params.AddAddress(accountIdNo)                     // signerNo
+	params.AddAddress(sideYes.EvmAddress)              // signerYes
+	params.AddAddress(sideNo.EvmAddress)               // signerNo
 	params.AddUint256BigInt(collateralUsdAbsScaledYes) // collateralUsdAbsScaledYes
 	params.AddUint256BigInt(collateralUsdAbsScaledNo)  // collateralUsdAbsScaledNo
 	params.AddUint128BigInt(txIdYesBig)                // txIdYes
@@ -388,8 +346,8 @@ func (h *HederaService) BuyPositionTokens(
 
 	log.Printf("Prepared smart contract parameters for BuyPositionTokens")
 	log.Println("marketIdBytes (hex):", hex.EncodeToString(marketIdBig.Bytes()))
-	log.Println("accountIdYes:", accountIdYes)
-	log.Println("accountIdNo:", accountIdNo)
+	log.Println("accountIdYes:", sideYes.EvmAddress)
+	log.Println("accountIdNo:", sideNo.EvmAddress)
 	log.Println("collateralUsdAbsScaledYes:", collateralUsdAbsScaledYes.String())
 	log.Println("collateralUsdAbsScaledNo:", collateralUsdAbsScaledNo.String())
 	log.Println("txIdYesBig (hex):", hex.EncodeToString(txIdYesBig.Bytes()))
@@ -418,7 +376,7 @@ func (h *HederaService) BuyPositionTokens(
 		return false, fmt.Errorf("failed to get transaction receipt: %v", err)
 	}
 
-	log.Printf("buyPositionTokensOnBehalfAtomic(marketId=%s, ...) status: %s", marketId, receipt.Status.String())
+	log.Printf("buyPositionTokensOnBehalfAtomic(marketId=%s, ...) status: %s", sideYes.MarketId, receipt.Status.String())
 
 	/////
 	// db
@@ -429,19 +387,19 @@ func (h *HederaService) BuyPositionTokens(
 	// record the successful on-chain settlement
 	txHash := receipt.TransactionID.String()
 	log.Printf("TransactionID (txHash) for successful settlement: %s", txHash)
-	err = h.dbRepository.CreateSettlement(txIdUuidYes, txIdUuidNo, txHash)
+	err = h.dbRepository.CreateSettlement(sideYes.TxId, sideNo.TxId, txHash)
 	if err != nil {
 		return false, fmt.Errorf("Error logging a successful tx to settlements table: %v", err)
 	}
 
 	// record the price
-	err = h.dbRepository.SavePriceHistory(marketId, origPriceUsdYes) // TODO - check this
+	err = h.dbRepository.SavePriceHistory(sideYes.MarketId, sideYes.PriceUsd) // TODO - check this
 	if err != nil {
-		return false, fmt.Errorf("Error saving price history for market %s: %v", marketId, err)
+		return false, fmt.Errorf("Error saving price history for market %s: %v", sideYes.MarketId, err)
 	}
-	err = h.dbRepository.SavePriceHistory(marketId, origPriceUsdNo)
+	err = h.dbRepository.SavePriceHistory(sideNo.MarketId, sideNo.PriceUsd)
 	if err != nil {
-		return false, fmt.Errorf("Error saving price history for market %s: %v", marketId, err)
+		return false, fmt.Errorf("Error saving price history for market %s: %v", sideNo.MarketId, err)
 	}
 
 	// if we get here, return true

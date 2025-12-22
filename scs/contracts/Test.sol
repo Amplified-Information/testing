@@ -152,8 +152,9 @@ contract Test {
     Then it converts the keccak hash to a base64-encoded string (which will have a fixed length of 44 characters)
     Finally, it prefixes the base64-encoded string with the Hedera Signed Message header (using a hard-coded input string length of 44 characters)
     */
-    function assemblePrismPayload(uint256 collateralUsd, uint128 marketId, uint128 txId) external pure returns (bytes memory) {
-      bytes memory assembled = abi.encodePacked(collateralUsd, marketId, txId);
+    function assemblePayload(bool buySell, uint256 collateralUsd, address evmAddr, uint128 marketId, uint128 txId) external pure returns (bytes memory) {
+      // note: when using encodePacked, a bool gets encoded to 0x00 or 0x01 - this zero prefix prevents an odd register length
+      bytes memory assembled = abi.encodePacked(buySell, collateralUsd, evmAddr, marketId, txId);
       bytes32 keccak = keccak256(assembled);
 
       string memory base64 = Base64.encode(abi.encodePacked(keccak));

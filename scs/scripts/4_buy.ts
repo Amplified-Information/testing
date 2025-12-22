@@ -1,21 +1,20 @@
 /**
 Signing OrderIntent...
-Signer.tsx:222 x:  0x248c6f0e4d0f54dbc6e396a9c192a22b7d78feeb9e1d4ca85b39500d9ea6c7d5
-Signer.tsx:223 00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c
-Signer.tsx:225 packedKeccakHex: 248c6f0e4d0f54dbc6e396a9c192a22b7d78feeb9e1d4ca85b39500d9ea6c7d5
-Signer.tsx:235 msgToSign (base64) (len=44): JIxvDk0PVNvG45apwZKiK314/uueHUyoWzlQDZ6mx9U=
-Signer.tsx:236 packedKeccakHex (len=32): 248c6f0e4d0f54dbc6e396a9c192a22b7d78feeb9e1d4ca85b39500d9ea6c7d5
-Signer.tsx:238 sigHex (len=64): ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b
-Signer.tsx:36 {"txId":"019af9dc-4e5f-7518-80af-b44d6938149c","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-07T17:29:16.127Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.5,"qty":0.0274,"sig":"rkztvdmz3NlLqOCQnzW7k/9b2KFe+H0k9hCAK3VsxzY6yv0xUdbJEYLv5c7+fW5C0aNWgCLpKPBgEhhP16KCCw=="}
-
-# export SMART_CONTRACT_ID=0.0.7388577
+Signer.tsx:229 packedHex: 0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746
+Signer.tsx:231 packedKeccakHex (len=32): 4e565e3f7c1da8c0d139e196c36dff70db9548d559ab1db349616dc8c91ea3d5
+Signer.tsx:232 verify at: https://emn178.github.io/online-tools/keccak_256.html
+Signer.tsx:251 msgToSign (base64) (len=44): TlZeP3wdqMDROeGWw23/cNuVSNVZqx2zSWFtyMkeo9U=
+Signer.tsx:254 sig (hex) (len=64): 93ff91d8c5dcd9599fe114c53c0bf9507aae9b8e51b405c504b43b091d4b367c7cfaec86d4d45a19bd0a421a88bc46b7f8d95da65797444edfb276d13ad43166
+Signer.tsx:255 sig (base64): k/+R2MXc2Vmf4RTFPAv5UHqum45RtAXFBLQ7CR1LNnx8+uyG1NRaGb0KQhqIvEa3+NldpleXRE7fsnbROtQxZg==
+Signer.tsx:32 {"txId":"019b47ae-68cd-7586-abcd-2a72aa54e746","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-22T20:09:31.085Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.5,"qty":2,"sig":"k/+R2MXc2Vmf4RTFPAv5UHqum45RtAXFBLQ7CR1LNnx8+uyG1NRaGb0KQhqIvEa3+NldpleXRE7fsnbROtQxZg==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
+# export SMART_CONTRACT_ID=0.0.7508949
 
 export PUBLIC_KEY=03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787
 # N.B. PAYLOAD is constructed using the marketId and txId below (collateral USD is 0.0137 converted to a hex 256-bit uint):
 # export MARKET_ID=0189c0a87e807e808000000000000003
 # export TX_ID=019af9dc4e5f751880afb44d6938149c
-export PAYLOAD=00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c
-export SIG_RAW=ae4cedbdd9b3dcd94ba8e0909f35bb93ff5bd8a15ef87d24f610802b756cc7363acafd3151d6c91182efe5cefe7d6e42d1a3568022e928f06012184fd7a2820b
+export PAYLOAD=0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746
+export SIG_RAW=93ff91d8c5dcd9599fe114c53c0bf9507aae9b8e51b405c504b43b091d4b367c7cfaec86d4d45a19bd0a421a88bc46b7f8d95da65797444edfb276d13ad43166
 
 ts-node 4_buy.ts $SMART_CONTRACT_ID $PAYLOAD $SIG_RAW $PUBLIC_KEY
 */
@@ -29,7 +28,10 @@ import {
 } from '@hashgraph/sdk'
 import { initHederaClient } from './lib/hedera.ts'
 import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
-import { buildSignatureMap } from './utils.ts'
+import { buildSignatureMap } from './lib/utils.ts'
+import { payloadHex2components } from './lib/utils.ts'
+import { keccak256 } from 'ethers'
+import { prefixMessageToSign } from './lib/utils.ts'
 
 const [ client, _ ] = initHederaClient(
   networkSelected,
@@ -42,16 +44,18 @@ const main = async () => {
   const [contractId, payloadHex, sigRawHex, publicKeyHex] = process.argv.slice(2)
   if (!contractId || !payloadHex || !sigRawHex || !publicKeyHex) {
     console.error('Usage: ts-node buy.ts <contractId> <payloadHex> <sigRawHex> <publicKeyHex>')
-    console.error('Example usage: ts-node buy.ts $SMART_CONTRACT_ID $PAYLOAD_HEX $SIG_RAW_HEX $PUBLIC_KEY_HEX')
+    console.error('Example usage: ts-node buy.ts $SMART_CONTRACT_ID $PAYLOAD_HEX $SIG_RAW_HEX $PUBLIC_KEY')
     process.exit(1)
   }
-  // const payloadHex = '00000000000000000000000000000000000000000000000000000000000035840189c0a87e807e808000000000000003019af9dc4e5f751880afb44d6938149c'
-  const collateralUsdAbsScaled = BigInt('0x' + payloadHex.substring(0, 64))
-  const marketId = BigInt('0x' + payloadHex.substring(64, 96))
-  const txId = BigInt('0x' + payloadHex.substring(96, 128))
+  // const payloadHex = '0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746'
+  const [buySell, collateralUsdAbsScaled, evmAddr, marketId, txId] = payloadHex2components(payloadHex)
+  console.log(`buySell: ${buySell}, collateralUsdAbsScaled: ${collateralUsdAbsScaled}, evmAddr: ${evmAddr.toString()}, marketId: ${marketId.toString(16)}, txId: ${txId.toString(16)}`)
+  console.log('\n\n')
 
   const operatorPublicKey = PublicKey.fromString(publicKeyHex)
   const account = client.operatorPublicKey!.toEvmAddress() 
+  console.log(`account: ${operatorPublicKey.toString()}`)
+  
   // TODO - retrieve ECDSA or ED25519 from userAccountInfo on mirror node
   const sigObj = Buffer.from(buildSignatureMap(operatorPublicKey, Buffer.from(sigRawHex, 'hex'), 'ECDSA'))
   
@@ -166,8 +170,20 @@ const main = async () => {
     // console.log('buyPositionTokens status:', buyReceipt.status.toString());
 
 
+    
+    /////
+    // off-chain assembly:
+    /////
+    console.log('off-chain assembly FYI:')
+    const keccakHex = keccak256(Buffer.from(payloadHex, 'hex')).slice(2)
+    const keccak = Buffer.from(keccakHex, 'hex')
+    const keccak64 = keccak.toString('base64') // an extra step...
+    const keccakPrefixedStr = prefixMessageToSign(keccak64)
+    console.log(`offChain assemled prefixed keccak:\t${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
+    console.log(`sigObj:\t${sigObj.toString('hex')}`)
+
      // 4) buy outcome tokens on behalf of another account which has an allowance set (buyPositionTokensOnBehalf)
-    console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`)
+    // console.log(`*** client.operatorAccountId!.toEvmAddress(): ${client.operatorAccountId!.toEvmAddress()}`)
     const params = new ContractFunctionParameters()
         // uint128 marketId,
         // address signerYes,
@@ -205,6 +221,9 @@ const main = async () => {
   //   const no = result.getUint256(1).toString()
 
   //   console.log(`getUserTokens(${userAccount}) => yes=${yes}, no=${no}`)
+
+
+    
   } catch (err) {
     console.error('Contract call failed:', err)
     process.exit(1)

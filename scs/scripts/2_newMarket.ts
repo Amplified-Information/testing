@@ -9,7 +9,7 @@ ts-node 2_newMarket.ts $SMART_CONTRACT_ID 0189c0a8-7e80-7e80-8000-000000000003 "
 import { ContractExecuteTransaction, ContractFunctionParameters, ContractId } from '@hashgraph/sdk'
 import { networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { initHederaClient } from './lib/hedera.ts'
-import { uuid7_to_uint128 } from './utils.ts'
+import { uuid7_to_uint128 } from './lib/utils.ts'
 
 const [ client ] = initHederaClient(
   networkSelected,
@@ -23,17 +23,19 @@ const main = async () => {
     const [contractId, marketId_uuid7, statement] = process.argv.slice(2)
     if (!contractId || !marketId_uuid7 || !statement) {
       console.error(`
-        UUID7=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
+        MARKET_ID=$(printf '%08x-%04x-7%03x-%x%03x-%012x\n' \
         $(( $(date +%s%3N) >> 16 )) \
         $(( $(date +%s%3N) & 0xFFFF )) \
         $(( $(date +%s%3N) & 0x0FFF )) \
         $(( 8 + RANDOM % 4 )) \
         $(( RANDOM & 0x0FFF )) \
         $(( RANDOM<<24 | RANDOM<<12 | RANDOM )) )
+
+        export MARKET_ID=0189c0a8-7e80-7e80-8000-000000000003
       `)
       console.error('Usage: ts-node newMarket.ts <contractId> <marketId_uuid7> <statement>')
-      console.error('Usage example: ../node_modules/.bin/ts-node 1_newMarket.ts $SMART_CONTRACT_ID $UUID7 "Bitcoin will be over $100,000 end 2026"')
-      console.error('--> Retrieve $UUID7 and the statement from the database or the frontend...')
+      console.error('Usage example: ../node_modules/.bin/ts-node 1_newMarket.ts $SMART_CONTRACT_ID $MARKET_ID "Bitcoin will be over $100,000 end 2026"')
+      console.error('--> Retrieve $MARKET_ID and the statement from the database or the frontend...')
       process.exit(1)
     }
 

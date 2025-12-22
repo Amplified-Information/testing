@@ -33,7 +33,11 @@ If we're happy for the user to perform an additional step (first time user), we 
 
 `npm install --g solc`
 
-`solcjs PredictionMarket.sol --bin --base-path ../node_modules/`
+`solc PredictionMarket.sol --bin`
+
+May need (optimizations and intermediate representation enabled):
+
+`solc PredictionMarket.sol --with-ir --optimize --bin`
 
 or...
 

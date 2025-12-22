@@ -75,7 +75,7 @@ func (n *NatsService) HandleOrderMatches() error {
 
 		fmt.Printf("NATS %s: %s\n", msg.Subject, string(msg.Data))
 
-		var orderRequestClobTuple [2]pb_clob.OrderRequestClob
+		var orderRequestClobTuple [2]*pb_clob.OrderRequestClob
 		if err := json.Unmarshal(msg.Data, &orderRequestClobTuple); err != nil {
 			log.Printf("Error parsing order data: %v", err)
 			return
@@ -87,12 +87,15 @@ func (n *NatsService) HandleOrderMatches() error {
 			return
 		}
 
-		// assert that the two priceUsd's cancel each other out - TODO - this is an invalid assertion because a high bid can be higher than the lowest ask and vice-versa
-		priceDiff := orderRequestClobTuple[0].PriceUsd + orderRequestClobTuple[1].PriceUsd
-		if priceDiff != 0.0 {
-			log.Printf("PROBLEM: orderRequestClobTuple[0] + orderRequestClobTuple[1] is %f and not 0.0", priceDiff)
-			return
-		}
+		/////
+		// N.B. ///// this is an invalid assertion because a high bid can be higher than the lowest ask and vice-versa
+		/////
+		// assert that the two priceUsd's cancel each other out
+		// priceDiff := orderRequestClobTuple[0].PriceUsd + orderRequestClobTuple[1].PriceUsd
+		// if priceDiff != 0.0 {
+		// 	log.Printf("PROBLEM: orderRequestClobTuple[0] + orderRequestClobTuple[1] is %f and not 0.0", priceDiff)
+		// 	return
+		// }
 
 		// assert that priceUsd is not 0.0
 		if orderRequestClobTuple[0].PriceUsd == 0.0 {
@@ -122,7 +125,7 @@ func (n *NatsService) HandleOrderMatches() error {
 		}
 
 		_, err := n.dbRepository.RecordMatch(
-			[2]*pb_clob.OrderRequestClob{&orderRequestClobTuple[0], &orderRequestClobTuple[1]},
+			[2]*pb_clob.OrderRequestClob{orderRequestClobTuple[0], orderRequestClobTuple[1]},
 			isPartial,
 		)
 		if err != nil {
@@ -135,25 +138,7 @@ func (n *NatsService) HandleOrderMatches() error {
 		// BuyPositionTokens determines which account recieves the YES and which account receives the NO (price_usd < 0 => NO)
 		/////
 
-		isOK, err := n.hederaService.BuyPositionTokens(
-			orderRequestClobTuple[0].MarketId, // marketId[1] and marketId[0] MUST always be the same
-			orderRequestClobTuple[0].Qty,
-			orderRequestClobTuple[1].Qty,
-			orderRequestClobTuple[0].PriceUsd,
-			orderRequestClobTuple[1].PriceUsd,
-			orderRequestClobTuple[0].EvmAddress,
-			orderRequestClobTuple[1].EvmAddress,
-			orderRequestClobTuple[0].TxId,
-			orderRequestClobTuple[1].TxId,
-			orderRequestClobTuple[0].Sig,
-			orderRequestClobTuple[1].Sig,
-			orderRequestClobTuple[0].PublicKey,
-			orderRequestClobTuple[1].PublicKey,
-			orderRequestClobTuple[0].EvmAddress,
-			orderRequestClobTuple[1].EvmAddress,
-			orderRequestClobTuple[0].KeyType,
-			orderRequestClobTuple[1].KeyType,
-		)
+		isOK, err := n.hederaService.BuyPositionTokens(orderRequestClobTuple[0], orderRequestClobTuple[1])
 		if err != nil {
 			log.Printf("Error submitting match to smart contract: %v ", err)
 		}

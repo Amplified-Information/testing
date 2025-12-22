@@ -2,6 +2,7 @@ package lib
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 
@@ -10,27 +11,51 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	protobuf "google.golang.org/protobuf/proto"
+
+	pb_api "api/gen"
 )
 
-func AssemblePayloadHexForSigning(collateralUsdAbsScaled_256 *big.Int, marketId string, txId string) (string, error) {
-	marketIdBigInt_128, err := Uuid7_to_bigint(marketId)
+/**
+* Assembles a payload hex string for signing from the PredictionIntentRequest object
+* See: prism/README.md for format definition details
+* Also see: ./web.eng/lib/utils.ts
+* @param predictionIntentRequest PredictionIntentRequest object from front-end
+* @param usdcDecimals number of decimals for USDC
+* @returns a long string conforming to the format
+ */
+func AssemblePayloadHexForSigning(req *pb_api.PredictionIntentRequest, usdcDecimals uint64) (string, error) {
+	collateralUsdAbs := math.Abs(req.PriceUsd * req.Qty)
+	collateralUsdAbsScaled, err := FloatToBigIntScaledDecimals(collateralUsdAbs, int(usdcDecimals))
+	if err != nil {
+		return "", fmt.Errorf("failed to scale collateralUsdAbs: %v", err)
+	}
+
+	marketIdBigInt, err := Uuid7_to_bigint(req.MarketId)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert MarketId: %v", err)
 	}
 
-	txIdBigInt_128, err := Uuid7_to_bigint(txId)
+	txIdBigInt, err := Uuid7_to_bigint(req.TxId)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert TxId: %v", err)
 	}
 
-	// this string is the correct fixed length
-	payloadHex := "0000000000000000000000000000000000000000000000000000000000004e200189c0a87e807e808000000000000002019aeb40e8e9769cb7a1087ecb6d0bd6"
+	evmAddressBigInt := new(big.Int)
+	evmAddressBigInt.SetString(strings.TrimPrefix(req.EvmAddress, "0x"), 16)
 
-	payloadHex = fmt.Sprintf( // beautiful :)
-		"%064x%032x%032x",
-		collateralUsdAbsScaled_256,
-		marketIdBigInt_128,
-		txIdBigInt_128,
+	buySell := uint64(0)
+	if req.PriceUsd < 0 {
+		buySell = 1 // sell
+	}
+
+	payloadHex := fmt.Sprintf( // beautiful :)   example: 0100000000000000000000000000004e20000000000000000000000000440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b45b837017342a16c7fb8a8023f17
+		"%002x%064x%040x%032x%032x",
+
+		buySell,                // note: the register length is 2 (padded left with '0') to avoid odd length hex strings
+		collateralUsdAbsScaled, // yes, uint256
+		evmAddressBigInt,       // note: an evm address is exactly 20 bytes = 40 hex chars
+		marketIdBigInt,         // uint128
+		txIdBigInt,             // uint128
 	)
 	return payloadHex, nil
 }
@@ -83,7 +108,6 @@ func BuildSignatureMap(publicKey *hiero.PublicKey, signatureBytes []byte, keyTyp
 	switch keyType {
 	case KEY_TYPE_ECDSA:
 		// fmt.Println("ECDSA")
-
 		ecdsaPair := &services.SignaturePair_ECDSASecp256K1{
 			ECDSASecp256K1: signatureBytes,
 		}

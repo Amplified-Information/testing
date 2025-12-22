@@ -114,16 +114,12 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 
 	// Now it's safe to proceed with the publicKey passed from the frontend...
-	collateralUsdAbs := math.Abs(req.PriceUsd * req.Qty)
 	usdcDecimals, err := strconv.ParseUint(os.Getenv("USDC_DECIMALS"), 10, 64)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse USDC_DECIMALS: %v", err)
 	}
-	collateralUsdAbsScaled, err := lib.FloatToBigIntScaledDecimals(collateralUsdAbs, int(usdcDecimals))
-	if err != nil {
-		return "", fmt.Errorf("failed to scale collateralUsdAbs: %v", err)
-	}
-	payloadHex, err := lib.AssemblePayloadHexForSigning(collateralUsdAbsScaled, req.MarketId, req.TxId)
+
+	payloadHex, err := lib.AssemblePayloadHexForSigning(req, usdcDecimals)
 	if err != nil {
 		return "", fmt.Errorf("failed to extract payload for signing: %v", err)
 	}

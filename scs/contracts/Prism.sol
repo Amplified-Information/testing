@@ -104,28 +104,28 @@ contract Prism {
     require(!usedTxIds[txIdYes], "Duplicate txIdYes");
     require(!usedTxIds[txIdNo], "Duplicate txIdNo");
 
-    uint256 collateralUsdAbsScaled = 0;
+    uint256 collateralUsdAbsScaled_lower = 0; // the lower of the two collateral amounts
     if (collateralUsdAbsScaledYes > collateralUsdAbsScaledNo) {
-      collateralUsdAbsScaled = collateralUsdAbsScaledYes;
-      usedTxIds[txIdNo] = true; // the lower side (NO) is mmarked as used
+      collateralUsdAbsScaled_lower = collateralUsdAbsScaledYes;
+      usedTxIds[txIdNo] = true; // mark the lower side (NO) as used
     } else {
-      collateralUsdAbsScaled = collateralUsdAbsScaledNo; // always transfer the lower amount of collateral (partial match)
-      usedTxIds[txIdYes] = true; // the lower side (YES) is marked as used
+      collateralUsdAbsScaled_lower = collateralUsdAbsScaledNo; // always transfer the lower amount of collateral (partial match)
+      usedTxIds[txIdYes] = true; // mark the lower side (YES) as used
     }
 
     // on-chain signature verifiaction using an on-chain assembled payload:
-    require(isAuthorized(signerYes, assemblePrismPayload(collateralUsdAbsScaledYes, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");
-    require(isAuthorized(signerNo,  assemblePrismPayload(collateralUsdAbsScaledNo, marketId, txIdNo),  sigObjNo),  "isAuthorized NO failed");
+    require(isAuthorized(signerYes, assemblePayload(false, collateralUsdAbsScaledYes, signerYes, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");
+    require(isAuthorized(signerNo,  assemblePayload(false, collateralUsdAbsScaledNo, signerNo, marketId, txIdNo),  sigObjNo),  "isAuthorized NO failed");
 
     // Transfer collateral from the buyer to the contract using the buyer's allowance
-    require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled), "Transfer failed");
-    require(collateralToken.transferFrom(signerNo, address(this), collateralUsdAbsScaled), "Transfer failed");
-    yesTokens[marketId][signerYes] += collateralUsdAbsScaled; // 1:1 mapping of collateral to position tokens
-    noTokens[marketId][signerNo] += collateralUsdAbsScaled; // 1:1 mapping of collateral to position tokens
+    require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled_lower), "Transfer failed");
+    require(collateralToken.transferFrom(signerNo, address(this), collateralUsdAbsScaled_lower), "Transfer failed");
+    yesTokens[marketId][signerYes] += collateralUsdAbsScaled_lower; // 1:1 mapping of collateral to position tokens
+    noTokens[marketId][signerNo] += collateralUsdAbsScaled_lower; // 1:1 mapping of collateral to position tokens
 
-    totalCollaterals[marketId] += (2 * collateralUsdAbsScaled);
-    emit PositionTokensPurchased(marketId, signerYes, collateralUsdAbsScaled, false);
-    emit PositionTokensPurchased(marketId, signerNo, collateralUsdAbsScaled, true);
+    totalCollaterals[marketId] += (2 * collateralUsdAbsScaled_lower);
+    emit PositionTokensPurchased(marketId, signerYes, collateralUsdAbsScaled_lower, false);
+    emit PositionTokensPurchased(marketId, signerNo, collateralUsdAbsScaled_lower, true);
   }
   
   /**
@@ -273,8 +273,9 @@ contract Prism {
   Then it converts the keccak hash to a base64-encoded string (which will have a fixed length of 44 characters)
   Finally, it prefixes the base64-encoded string with the Hedera Signed Message header (using a hard-coded input string length of 44 characters)
   */
-  function assemblePrismPayload(uint256 collateralUsd, uint128 marketId, uint128 txId) internal pure returns (bytes memory) {
-    bytes memory assembled = abi.encodePacked(collateralUsd, marketId, txId);
+  function assemblePayload(bool buySell, uint256 collateralUsd, address evmAddr, uint128 marketId, uint128 txId) internal pure returns (bytes memory) {
+    // note: when using encodePacked, a bool gets encoded to 0x00 or 0x01 - this zero prefix prevents an odd register length
+    bytes memory assembled = abi.encodePacked(buySell, collateralUsd, evmAddr, marketId, txId);
     bytes32 keccak = keccak256(assembled);
 
     string memory base64 = Base64.encode(abi.encodePacked(keccak));
