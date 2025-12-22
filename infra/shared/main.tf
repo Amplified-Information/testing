@@ -677,6 +677,26 @@ resource "aws_security_group" "allow_monolith_egress" {
   }
 }
 
+resource "aws_security_group" "allow_bastion_db" {
+  name        = "allow_bastion_db"
+  description = "Allow internal traffic from bastion to database"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/24"] # Allow from public network
+  }
+
+  egress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/24"]  # Allow from public network
+  }
+}
+
 #####
 # IAM roles
 # - view files with `aws s3 ls s3://prismlabs-deployment --region us-east-1`
@@ -792,6 +812,9 @@ output "allow_monolith_egress_id" {
   value       = aws_security_group.allow_monolith_egress.id
 }
 
+output "allow_bastion_db_id" {
+  value       = aws_security_group.allow_bastion_db.id
+}
 
 
 

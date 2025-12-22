@@ -4,10 +4,10 @@
 
 ```bash
 cd db
-mkdir -p /mnt/external/postgres_data
+mkdir -p /mnt/external/postgresdata
 
 source ./loadEnv.sh local
-docker run --rm -it -p $DB_PORT:$DB_PORT -e POSTGRES_USER=$DB_UNAME -e POSTGRES_PASSWORD=$DB_PWORD -e POSTGRES_DB=$DB_NAME -v ./postgres_data:/var/lib/postgresql/data postgres:18
+docker run --rm -it -p 5432:5432 -e POSTGRES_USER=$DB_UNAME -e POSTGRES_PASSWORD=$DB_PWORD -e POSTGRES_DB=$DB_NAME -v /mnt/external/postgresdata:/var/lib/postgresql postgres:18
 ```
 
 ## postgres cli client

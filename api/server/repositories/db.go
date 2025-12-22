@@ -43,13 +43,13 @@ func (dbRepository *DbRepository) InitDb() error {
 		return fmt.Errorf("failed to ping database: %v", err)
 	}
 
-	log.Println("Database initialized successfully")
+	log.Println("Database connected successfully")
 	return nil
 }
 
 func (dbRepository *DbRepository) IsDuplicateTxId(txId uuid.UUID) (bool, error) {
 	if dbRepository.db == nil {
-		return false, fmt.Errorf("database not initialized")
+		return false, fmt.Errorf("could not connect to database")
 	}
 
 	q := sqlc.New(dbRepository.db)
@@ -63,7 +63,7 @@ func (dbRepository *DbRepository) IsDuplicateTxId(txId uuid.UUID) (bool, error) 
 // SaveOrderRequest saves an order request to the database
 func (dbRepository *DbRepository) SaveOrderRequest(req *pb_api.PredictionIntentRequest) (*sqlc.OrderRequest, error) {
 	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
+		return nil, fmt.Errorf("could not connect to database")
 	}
 
 	txUUID, err := uuid.Parse(req.TxId)

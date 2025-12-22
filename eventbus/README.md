@@ -8,7 +8,7 @@ No message persistence, no replaying of messages. No state is stored.
 
 ```bash
 source loadEnv.sh local
-docker run --rm -it -e NATS_ADDR=$NATS_HOST -p $NATS_PORT:$NATS_PORT -p $NATS_PORT_MONITOR:$NATS_PORT_MONITOR nats:latest
+docker run --rm -it -p 4222:4222 -p 6222:6222 nats:latest
 ```
 
 ## install nats-cli

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Valid environment options
-VALID_ENVS=("local" "dev" "prod")
+VALID_ENVS=("local" "dev" "prod", "local2")
 
 # Check if argument is provided
 if [ $# -eq 0 ]; then

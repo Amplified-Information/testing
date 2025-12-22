@@ -17,7 +17,7 @@ type MarketService struct {
 func (m *MarketService) Init(dbRepository *repositories.DbRepository) error {
 	m.dbRepository = dbRepository
 
-	log.Printf("MarketService initialized successfully")
+	log.Printf("Market service initialized successfully")
 	return nil
 }
 

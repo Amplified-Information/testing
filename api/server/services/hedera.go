@@ -58,7 +58,7 @@ func (h *HederaService) InitHedera() (*hiero.Client, error) {
 	client.SetOperator(operatorId, operatorKey)
 
 	h.hedera_client = client
-	log.Println("Hedera initialized successfully")
+	log.Println("Hedera service initialized successfully")
 	return client, nil
 }
 

@@ -18,21 +18,21 @@ import (
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
-type Hashi struct {
+type Prism struct {
 	dbRepository  *repositories.DbRepository
 	natsService   *NatsService
 	hederaService *HederaService
 }
 
-func (h *Hashi) InitHashi(dbRepository *repositories.DbRepository, natsService *NatsService, hederaService *HederaService) {
+func (h *Prism) InitPrism(dbRepository *repositories.DbRepository, natsService *NatsService, hederaService *HederaService) {
 	h.dbRepository = dbRepository
 	h.natsService = natsService
 	h.hederaService = hederaService
 
-	log.Println("Hashi initialized successfully")
+	log.Println("Prism service initialized successfully")
 }
 
-func (h *Hashi) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (string, error) {
+func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (string, error) {
 	/////
 	// validations
 	/////

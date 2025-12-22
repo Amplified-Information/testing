@@ -42,10 +42,7 @@ This format enables efficient matching, maintains market integrity with price-ti
 `cargo build`
 
 ```bash
-set -a # automatically export all variables
-source ./.config.local
-source ./.secrets.local
-set +a
+source loadEnv.sh local
 cargo run
 ```
 
@@ -77,6 +74,7 @@ grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"txId":"'
 Create some markets:
 
 ```bash
+cd clob
 grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001"}' localhost:50051 clob.Clob/AddMarket
 grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000002"}' localhost:50051 clob.Clob/AddMarket
 grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003"}' localhost:50051 clob.Clob/AddMarket

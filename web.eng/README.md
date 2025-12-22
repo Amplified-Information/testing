@@ -2,6 +2,23 @@
 
 A web app for prediction market
 
+## Quickstart
+
+```bash
+npm i
+
+npm run gen
+
+npm run dev
+```
+
+### web on local (Docker):
+
+```bash
+# follow instructions at:
+head Dockerfile
+```
+
 ## Generate TypeScript interfaces
 
 Interface is gRPC.

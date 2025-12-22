@@ -13,10 +13,7 @@ cd api
 
 # run the server:
 cd api
-set -a # automatically export all variables
-source ./.config.local
-source ./.secrets.local
-set +a # turn off auto-export
+source loadEnv.sh local
 go run ./server/
 ```
 
@@ -167,6 +164,13 @@ Add test data to `seed.sql`
 
 Run:
 
-`psql $DB_URL -f seed.sql`
+```bash
+cd api
+source loadEnv.sh local
+DB_URL=postgres://$DB_UNAME:$DB_PWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable
+
+cd api/db
+psql $DB_URL -f seed.sql
+```
 
 N.B. Do NOT run on prod!

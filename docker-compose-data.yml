@@ -7,7 +7,7 @@ services:
     image: ghcr.io/prismmarketlabs/db:0.1.0
     restart: always
     volumes:
-      - /mnt/external/postgresdata:/var/lib/postgresql/data
+      - /mnt/external/postgresdata:/var/lib/postgresql
     ports:
       - "5432:5432"
     environment:

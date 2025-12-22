@@ -153,6 +153,7 @@ resource "aws_instance" "data_dev" {
     # module.shared.allow_8090_from_internet_id,
     # module.shared.allow_proxy_ingress_id,
     # module.shared.allow_monolith_egress_id,
+    module.shared.allow_bastion_db_id # Warning: allow 5432 from bastion
   ]
 
   iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM

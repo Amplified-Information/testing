@@ -17,6 +17,7 @@ service ApiService {
   rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
   rpc PriceHistory(PriceRequest) returns (PriceHistoryResponse);
   // rpc AddComment
+  // rpc ViewComments
 }
 
 message Empty {}

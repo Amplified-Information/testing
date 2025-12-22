@@ -19,7 +19,7 @@ type server struct {
 	pb_api.UnimplementedApiServiceServer
 	dbRepository repositories.DbRepository
 
-	hashiService   services.Hashi
+	prismService   services.Prism
 	natsService    services.NatsService
 	marketsService services.MarketService
 }
@@ -29,7 +29,7 @@ func (s *server) PredictIntent(ctx context.Context, req *pb_api.PredictionIntent
 		return &pb_api.StdResponse{Message: fmt.Sprintf("Invalid request: %v", err)}, err
 	}
 
-	response, err := s.hashiService.SubmitPredictionIntent(req)
+	response, err := s.prismService.SubmitPredictionIntent(req)
 
 	return &pb_api.StdResponse{
 		Message: response,
@@ -116,10 +116,10 @@ func main() {
 	// NATS start listening for matches
 	natsService.HandleOrderMatches()
 
-	// initialize hashi service
-	hashiService := services.Hashi{}
-	hashiService.InitHashi(&dbRepository, &natsService, &hederaService)
-	// TODO: defer hashiService cleanup
+	// initialize prism service
+	prismService := services.Prism{}
+	prismService.InitPrism(&dbRepository, &natsService, &hederaService)
+	// TODO: defer prismService cleanup
 
 	// initialize price service
 	priceService := services.PriceService{}
@@ -140,7 +140,7 @@ func main() {
 	pb_api.RegisterApiServiceServer(grpcServer, &server{
 		dbRepository: dbRepository,
 
-		hashiService:   hashiService,
+		prismService:   prismService,
 		natsService:    natsService,
 		marketsService: marketsService,
 	})

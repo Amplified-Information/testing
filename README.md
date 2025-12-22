@@ -12,7 +12,7 @@ This project is divided into a number of folders:
 - `eventbus`: event bus for pub/sub message communication
 - `resources`: a version-controlled area to store artifacts, design files, images, etc.
 
-## Quickstart
+## Quickstart (docker-compose)
 
 ```bash
 # load all env vars
@@ -20,7 +20,7 @@ source ./api/loadEnv.sh local
 source ./clob/loadEnv.sh local
 source ./db/loadEnv.sh local
 source ./eventbus/loadEnv.sh local
-source ./proxy/loadEnv.sh local
+source ./proxy/loadEnv.sh local # note: local2
 # source ./web/loadEnv.sh local # note: the web app is zero config
 
 # now do:
@@ -37,6 +37,17 @@ Access the application at:
 | `dev`       | http://54.210.115.180:8090 |
 | ...         | ...                        |
 | `prod`      | http://100.29.115.146:8090 |
+
+## Quickstart (local machine)
+
+Develop the application locally:
+
+- `db`: see db/README.md
+- `eventbus`: see [eventbus/README.md](eventbus/README.md)
+- `api`: see [api/README.md](api/README.md)
+- `clob`: see [clob/README.md](clob/README.md)
+- `web`: see [web/README.md](web/README.md)
+- `proxy`
 
 ## Infra components
 

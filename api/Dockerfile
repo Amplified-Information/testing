@@ -26,6 +26,10 @@ RUN CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)-pgdg && echo
 RUN apt-get update
 RUN apt-get install -y postgresql-client-18
 
+# install golang-migrate for DB migrations:
+RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.19.0/migrate.linux-amd64.tar.gz | tar xvz
+RUN mv migrate ./migrate-tool
+
 COPY ./api/go.mod ./api/go.sum ./
 RUN go mod download
 
@@ -48,10 +52,24 @@ WORKDIR /app
 # copy the main binary
 COPY --from=builder /app/api/main .
 
-# copy the migrations files to migrate the DB, if needed
-COPY --from=builder /app/api/db/migrations .
-
 # copy the seed.sql to seed the initial DB, if needed
 COPY --from=builder /app/api/db/seed.sql .
 
-CMD ["./main"]
+# copy the migrations files to migrate the DB, if needed
+COPY --from=builder /app/api/db/migrations /app/db/migrations
+COPY --from=builder /app/api/migrate-tool /app
+
+# This section defines environment variables needed to run a database migration prior to starting the API server
+# - DB_UNAME: The username for connecting to the database.
+# - DB_PWORD: The password for connecting to the database.
+# - DB_HOST: The hostname or IP address of the database server.
+# - DB_PORT: The port number on which the database server is listening.
+# - DB_NAME: The name of the database to connect to.
+# These variables are initialized as empty strings and are set at runtime.
+ENV DB_UNAME="" \
+  DB_PWORD="" \
+  DB_HOST="" \
+  DB_PORT="" \
+  DB_NAME=""
+
+ENTRYPOINT ["sh", "-c", "echo \"Running migrations...\" && export DB_URL=postgres://$DB_UNAME:$DB_PWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable && ./migrate-tool -database $DB_URL -path /app/db/migrations up && echo \"Migrations completed.\" && echo \"Starting application...\" && ./main"]
