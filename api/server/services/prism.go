@@ -87,9 +87,9 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("duplicate txId: %s", req.TxId)
 	}
 
-	// validate that the network sent is valid // os.Getenv("HEDERA_NETWORK_SELECTED")
-	hederaNetwork := strings.ToLower(req.Net)
-	if !lib.IsValidNetwork(hederaNetwork) {
+	// validate that the network sent is valid
+	netSelectedByUser := strings.ToLower(req.Net)
+	if !lib.IsValidNetwork(netSelectedByUser) {
 		return "", fmt.Errorf("invalid network: %s", req.Net)
 	}
 
@@ -98,7 +98,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	if err != nil {
 		return "", fmt.Errorf("failed to get public key: %v", err)
 	}
-	log.Printf("Mirror node response for account %s on network %s: %s", accountId, hederaNetwork, publicKeyLookedUp.String())
+	log.Printf("Mirror node response for account %s on network %s: %s", accountId, netSelectedByUser, publicKeyLookedUp.String())
 
 	// keyType sent from the front-end (no 0x prefix) must match the keyType looked up on the mirror node
 	if !lib.IsValidKeyType(req.KeyType) {
@@ -141,11 +141,11 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	log.Printf("**Signature is valid for account %s**", req.AccountId)
 
 	// Now ensure we have an allowance
-	_networkSelected, err := hiero.LedgerIDFromString(os.Getenv("HEDERA_NETWORK_SELECTED"))
+	_networkSelected, err := hiero.LedgerIDFromString(netSelectedByUser)
 	if err != nil {
 		return "", fmt.Errorf("failed to get network selected: %v", err)
 	}
-	_smartContractId, err := hiero.ContractIDFromString(os.Getenv("SMART_CONTRACT_ID"))
+	_smartContractId, err := hiero.ContractIDFromString(os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(netSelectedByUser))))
 	if err != nil {
 		return "", fmt.Errorf("failed to validate SMART_CONTRACT_ID: %v", err)
 	}
@@ -206,4 +206,16 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	log.Printf("Published order to NATS subject '%s': %s", lib.SUBJECT_CLOB_ORDERS, string(clobRequestJSON))
 
 	return fmt.Sprintf("Processed input for user %s", req.AccountId), nil
+}
+
+func (h *Prism) AvailableNetworks() (*pb_api.StdResponse, error) {
+	networksEnv := os.Getenv("AVAILABLE_NETWORKS")
+	networks := strings.Split(networksEnv, ",")
+
+	response := &pb_api.StdResponse{
+		Message:   fmt.Sprintf("%s", strings.Join(networks, ", ")),
+		ErrorCode: 0,
+	}
+
+	return response, nil
 }

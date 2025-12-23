@@ -57,9 +57,46 @@ func (s *server) CreateMarket(ctx context.Context, req *pb_api.NewMarketRequest)
 	return result, err
 }
 
+func (s *server) PriceHistory(ctx context.Context, req *pb_api.PriceRequest) (*pb_api.PriceHistoryResponse, error) {
+	result, err := s.marketsService.PriceHistory(req)
+	return result, err
+}
+
+func (s *server) AvailableNetworks(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
+	result, err := s.prismService.AvailableNetworks()
+	return result, err
+}
+
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
-	vars := []string{"API_HOST", "API_PORT", "SMART_CONTRACT_ID", "HEDERA_OPERATOR_ID", "HEDERA_NETWORK_SELECTED", "HEDERA_OPERATOR_KEY_TYPE", "HEDERA_OPERATOR_KEY", "NATS_URL", "DB_HOST", "DB_PORT", "DB_UNAME", "DB_PWORD", "DB_NAME", "DB_MAX_ROWS", "USDC_ADDRESS", "USDC_DECIMALS", "TIMESTAMP_ALLOWED_FUTURE_SECONDS", "TIMESTAMP_ALLOWED_PAST_SECONDS"}
+	vars := []string{
+		"AVAILABLE_NETWORKS",
+		"API_HOST",
+		"API_PORT",
+		"USDC_ADDRESS",
+		"USDC_DECIMALS",
+		"PREVIEWNET_SMART_CONTRACT_ID",
+		"TESTNET_SMART_CONTRACT_ID",
+		"MAINNET_SMART_CONTRACT_ID",
+		"PREVIEWNET_HEDERA_OPERATOR_ID",
+		"PREVIEWNET_HEDERA_OPERATOR_KEY_TYPE",
+		"PREVIEWNET_PUBLIC_KEY",
+		"TESTNET_HEDERA_OPERATOR_ID",
+		"TESTNET_HEDERA_OPERATOR_KEY_TYPE",
+		"TESTNET_PUBLIC_KEY",
+		"MAINNET_HEDERA_OPERATOR_ID",
+		"MAINNET_HEDERA_OPERATOR_KEY_TYPE",
+		"MAINNET_PUBLIC_KEY",
+		"NATS_URL",
+		"DB_HOST",
+		"DB_PORT",
+		"DB_UNAME",
+		"DB_PWORD",
+		"DB_NAME",
+		"DB_MAX_ROWS",
+		"TIMESTAMP_ALLOWED_FUTURE_SECONDS",
+		"TIMESTAMP_ALLOWED_PAST_SECONDS",
+	}
 	vals := make(map[string]string)
 
 	var missing []string
@@ -93,7 +130,7 @@ func main() {
 	/////
 	// initialize Hedera service
 	hederaService := services.HederaService{}
-	_, err = hederaService.InitHedera(&dbRepository)
+	err = hederaService.InitHedera(&dbRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Hedera service: %v", err)
 	}
@@ -134,7 +171,9 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	log.Printf("Smart contract ID from env: %s", os.Getenv("SMART_CONTRACT_ID"))
+	log.Printf("Smart contract ID (previewnet): %s", os.Getenv("PREVIEWNET_SMART_CONTRACT_ID"))
+	log.Printf("Smart contract ID (testnet): %s", os.Getenv("TESTNET_SMART_CONTRACT_ID"))
+	log.Printf("Smart contract ID (mainnet): %s", os.Getenv("MAINNET_SMART_CONTRACT_ID"))
 
 	grpcServer := grpc.NewServer()
 	pb_api.RegisterApiServiceServer(grpcServer, &server{

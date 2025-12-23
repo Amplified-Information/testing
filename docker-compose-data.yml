@@ -12,8 +12,9 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: ${DB_UNAME}
-      POSTGRES_PASSWORD: ${DB_PWORD}
       POSTGRES_DB: ${DB_NAME}
+      # secrets
+      POSTGRES_PASSWORD: ${DB_PWORD}
 
   eventbus:
     image: ghcr.io/prismmarketlabs/eventbus:0.1.0

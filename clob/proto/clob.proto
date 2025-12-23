@@ -5,10 +5,10 @@ package clob;
 import "validate/validate.proto";
 
 service Clob {
-  rpc PlaceOrder (OrderRequestClob) returns (OrderResponse);
+  rpc PlaceOrder (OrderRequestClob) returns (StdResponse);
   rpc GetBook (BookRequest) returns (BookSnapshot);
   rpc StreamBook (BookRequest) returns (stream BookSnapshot);
-  rpc AddMarket (MarketIdRequest) returns (MarketIdResponse);
+  rpc AddMarket (MarketRequest) returns (StdResponse);
 }
 
 message OrderRequestClob {
@@ -27,14 +27,15 @@ message OrderRequestClob {
   int32 key_type = 12 [json_name = "keyType"];
 }
 
-message OrderResponse {
-  string status = 1;
-  string error = 2;
+message StdResponse {
+  string message = 1;
+  int32 errorCode = 2;
 }
 
 message BookRequest {
-  string market_id = 1;
-  uint32 depth = 2;
+  string market_id = 1 [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string net = 2       [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
+  uint32 depth = 3     [json_name = "depth",       (validate.rules).uint32 = {gt: 0, lt: 1000}];
 }
 
 message OrderDetail {
@@ -50,9 +51,7 @@ message BookSnapshot {
 }
 
 
-message MarketIdRequest {
-  string market_id = 1;
-}
-message MarketIdResponse {
-  string market_id = 1;
+message MarketRequest {
+  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string net = 2          [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
 }

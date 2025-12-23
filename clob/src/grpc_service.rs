@@ -3,7 +3,7 @@ use tonic::{Request, Response, Status};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio::sync::mpsc;
 use crate::orderbook::OrderBookService;
-use crate::orderbook::proto::{OrderRequestClob, OrderResponse, BookRequest, BookSnapshot, clob_server::{Clob, ClobServer}};
+use crate::orderbook::proto::{OrderRequestClob, StdResponse, BookRequest, BookSnapshot, clob_server::{Clob, ClobServer}};
 
 #[derive(Debug, Clone)]
 pub struct ClobService {
@@ -21,7 +21,7 @@ impl Clob for ClobService {
     async fn place_order(
         &self,
         request: Request<OrderRequestClob>,
-    ) -> Result<Response<OrderResponse>, Status> {
+    ) -> Result<Response<StdResponse>, Status> {
         let order = request.into_inner();
         
         let result = self.order_book_service.place_order(order).await;
@@ -29,9 +29,9 @@ impl Clob for ClobService {
             log::error!("Failed to place order: {}", e);
             return Err(Status::internal(e.to_string()));
         }
-        let response = OrderResponse {
-            status: "success".to_string(),
-            error: String::new(),
+        let response = StdResponse {
+            message: "success".to_string(),
+            error_code: 0,
         };
 
         Ok(Response::new(response))
@@ -44,11 +44,11 @@ impl Clob for ClobService {
 
         let inner = _request.into_inner();
 
-        let snapshot = self.order_book_service.get_book(&inner.market_id, inner.depth as usize).await;
+        let snapshot = self.order_book_service.get_book(&inner.market_id, &inner.net, inner.depth as usize).await;
         match snapshot {
             Ok(snapshot) => Ok(Response::new(snapshot)),
             Err(e) => {
-                log::error!("Failed to get book snapshot: {} {}", inner.market_id, e);
+                log::error!("Failed to get book snapshot: {}:{} {}", inner.net, inner.market_id, e);
                 Err(Status::internal(e.to_string()))
             }
         }
@@ -67,10 +67,10 @@ impl Clob for ClobService {
 
         tokio::spawn(async move {
             loop {
-                let snapshot = order_book_service.get_book(&inner.market_id, inner.depth as usize).await;
+                let snapshot = order_book_service.get_book(&inner.market_id, &inner.net, inner.depth as usize).await;
 
                 let result = snapshot.map_err(|e| {
-                     log::error!("Failed to get book snapshot: {} {}", inner.market_id, e);
+                     log::error!("Failed to get book snapshot: {}:{} {}", inner.net, inner.market_id, e);
                     Status::internal(e.to_string())
                 });
 
@@ -87,18 +87,24 @@ impl Clob for ClobService {
     
     async fn add_market(
         &self,
-        request: Request<crate::orderbook::proto::MarketIdRequest>,
-    ) -> Result<Response<crate::orderbook::proto::MarketIdResponse>, Status> {
-        // TODO - prevent duplicate market IDs
-        // TODO - validate market ID format
+        request: Request<crate::orderbook::proto::MarketRequest>,
+    ) -> Result<Response<crate::orderbook::proto::StdResponse>, Status> {
         
+        // Guards
         let inner = request.into_inner();
-        let market_id = inner.market_id;
-
-        self.order_book_service.add_market(market_id.clone()).await;
-
-        let response = crate::orderbook::proto::MarketIdResponse {
-            market_id,
+        
+        let result = self.order_book_service.add_market(inner.market_id.clone(), inner.net.clone()).await;
+        
+        match result {
+            Ok(success) if success => (),
+            _ => {
+                log::error!("Failed to add market");
+                return Err(Status::internal("Failed to add market. Does the market already exist?"));
+            }
+        }
+        let response = crate::orderbook::proto::StdResponse {
+            message: "success".to_string(),
+            error_code: 0,
         };
 
         Ok(Response::new(response))

@@ -12,8 +12,6 @@ import { proto } from '@hashgraph/proto'
 import { base64StringToSignatureMap } from '@hashgraph/hedera-wallet-connect'
 import { v7 as uuidv7 } from 'uuid'
 
-
-
 const Signer = ({ marketId }: { marketId: string }) => {
   const { signerZero, networkSelected, spenderAllowanceUsd, setSpenderAllowanceUsd, book, dAppConnector, userAccountInfo } = useAppContext()
   const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>({...defaultPredictionIntentRequest(), marketId: marketId})

@@ -24,27 +24,39 @@ impl OrderBookService {
         }
     }
 
-    pub async fn add_market(&self, market_id: String/*, nats_service: &nats::NatsService */) {
-        // prevent overwriting existing market!
-        if self.order_books.read().await.contains_key(&market_id) {
+    pub async fn add_market(&self, market_id: String, net: String) -> Result<bool, Box<dyn std::error::Error>> {
+        // No guards for performance - assume validated upstream
+
+        // prevent overwriting existing market
+        let poly_id = net.clone() + ":" + &market_id;   // <hederaNet>:<UUID>
+        if self.order_books.read().await.contains_key(&poly_id) {
             log::error!("Attempt to create a market ({}) which already exists in OrderBookService", market_id);
-            return;
+            return Ok(false);
         }
 
         let mut order_books = self.order_books.write().await;
-        order_books.insert(market_id.clone(), Arc::new(RwLock::new(OrderBook::new(&self.nats_service))));
+        order_books.insert(poly_id, Arc::new(RwLock::new(OrderBook::new(&self.nats_service))));
 
-        log::info!("New market {} added to OrderBookService", market_id);
+        log::info!("New market \"{}:{}\" added to OrderBookService", net, market_id);
+        return Ok(true);
     }
 
     // pub async fn remove_market(&self, market_id: &str) {
+    // // Guards
+    // if !is_valid_market_id(market_id.clone()) {
+    //     log::error!("Invalid market_id format: {}", market_id);
+    //     return;
+    // }
     //     let mut order_books = self.order_books.write().await;
     //     order_books.remove(market_id);
     // }
 
     pub async fn place_order(&self, order: OrderRequestClob) -> Result<(), Box<dyn std::error::Error>> {
+        // No guards for performance - assume validated upstream
+
         let order_books = self.order_books.read().await;
-        if let Some(order_book) = order_books.get(order.market_id.as_str()) {
+        let poly_id = order.net.clone() + ":" + &order.market_id;   // <hederaNet>:<UUID>
+        if let Some(order_book) = order_books.get(&poly_id) {
             let mut book = order_book.write().await;
             book.add_order(order).await;
             Ok(())
@@ -53,9 +65,12 @@ impl OrderBookService {
         }
     }
 
-    pub async fn get_book(&self, market_id: &str, depth: usize) -> Result<BookSnapshot, Box<dyn std::error::Error>> {
+    pub async fn get_book(&self, market_id: &str, net: &str, depth: usize) -> Result<BookSnapshot, Box<dyn std::error::Error>> {
+        // No guards for performance - assume validated upstream
+
         let order_books = self.order_books.read().await;
-        if let Some(order_book) = order_books.get(market_id) {
+        let poly_id = net.to_string() + ":" + market_id;   // <hederaNet>:<UUID>
+        if let Some(order_book) = order_books.get(&poly_id) {
             let book = order_book.read().await;
             Ok(book.snapshot(depth))
         } else {
@@ -100,6 +115,8 @@ impl OrderBook {
     }
 
     pub async fn add_order(&mut self, order: OrderRequestClob) {
+        // No guards for performance - assume validated upstream
+
         log::info!("CREATE \t OrderRequestClob: {:?}", order); // Log the incoming order
 
         if order.price_usd < 0.0 {
@@ -110,6 +127,8 @@ impl OrderBook {
     }
 
     async fn match_order(nats_service: &nats::NatsService, mut incoming_order: OrderRequestClob, opposite_orders: &mut Vec<OrderRequestClob>, same_side_orders: &mut Vec<OrderRequestClob>) {
+        // No guards for performance - assume validated upstream
+
         opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());
 
         let i = 0;
@@ -166,6 +185,8 @@ impl OrderBook {
     }
 
     pub fn snapshot(&self, depth: usize) -> BookSnapshot {
+        // No guards for performance - assume validated upstream
+
         let effective_depth = if depth == 0 { usize::MAX } else { depth }; // depth = 0 -> return everything
 
         BookSnapshot {

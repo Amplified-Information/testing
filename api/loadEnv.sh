@@ -12,7 +12,7 @@ fi
 ENV=$1
 
 # Validate environment argument
-if [[ ! " ${VALID_ENVS[@]} " =~ " ${ENV} " ]]; then
+if [[ ! " ${VALID_ENVS[*]} " =~ " ${ENV} " ]]; then
   echo "Error: Invalid environment. Must be one of: ${VALID_ENVS[*]}"
   exit 1
 fi
@@ -32,8 +32,8 @@ echo ""
 echo "*** Loading secrets from .secrets file..."
 sed -i -e '$a\' "$SCRIPT_DIR/.secrets" # .secrets must end with a newline to ensure the last line is processed
 while IFS= read -r key; do # loop through each key in .secrets
-  # Ignore lines that start with '#' (a comment)
-  [[ "$key" =~ ^#.*$ ]] && continue
+  # Ignore lines that start with '#', ';', whitespace, or are empty
+  [[ "$key" =~ ^[[:space:]]*([#;]|$) ]] && continue
 
   key="${key%%=*}" # extract the part before "="
   # get the value from AWS SSM

@@ -2,6 +2,7 @@ mod grpc_service;
 mod nats;
 mod orderbook;
 mod constants;
+pub mod utils;
 
 use orderbook::OrderBookService;
 use simple_logger::SimpleLogger;
@@ -52,13 +53,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             log::error!("gRPC server failed: {}", e);
         }
     });
-
-    /*
-    0189c0a8-7e80-7e80-8000-000000000001
-    0189c0a8-7e80-7e80-8000-000000000002
-    0189c0a8-7e80-7e80-8000-000000000003
-    0189c0a8-7e80-7e80-8000-000000000004
-    */
 
     // Run all tasks concurrently
     let _ = tokio::try_join!(/*orderbook_scan_task,*/ grpc_server_task, nats_task);

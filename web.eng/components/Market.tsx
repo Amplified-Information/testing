@@ -9,7 +9,7 @@ import { apiClient } from '../grpcClient'
 const Market = () => {
   const navigate = useNavigate()
   const { marketId } = useParams()
-  const { market, setMarket } = useAppContext()
+  const { market, setMarket, networkSelected } = useAppContext()
 
   useEffect(() => {
     if (!isValidUUIDv7(marketId!)) {
@@ -18,11 +18,11 @@ const Market = () => {
       return
     }
     (async () => {
-      const result = await apiClient.getMarketById({ marketId: marketId! })
+      const result = await apiClient.getMarketById({ marketId: marketId!, net: networkSelected .toString().toLowerCase()})
       const market = result.response
       setMarket(market)
     })()
-  }, [marketId])
+  }, [marketId, networkSelected])
   
   return (
     <div>

@@ -1,23 +1,3 @@
-// export type PolymarketAmountPickerProps = {
-//   /** value in dollars (number) */
-//   value?: number
-//   onChange?: (value: number) => void
-//   /** quick add buttons in dollars */
-//   quickButtons?: number[]
-//   min?: number
-//   max?: number
-//   /** placeholder text for the input */
-//   placeholder?: string
-//   disabled?: boolean
-//   /** HTML name attribute for the input */
-//   name?: string
-//   /** show a confirm / set button (optional) */
-//   showConfirm?: boolean
-//   /** callback when confirm pressed (if showConfirm) */
-//   onConfirm?: (value: number) => void
-// }
-
-
 const ButtonAmount = ({ value = 0, max=0, onChange }: {value: number, max: number, onChange: (value: number) => void }) => {
   return (
     <>

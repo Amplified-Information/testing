@@ -49,6 +49,33 @@ Develop the application locally:
 - `web`: see [web/README.md](web/README.md)
 - `proxy`
 
+## Sync
+
+Note on syncing:
+
+The following files and documentation notes MUST be kept in syn:
+
+`docker-compose-data.yml`
+ - db/Dockerfile
+ - db/.config*
+ - db/.secrets
+ - eventbus/Dockerfile
+ - eventbus/.config*
+ - eventbus/.secrets
+
+`docker-compose-monolith.yml`
+ - api/Dockerfile
+ - api/.config*
+ - api/.secrets
+ - clob/Dockerfile
+ - clob/.config*
+ - clob/.secrets
+
+`docker-compose-proxy.yml`
+ - proxy/Dockerfile
+ - proxy/.config*
+ - proxy/.secrets (if applicable)
+
 ## Infra components
 
 Infra design:

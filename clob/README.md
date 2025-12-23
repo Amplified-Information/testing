@@ -50,11 +50,11 @@ And create some markets (with known market_ids):
 
 ```bash
 cd clob
-grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001"}' localhost:50051 clob.Clob/AddMarket
-grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000002"}' localhost:50051 clob.Clob/AddMarket
-grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003"}' localhost:50051 clob.Clob/AddMarket
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001","net":"testnet"}' localhost:50051 clob.Clob/AddMarket
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000002","net":"testnet"}' localhost:50051 clob.Clob/AddMarket
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003","net":"testnet"}' localhost:50051 clob.Clob/AddMarket
 # this should error (duplicate market_id):
-grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001"}' localhost:50051 clob.Clob/AddMarket
+grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001","net":"testnet"}' localhost:50051 clob.Clob/AddMarket
 ```
 
 ### commands

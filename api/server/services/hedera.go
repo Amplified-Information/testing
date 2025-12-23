@@ -21,37 +21,60 @@ import (
 )
 
 type HederaService struct {
-	hedera_client *hiero.Client
-	dbRepository  *repositories.DbRepository
+	hedera_clients map[string]*hiero.Client // look up based on 'previewnet', 'testnet', 'mainnet'
+	dbRepository   *repositories.DbRepository
 }
 
-func (h *HederaService) InitHedera(dbRepository *repositories.DbRepository) (*hiero.Client, error) {
+func (h *HederaService) InitHedera(dbRepository *repositories.DbRepository) error {
 	h.dbRepository = dbRepository
 
-	networkSelected := os.Getenv("HEDERA_NETWORK_SELECTED")
-	operatorIdStr := os.Getenv("HEDERA_OPERATOR_ID")
-	operatorKeyType := os.Getenv("HEDERA_OPERATOR_KEY_TYPE")
-	operatorKeyStr := os.Getenv("HEDERA_OPERATOR_KEY")
+	// First initialize the map to avoid nil map assignment
+	h.hedera_clients = make(map[string]*hiero.Client)
 
+	var err error
+
+	h.hedera_clients["previewnet"], err = h.initHederaNet("previewnet")
+	if err != nil {
+		return err
+	}
+
+	h.hedera_clients["mainnet"], err = h.initHederaNet("mainnet")
+	if err != nil {
+		return err
+	}
+
+	h.hedera_clients["testnet"], err = h.initHederaNet("testnet")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *HederaService) initHederaNet(networkSelected string) (*hiero.Client, error) {
+	operatorIdStr := os.Getenv(fmt.Sprintf("%s_HEDERA_OPERATOR_ID", strings.ToUpper(networkSelected)))
+	operatorKeyType := strings.ToUpper(os.Getenv(fmt.Sprintf("%s_HEDERA_OPERATOR_KEY_TYPE", strings.ToUpper(networkSelected))))
+
+	// validate the accountId
 	operatorId, err := hiero.AccountIDFromString(operatorIdStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid HEDERA_OPERATOR_ID: %v", err)
+		return nil, fmt.Errorf("invalid %s_HEDERA_OPERATOR_ID: %v", strings.ToUpper(networkSelected), err)
 	}
 
 	operatorKey := hiero.PrivateKey{}
 	switch operatorKeyType {
 	case "ECDSA":
-		operatorKey, err = hiero.PrivateKeyFromStringECDSA(operatorKeyStr)
+		operatorKey, err = hiero.PrivateKeyFromStringECDSA(os.Getenv(fmt.Sprintf("%s_HEDERA_OPERATOR_KEY", strings.ToUpper(networkSelected))))
 		if err != nil {
-			return nil, fmt.Errorf("invalid HEDERA_OPERATOR_KEY: %v", err)
+			return nil, fmt.Errorf("invalid %s_HEDERA_OPERATOR_KEY: %v", strings.ToUpper(networkSelected), err)
 		}
 	case "ED25519":
-		operatorKey, err = hiero.PrivateKeyFromStringEd25519(operatorKeyStr)
+		operatorKey, err = hiero.PrivateKeyFromStringEd25519(os.Getenv(fmt.Sprintf("%s_HEDERA_OPERATOR_KEY", strings.ToUpper(networkSelected))))
 		if err != nil {
-			return nil, fmt.Errorf("invalid HEDERA_OPERATOR_KEY: %v", err)
+			return nil, fmt.Errorf("invalid %s_HEDERA_OPERATOR_KEY: %v", strings.ToUpper(networkSelected), err)
 		}
 	default:
-		return nil, fmt.Errorf("unsupported HEDERA_OPERATOR_KEY_TYPE: %s", operatorKeyType)
+		return nil, fmt.Errorf("unsupported %s_HEDERA_OPERATOR_KEY_TYPE: %s", strings.ToUpper(networkSelected), operatorKeyType)
 	}
 
 	client, err := hiero.ClientForName(networkSelected)
@@ -61,8 +84,7 @@ func (h *HederaService) InitHedera(dbRepository *repositories.DbRepository) (*hi
 
 	client.SetOperator(operatorId, operatorKey)
 
-	h.hedera_client = client
-	log.Println("Hedera service initialized successfully")
+	log.Printf("Hedera service (%s) initialized successfully", strings.ToUpper(networkSelected))
 	return client, nil
 }
 
@@ -226,6 +248,11 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 		return false, fmt.Errorf("both prices have the same sign: %f vs %f", sideYes.PriceUsd, sideNo.PriceUsd)
 	}
 
+	// validate that both orders are on the same network
+	if (sideYes.Net != sideNo.Net) || (sideYes.Net == "") {
+		return false, fmt.Errorf("networks do not match or are invalid: %s vs %s", sideYes.Net, sideNo.Net)
+	}
+
 	// OK - proceed
 
 	// sideYes should have the positive priceUsd, sideNo should have the negative priceUsd
@@ -368,12 +395,12 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 		SetContractID(contractID).
 		SetGas(5_000_000). // TODO - can this be lowered? 2M in 4_buy.ts
 		SetFunction("buyPositionTokensOnBehalfAtomic", params).
-		Execute(h.hedera_client)
+		Execute(h.hedera_clients[sideYes.Net]) // both sides are guaranteed to be on the same network
 	if err != nil {
 		return false, fmt.Errorf("failed to execute contract: %v", err)
 	}
 
-	receipt, err := tx.GetReceipt(h.hedera_client)
+	receipt, err := tx.GetReceipt(h.hedera_clients[sideYes.Net]) // both sides are guaranteed to be on the same network
 	if err != nil {
 		return false, fmt.Errorf("failed to get transaction receipt: %v", err)
 	}

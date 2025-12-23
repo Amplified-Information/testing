@@ -3,8 +3,10 @@ import { apiClient } from '../grpcClient'
 import { v7 as uuidv7 } from 'uuid'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router'
+import { useAppContext } from '../AppProvider'
 
 const Admin = () => {
+  const { networkSelected } = useAppContext()
   const [statement, setStatement] = useState<string>('')
   const [ marketId ] = useState<string>(uuidv7())
   const navigate = useNavigate()
@@ -22,6 +24,7 @@ const Admin = () => {
         try {
           const result = await apiClient.createMarket({
             marketId,
+            net: networkSelected.toString().toLowerCase(),
             statement
           })
           console.log(result.response)

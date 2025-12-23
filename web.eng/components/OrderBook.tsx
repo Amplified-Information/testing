@@ -11,7 +11,7 @@ import { BookSnapshot } from '../gen/clob'
 const DEPTH = 0 // TODO
 
 const OrderBook = ({ marketId }: { marketId: string }) => {
-  const { book, setBook, signerZero } = useAppContext()
+  const { book, setBook, signerZero, networkSelected } = useAppContext()
  
   /**
    * Effect to start streaming the order book data for the given marketId.
@@ -24,7 +24,11 @@ const OrderBook = ({ marketId }: { marketId: string }) => {
       let call: ServerStreamingCall | undefined
       try {
         call = clobClient.streamBook(
-          { marketId, depth: DEPTH },
+          { 
+            marketId, 
+            net: networkSelected.toString().toLowerCase(),
+            depth: DEPTH
+         },
           { signal: ac.signal, abort: ac.signal }  // RpcOptions
         )
 
@@ -53,7 +57,7 @@ const OrderBook = ({ marketId }: { marketId: string }) => {
       console.log('Aborting order book stream for marketId:', marketId)
       ac.abort() // cancels the stream on unmount
     }
-  }, [marketId])
+  }, [marketId, networkSelected])
 
   return (
     <div>
