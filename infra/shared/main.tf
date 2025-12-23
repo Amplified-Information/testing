@@ -39,6 +39,12 @@ variable "aws_region" {
 }
 output "aws_region" { value = var.aws_region }
 
+variable "ssl_cert_arn" {
+  description = "The SSL certificate ARN for the environment"
+  type        = string
+}
+output "ssl_cert_arn" { value = var.ssl_cert_arn }
+
 variable "ebs_volume_id" {
   description = "The EBS volume ID to attach to the data instance"
   type        = string

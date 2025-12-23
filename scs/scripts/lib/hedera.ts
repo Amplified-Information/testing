@@ -13,16 +13,18 @@ const initHederaClient = (
   operatorAccountId: string | AccountId,
   operatorKeyType: HederaKeyType
 ): [ Client, PrivateKey ] => {
-  const rawKey = process.env.HEDERA_OPERATOR_KEY
+  const rawKey = process.env[`${network.toUpperCase()}_HEDERA_OPERATOR_KEY`]
   if (!rawKey) {
-    throw new Error('HEDERA_OPERATOR_KEY not set')
+    throw new Error(`${network.toUpperCase()}_HEDERA_OPERATOR_KEY not set in environment variables`)
   }
 
   // Load operator key safely
   let operatorKey: PrivateKey
   if (operatorKeyType === 'ecdsa') {
+    console.log(`Using "ecdsa" key type for operator on network "${network}"`)
     operatorKey = PrivateKey.fromStringECDSA(rawKey)
   } else if (operatorKeyType === 'ed25519') {
+    console.log(`Using "ed25519" key type for operator on network "${network}"`)
     operatorKey = PrivateKey.fromStringED25519(rawKey)
   } else {
     throw new Error(`Unknown key type: ${operatorKeyType}`)

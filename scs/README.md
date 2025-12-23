@@ -50,7 +50,7 @@ To compile the test contract (Test.sol), run:
 
 **Deploy contract:**
 
-Be sure to set the HEDERA_OPERATOR_KEY in `../shared/.secrets`
+Be sure to set the PREVIEWNET_HEDERA_OPERATOR_KEY, TESTNET_HEDERA_OPERATOR_KEY and MAINNET_HEDERA_OPERATOR_KEY in `../shared/.secrets`
 
 ```bash
 source ./loadEnv.sh local

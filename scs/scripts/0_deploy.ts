@@ -1,4 +1,13 @@
 /**
+# To configure the correct Hedera network, edit:
+.config
+.secrets
+
+# Now do:
+source loadEnv.sh local
+
+# Deploy with:
+cd scripts
 ts-node 0_deploy.ts Prism
 */
 import { Client, ContractCreateFlow, ContractId } from '@hashgraph/sdk'
@@ -56,7 +65,7 @@ async function deployContract(client: Client) {
     /////
     // Step 1: Deploy the smart contract
     /////
-    console.log(`Deploying smart contract ${smartContractBinaryFn.split('/').pop()}...`)
+    console.log(`Deploying smart contract ${smartContractBinaryFn.split('/').pop()} on "${networkSelected}"...`)
     // Encode the constructor parameters
     const constructorParams = getConstructorParams()
 

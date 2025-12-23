@@ -30,7 +30,7 @@ const main = async () => {
 
   console.log(`Calling getUserTokens(${marketId_uuid7}/${marketIdBigInt.toString()}) on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
   // console.log(uuid7_to_uint128('019a7e77-39e2-72a3-9bea-a63bdfa79d21').toString())
-  const accountIdEvm = await getEvmAddress(client, accountId)
+  const accountIdEvm = await getEvmAddress(networkSelected, accountId)
   console.log(`evm address for ${accountId}: ${accountIdEvm}`)
 
   try {

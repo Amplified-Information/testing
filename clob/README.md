@@ -57,6 +57,18 @@ grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_i
 grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001","net":"testnet"}' localhost:50051 clob.Clob/AddMarket
 ```
 
+grpc call to remote `dev` environment (needs auth):
+
+```bash
+# GetBook
+grpcurl -H "authorization: Basic $(echo -n 'admin:********' | base64)" -plaintext -import-path ./proto  -proto ./proto/clob.proto -d '{"marketId":"0189c0a8-7e80-7e80-8000-000000000001","depth":10,"net":"testnet"}' 54.210.115.180:8090 clob.Clob/GetBook
+
+# AddMarket
+grpcurl -H "authorization: Basic $(echo -n 'admin:********' | base64)" -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001","net":"testnet"}' 54.210.115.180:8090 clob.Clob/AddMarket
+
+# etc.
+```
+
 ### commands
 
 **check gRPC server is listening**

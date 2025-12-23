@@ -1,7 +1,6 @@
 import { AccountId, AccountInfoQuery, Client, EvmAddress } from '@hashgraph/sdk'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { networkSelected } from '../constants.ts'
 import { proto } from '@hashgraph/proto'
 import { PublicKey } from '@hashgraph/sdk'
 
@@ -85,8 +84,8 @@ const getPubKey = async (client: Client, accountId: string | AccountId, withPrea
   }
 }
 
-const getEvmAddress = async (client: Client, accountId: string | AccountId) => {
-  const result = await fetch(`https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}`)
+const getEvmAddress = async (hederaNetwork: string, accountId: string | AccountId) => {
+  const result = await fetch(`https://${hederaNetwork}.mirrornode.hedera.com/api/v1/accounts/${accountId}`)
   const data = await result.json()
   return data.evm_address
 }
