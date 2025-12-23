@@ -5,7 +5,7 @@ import assert from 'assert'
 import { buildSignatureMap } from '../lib/utils.ts'
 // import { proto } from '@hashgraph/proto'
 
-const contractId = '0.0.7388471'
+const contractId = '0.0.7510184' // Test.sol
 const operatorId = AccountId.fromString('0.0.7090546')
 const evmAddress = '440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6'
 const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'

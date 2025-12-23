@@ -14,8 +14,9 @@ import { buildSignatureMap } from '../lib/utils.ts'
 // --------------------------------------------------------------------------
 // CONFIG
 // --------------------------------------------------------------------------
+const contractId = '0.0.7510184' // Test.sol
 
-const operatorId = AccountId.fromString('0.0.7090546') // Test.sol
+const operatorId = AccountId.fromString('0.0.7090546')
 const evmAddress = '440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6'
 const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'
 const privateKey = PrivateKey.fromStringECDSA(privateKeyHex)
@@ -37,7 +38,7 @@ const client = Client.forTestnet().setOperator(operatorId, privateKey)
 // process.exit(0)
 
 
-const contractId = '0.0.7378063' // '0.0.7371263'
+
 // const payloadUtf8 = 'Hello Future'
 const payloadHex = '000000000000000000000000000000000000000000000000000000000001ffb80189c0a87e807e808000000000000002019aef10408b70578850c8975f012489'
 // N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
@@ -155,8 +156,7 @@ const params = new ContractFunctionParameters()
 const tx = await new ContractExecuteTransaction()
   .setContractId(ContractId.fromString(contractId))
   .setGas(100_000)
-  .setFunction('isAuthorized', params)
-  // .setFunction('isAuthorizedPublic', params)
+  .setFunction('isAuthorizedPublic', params)
   // .setFunction('isAuthorizedRawPublic', params)
   .execute(client)
 
@@ -168,7 +168,7 @@ if (result) {
   const isAuthorized = result.getBool(1)
 
   console.log(`contractId: ${contractId}, accountId: ${operatorId.toString()}`)
-  console.log(`responseCode=${responseCode}, isAuthorized=${isAuthorized}`)
+  console.log(`responseCode=${responseCode}, isAuthorized=`, isAuthorized)
 } else {
   console.error('No contract function result found.')
 }

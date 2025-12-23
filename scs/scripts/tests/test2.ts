@@ -14,18 +14,18 @@ const publicKey = privateKey.publicKey
 // const publicKeyHex = publicKey.toStringRaw()
 const client = Client.forTestnet().setOperator(operatorId, privateKey)
 
-/*
-00000000000000000000000000000000000000000000000000000000000f42400189c0a87e807e808000000000000003019af83a8a7974ecaea255682ea385ba
-Signer.tsx:225 packedKeccakHex: cb09968b7bbfdf738d9eb128ab7cf9aac3cc855287c4578410bbaaf373fb41cc
-Signer.tsx:235 msgToSign (base64) (len=44): ywmWi3u/33ONnrEoq3z5qsPMhVKHxFeEELuq83P7Qcw=
-Signer.tsx:236 packedKeccakHex (len=32): cb09968b7bbfdf738d9eb128ab7cf9aac3cc855287c4578410bbaaf373fb41cc
-Signer.tsx:238 sigHex (len=64): 3e57400eac06b5de22413b5720f014e26b6392f1d0c286a4868086b8629241e42322ad35206229f8032344cf3987c619dd0cd5abd975ee002b1515f098907753
-Signer.tsx:36 {"txId":"019af83a-8a79-74ec-aea2-55682ea385ba","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-07T09:52:57.465Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.012,"qty":83.33333333333333,"sig":"PldADqwGtd4iQTtXIPAU4mtjkvHQwoakhoCGuGKSQeQjIq01IGIp+AMjRM85h8YZ3QzVq9l17gArFRXwmJB3Uw=="}
-*/
+// Signing OrderIntent...
+// Signer.tsx:229 packedHex: f0000000000000000000000000000000000000000000000000000000000007a120440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4b015932719d967783057decdc30
+// Signer.tsx:231 packedKeccakHex (len=32): 46b154bad060a79a5d7df1e25aeb9d6804f390301c60f4dd2b33e7f822bc92cc
+// Signer.tsx:232 verify at: https://emn178.github.io/online-tools/keccak_256.html
+// Signer.tsx:251 msgToSign (base64) (len=44): RrFUutBgp5pdffHiWuudaATzkDAcYPTdKzPn+CK8ksw=
+// Signer.tsx:254 sig (hex) (len=64): 0321dba4e2f5fd9b4338a0ca8eb07a0ac210e22beb476a8d1a2f7a08b036464000a31311dfb25d81168d6a8cce501074e692224c8a4c1342ddbc473f6d8b5c84
+// Signer.tsx:255 sig (base64): AyHbpOL1/ZtDOKDKjrB6CsIQ4ivrR2qNGi96CLA2RkAAoxMR37JdgRaNaozOUBB05pIiTIpME0LdvEc/bYtchA==
+// Signer.tsx:32 {"txId":"019b4b01-5932-719d-9677-83057decdc30","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-23T11:38:58.226Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.5,"qty":1,"sig":"AyHbpOL1/ZtDOKDKjrB6CsIQ4ivrR2qNGi96CLA2RkAAoxMR37JdgRaNaozOUBB05pIiTIpME0LdvEc/bYtchA==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
 const verify_rawSig_hashpack_base64 = () => {
   console.log('--- verify_rawSig_hashpack_base64 ---')
-  const payloadHex = '00000000000000000000000000000000000000000000000000000000000f42400189c0a87e807e808000000000000003019af83a8a7974ecaea255682ea385ba'
-  const sigHex = '3e57400eac06b5de22413b5720f014e26b6392f1d0c286a4868086b8629241e42322ad35206229f8032344cf3987c619dd0cd5abd975ee002b1515f098907753'
+  const payloadHex = 'f0000000000000000000000000000000000000000000000000000000000007a120440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4b015932719d967783057decdc30'
+  const sigHex = '0321dba4e2f5fd9b4338a0ca8eb07a0ac210e22beb476a8d1a2f7a08b036464000a31311dfb25d81168d6a8cce501074e692224c8a4c1342ddbc473f6d8b5c84'
 
   const keccakHex = keccak256(Buffer.from(payloadHex, 'hex')).slice(2)
   const keccak = Buffer.from(keccakHex, 'hex')
@@ -191,72 +191,69 @@ interface Val {
 }
 const testVals: Val[] = []
 
-/////
-// TODO - update all these tests...
-/////
 // Signing OrderIntent...
-// Signer.tsx:229 packedHex: 0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746
-// Signer.tsx:231 packedKeccakHex (len=32): 4e565e3f7c1da8c0d139e196c36dff70db9548d559ab1db349616dc8c91ea3d5
+// Signer.tsx:229 packedHex: f1000000000000000000000000000000000000000000000000000000000007a120440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4b015932719d967783057decdc30
+// Signer.tsx:231 packedKeccakHex (len=32): 198189ad9f3904769723e94297cd6bd07c1d95ec1f7a74f267dccac76101c3c3
 // Signer.tsx:232 verify at: https://emn178.github.io/online-tools/keccak_256.html
-// Signer.tsx:251 msgToSign (base64) (len=44): TlZeP3wdqMDROeGWw23/cNuVSNVZqx2zSWFtyMkeo9U=
-// Signer.tsx:254 sig (hex) (len=64): 93ff91d8c5dcd9599fe114c53c0bf9507aae9b8e51b405c504b43b091d4b367c7cfaec86d4d45a19bd0a421a88bc46b7f8d95da65797444edfb276d13ad43166
-// Signer.tsx:255 sig (base64): k/+R2MXc2Vmf4RTFPAv5UHqum45RtAXFBLQ7CR1LNnx8+uyG1NRaGb0KQhqIvEa3+NldpleXRE7fsnbROtQxZg==
-// Signer.tsx:32 {"txId":"019b47ae-68cd-7586-abcd-2a72aa54e746","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-22T20:09:31.085Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.5,"qty":2,"sig":"k/+R2MXc2Vmf4RTFPAv5UHqum45RtAXFBLQ7CR1LNnx8+uyG1NRaGb0KQhqIvEa3+NldpleXRE7fsnbROtQxZg==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
+// Signer.tsx:251 msgToSign (base64) (len=44): GYGJrZ85BHaXI+lCl81r0HwdlewfenTyZ9zKx2EBw8M=
+// Signer.tsx:254 sig (hex) (len=64): 1cc64b889b33d457b9cc7a57c2048edd576ada72beb625ed2916f97d63961bd53d7789cbbf03d3e73c2e0a5e699afc706d7978942176c56994fc6e77e91a50e4
+// Signer.tsx:255 sig (base64): HMZLiJsz1Fe5zHpXwgSO3Vdq2nK+tiXtKRb5fWOWG9U9d4nLvwPT5zwuCl5pmvxwbXl4lCF2xWmU/G536RpQ5A==
+// Signer.tsx:32 {"txId":"019b4b01-5932-719d-9677-83057decdc30","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-23T11:38:58.226Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":-0.3,"qty":1.6666666666666667,"sig":"HMZLiJsz1Fe5zHpXwgSO3Vdq2nK+tiXtKRb5fWOWG9U9d4nLvwPT5zwuCl5pmvxwbXl4lCF2xWmU/G536RpQ5A==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
 testVals.push({
-  payloadHex: '0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746',
-  sigHex:     '93ff91d8c5dcd9599fe114c53c0bf9507aae9b8e51b405c504b43b091d4b367c7cfaec86d4d45a19bd0a421a88bc46b7f8d95da65797444edfb276d13ad43166'
+  payloadHex: 'f1000000000000000000000000000000000000000000000000000000000007a120440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4b015932719d967783057decdc30',
+  sigHex:     '1cc64b889b33d457b9cc7a57c2048edd576ada72beb625ed2916f97d63961bd53d7789cbbf03d3e73c2e0a5e699afc706d7978942176c56994fc6e77e91a50e4'
 })
 
 // Signing OrderIntent...
-// Signer.tsx:229 packedHex: 0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46a783ee743fb7e570810b5a5915
-// Signer.tsx:231 packedKeccakHex (len=32): 7c0f6d72d9a4b543da63fc6b2c6703a955e166e7c93862c41a763a50abb736a8
+// Signer.tsx:229 packedHex: f10000000000000000000000000000000000000000000000000000000000002ee0440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4af02203750dbf1279b23f557a46
+// Signer.tsx:231 packedKeccakHex (len=32): 98c1b8486040888e44c599e403bc90a4ac6d0d064e23f932cc1692c2894b7d26
 // Signer.tsx:232 verify at: https://emn178.github.io/online-tools/keccak_256.html
-// Signer.tsx:251 msgToSign (base64) (len=44): fA9tctmktUPaY/xrLGcDqVXhZufJOGLEGnY6UKu3Nqg=
-// Signer.tsx:254 sig (hex) (len=64): 5316a0d86b39fc7f1021c2bf0721b9d0d4158eea7c783d44455f03cdc6851f51648f41ed615894587607649a236d1cde7dd14cad230b8a5e0e7bf37930b0ff2a
-// Signer.tsx:255 sig (base64): Uxag2Gs5/H8QIcK/ByG50NQVjup8eD1ERV8DzcaFH1Fkj0HtYViUWHYHZJojbRzefdFMrSMLil4Oe/N5MLD/Kg==
-// Signer.tsx:32 {"txId":"019b46a7-83ee-743f-b7e5-70810b5a5915","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-22T15:22:22.062Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.5,"qty":2,"sig":"Uxag2Gs5/H8QIcK/ByG50NQVjup8eD1ERV8DzcaFH1Fkj0HtYViUWHYHZJojbRzefdFMrSMLil4Oe/N5MLD/Kg==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
+// Signer.tsx:251 msgToSign (base64) (len=44): mMG4SGBAiI5ExZnkA7yQpKxtDQZOI/kyzBaSwolLfSY=
+// Signer.tsx:254 sig (hex) (len=64): 157c3034e269d6ee17778e693cf55296298b56612540dee3e36ebd256e0cd1e71be37e8d4ee64133984fcfd399177168eea21a470b4acc08f31edcbd4d473e14
+// Signer.tsx:255 sig (base64): FXwwNOJp1u4Xd45pPPVSlimLVmElQN7j4269JW4M0ecb436NTuZBM5hPz9OZF3Fo7qIaRwtKzAjzHty9TUc+FA==
+// Signer.tsx:32 {"txId":"019b4af0-2203-750d-bf12-79b23f557a46","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-23T11:20:09.987Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":-0.5,"qty":0.024,"sig":"FXwwNOJp1u4Xd45pPPVSlimLVmElQN7j4269JW4M0ecb436NTuZBM5hPz9OZF3Fo7qIaRwtKzAjzHty9TUc+FA==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
 testVals.push({
-    payloadHex: '0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46a783ee743fb7e570810b5a5915',
-    sigHex:     '5316a0d86b39fc7f1021c2bf0721b9d0d4158eea7c783d44455f03cdc6851f51648f41ed615894587607649a236d1cde7dd14cad230b8a5e0e7bf37930b0ff2a'
+    payloadHex: 'f10000000000000000000000000000000000000000000000000000000000002ee0440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4af02203750dbf1279b23f557a46',
+    sigHex:     '157c3034e269d6ee17778e693cf55296298b56612540dee3e36ebd256e0cd1e71be37e8d4ee64133984fcfd399177168eea21a470b4acc08f31edcbd4d473e14'
 })
 
 // Signing OrderIntent...
-// Signer.tsx:229 packedHex: 010000000000000000000000000000000000000000000000000000000000029810440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46ac7df373bd892e099e671df507
-// Signer.tsx:231 packedKeccakHex (len=32): b2fad4b83a99d0081682e6735f7b0285c69afb3017c25b54b5f261042e234a8d
+// Signer.tsx:229 packedHex: f10000000000000000000000000000000000000000000000000000000000003a98440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4aef8191775c9e7c4d055a2365a4
+// Signer.tsx:231 packedKeccakHex (len=32): 8d7e6e40167fc5fa94bf1020e491ccec11f0036f4026e6ff76a012b1c78c8e21
 // Signer.tsx:232 verify at: https://emn178.github.io/online-tools/keccak_256.html
-// Signer.tsx:251 msgToSign (base64) (len=44): svrUuDqZ0AgWguZzX3sChcaa+zAXwltUtfJhBC4jSo0=
-// Signer.tsx:254 sig (hex) (len=64): 3336e69cd00631f42a31d8fe27b164bd2ef45057a31f57b6930da352b299a5c329c36e8d93a6c624207ba275dda4204e2e8f0aea127c9f7afbefcd86291bf05b
-// Signer.tsx:255 sig (base64): MzbmnNAGMfQqMdj+J7FkvS70UFejH1e2kw2jUrKZpcMpw26Nk6bGJCB7onXdpCBOLo8K6hJ8n3r7782GKRvwWw==
-// Signer.tsx:32 {"txId":"019b46ac-7df3-73bd-892e-099e671df507","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-22T15:27:48.211Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":-0.5,"qty":0.34,"sig":"MzbmnNAGMfQqMdj+J7FkvS70UFejH1e2kw2jUrKZpcMpw26Nk6bGJCB7onXdpCBOLo8K6hJ8n3r7782GKRvwWw==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
+// Signer.tsx:251 msgToSign (base64) (len=44): jX5uQBZ/xfqUvxAg5JHM7BHwA29AJub/dqASsceMjiE=
+// Signer.tsx:254 sig (hex) (len=64): 120b0645ab8c6b6e7b3df4ef742bfa7c21f7fc6db884e67cb6d62ae1e981a5fd5617671ca2fac57be531d32097ec082e5523c6bd775e019ed825073bddcea1b3
+// Signer.tsx:255 sig (base64): EgsGRauMa257PfTvdCv6fCH3/G24hOZ8ttYq4emBpf1WF2ccovrFe+Ux0yCX7AguVSPGvXdeAZ7YJQc73c6hsw==
+// Signer.tsx:32 {"txId":"019b4aef-8191-775c-9e7c-4d055a2365a4","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-23T11:19:28.913Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":-0.5,"qty":0.03,"sig":"EgsGRauMa257PfTvdCv6fCH3/G24hOZ8ttYq4emBpf1WF2ccovrFe+Ux0yCX7AguVSPGvXdeAZ7YJQc73c6hsw==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
 testVals.push({
-    payloadHex: '010000000000000000000000000000000000000000000000000000000000029810440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46ac7df373bd892e099e671df507',
-    sigHex:     '3336e69cd00631f42a31d8fe27b164bd2ef45057a31f57b6930da352b299a5c329c36e8d93a6c624207ba275dda4204e2e8f0aea127c9f7afbefcd86291bf05b'
+    payloadHex: 'f10000000000000000000000000000000000000000000000000000000000003a98440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4aef8191775c9e7c4d055a2365a4',
+    sigHex:     '120b0645ab8c6b6e7b3df4ef742bfa7c21f7fc6db884e67cb6d62ae1e981a5fd5617671ca2fac57be531d32097ec082e5523c6bd775e019ed825073bddcea1b3'
 })
 
 // Signing OrderIntent...
-// Signer.tsx:229 packedHex: 0100000000000000000000000000000000000000000000000000000000003d0900440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46ad5372722d8ab290b9df52ac31
-// Signer.tsx:231 packedKeccakHex (len=32): f5c6d124327d2b0f4490b0951589cf8c6cd2cc0ba9ba654c5499c8afab2a85ca
+// Signer.tsx:229 packedHex: f00000000000000000000000000000000000000000000000000000000000000000440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4affc6b1735faebc0a7834b01ed2
+// Signer.tsx:231 packedKeccakHex (len=32): d52a890136d1d87c345179b7ffbe7ba53b589a00ddbd5046a6ad00009e8695dd
 // Signer.tsx:232 verify at: https://emn178.github.io/online-tools/keccak_256.html
-// Signer.tsx:251 msgToSign (base64) (len=44): 9cbRJDJ9Kw9EkLCVFYnPjGzSzAupumVMVJnIr6sqhco=
-// Signer.tsx:254 sig (hex) (len=64): 0f283ef329587e39a88a5d4f6beb100fbf840cb04cc108370810c41dc98176e55f89fc6669158aa44132ea460a389100018a8f7a1686cf9d158f41d68fc2226b
-// Signer.tsx:255 sig (base64): Dyg+8ylYfjmoil1Pa+sQD7+EDLBMwQg3CBDEHcmBduVfifxmaRWKpEEy6kYKOJEAAYqPehaGz50Vj0HWj8Iiaw==
-// Signer.tsx:32 {"txId":"019b46ad-5372-722d-8ab2-90b9df52ac31","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-22T15:28:42.866Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":-0.5,"qty":8,"sig":"Dyg+8ylYfjmoil1Pa+sQD7+EDLBMwQg3CBDEHcmBduVfifxmaRWKpEEy6kYKOJEAAYqPehaGz50Vj0HWj8Iiaw==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
+// Signer.tsx:251 msgToSign (base64) (len=44): 1SqJATbR2Hw0UXm3/757pTtYmgDdvVBGpq0AAJ6Gld0=
+// Signer.tsx:254 sig (hex) (len=64): 2a8185221abaa9c6b80434af658d74483cee610c37fc8a25bd23349047be03d9712389f554d87e4241e753c7eec25279b771cb8e83678f54666daed961964044
+// Signer.tsx:255 sig (base64): KoGFIhq6qca4BDSvZY10SDzuYQw3/IolvSM0kEe+A9lxI4n1VNh+QkHnU8fuwlJ5t3HLjoNnj1Rmba7ZYZZARA==
+// Signer.tsx:32 {"txId":"019b4aff-c6b1-735f-aebc-0a7834b01ed2","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-23T11:37:15.185Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0,"qty":0,"sig":"KoGFIhq6qca4BDSvZY10SDzuYQw3/IolvSM0kEe+A9lxI4n1VNh+QkHnU8fuwlJ5t3HLjoNnj1Rmba7ZYZZARA==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
 testVals.push( {
-  payloadHex: '0100000000000000000000000000000000000000000000000000000000003d0900440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46ad5372722d8ab290b9df52ac31',
-  sigHex:     '0f283ef329587e39a88a5d4f6beb100fbf840cb04cc108370810c41dc98176e55f89fc6669158aa44132ea460a389100018a8f7a1686cf9d158f41d68fc2226b'
+  payloadHex: 'f00000000000000000000000000000000000000000000000000000000000000000440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4affc6b1735faebc0a7834b01ed2',
+  sigHex:     '2a8185221abaa9c6b80434af658d74483cee610c37fc8a25bd23349047be03d9712389f554d87e4241e753c7eec25279b771cb8e83678f54666daed961964044'
 })
 
 // Signing OrderIntent...
-// Signer.tsx:229 packedHex: 000000000000000000000000000000000000000000000000000000000000000078440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46ad5372722d8ab290b9df52ac31
-// Signer.tsx:231 packedKeccakHex (len=32): e1459b6bbd68f171f2ffeed65c06dea21457a9623759516ed6b7991b0df5d2aa
+// Signer.tsx:229 packedHex: f000000000000000000000000000000000000000000000000000000000003d0900440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4b005b0575f1b315109662d81a3c
+// Signer.tsx:231 packedKeccakHex (len=32): bd183d47e17e2d44b0c9decab9a54448ea0d4ac1b6d9994f622ef3b4bc38977a
 // Signer.tsx:232 verify at: https://emn178.github.io/online-tools/keccak_256.html
-// Signer.tsx:251 msgToSign (base64) (len=44): 4UWba71o8XHy/+7WXAbeohRXqWI3WVFu1reZGw310qo=
-// Signer.tsx:254 sig (hex) (len=64): 62f147014b94d2cfeecbd8d0e2fa0196e784e2b667b6949ff9b3cbc2181c57244aca3b6f16d5b76203353cb47fad44d69fc329ca864977b0483b44437d953b58
-// Signer.tsx:255 sig (base64): YvFHAUuU0s/uy9jQ4voBlueE4rZntpSf+bPLwhgcVyRKyjtvFtW3YgM1PLR/rUTWn8MpyoZJd7BIO0RDfZU7WA==
-// Signer.tsx:32 {"txId":"019b46ad-5372-722d-8ab2-90b9df52ac31","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-22T15:28:42.866Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.32,"qty":0.000375,"sig":"YvFHAUuU0s/uy9jQ4voBlueE4rZntpSf+bPLwhgcVyRKyjtvFtW3YgM1PLR/rUTWn8MpyoZJd7BIO0RDfZU7WA==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
+// Signer.tsx:251 msgToSign (base64) (len=44): vRg9R+F+LUSwyd7KuaVESOoNSsG22ZlPYi7ztLw4l3o=
+// Signer.tsx:254 sig (hex) (len=64): 0583d00dba25d87be7933a48c2834ded6bf06ba8b534b2b94938146e254c1e192fd041ee6f7f46aa25399c6d0389825776fc5dff5237b22e4a2deecfd32e6f88
+// Signer.tsx:255 sig (base64): BYPQDbol2HvnkzpIwoNN7Wvwa6i1NLK5STgUbiVMHhkv0EHub39GqiU5nG0DiYJXdvxd/1I3si5KLe7P0y5viA==
+// Signer.tsx:32 {"txId":"019b4b00-5b05-75f1-b315-109662d81a3c","net":"testnet","marketId":"0189c0a8-7e80-7e80-8000-000000000003","generatedAt":"2025-12-23T11:37:53.157Z","accountId":"0.0.7090546","marketLimit":"limit","priceUsd":0.511,"qty":7.8277886497064575,"sig":"BYPQDbol2HvnkzpIwoNN7Wvwa6i1NLK5STgUbiVMHhkv0EHub39GqiU5nG0DiYJXdvxd/1I3si5KLe7P0y5viA==","publicKey":"03b6e6702057a1b8be59b567314abecf4c2c3a7492ceb289ca0422b18edbac0787","evmAddress":"440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6","keyType":2}
 testVals.push( {
-  payloadHex: '000000000000000000000000000000000000000000000000000000000000000078440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b46ad5372722d8ab290b9df52ac31',
-  sigHex:     '62f147014b94d2cfeecbd8d0e2fa0196e784e2b667b6949ff9b3cbc2181c57244aca3b6f16d5b76203353cb47fad44d69fc329ca864977b0483b44437d953b58'
+  payloadHex: 'f000000000000000000000000000000000000000000000000000000000003d0900440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4b005b0575f1b315109662d81a3c',
+  sigHex:     '0583d00dba25d87be7933a48c2834ded6bf06ba8b534b2b94938146e254c1e192fd041ee6f7f46aa25399c6d0389825776fc5dff5237b22e4a2deecfd32e6f88'
 })
 
 
@@ -311,26 +308,26 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
   await checkSig_onChain(publicKey, testVals[0].payloadHex, testVals[0].sigHex)
   console.log('************************************************')
   
-  process.exit(0)
+  // process.exit(0)
 
-  // verify_rawSig_hashpack_base64()
+  verify_rawSig_hashpack_base64()
+  console.log('************************************************')
+
+  // await verify_assemblePayload_uft8HashpackSigned()
   // console.log('************************************************')
 
-  // // await verify_assemblePayload_uft8HashpackSigned()
-  // // console.log('************************************************')
-
   
-  // // process.exit(0)
+  // process.exit(0)
 
-  // let payloadHex = ''
-  // let sigHex = ''
-  // for (const tv of testVals) {
-  //   payloadHex = tv.payloadHex
-  //   sigHex = tv.sigHex
-  //   await verifyAssembly(payloadHex, sigHex)
-  //   console.log('************************************************')
-  //   // process.exit(0)
-  // }
+  let payloadHex = ''
+  let sigHex = ''
+  for (const tv of testVals) {
+    payloadHex = tv.payloadHex
+    sigHex = tv.sigHex
+    await verifyAssembly(payloadHex, sigHex)
+    console.log('************************************************')
+    // process.exit(0)
+  }
 
-  // process.exit(0) // needed at the end
+  process.exit(0) // needed at the end
 })()
