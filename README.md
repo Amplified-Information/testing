@@ -53,7 +53,7 @@ Develop the application locally:
 
 Note on syncing:
 
-The following files and documentation notes MUST be kept in syn:
+The following files and documentation notes MUST be kept in sync. If you add/remove/change a config or secret, please ensure it's documented and is reflected everywhere else.
 
 `docker-compose-data.yml`
  - db/Dockerfile
