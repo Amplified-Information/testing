@@ -25,7 +25,9 @@ type HederaService struct {
 	dbRepository  *repositories.DbRepository
 }
 
-func (h *HederaService) InitHedera() (*hiero.Client, error) {
+func (h *HederaService) InitHedera(dbRepository *repositories.DbRepository) (*hiero.Client, error) {
+	h.dbRepository = dbRepository
+
 	networkSelected := os.Getenv("HEDERA_NETWORK_SELECTED")
 	operatorIdStr := os.Getenv("HEDERA_OPERATOR_ID")
 	operatorKeyType := os.Getenv("HEDERA_OPERATOR_KEY_TYPE")
@@ -239,12 +241,12 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 	}
 	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
 	// const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
-	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideYes.PriceUsd*sideYes.Qty), int(usdcDecimals))
+	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideYes.PriceUsd*sideYes.QtyOrig /* N.B. use QtyOrig and not Qty (remaining amount) */), int(usdcDecimals))
 	if err != nil {
 		return false, fmt.Errorf("failed to scale collateralUsdAbsYes: %v", err)
 	}
 
-	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideNo.PriceUsd*sideNo.Qty), int(usdcDecimals))
+	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideNo.PriceUsd*sideNo.QtyOrig /* N.B. use QtyOrig and not Qty (remaining amount) */), int(usdcDecimals))
 	if err != nil {
 		return false, fmt.Errorf("failed to scale collateralUsdAbsNo: %v", err)
 	}
@@ -265,7 +267,7 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 
 	serializedPayloadYes, err := lib.AssemblePayloadHexForSigning(&pb_api.PredictionIntentRequest{
 		PriceUsd:   sideYes.PriceUsd,
-		Qty:        sideYes.Qty,
+		Qty:        sideYes.QtyOrig, // N.B. use QtyOrig and not Qty (remaining amount) - digital sig verifies based on original quantity, not current available Qty
 		MarketId:   sideYes.MarketId,
 		EvmAddress: sideYes.EvmAddress,
 		TxId:       sideYes.TxId,
@@ -276,7 +278,7 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 
 	serializedPayloadNo, err := lib.AssemblePayloadHexForSigning(&pb_api.PredictionIntentRequest{
 		PriceUsd:   sideNo.PriceUsd,
-		Qty:        sideNo.Qty,
+		Qty:        sideNo.QtyOrig, // N.B. use QtyOrig and not Qty (remaining amount) - digital sig verifies based on original quantity, not current available Qty
 		MarketId:   sideNo.MarketId,
 		EvmAddress: sideNo.EvmAddress,
 		TxId:       sideNo.TxId,
@@ -383,6 +385,10 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 	// - Record the tx on the database (auditing)
 	// - record the price on the price table
 	/////
+
+	if h.dbRepository == nil {
+		return false, fmt.Errorf("dbRepository is not initialized")
+	}
 
 	// record the successful on-chain settlement
 	txHash := receipt.TransactionID.String()

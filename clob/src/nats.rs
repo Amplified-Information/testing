@@ -26,19 +26,20 @@ impl NatsService {
         while let Some(message) = subscriber.next().await {
             match serde_json::from_slice::<OrderRequestClob>(&message.payload) {
                 Ok(order) => {
-                    let _ = order_book_service.place_order(OrderRequestClob {
+                    let _ = order_book_service.place_order(order/*OrderRequestClob {
                             tx_id: order.tx_id,
                             net: order.net,
                             market_id: order.market_id,
                             account_id: order.account_id,
                             market_limit: order.market_limit,
                             price_usd: order.price_usd,
-                            qty: order.qty,
+                            qty: order.qty,                 // the clob will decrement this value over time as matches occur
+                            qty_orig: order.qty,            // need to keep track of the original qty for signature validation
                             sig: order.sig,
                             public_key: order.public_key,   // passing extra key info - i) avoid lookups ii) handle situation where user has changed their key
                             evm_address: order.evm_address, 
                             key_type: order.key_type,
-                        })
+                        }*/)
                         .await;
                 }
                 Err(err) => {

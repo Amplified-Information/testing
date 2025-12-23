@@ -5,7 +5,7 @@ import { keccak256 } from 'ethers'
 import { buildSignatureMap, prefixMessageToSign } from '../lib/utils.ts' 
 import { payloadHex2components } from '../lib/utils.ts'
 
-const contractId = '0.0.7508474'
+const contractId = '0.0.7510184' // Test.sol
 const operatorId = AccountId.fromString('0.0.7090546')
 const evmAddress = '440a1d7af93b92920bce50b4c0d2a8e6dcfebfd6'
 const privateKeyHex = '1620f5b23ed7467f6730bcc27b1b2c396f4ae92aec70f420bdd886ae26fed81d'
@@ -131,7 +131,7 @@ const verifyAssembly = async (payloadHex: string, sigHex: string) => {
   // console.log(txId.toString(16))
 
   const params = new ContractFunctionParameters() // Test.sol
-    .addBool(buySell)
+    .addUint8(buySell ? 0xf1 : 0xf0) // 0xf0 => buy, 0xf1 => sell
     .addUint256(collateralUsdAbsScaled.toString())
     .addAddress(evmAddr)
     .addUint128(marketId.toString())
@@ -146,12 +146,9 @@ const verifyAssembly = async (payloadHex: string, sigHex: string) => {
   const record = await tx.getRecord(client)
   const result = record.contractFunctionResult
   
-  console.log(`result: ${result!.getResult(['bytes'])}`)
-  console.log('')
-  
   const [returnParam0] = result!.getResult(['bytes'])
   const prefixedKeccak64Hex = returnParam0.toString().slice(2)
-  console.log(`onChain:\t${prefixedKeccak64Hex}`)
+  console.log(`on-chain 'assemblePayload' result (prefixed keccak):\t${prefixedKeccak64Hex}`)
 
 
 
@@ -163,7 +160,7 @@ const verifyAssembly = async (payloadHex: string, sigHex: string) => {
   const keccak = Buffer.from(keccakHex, 'hex')
   const keccak64 = keccak.toString('base64') // an extra step...
   const keccakPrefixedStr = prefixMessageToSign(keccak64)
-  console.log(`offChain:\t${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
+  console.log(`off-chain payload assembly result (prefixed keccak):\t${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
 
   /////
   // verifiy sigs are correct - off-chain assembly and on-chain assembly
@@ -194,7 +191,9 @@ interface Val {
 }
 const testVals: Val[] = []
 
-
+/////
+// TODO - update all these tests...
+/////
 // Signing OrderIntent...
 // Signer.tsx:229 packedHex: 0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746
 // Signer.tsx:231 packedKeccakHex (len=32): 4e565e3f7c1da8c0d139e196c36dff70db9548d559ab1db349616dc8c91ea3d5
@@ -303,12 +302,10 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
 }
 
 ;(async () => {
-  let payloadHex = ''
-  let sigHex = ''
-
+  
   await verifyAssembly(
-    '0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746',
-    '93ff91d8c5dcd9599fe114c53c0bf9507aae9b8e51b405c504b43b091d4b367c7cfaec86d4d45a19bd0a421a88bc46b7f8d95da65797444edfb276d13ad43166'
+    'f100000000000000000000000000000000000000000000000000000000000003e8440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4a9ffd6e7096829a4958d6ed10d4',
+    'f81bea7fe816c1db0378f239819d4b4bde69326cfe8b5a1b37418e84e8b06b3275aad8de1d810b5993f0694c3b4f48b2e3bad083c642721e6058c75c811ce25f'
   )
 
   await checkSig_onChain(publicKey, testVals[0].payloadHex, testVals[0].sigHex)
@@ -316,22 +313,24 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
   
   process.exit(0)
 
-  verify_rawSig_hashpack_base64()
-  console.log('************************************************')
-
-  // await verify_assemblePayload_uft8HashpackSigned()
+  // verify_rawSig_hashpack_base64()
   // console.log('************************************************')
 
+  // // await verify_assemblePayload_uft8HashpackSigned()
+  // // console.log('************************************************')
+
   
-  // process.exit(0)
+  // // process.exit(0)
 
-  for (const tv of testVals) {
-    payloadHex = tv.payloadHex
-    sigHex = tv.sigHex
-    await verifyAssembly(payloadHex, sigHex)
-    console.log('************************************************')
-    // process.exit(0)
-  }
+  // let payloadHex = ''
+  // let sigHex = ''
+  // for (const tv of testVals) {
+  //   payloadHex = tv.payloadHex
+  //   sigHex = tv.sigHex
+  //   await verifyAssembly(payloadHex, sigHex)
+  //   console.log('************************************************')
+  //   // process.exit(0)
+  // }
 
-  process.exit(0) // needed at the end
+  // process.exit(0) // needed at the end
 })()

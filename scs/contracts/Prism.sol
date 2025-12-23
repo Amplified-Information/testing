@@ -114,8 +114,8 @@ contract Prism {
     }
 
     // on-chain signature verifiaction using an on-chain assembled payload:
-    require(isAuthorized(signerYes, assemblePayload(false, collateralUsdAbsScaledYes, signerYes, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");
-    require(isAuthorized(signerNo,  assemblePayload(false, collateralUsdAbsScaledNo, signerNo, marketId, txIdNo),  sigObjNo),  "isAuthorized NO failed");
+    require(isAuthorized(signerYes, assemblePayload(0xf0 /* YES MUST have this prefix */, collateralUsdAbsScaledYes, signerYes, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");
+    require(isAuthorized(signerNo,  assemblePayload(0xf1 /* NO MUST have this prefix */,  collateralUsdAbsScaledNo,  signerNo,  marketId, txIdNo),  sigObjNo),  "isAuthorized NO failed");
 
     // Transfer collateral from the buyer to the contract using the buyer's allowance
     require(collateralToken.transferFrom(signerYes, address(this), collateralUsdAbsScaled_lower), "Transfer failed");
@@ -273,7 +273,7 @@ contract Prism {
   Then it converts the keccak hash to a base64-encoded string (which will have a fixed length of 44 characters)
   Finally, it prefixes the base64-encoded string with the Hedera Signed Message header (using a hard-coded input string length of 44 characters)
   */
-  function assemblePayload(bool buySell, uint256 collateralUsd, address evmAddr, uint128 marketId, uint128 txId) internal pure returns (bytes memory) {
+  function assemblePayload(uint8 buySell, uint256 collateralUsd, address evmAddr, uint128 marketId, uint128 txId) internal pure returns (bytes memory) {
     // note: when using encodePacked, a bool gets encoded to 0x00 or 0x01 - this zero prefix prevents an odd register length
     bytes memory assembled = abi.encodePacked(buySell, collateralUsd, evmAddr, marketId, txId);
     bytes32 keccak = keccak256(assembled);

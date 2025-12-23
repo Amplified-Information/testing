@@ -19,11 +19,12 @@ message OrderRequestClob {
   string market_limit = 5 [json_name = "marketLimit"];
   double price_usd = 6 [json_name = "priceUsd"];
   double qty = 7 [json_name = "qty"];
-  string sig = 8 [json_name = "sig"];
+  double qty_orig = 8 [json_name = "qtyOrig"]; // need to keep track of the original qty for signature validation
+  string sig = 9 [json_name = "sig"];
   // passing extra key info - i) avoid lookups ii) handle situation where user has changed their key
-  string public_key = 9 [json_name = "publicKey"];
-  string evm_address = 10 [json_name = "evmAddress"];
-  int32 key_type = 11 [json_name = "keyType"];
+  string public_key = 10 [json_name = "publicKey"];
+  string evm_address = 11 [json_name = "evmAddress"];
+  int32 key_type = 12 [json_name = "keyType"];
 }
 
 message OrderResponse {

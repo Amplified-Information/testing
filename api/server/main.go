@@ -93,7 +93,7 @@ func main() {
 	/////
 	// initialize Hedera service
 	hederaService := services.HederaService{}
-	_, err = hederaService.InitHedera()
+	_, err = hederaService.InitHedera(&dbRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Hedera service: %v", err)
 	}

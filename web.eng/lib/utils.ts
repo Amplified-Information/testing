@@ -58,7 +58,7 @@ const isValidUUIDv7 = (uuid: string): boolean => {
  */
 const assemblePayloadHexForSigning = (predictionIntentRequest: PredictionIntentRequest, usdcDecimals: number): string => {
   const packedHex = [
-    predictionIntentRequest.priceUsd < 0 ? '01': '00', // 1 => sell, 0 => buy
+    predictionIntentRequest.priceUsd < 0 ? 'f1': 'f0', // 1 => sell, 0 => buy (uint8 = 8 bits = 2 hex chars)
     floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString(16).padStart(64, '0'),
     predictionIntentRequest.evmAddress.replace(/^0x/, '').toLowerCase().padStart(40, '0'), // note: an evm address is exactly 20 bytes = 40 hex chars
     uuidToBigInt(predictionIntentRequest.marketId).toString(16).padStart(32, '0'),

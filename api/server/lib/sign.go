@@ -43,15 +43,27 @@ func AssemblePayloadHexForSigning(req *pb_api.PredictionIntentRequest, usdcDecim
 	evmAddressBigInt := new(big.Int)
 	evmAddressBigInt.SetString(strings.TrimPrefix(req.EvmAddress, "0x"), 16)
 
-	buySell := uint64(0)
+	buySell := 0xf0 // buy
 	if req.PriceUsd < 0 {
-		buySell = 1 // sell
+		buySell = 0xf1 // sell
 	}
 
+	// The format specifier "%002x" is used to ensure that the value of `buySell`
+	// is formatted as a two-character hexadecimal string, padded with leading zeros
+	// if necessary. Here's the breakdown:
+	// - `%`: Indicates the start of a format verb.
+	// - `0`: Specifies that the padding character is '0'.
+	// - `2`: Specifies the minimum width of the output (2 characters).
+	// - `x`: Specifies that the value should be formatted as a hexadecimal number.
+	//
+	// The double zeros (`%002x`) ensure that the output is always 2 characters long,
+	// even if the value of `buySell` is less than 16 (0x10 in hexadecimal). This
+	// avoids odd-length hex strings, which could cause issues in contexts where
+	// fixed-length formatting is required.
 	payloadHex := fmt.Sprintf( // beautiful :)   example: 0100000000000000000000000000004e20000000000000000000000000440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b45b837017342a16c7fb8a8023f17
-		"%002x%064x%040x%032x%032x",
+		"%02x%064x%040x%032x%032x",
 
-		buySell,                // note: the register length is 2 (padded left with '0') to avoid odd length hex strings
+		buySell,                // note: 8 bits. The hex len is 2 chars (padded left with '0') to avoid odd length hex strings. 0xf0 = buy, 0xf1 = sell
 		collateralUsdAbsScaled, // yes, uint256
 		evmAddressBigInt,       // note: an evm address is exactly 20 bytes = 40 hex chars
 		marketIdBigInt,         // uint128

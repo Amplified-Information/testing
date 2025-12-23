@@ -91,25 +91,8 @@ const getEvmAddress = async (client: Client, accountId: string | AccountId) => {
   return data.evm_address
 }
 
-// const sig2rsv = (sigHashpackHex: string): [Uint8Array, Uint8Array, number] => {
-//   const sigBuffer = Buffer.from(sigHashpackHex, 'hex')
-//   if (sigBuffer.length === 65) {
-//     const r = sigBuffer.slice(0, 32)
-//     const s = sigBuffer.slice(32, 64)
-//     const v = sigBuffer[64]
-//     return [r, s, v]
-//   } else if (sigBuffer.length === 64) {
-//     const r = sigBuffer.subarray(0, 32)
-//     const s = sigBuffer.subarray(32, 64)
-//     const v = 27 // hardcoded for now (could be 28) // TODO
-//     return [r, s, v]
-//   } else {
-//     throw new Error('Invalid signature length')
-//   }
-// }
-
 const payloadHex2components = (payloadHex: string): [boolean, bigint, EvmAddress, bigint, bigint] => {
-  const buySell = payloadHex.substring(0, 2) === '01' ? true : false
+  const buySell = payloadHex.substring(0, 2).toLowerCase() === 'f1' ? true : false
   const collateralUsdAbsScaled = BigInt('0x' + payloadHex.substring(2, 66))
   const evmAddr = EvmAddress.fromString('0x' + payloadHex.substring(66, 106))
   const marketId = BigInt('0x' + payloadHex.substring(106, 138))

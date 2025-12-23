@@ -14,8 +14,10 @@ CREATE TABLE price_history (
 -- ===========================================
 DO $$
 DECLARE
-    week_start date := date_trunc('week', now())::date;
-    week_end   date := (date_trunc('week', now()) + interval '7 days')::date;
+    -- week_start date := date_trunc('week', now())::date;
+    -- week_end   date := (date_trunc('week', now()) + interval '7 days')::date;
+    week_start date := '2025-12-22'::date; -- intentionally using fixed dates to ensure the initial partition is created for the correct week and for repeatable migrations
+    week_end   date := '2025-12-29'::date;
     part_name  text := 'price_history_' ||
                        to_char(week_start, 'IYYY') || 'w' ||
                        to_char(week_start, 'IW');

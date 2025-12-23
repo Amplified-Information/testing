@@ -11,6 +11,7 @@ import (
 	"time"
 
 	pb_api "api/gen"
+	pb_clob "api/gen/clob"
 	"api/server/lib"
 	repositories "api/server/repositories"
 
@@ -172,8 +173,26 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("database error: failed to save order request: %v", err)
 	}
 
+	/////
+	// notify the CLOB via NATS:
+	/////
+
 	// Marshal the CLOB req: *pb_api.PredictionIntentRequest to JSON
-	clobRequestJSON, err := json.Marshal(req)
+	clobRequestObj := &pb_clob.OrderRequestClob{
+		TxId:        req.TxId,
+		Net:         req.Net,
+		MarketId:    req.MarketId,
+		AccountId:   req.AccountId,
+		MarketLimit: req.MarketLimit,
+		PriceUsd:    req.PriceUsd,
+		Qty:         req.Qty, // the clob will decrement this value over time as matches occur
+		QtyOrig:     req.Qty, // need to keep track of the original qty for on/off-chain signature validation
+		Sig:         req.Sig,
+		PublicKey:   req.PublicKey, // passing extra key info - i) avoid lookups ii) handle situation where user has changed their key
+		EvmAddress:  req.EvmAddress,
+		KeyType:     int32(req.KeyType),
+	}
+	clobRequestJSON, err := json.Marshal(clobRequestObj)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal CLOB request: %v", err)
 	}

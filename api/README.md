@@ -129,9 +129,7 @@ Please test the up/downs in lower envs!
 
 ```bash
 cd api
-source ./.config.local
-source ./.secrets.local
-# or...
+
 source ./loadEnv.sh local
 DB_URL=postgres://$DB_UNAME:$DB_PWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable
 echo $DB_URL
