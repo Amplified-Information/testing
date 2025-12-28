@@ -1,4 +1,4 @@
-import { Client, PrivateKey, AccountId } from '@hashgraph/sdk'
+import { Client, PrivateKey } from '@hashgraph/sdk'
 // import dotenv from 'dotenv'
 // import { __dirname } from './utils.ts'
 import type { HederaKeyType, HederaNetwork } from './types.d.ts'
@@ -9,10 +9,14 @@ import type { HederaKeyType, HederaNetwork } from './types.d.ts'
  * Initialise a Hedera Client with safe operator key + network handling
  */
 const initHederaClient = (
-  network: HederaNetwork,
-  operatorAccountId: string | AccountId,
-  operatorKeyType: HederaKeyType
-): [ Client, PrivateKey ] => {
+  // network: HederaNetwork
+  // operatorAccountId: string | AccountId,
+  // operatorKeyType: HederaKeyType
+): [ Client, HederaNetwork, PrivateKey ] => {
+  const network: HederaNetwork = process.env.HEDERA_NETWORK_SELECTED as 'testnet' | 'mainnet' | 'previewnet'
+  const accountId: string = process.env[`${network.toUpperCase()}_HEDERA_OPERATOR_ID`] as string
+  const keyType: HederaKeyType = process.env[`${network.toUpperCase()}_HEDERA_OPERATOR_KEY_TYPE`] as HederaKeyType
+ 
   const rawKey = process.env[`${network.toUpperCase()}_HEDERA_OPERATOR_KEY`]
   if (!rawKey) {
     throw new Error(`${network.toUpperCase()}_HEDERA_OPERATOR_KEY not set in environment variables`)
@@ -20,14 +24,14 @@ const initHederaClient = (
 
   // Load operator key safely
   let operatorKey: PrivateKey
-  if (operatorKeyType === 'ecdsa') {
+  if (keyType === 'ecdsa') {
     console.log(`Using "ecdsa" key type for operator on network "${network}"`)
     operatorKey = PrivateKey.fromStringECDSA(rawKey)
-  } else if (operatorKeyType === 'ed25519') {
+  } else if (keyType === 'ed25519') {
     console.log(`Using "ed25519" key type for operator on network "${network}"`)
     operatorKey = PrivateKey.fromStringED25519(rawKey)
   } else {
-    throw new Error(`Unknown key type: ${operatorKeyType}`)
+    throw new Error(`Unknown key type: ${keyType}`)
   }
 
   // Initialise client safely
@@ -43,7 +47,8 @@ const initHederaClient = (
   }
 
   return [
-    client.setOperator(operatorAccountId, operatorKey),
+    client.setOperator(accountId, operatorKey),
+    network,
     operatorKey
   ]
 }

@@ -101,5 +101,6 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 }
 
 func (m *MarketService) PriceHistory(req *pb_api.PriceRequest) (*pb_api.PriceHistoryResponse, error) {
+	// TODO - implement this
 	return nil, fmt.Errorf("Not yet implemented")
 }

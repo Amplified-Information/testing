@@ -1,8 +1,7 @@
-import { AccountId, ContractCallQuery, ContractFunctionParameters, ContractId, PublicKey, SignerSignature } from '@hashgraph/sdk'
+import { ContractCallQuery, ContractFunctionParameters, ContractId } from '@hashgraph/sdk'
 import { networkSelected, operatorAccountId, operatorKeyType } from '../constants.ts'
 import { initHederaClient } from '../lib/hedera.ts'
 import { ethers, keccak256 } from 'ethers'
-import { text } from 'stream/consumers'
 // import { keccak256 } from '@noble/secp256k1'
 
 // CLI args: contractId, tokenId

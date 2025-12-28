@@ -10,20 +10,15 @@ import {
   ContractId
 } from '@hashgraph/sdk'
 import { initHederaClient } from './lib/hedera.ts'
-import { networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { getEvmAddress, uuid7_to_uint128 } from './lib/utils.ts'
 
-const [ client, _ ] = initHederaClient(
-  networkSelected,
-  operatorAccountId,
-  operatorKeyType
-)
+const [ client, networkSelected ] = initHederaClient()
 
 const main = async () => {
   // CLI args: contractId, userAccountEvmAddress
   const [contractId, marketId_uuid7, accountId] = process.argv.slice(2)
   if (!contractId || !marketId_uuid7 || !accountId) {
-    console.error(`Usage: ts-node getUserTokens.ts <contractId> <marketId_uuid7> <accountId>\t\t(note: current operator account id = ${operatorAccountId})`)
+    console.error(`Usage: ts-node getUserTokens.ts <contractId> <marketId_uuid7> <accountId>\t\t(note: current operator account id = ${client.operatorAccountId})`)
     process.exit(1)
   }
   const marketIdBigInt = uuid7_to_uint128(marketId_uuid7)

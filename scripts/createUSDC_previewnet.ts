@@ -3,9 +3,16 @@
 // ts-node createUSDC_previewnet.ts
 import { Client, PrivateKey, TokenCreateTransaction, TokenType, TokenSupplyType, TransferTransaction, AccountBalanceQuery } from '@hashgraph/sdk'
 type Net = 'previewnet' | 'testnet' | 'mainnet'
+type KeyType = 'ed25519' | 'ecdsa'
 
 const net: Net = 'previewnet'
-const HEDERA_OPERATOR_ID='0.0.31019' // portal.hedera.com operator ID
+const HEDERA_OPERATOR_ID='0.0.31052'
+const keyType: KeyType = 'ecdsa'
+
+if (!process.env.HEDERA_OPERATOR_KEY) {
+  console.error('Error: HEDERA_OPERATOR_KEY environment variable is not set.')
+  process.exit(1)
+}
 
 const usdcDecimals = 6
 const supply = 1_000_000_000_000 // 1 million USDC with 6 decimals
@@ -13,12 +20,22 @@ const supply = 1_000_000_000_000 // 1 million USDC with 6 decimals
 
 
 
+
 async function main() {
   // Load operator credentials
   const operatorId = HEDERA_OPERATOR_ID
-  const operatorKey = PrivateKey.fromStringED25519(
-    process.env.HEDERA_OPERATOR_KEY!
-  )
+  let operatorKey: PrivateKey
+  if (keyType === 'ecdsa') {
+    operatorKey = PrivateKey.fromStringECDSA(
+      process.env.HEDERA_OPERATOR_KEY!
+    )
+  } else if (keyType === 'ed25519') {
+    operatorKey = PrivateKey.fromStringED25519(
+      process.env.HEDERA_OPERATOR_KEY!
+    )
+  } else {
+    throw new Error(`Unsupported key type: ${keyType}`)
+  }
 
   // Create the client
   let client: Client
@@ -72,4 +89,6 @@ async function main() {
   client.close()
 }
 
-main().catch(console.error)
+await main().catch(console.error)
+
+process.exit(0)

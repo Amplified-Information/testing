@@ -69,6 +69,11 @@ grpcurl -H "authorization: Basic $(echo -n 'admin:********' | base64)" -plaintex
 # etc.
 ```
 
+**Note:**
+
+There is a [yaak](https://yaak.app/) collection avaiable - see `yaak.json`
+
+
 ### commands
 
 **check gRPC server is listening**

@@ -147,11 +147,11 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 	_smartContractId, err := hiero.ContractIDFromString(os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(netSelectedByUser))))
 	if err != nil {
-		return "", fmt.Errorf("failed to validate SMART_CONTRACT_ID: %v", err)
+		return "", fmt.Errorf("failed to validate %s_SMART_CONTRACT_ID: %v", strings.ToUpper(netSelectedByUser), err)
 	}
-	usdcAddress, err := hiero.ContractIDFromString(os.Getenv("USDC_ADDRESS"))
+	usdcAddress, err := hiero.ContractIDFromString(os.Getenv(fmt.Sprintf("%s_USDC_ADDRESS", strings.ToUpper(netSelectedByUser))))
 	if err != nil {
-		return "", fmt.Errorf("failed to validate USDC_ADDRESS: %v", err)
+		return "", fmt.Errorf("failed to validate %s_USDC_ADDRESS: %v", strings.ToUpper(netSelectedByUser), err)
 	}
 
 	spenderAllowanceUsd, err := h.hederaService.GetSpenderAllowanceUsd(*_networkSelected, accountId, _smartContractId, usdcAddress, usdcDecimals)

@@ -5,11 +5,14 @@ package clob;
 import "validate/validate.proto";
 
 service Clob {
+  rpc Health(Empty) returns (StdResponse);
   rpc PlaceOrder (OrderRequestClob) returns (StdResponse);
   rpc GetBook (BookRequest) returns (BookSnapshot);
   rpc StreamBook (BookRequest) returns (stream BookSnapshot);
   rpc AddMarket (MarketRequest) returns (StdResponse);
 }
+
+message Empty {}
 
 message OrderRequestClob {
   string tx_id = 1 [json_name = "txId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];

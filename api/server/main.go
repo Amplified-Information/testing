@@ -24,6 +24,12 @@ type server struct {
 	marketsService services.MarketService
 }
 
+func (s *server) Health(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
+	return &pb_api.StdResponse{
+		Message: "OK",
+	}, nil
+}
+
 func (s *server) PredictIntent(ctx context.Context, req *pb_api.PredictionIntentRequest) (*pb_api.StdResponse, error) {
 	if err := req.ValidateAll(); err != nil { // PGV validation
 		return &pb_api.StdResponse{Message: fmt.Sprintf("Invalid request: %v", err)}, err
@@ -36,19 +42,13 @@ func (s *server) PredictIntent(ctx context.Context, req *pb_api.PredictionIntent
 	}, err
 }
 
-func (s *server) HealthCheck(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
-	return &pb_api.StdResponse{
-		Message: "OK",
-	}, nil
+func (s *server) GetMarketById(ctx context.Context, req *pb_api.MarketIdRequest) (*pb_api.MarketResponse, error) {
+	result, err := s.marketsService.GetMarketById(req.GetMarketId())
+	return result, err
 }
 
 func (s *server) GetMarkets(ctx context.Context, req *pb_api.LimitOffsetRequest) (*pb_api.MarketsResponse, error) {
 	result, err := s.marketsService.GetMarkets(req.GetLimit(), req.GetOffset())
-	return result, err
-}
-
-func (s *server) GetMarketById(ctx context.Context, req *pb_api.MarketIdRequest) (*pb_api.MarketResponse, error) {
-	result, err := s.marketsService.GetMarketById(req.GetMarketId())
 	return result, err
 }
 
@@ -73,8 +73,10 @@ func main() {
 		"AVAILABLE_NETWORKS",
 		"API_HOST",
 		"API_PORT",
-		"USDC_ADDRESS",
 		"USDC_DECIMALS",
+		"PREVIEWNET_USDC_ADDRESS",
+		"TESTNET_USDC_ADDRESS",
+		"MAINNET_USDC_ADDRESS",
 		"PREVIEWNET_SMART_CONTRACT_ID",
 		"TESTNET_SMART_CONTRACT_ID",
 		"MAINNET_SMART_CONTRACT_ID",

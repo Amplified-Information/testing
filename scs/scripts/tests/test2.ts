@@ -31,7 +31,7 @@ const verify_rawSig_hashpack_base64 = () => {
   const keccak = Buffer.from(keccakHex, 'hex')
   const keccak64 = keccak.toString('base64') // an extra step...
   const keccakPrefixedStr = prefixMessageToSign(keccak64)
-  console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr, 'utf-8').toString('hex')}`)
+  console.log(`keccakPrefixedStr (hex): ${Buffer.from(keccakPrefixedStr/*, 'utf-8'*/).toString('hex')}`)
   
   const isVerifiedRaw = publicKey.verify(Buffer.from(keccakPrefixedStr, 'utf-8'), Buffer.from(sigHex, 'hex'))
   // console.log(`keccakPrefixedBytes (hex): ${Buffer.from(Buffer.from(keccakPrefixedStr, 'utf-8')).toString('hex')}`)
@@ -191,6 +191,11 @@ interface Val {
 }
 const testVals: Val[] = []
 
+testVals.push({
+  payloadHex: 'f1000000000000000000000000000000000000000000000000000000000000157c440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b5081ba47748aa22e3163fcd418db',
+  sigHex:     'bbc52c589f643a3810d0743b866e0ec0010c8ac9ea8f5d0ce2f215386357258cfd286dcb944352c3c9a8d0bab2dbdaba5226db4b4257dbcadadd7bd0293c2100'
+})
+
 // Signing OrderIntent...
 // Signer.tsx:229 packedHex: f1000000000000000000000000000000000000000000000000000000000007a120440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b4b015932719d967783057decdc30
 // Signer.tsx:231 packedKeccakHex (len=32): 198189ad9f3904769723e94297cd6bd07c1d95ec1f7a74f267dccac76101c3c3
@@ -326,7 +331,7 @@ const checkSig_onChain = async (publicKey: PublicKey, payloadHex: string, sigHex
     sigHex = tv.sigHex
     await verifyAssembly(payloadHex, sigHex)
     console.log('************************************************')
-    // process.exit(0)
+    process.exit(0)
   }
 
   process.exit(0) // needed at the end

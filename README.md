@@ -11,6 +11,7 @@ This project is divided into a number of folders:
 - `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication
 - `resources`: a version-controlled area to store artifacts, design files, images, etc.
+- `scripts`: some general usage scripts
 
 ## Quickstart (docker-compose)
 
@@ -48,6 +49,15 @@ Develop the application locally:
 - `clob`: see [clob/README.md](clob/README.md)
 - `web`: see [web/README.md](web/README.md)
 - `proxy`
+
+## yaak/Postman
+
+Please use [yaak](https://yaak.app/) for graphical requests to the following services:
+
+- `api`
+- `clob`
+
+There is a yaak collection checked in `yaak.json`
 
 ## Sync
 

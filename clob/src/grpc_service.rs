@@ -18,6 +18,17 @@ impl ClobService {
 
 #[tonic::async_trait]
 impl Clob for ClobService {
+    async fn health(
+        &self,
+        _request: Request<crate::orderbook::proto::Empty>,
+    ) -> Result<Response<StdResponse>, Status> {
+        let response = StdResponse {
+            message: "OK".to_string(),
+            error_code: 0,
+        };
+        Ok(Response::new(response))
+    }
+
     async fn place_order(
         &self,
         request: Request<OrderRequestClob>,

@@ -4,7 +4,7 @@
 .secrets
 
 # Now do:
-source loadEnv.sh local
+source ../loadEnv.sh local
 
 # Deploy with:
 cd scripts
@@ -15,13 +15,8 @@ import { ethers } from 'ethers'
 import * as fs from 'fs'
 import { initHederaClient } from './lib/hedera.ts'
 import { __dirname } from './lib/utils.ts'
-import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 
-const [ client, _ ] = initHederaClient(
-  networkSelected,
-  operatorAccountId,
-  operatorKeyType
-)
+
 
 const [contractName] = process.argv.slice(2)
 if (!contractName) {
@@ -30,17 +25,24 @@ if (!contractName) {
   process.exit(1)
 }
 
+const [ client, _, networkSelected] = initHederaClient()
+
 const smartContractBinaryFn = __dirname + `/../../contracts/out/${contractName}.bin`
 
 const getConstructorParams = () => {
-  const collateralToken = ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress() // USD Coin (USDC) on Hedera
-  const statement = 'HBAR will be above USD $1.00 on 2025-12-31?'
+  const usdcAddress = process.env[`${networkSelected.toString().toUpperCase()}_USDC_ADDRESS`]
+  if (!usdcAddress) {
+    throw new Error(`Environment variable ${networkSelected.toString().toUpperCase()}_USDC_ADDRESS not set`)
+  }
+  console.log(`USDC contract ID: ${usdcAddress}`)
+  const collateralToken = ContractId.fromString(usdcAddress).toEvmAddress() // USD Coin (USDC) on Hedera
+  // const statement = 'HBAR will be above USD $1.00 on 2025-12-31?'
   // const resolutionTime = 0
 
   const abiCoder = new ethers.AbiCoder()
   return abiCoder.encode(
-      ['address', 'string'],
-      [collateralToken, statement]
+      ['address'/*, 'string'*/],
+      [collateralToken/*, statement*/]
   )
 
   // const name = 'MyToken'
@@ -65,7 +67,8 @@ async function deployContract(client: Client) {
     /////
     // Step 1: Deploy the smart contract
     /////
-    console.log(`Deploying smart contract ${smartContractBinaryFn.split('/').pop()} on "${networkSelected}"...`)
+    console.log(`Deploying smart contract ${smartContractBinaryFn.split('/').pop()} on "${networkSelected.toString}"...`)
+    
     // Encode the constructor parameters
     const constructorParams = getConstructorParams()
 
@@ -89,10 +92,11 @@ async function deployContract(client: Client) {
     const contractId = contractReceipt.contractId
 
     console.log(`Contract deployed with ID: ${contractId}`)
-    console.log(`--> export SMART_CONTRACT_ID=${contractId}`)
+    console.log(`--> export ${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID=${contractId}`)
     console.log(`--> Don't forget to the smart contract ID for:
-- api (.config.*) + restart
-- web (constants.ts) + restart
+- scs (.config) + reload env vars
+- api (.config.*) + reload env vars + restart
+- web (constants.ts) + reload env vars + restart
 `)
     console.log('--> Don\'t forget to associate USDC!')
     console.log('--> Don\'t forget to create at least one new market!')
@@ -123,7 +127,7 @@ async function deployContract(client: Client) {
 (async () => {
   await deployContract(client)
 
-  console.log(`accountId=${operatorAccountId}`)
+  console.log(`accountId=${client.operatorAccountId!.toString()}`)
 
   process.exit(0)
 })()

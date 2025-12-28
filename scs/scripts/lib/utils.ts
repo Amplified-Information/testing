@@ -100,6 +100,28 @@ const payloadHex2components = (payloadHex: string): [boolean, bigint, EvmAddress
   return [buySell, collateralUsdAbsScaled, evmAddr, marketId, txId]
 }
 
+const assemblePayloadHexForSigning = (priceUsd: number, qty: number, evmAddress: string, marketId: string, txId: string, usdcDecimals: number): string => {
+  const packedHex = [
+    priceUsd < 0 ? 'f1': 'f0', // 1 => sell, 0 => buy (uint8 = 8 bits = 2 hex chars)
+    floatToBigIntScaledDecimals(Math.abs(priceUsd * qty), usdcDecimals).toString(16).padStart(64, '0'),
+    evmAddress.replace(/^0x/, '').toLowerCase().padStart(40, '0'), // note: an evm address is exactly 20 bytes = 40 hex chars
+    uuidToBigInt(marketId).toString(16).padStart(32, '0'),
+    uuidToBigInt(txId).toString(16).padStart(32, '0')
+  ].join('')
+  return packedHex
+}
+
+const floatToBigIntScaledDecimals = (value: number, nDecimals: number): bigint => {
+  const [integerPart, fractionalPart = ''] = value.toString().split('.')
+  const scaledValue = '' + integerPart + '' + fractionalPart.padEnd(nDecimals, '0').slice(0, nDecimals)
+  return BigInt(scaledValue)
+}
+
+const uuidToBigInt = (uuid7_str: string): bigint => {
+  const hexStr = uuid7_str.replace(/-/g, '')
+  return BigInt(`0x${hexStr}`)
+}
+
 export {
   uuid7_to_uint128,
   uint128_to_uuid7,
@@ -108,5 +130,6 @@ export {
   __dirname,
   getPubKey,
   getEvmAddress,
-  payloadHex2components
+  payloadHex2components,
+  assemblePayloadHexForSigning
 }

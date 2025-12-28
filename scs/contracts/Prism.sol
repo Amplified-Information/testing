@@ -27,6 +27,7 @@ Authors: ionneb
 contract Prism {
   // USDC on Hedera Mainnet: 0x000000000000000000000000000000000006f89a
   // USDC on Hedera Testnet: 0x0000000000000000000000000000000000068cda // 0.0.5449
+  // https://www.circle.com/multi-chain-usdc/hedera
   IERC20 public immutable collateralToken;
 
   IHederaTokenService constant HTS = IHederaTokenService(address(0x167));
@@ -76,7 +77,6 @@ contract Prism {
   /**
   This function allows the CLOB to initiate the buying of YES and NO position tokens atomically on behalf of two accounts "yes" and "no".
   Requires --optimize flag due to size of the call stack
-  TODO - verify the signatures
   @param marketId The ID of the market.
   @param signerYes The (signing) address of the account buying YES position tokens.
   @param signerNo The (signing) address of the account buying NO position tokens.

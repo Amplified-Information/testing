@@ -25,7 +25,7 @@ set -a # automatically export all variables
 # 1. load configuration
 echo "*** Loading configuration files..."
 source "$SCRIPT_DIR/.config" # load base config
-source "$SCRIPT_DIR/.config.$ENV" # env-specific config override
+source "$SCRIPT_DIR/.config.$ENV" || true # env-specific config override (don't error out if it fails - e.g. scs/ doesn)
 echo "Loaded configuration from .config and .config.$ENV."
 echo ""
 # 2. load secrets

@@ -17,6 +17,10 @@ source loadEnv.sh local
 go run ./server/
 ```
 
+**Note:**
+
+There is a [yaak](https://yaak.app/) collection avaiable - see `yaak.json`
+
 ## start from scratch
 
 ```bash

@@ -1,22 +1,30 @@
 /**
-ts-node 1_associateToken.ts $SMART_CONTRACT_ID 0.0.5449
+ts-node 1_associateToken.ts
 */
 import { ContractExecuteTransaction, ContractFunctionParameters, ContractId, TokenId } from '@hashgraph/sdk'
-import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { initHederaClient } from './lib/hedera.ts'
 
-const [ client ] = initHederaClient(
-  networkSelected,
-  operatorAccountId,
-  operatorKeyType
-)
+const [ client, networkSelected, _] = initHederaClient()
 
 const main = async () => {
   try {
+    // pre-checks
+
     // CLI args: contractId, tokenId
-    const [contractId, tokenId] = process.argv.slice(2)
-    if (!contractId || !tokenId) {
-      console.error('Usage: ts-node associateToken.ts <contractId> <tokenId>\t\t(note: USDC token address: 0.0.5449 | 0.0.31462 )')
+    // const [contractId, tokenId] = process.argv.slice(2)
+    // if (!contractId || !tokenId) {
+    //   console.error('Usage: ts-node associateToken.ts <contractId> <tokenId>\t\t(note: USDC token address: 0.0.5449 | 0.0.31462 )')
+    //   process.exit(1)
+    // }
+
+    const contractId = process.env[`${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID`]
+    if (!contractId) {
+      console.error(`Error: ${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID environment variable is not set.`)
+      process.exit(1)
+    }
+    const tokenId = process.env[`${networkSelected.toString().toUpperCase()}_USDC_ADDRESS`]
+    if (!tokenId) {
+      console.error(`Error: ${networkSelected.toString().toUpperCase()}_USDC_ADDRESS environment variable is not set.`)
       process.exit(1)
     }
 
@@ -30,9 +38,18 @@ const main = async () => {
     console.log(`Smart contract:\t${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
     console.log(`Associating token:\t${tokenId} (${TokenId.fromString(tokenId).toEvmAddress()}) with the smart contract ${contractId}...`)
 
+
+
+
+
+
+
+
+
+    // OK - proceed
     // Create and execute the ContractExecuteTransaction
     const params = new ContractFunctionParameters()
-      .addAddress(ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress())
+      .addAddress(ContractId.fromString(process.env[`${networkSelected.toString().toUpperCase()}_USDC_ADDRESS`]!).toEvmAddress())
     const tx = await new ContractExecuteTransaction()
       .setContractId(ContractId.fromString(contractId))
       .setGas(800_000)
