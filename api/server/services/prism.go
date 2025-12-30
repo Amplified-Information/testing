@@ -161,7 +161,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	log.Printf(("Spender allowance for account %s on contract %s: $%.2f"), accountId.String(), _smartContractId.String(), spenderAllowanceUsd)
 	if spenderAllowanceUsd < math.Abs(req.GetPriceUsd()*req.GetQty()) {
 		log.Printf("ERROR: Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
-		return "", fmt.Errorf("Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
+		return "", fmt.Errorf("Spender allowance ($USD%.2f USD token = %s) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, usdcAddress.String(), req.GetPriceUsd()*req.GetQty())
 	}
 
 	/// OK - All validations passed

@@ -57,7 +57,7 @@ func (s *server) CreateMarket(ctx context.Context, req *pb_api.NewMarketRequest)
 	return result, err
 }
 
-func (s *server) PriceHistory(ctx context.Context, req *pb_api.PriceRequest) (*pb_api.PriceHistoryResponse, error) {
+func (s *server) PriceHistory(ctx context.Context, req *pb_api.PriceHistoryRequest) (*pb_api.PriceHistoryResponse, error) {
 	result, err := s.marketsService.PriceHistory(req)
 	return result, err
 }

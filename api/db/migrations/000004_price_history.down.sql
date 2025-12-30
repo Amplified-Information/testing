@@ -1,23 +1,32 @@
--- Remove trigger
-DROP TRIGGER IF EXISTS create_weekly_partition
-ON price_history;
-
--- Remove function
-DROP FUNCTION IF EXISTS ensure_weekly_partition();
-
--- Drop all partitions
+-- Remove the pg_cron maintenance job if it exists
 DO $$
-DECLARE
-    rec RECORD;
 BEGIN
-    FOR rec IN
-        SELECT inhrelid::regclass AS partition_name
-        FROM pg_inherits
-        WHERE inhparent = 'price_history'::regclass
-    LOOP
-        EXECUTE 'DROP TABLE IF EXISTS ' || rec.partition_name || ' CASCADE';
-    END LOOP;
-END$$;
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_cron') THEN
+        PERFORM cron.unschedule('price_history_maintenance');
+    END IF;
+END $$;
 
--- Drop parent table
+-- Drop default partition if it exists
+DROP TABLE IF EXISTS price_history_default;
+
+-- Drop parent table (drops all partitions)
 DROP TABLE IF EXISTS price_history CASCADE;
+
+-- Drop pg_partman extension if installed
+-- DO $$
+-- BEGIN
+--     IF EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_partman') THEN
+--         EXECUTE 'DROP EXTENSION pg_partman CASCADE';
+--     END IF;
+-- END $$;
+
+-- Drop pg_cron extension if installed
+-- DO $$
+-- BEGIN
+--     IF EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_cron') THEN
+--         EXECUTE 'DROP EXTENSION pg_cron CASCADE';
+--     END IF;
+-- END $$;
+
+-- Drop schema if it exists
+-- DROP SCHEMA IF EXISTS partman;

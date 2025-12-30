@@ -1,14 +1,25 @@
-import { networksAvailable } from '../constants'
 import { useAppContext } from '../AppProvider'
 import { useEffect, useState } from 'react'
+import { apiClient } from '../grpcClient'
+import { LedgerId } from '@hashgraph/sdk'
 const NetworkSelector = () => {
-  const { networkSelected, setNetworkSelected } = useAppContext()
+  const { networkSelected, setNetworkSelected, networksAvailable, setNetworksAvailable  } = useAppContext()
   const [ networkSelectedIdx, setNetworkSelectedIdx ] = useState(0)
+
+  useEffect(() => {
+    (async () => {
+      const networksAvailableStr = (await apiClient.availableNetworks({}).response).message
+      const _networksAvailable = networksAvailableStr.split(',').map(netStr => {
+        return LedgerId.fromString(netStr.trim())
+      })
+      setNetworksAvailable(_networksAvailable)
+    })()
+  }, [])
 
   useEffect(() => {
     const idx = networksAvailable.findIndex(network => network === networkSelected)
     setNetworkSelectedIdx(idx)
-  }, [networkSelected])
+  }, [networkSelected, networksAvailable])
 
   return (
     <>

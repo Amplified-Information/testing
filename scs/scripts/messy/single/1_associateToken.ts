@@ -13,7 +13,7 @@ const main = async () => {
     // CLI args: contractId, tokenId
     const [contractId, tokenId] = process.argv.slice(2)
     if (!contractId || !tokenId) {
-      console.error('Usage: ts-node associateToken.ts <contractId> <tokenId>\t\t(note: USDC token address: 0.0.5449)')
+      console.error('Usage: ts-node associateToken.ts <contractId> <tokenId>\t\t(note: USDC token address (testnet): 0.0.429274)')
       process.exit(1)
     }
 

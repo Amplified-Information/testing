@@ -214,7 +214,58 @@ func (dbRepository *DbRepository) CreateMarket(marketId string, statement string
 	return &market, nil
 }
 
-func (dbRepository *DbRepository) SavePriceHistory(marketId string, price float64) error {
+// func (dbRepository *DbRepository) GetPricesByMarketInRange(marketId string, ts1 time.Time, ts2 time.Time) ([]sqlc.GetPricesByMarketInRangeRow, error) {
+// 	if dbRepository.db == nil {
+// 		return nil, fmt.Errorf("database not initialized")
+// 	}
+
+// 	marketUUID, err := uuid.Parse(marketId)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+// 	}
+
+// 	q := sqlc.New(dbRepository.db)
+// 	priceHistory, err := q.GetPricesByMarketInRange(context.Background(), sqlc.GetPricesByMarketInRangeParams{
+// 		MarketID: marketUUID,
+// 		Ts:       ts1,
+// 		Ts_2:     ts2,
+// 	})
+// 	if err != nil {
+// 		return nil, fmt.Errorf("GetPricesByMarketSince failed: %v", err)
+// 	}
+
+//		return priceHistory, nil
+//	}
+func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Time, to time.Time, limit int32, offset int32) ([]string, error) { // yes, it returns []string due to - price NUMERIC(18,10)
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	marketUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	log.Printf("MarketId = %s, from = %s, to = %s, Limit = %d, Offet = %d", marketId, from, to, limit, offset)
+
+	q := sqlc.New(dbRepository.db)
+	priceHistory, err := q.GetPriceHistorySafer(context.Background(), sqlc.GetPriceHistorySaferParams{
+		MarketID: marketUUID,
+		Ts:       from,
+		Ts_2:     to,
+		Limit:    limit,
+		Offset:   offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetAggregatedPriceHistory failed: %v", err)
+	}
+
+	log.Printf("Fetched %d price history records from database", len(priceHistory))
+
+	return priceHistory, nil
+}
+
+func (dbRepository *DbRepository) SavePriceHistory(marketId string, txId string, price float64) error {
 	if dbRepository.db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -224,8 +275,14 @@ func (dbRepository *DbRepository) SavePriceHistory(marketId string, price float6
 		return fmt.Errorf("invalid marketId uuid: %v", err)
 	}
 
+	txUUID, err := uuid.Parse(txId)
+	if err != nil {
+		return fmt.Errorf("invalid txId uuid: %v", err)
+	}
+
 	params := sqlc.InsertPriceParams{
 		MarketID: marketUUID,
+		TxID:     txUUID,
 		Price:    fmt.Sprintf("%f", price), // use of NUMERIC(18,10) avoids floating point imprecision
 		Ts:       time.Now().UTC(),
 	}
@@ -236,7 +293,6 @@ func (dbRepository *DbRepository) SavePriceHistory(marketId string, price float6
 		return fmt.Errorf("InsertPriceHistory failed: %v", err)
 	}
 
-	log.Printf("DB: marketId %s price = %f", marketId, price)
 	return nil
 }
 

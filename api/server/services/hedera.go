@@ -174,6 +174,7 @@ func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKe
 
 func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
+	// log.Printf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
 
 	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
 	if err != nil {
@@ -426,14 +427,15 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 	}
 
 	// record the price
-	err = h.dbRepository.SavePriceHistory(sideYes.MarketId, sideYes.PriceUsd) // TODO - check this
+	err = h.dbRepository.SavePriceHistory(sideYes.MarketId, sideYes.TxId, sideYes.PriceUsd) // TODO - check this
 	if err != nil {
 		return false, fmt.Errorf("Error saving price history for market %s: %v", sideYes.MarketId, err)
 	}
-	err = h.dbRepository.SavePriceHistory(sideNo.MarketId, sideNo.PriceUsd)
-	if err != nil {
-		return false, fmt.Errorf("Error saving price history for market %s: %v", sideNo.MarketId, err)
-	}
+	// don't need to save the No side
+	// err = h.dbRepository.SavePriceHistory(sideNo.MarketId, sideNo.PriceUsd)
+	// if err != nil {
+	// 	return false, fmt.Errorf("Error saving price history for market %s: %v", sideNo.MarketId, err)
+	// }
 
 	// if we get here, return true
 	return true, nil

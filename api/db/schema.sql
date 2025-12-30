@@ -3,7 +3,7 @@
 --
 
 
--- Dumped from database version 18.1
+-- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg12+2)
 
 SET statement_timeout = 0;
@@ -19,57 +19,44 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: ensure_weekly_partition(); Type: FUNCTION; Schema: public; Owner: your_db_user
+-- Name: partman; Type: SCHEMA; Schema: -; Owner: your_db_user
 --
 
-CREATE FUNCTION public.ensure_weekly_partition() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    week_start date;
-    week_end   date;
-    year_week  text;
-    part_name  text;
-BEGIN
-    week_start := date_trunc('week', NEW.ts)::date;
-    week_end   := (week_start + interval '7 days')::date;
-
-    year_week := to_char(week_start, 'IYYY') || 'w' || to_char(week_start, 'IW');
-    part_name := 'price_history_' || year_week;
-
-    -- Check if partition exists
-    PERFORM 1 FROM pg_class WHERE relname = part_name;
-    IF NOT FOUND THEN
-        -- create partition
-        EXECUTE format(
-            'CREATE TABLE %I PARTITION OF price_history
-             FOR VALUES FROM (%L) TO (%L);',
-            part_name, week_start, week_end
-        );
-
-        -- Index: (market_id, ts DESC)
-        EXECUTE format(
-            'CREATE INDEX %I ON %I (market_id, ts DESC);',
-            part_name || '_mid_ts_idx', part_name
-        );
-
-        -- Index: (ts DESC)
-        EXECUTE format(
-            'CREATE INDEX %I ON %I (ts DESC);',
-            part_name || '_ts_idx', part_name
-        );
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
+CREATE SCHEMA partman;
 
 
-ALTER FUNCTION public.ensure_weekly_partition() OWNER TO your_db_user;
+ALTER SCHEMA partman OWNER TO your_db_user;
+
+--
+-- Name: pg_partman; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA partman;
+
+
+--
+-- Name: EXTENSION pg_partman; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION pg_partman IS 'Extension to manage partitioned tables by time or ID';
+
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: template_public_price_history; Type: TABLE; Schema: partman; Owner: your_db_user
+--
+
+CREATE TABLE partman.template_public_price_history (
+    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
+    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
+    created_at timestamp with time zone CONSTRAINT price_history_created_at_not_null NOT NULL
+);
+
+
+ALTER TABLE partman.template_public_price_history OWNER TO your_db_user;
 
 --
 -- Name: markets; Type: TABLE; Schema: public; Owner: your_db_user
@@ -161,6 +148,7 @@ ALTER TABLE public.order_requests OWNER TO your_db_user;
 
 CREATE TABLE public.price_history (
     market_id uuid NOT NULL,
+    tx_id uuid NOT NULL,
     price numeric(18,10) NOT NULL,
     ts timestamp with time zone NOT NULL
 )
@@ -170,17 +158,18 @@ PARTITION BY RANGE (ts);
 ALTER TABLE public.price_history OWNER TO your_db_user;
 
 --
--- Name: price_history_2025w51; Type: TABLE; Schema: public; Owner: your_db_user
+-- Name: price_history_default; Type: TABLE; Schema: public; Owner: your_db_user
 --
 
-CREATE TABLE public.price_history_2025w51 (
+CREATE TABLE public.price_history_default (
     market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
+    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
     price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
     ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
 );
 
 
-ALTER TABLE public.price_history_2025w51 OWNER TO your_db_user;
+ALTER TABLE public.price_history_default OWNER TO your_db_user;
 
 --
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: your_db_user
@@ -232,10 +221,10 @@ ALTER SEQUENCE public.settlements_id_seq OWNED BY public.settlements.id;
 
 
 --
--- Name: price_history_2025w51; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
+-- Name: price_history_default; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
 --
 
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_2025w51 FOR VALUES FROM ('2025-12-15 00:00:00+00') TO ('2025-12-22 00:00:00+00');
+ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_default DEFAULT;
 
 
 --
@@ -285,11 +274,11 @@ ALTER TABLE ONLY public.price_history
 
 
 --
--- Name: price_history_2025w51 price_history_2025w51_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+-- Name: price_history_default price_history_default_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
 --
 
-ALTER TABLE ONLY public.price_history_2025w51
-    ADD CONSTRAINT price_history_2025w51_pkey PRIMARY KEY (market_id, ts);
+ALTER TABLE ONLY public.price_history_default
+    ADD CONSTRAINT price_history_default_pkey PRIMARY KEY (market_id, ts);
 
 
 --
@@ -309,31 +298,10 @@ ALTER TABLE ONLY public.settlements
 
 
 --
--- Name: price_history_2025w51_mid_ts_mid_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
+-- Name: price_history_default_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
 --
 
-CREATE INDEX price_history_2025w51_mid_ts_mid_ts_idx ON public.price_history_2025w51 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_2025w51_ts_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_2025w51_ts_ts_idx ON public.price_history_2025w51 USING btree (ts DESC);
-
-
---
--- Name: price_history_2025w51_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_2025w51_pkey;
-
-
---
--- Name: price_history create_weekly_partition; Type: TRIGGER; Schema: public; Owner: your_db_user
---
-
-CREATE TRIGGER create_weekly_partition BEFORE INSERT ON public.price_history FOR EACH ROW EXECUTE FUNCTION public.ensure_weekly_partition();
+ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_default_pkey;
 
 
 --

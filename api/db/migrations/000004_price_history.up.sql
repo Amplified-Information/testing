@@ -1,98 +1,60 @@
--- ===========================================
--- 1. Parent Partitioned Table
--- ===========================================
-CREATE TABLE price_history (
+-- Create parent table
+CREATE TABLE IF NOT EXISTS price_history (
     market_id UUID NOT NULL,
+    tx_id UUID NOT NULL,
     price NUMERIC(18,10) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (market_id, ts)
-) PARTITION BY RANGE (ts);
+)
+PARTITION BY RANGE (ts);
+CREATE INDEX ON price_history (market_id, ts DESC); -- for faster queries by market and time
 
 
--- ===========================================
--- 2. Create the current ISO week partition
--- ===========================================
+
+
+-- Create pg_partman schema and extension
+CREATE SCHEMA IF NOT EXISTS partman;
+CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA partman;
+
+
+-- Configure pg_partman (native partitions)
 DO $$
-DECLARE
-    -- week_start date := date_trunc('week', now())::date;
-    -- week_end   date := (date_trunc('week', now()) + interval '7 days')::date;
-    week_start date := '2025-12-22'::date; -- intentionally using fixed dates to ensure the initial partition is created for the correct week and for repeatable migrations
-    week_end   date := '2025-12-29'::date;
-    part_name  text := 'price_history_' ||
-                       to_char(week_start, 'IYYY') || 'w' ||
-                       to_char(week_start, 'IW');
 BEGIN
-    EXECUTE format(
-        'CREATE TABLE IF NOT EXISTS %I PARTITION OF price_history
-         FOR VALUES FROM (%L) TO (%L);',
-        part_name, week_start, week_end
-    );
-
-    -- main query index
-    EXECUTE format(
-        'CREATE INDEX IF NOT EXISTS %I_mid_ts_idx
-         ON %I (market_id, ts DESC);',
-        part_name || '_mid_ts', part_name
-    );
-
-    -- global time scan index
-    EXECUTE format(
-        'CREATE INDEX IF NOT EXISTS %I_ts_idx
-         ON %I (ts DESC);',
-        part_name || '_ts', part_name
-    );
-END$$;
-
-
--- ===========================================
--- 3. Auto-create weekly partitions w/ indexes
--- ===========================================
-CREATE OR REPLACE FUNCTION ensure_weekly_partition()
-RETURNS TRIGGER AS $$
-DECLARE
-    week_start date;
-    week_end   date;
-    year_week  text;
-    part_name  text;
-BEGIN
-    week_start := date_trunc('week', NEW.ts)::date;
-    week_end   := (week_start + interval '7 days')::date;
-
-    year_week := to_char(week_start, 'IYYY') || 'w' || to_char(week_start, 'IW');
-    part_name := 'price_history_' || year_week;
-
-    -- Check if partition exists
-    PERFORM 1 FROM pg_class WHERE relname = part_name;
-    IF NOT FOUND THEN
-        -- create partition
-        EXECUTE format(
-            'CREATE TABLE %I PARTITION OF price_history
-             FOR VALUES FROM (%L) TO (%L);',
-            part_name, week_start, week_end
-        );
-
-        -- Index: (market_id, ts DESC)
-        EXECUTE format(
-            'CREATE INDEX %I ON %I (market_id, ts DESC);',
-            part_name || '_mid_ts_idx', part_name
-        );
-
-        -- Index: (ts DESC)
-        EXECUTE format(
-            'CREATE INDEX %I ON %I (ts DESC);',
-            part_name || '_ts_idx', part_name
+    IF NOT EXISTS (
+        SELECT 1
+        FROM partman.part_config
+        WHERE parent_table = 'public.price_history'
+    ) THEN
+        PERFORM partman.create_parent(
+            p_parent_table := 'public.price_history',
+            p_control      := 'created_at',
+            p_interval     := '7 days',
+            p_premake      := 6
         );
     END IF;
+END $$;
 
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Create default partition for out-of-range rows
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_tables
+        WHERE schemaname='public' AND tablename='price_history_default'
+    ) THEN
+        EXECUTE 'CREATE TABLE price_history_default PARTITION OF price_history DEFAULT';
+    END IF;
+END $$;
 
-
--- ===========================================
--- 4. Trigger for automatic weekly partitions
--- ===========================================
-CREATE TRIGGER create_weekly_partition
-BEFORE INSERT ON price_history
-FOR EACH ROW
-EXECUTE FUNCTION ensure_weekly_partition();
+-- Schedule automatic partition maintenance using pg_cron
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_cron') THEN
+        IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname='price_history_maintenance') THEN
+            PERFORM cron.schedule(
+                'price_history_maintenance',
+                '0 * * * *',  -- every hour
+                'SELECT partman.run_maintenance();'
+            );
+        END IF;
+    END IF;
+END $$;

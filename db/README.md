@@ -20,6 +20,16 @@ You can connect with (prompted for password):
 
 `psql -h 127.0.0.1 -d your_db_name -U your_db_user`
 
+## pg_partman
+
+`pg_partman` is used to manage table partitioning (https://github.com/pgpartman/pg_partman)
+
+Configuration is set up in the Dockerfile
+
+Verify it's installed with the following SQL query:
+
+`SELECT * FROM pg_available_extensions WHERE name = 'pg_partman';`
+
 ## postgresql extension
 
 Use the VSCode postgresql extension (`ms-ossdata.vscode-pgsql`) for connecting to the database.

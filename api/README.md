@@ -95,6 +95,18 @@ export PAYLOAD='{"limit":10,"offset":0}'
 grpcurl -plaintext -import-path ./proto -proto api.proto -d $PAYLOAD localhost:$API_PORT api.ApiService.GetMarkets
 ```
 
+Available networks:
+
+```bash
+grpcurl -plaintext -import-path ./proto -proto ./proto/api.proto -d '{}' localhost:8888 api.ApiService/AvailableNetworks
+```
+
+Price history:
+
+```bash
+grpcurl -plaintext -import-path ./proto -proto ./proto/api.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003","net":"testnet","offset":0,"limit":1000,"resolution":"minute","from":"2025-12-30T10:00:00Z","to":"2025-12-30T17:55:00Z"}' localhost:8888 api.ApiService/PriceHistory
+```
+
 ## Database migrations
 
 Use golang-migrate cli tool

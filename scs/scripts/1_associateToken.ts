@@ -10,13 +10,6 @@ const main = async () => {
   try {
     // pre-checks
 
-    // CLI args: contractId, tokenId
-    // const [contractId, tokenId] = process.argv.slice(2)
-    // if (!contractId || !tokenId) {
-    //   console.error('Usage: ts-node associateToken.ts <contractId> <tokenId>\t\t(note: USDC token address: 0.0.5449 | 0.0.31462 )')
-    //   process.exit(1)
-    // }
-
     const contractId = process.env[`${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID`]
     if (!contractId) {
       console.error(`Error: ${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID environment variable is not set.`)

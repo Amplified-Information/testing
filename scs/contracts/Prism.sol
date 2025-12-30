@@ -25,9 +25,7 @@ prism.market prediction market smart contract
 Authors: ionneb
 */
 contract Prism {
-  // USDC on Hedera Mainnet: 0x000000000000000000000000000000000006f89a
-  // USDC on Hedera Testnet: 0x0000000000000000000000000000000000068cda // 0.0.5449
-  // https://www.circle.com/multi-chain-usdc/hedera
+  // For USDC addresses, see: https://www.circle.com/multi-chain-usdc/hedera
   IERC20 public immutable collateralToken;
 
   IHederaTokenService constant HTS = IHederaTokenService(address(0x167));

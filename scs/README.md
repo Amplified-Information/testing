@@ -92,8 +92,12 @@ export SMART_CONTRACT_ID=...
 ```bash
 cd scripts
 
-# associate a token (USD Coin - 0.0.5449) with the smart contract:
-ts-node 1_associateToken.ts $SMART_CONTRACT_ID 0.0.5449
+# PREVIEWNET_USDC_ADDRESS=0.0.296
+# TESTNET_USDC_ADDRESS=0.0.429274
+# MAINNET_USDC_ADDRESS=0.0.456858
+
+# associate a token (USD Coin - 0.0.429274) with the smart contract:
+ts-node 1_associateToken.ts $SMART_CONTRACT_ID 0.0.429274
 
 # call getUserTokens (readonly):
 ts-node 2_getUserTokens.ts $SMART_CONTRACT_ID 0.0.3728074

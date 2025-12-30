@@ -15,7 +15,7 @@ service ApiService {
   rpc GetMarketById(MarketIdRequest) returns (MarketResponse);
   rpc GetMarkets(LimitOffsetRequest) returns (MarketsResponse);
   rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
-  rpc PriceHistory(PriceRequest) returns (PriceHistoryResponse);
+  rpc PriceHistory(PriceHistoryRequest) returns (PriceHistoryResponse);
   rpc AvailableNetworks(Empty) returns (StdResponse);
   // rpc CancelPosition ticket#6
   // rpc UserPositions ticket#7
@@ -75,15 +75,16 @@ message NewMarketRequest {
   string statement = 3    [json_name = "statement", (validate.rules).string = {min_len: 10, max_len: 500}];
 }
 
-message PriceRequest {
-  string market_id = 1 [json_name = "marketId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
-  string net = 2       [json_name = "net",      (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
-  int32 offset = 3     [json_name = "offset",    (validate.rules).int32 = {gte: 0} /* offset in ticks */];
-  int32 limit = 4      [json_name = "limit",     (validate.rules).int32 = {gt: 0, lte: 1000} /* max 1000 ticks per request */];
-  string zoom = 5      [json_name = "zoom",      (validate.rules).string = {in: ["1m", "5m", "15m", "30m", "1h", "6h", "12h", "1d"]} /* zoom levels: 1 minute, 5 minutes, 15 minutes, 30 minutes, 1 hour, 6 hours, 12 hours, 1 day */];
+message PriceHistoryRequest {
+  string market_id = 1    [json_name = "marketId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string net = 2          [json_name = "net",      (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
+  string resolution = 3   [json_name = "resolution",      (validate.rules).string = {in: ["second", "minute", "hour", "day", "week", "month", "quarter", "year", "decade"]} /* zoom levels: postgres truncation */];
+  string from = 4         [json_name = "from", (validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"} /* UTC ISO 8601 (Zulu time only) */];
+  string to = 5           [json_name = "to", (validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"} /* UTC ISO 8601 (Zulu time only) */];
+  optional int32 limit = 6         [json_name = "limit",     (validate.rules).int32 = {gt: 0, lte: 1000} /* max 1000 ticks per request */];
+  optional int32 offset = 7        [json_name = "offset",    (validate.rules).int32 = {gte: 0} /* offset in ticks */];
 }
 
 message PriceHistoryResponse {
   repeated float ticks = 1;
-  string from = 2 [json_name = "from"];
 }

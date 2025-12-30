@@ -143,7 +143,7 @@ func (n *NatsService) HandleOrderMatches() error {
 			log.Printf("Error submitting match to smart contract: %v ", err)
 		}
 		if !isOK {
-			log.Printf("Smart contract did not accept the parameters")
+			log.Printf("BuyPositionTokens returned !isOK for txId=%s, txId=%s", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId)
 		}
 	})
 	if err != nil {

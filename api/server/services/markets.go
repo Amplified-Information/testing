@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 type MarketService struct {
@@ -100,7 +101,86 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 	return marketResponse, nil
 }
 
-func (m *MarketService) PriceHistory(req *pb_api.PriceRequest) (*pb_api.PriceHistoryResponse, error) {
-	// TODO - implement this
-	return nil, fmt.Errorf("Not yet implemented")
+func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.PriceHistoryResponse, error) {
+	// guards
+	from, err := time.Parse(time.RFC3339, req.From)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RFC3339 'from' timestamp: %w", err)
+	}
+	to, err := time.Parse(time.RFC3339, req.To)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RFC3339 'to' timestamp: %w", err)
+	}
+	if to.Before(from) {
+		return nil, fmt.Errorf("'from' must be before 'to'")
+	}
+
+	resolutionDurations := map[string]time.Duration{
+		"second": time.Second,
+		"minute": time.Minute,
+		"hour":   time.Hour,
+		"day":    24 * time.Hour,
+		"week":   7 * 24 * time.Hour,
+	}
+	interval, ok := resolutionDurations[req.Resolution]
+	if !ok {
+		return nil, fmt.Errorf("unsupported resolution: %s", req.Resolution)
+	}
+
+	// --- Enforce max duration based on limit ---
+	limit := int32(1000) // optional, default is 100
+	if req.Limit != nil && *req.Limit > 0 && *req.Limit <= 1000 {
+		limit = *req.Limit
+	}
+	maxDuration := interval * time.Duration(limit)
+	if to.Sub(from) > maxDuration {
+		return nil, fmt.Errorf("time range too large for resolution %s (max %v)", req.Resolution, maxDuration)
+	}
+
+	offset := int32(0) // optional, default is 0
+	if req.Offset != nil && *req.Offset >= 0 {
+		offset = *req.Offset
+	}
+
+	priceHistory, err := m.dbRepository.GetPriceHistory(req.MarketId, from, to, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+
+	ticks := make([]float32, len(priceHistory))
+	for i, p := range priceHistory {
+		priceFloat, _ := strconv.ParseFloat(p, 32) // convert price NUMERIC(18,10) to float32
+		ticks[i] = float32(priceFloat)
+	}
+
+	response := &pb_api.PriceHistoryResponse{
+		Ticks: ticks,
+	}
+	return response, nil
+
+	// paginatedPriceHistory, err := m.dbRepository.GetAggregatedPriceHistory(req.MarketId, req.Limit, req.Offset, req.Zoom)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// // uniformArr := make([]float32, req.Limit)
+	// // for _, ph := range paginatedPriceHistory { // Fill the uniformArr with price data
+	// // 	index := int(ph.Ts.Sub(ts1) / duration) // Determine the index in uniformArr based on the timestamp
+	// // 	if index >= 0 && index < int(req.Limit) {
+	// // 		priceFloat, _ := strconv.ParseFloat(ph.Price, 32) // convert price NUMERIC(18,10) to float32
+	// // 		uniformArr[index] = float32(priceFloat)
+	// // 	}
+	// // }
+
+	// uniformArr := make([]float32, 0, len(paginatedPriceHistory)) // Preallocate capacity for efficiency
+	// for _, ph := range paginatedPriceHistory {
+	// 	uniformArr = append(uniformArr, float32(ph.AvgPrice))
+	// }
+
+	// response := &pb_api.PriceHistoryResponse{
+	// 	Ticks: uniformArr,
+	// 	From:  ts1.Format("2006-01-02T15:04:05Z"),
+	// 	To:    ts2.Format("2006-01-02T15:04:05Z"),
+	// }
+	// return response, nil
 }

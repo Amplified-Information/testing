@@ -12,6 +12,8 @@ interface AppContextType {
   networkSelected: LedgerId
   setNetworkSelected: React.Dispatch<React.SetStateAction<LedgerId>>
   dAppConnector: DAppConnector | undefined
+  networksAvailable: LedgerId[]
+  setNetworksAvailable: React.Dispatch<React.SetStateAction<LedgerId[]>>
   setDappConnector: React.Dispatch<React.SetStateAction<DAppConnector | undefined>>
   signerZero: DAppSigner | undefined
   setSignerZero: React.Dispatch<React.SetStateAction<DAppSigner | undefined>>
@@ -40,6 +42,7 @@ const useAppContext = () => {
 const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [networkSelected, setNetworkSelected] = useState<LedgerId>(LedgerId.TESTNET)
+  const [networksAvailable, setNetworksAvailable] = useState<LedgerId[]>([])
   const [dAppConnector, setDappConnector] = useState<DAppConnector | undefined>(undefined)
   const [signerZero, setSignerZero] = useState<DAppSigner | undefined>(undefined)
   const [isToggled, setIsToggled] = useState<boolean[]>(Array(4).fill(false))
@@ -54,6 +57,8 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoggedIn,
         networkSelected,
         setNetworkSelected,
+        networksAvailable,
+        setNetworksAvailable,
         dAppConnector,
         setDappConnector,
         signerZero,
