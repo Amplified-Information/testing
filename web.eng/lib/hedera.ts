@@ -30,7 +30,7 @@ const getSpenderAllowanceUsd = async (networkSelected: LedgerId, smartContractId
   }
 }
 
-const getUserAccountInfo = async (networkSelected: LedgerId, accountId: string, setUserAccountInfo: React.Dispatch<React.SetStateAction<UserAccountInfo | undefined>>) => {
+const getUserAccountInfo = async (networkSelected: LedgerId, accountId: string) => {
   try {
     const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}`
     const response = await fetch(mirrornode)
@@ -38,7 +38,7 @@ const getUserAccountInfo = async (networkSelected: LedgerId, accountId: string, 
       throw new Error('Network response was not ok')
     }
     const data = await response.json()
-    setUserAccountInfo(data)
+    return data as UserAccountInfo
   } catch (error) {
     console.error('Error fetching allowance:', error)
     throw error

@@ -25,11 +25,12 @@ if (!contractName) {
   process.exit(1)
 }
 
-const [ client, _, networkSelected] = initHederaClient()
+const [ client, networkSelected, _] = initHederaClient()
 
 const smartContractBinaryFn = __dirname + `/../../contracts/out/${contractName}.bin`
 
 const getConstructorParams = () => {
+  console.log(`*** ${networkSelected} selected for deployment ***`)
   const usdcAddress = process.env[`${networkSelected.toString().toUpperCase()}_USDC_ADDRESS`]
   if (!usdcAddress) {
     throw new Error(`Environment variable ${networkSelected.toString().toUpperCase()}_USDC_ADDRESS not set`)

@@ -88,40 +88,11 @@ func (h *HederaService) initHederaNet(networkSelected string) (*hiero.Client, er
 	return client, nil
 }
 
-func (h *HederaService) VerifySig(publicKey *hiero.PublicKey, payloadHex string, sigBase64 string) (bool, error) {
-	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
-	if err != nil {
-		return false, fmt.Errorf("failed to decode signature: %w", err)
-	}
-	sigHex := fmt.Sprintf("%x", sigBytes)
-	sig := make([]byte, len(sigHex)/2)
-	_, err = hex.Decode(sig, []byte(sigHex))
-	if err != nil {
-		return false, fmt.Errorf("Error decoding signature hex: %v", err)
-	}
-
-	payload, err := lib.Hex2utf8(payloadHex)
-	keccak := lib.Keccak256([]byte(payload))
-	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
-
-	// JavaScript equivalent (see: test.ts:55):
-
-	keccak64 := base64.StdEncoding.EncodeToString(keccak) // N.B. this line is required for base64 hashpack encoding
-	keccak64PrefixedStr := lib.PrefixMessageToSign(keccak64)
-
-	// Now verify the signature
-	isValid := publicKey.VerifySignedMessage([]byte(keccak64PrefixedStr), sig)
-	if isValid {
-		return true, nil
-	}
-	return false, fmt.Errorf("Invalid signature")
-}
-
-func (h *HederaService) GetPublicKey(accountId hiero.AccountID) (*hiero.PublicKey, lib.HederaKeyType, error) {
+func (h *HederaService) GetPublicKey(accountId hiero.AccountID, net string) (*hiero.PublicKey, lib.HederaKeyType, error) {
 	keyType := lib.HederaKeyType(0)
 
 	// TODO... may get rate limited here...
-	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", os.Getenv("HEDERA_NETWORK_SELECTED"), accountId)
+	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s", net, accountId)
 	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
 
 	if err != nil {
@@ -386,7 +357,7 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 	log.Printf("sigObjNo (len=%d): %x", len(sigObjNo), sigObjNo)
 
 	contractID, err := hiero.ContractIDFromString(
-		os.Getenv("SMART_CONTRACT_ID"),
+		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(sideYes.Net))),
 	)
 	if err != nil {
 		return false, fmt.Errorf("invalid contract ID: %v", err)

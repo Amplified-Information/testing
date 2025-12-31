@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { isValidUUIDv7 } from '../lib/utils'
 import { useAppContext } from '../AppProvider'
 import { apiClient } from '../grpcClient'
+import Comments from './Comments'
 
 const Market = () => {
   const navigate = useNavigate()
@@ -18,9 +19,10 @@ const Market = () => {
       return
     }
     (async () => {
-      const result = await apiClient.getMarketById({ marketId: marketId!, net: networkSelected .toString().toLowerCase()})
+      const result = await apiClient.getMarketById({ marketId: marketId!})
       const market = result.response
       setMarket(market)
+      console.log(market)
     })()
   }, [marketId, networkSelected])
   
@@ -28,7 +30,7 @@ const Market = () => {
     <div>
       <div className={'text-center'}>
         <h3>{}</h3>
-        marketId: <b>{marketId}</b>
+        <span className={`${market?.isOpen ? '' : 'line-through'}`}>marketId: <b>{marketId}</b> ({market?.net.toString()})</span>
         <br/>
         "{market?.statement}"
       </div>
@@ -37,9 +39,13 @@ const Market = () => {
           <PlacePrediction />
         </div> */}
       
-        <div style={{ flex: 1, marginLeft: '20px' }}>
+        <div style={{ flex: 0.5, marginLeft: '20px' }}>
           <h2>Order Book</h2>
           <OrderBook marketId={marketId!} />
+
+        </div>
+        <div style={{ flex: 1, marginLeft: '20px' }}>
+          <Comments marketId={marketId!} />
         </div>
         <div style={{ flex: 1, marginLeft: '20px' }}>
           <Signer marketId={marketId!} />

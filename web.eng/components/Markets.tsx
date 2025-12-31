@@ -21,7 +21,8 @@ const Markets = () => {
     <>
       {markets.map(market => (
         <div>
-          <a className={'cursor-pointer underline text-blue-700'} key={market.marketId} onClick={() => navigate(`/market/${market.marketId}`)}><b>"{market.statement}"</b></a>
+            <a className={'cursor-pointer underline text-blue-700'} key={market.marketId} onClick={() => navigate(`/market/${market.marketId}`)}>
+            <span className={`inline-block w-2 h-2 rounded-full mr-2 ${market.isOpen ? 'bg-green-500' : 'bg-red-500'}`}></span><b>"{market.statement}"</b></a>
         </div>
       ))}
     </>

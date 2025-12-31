@@ -13,6 +13,9 @@ const initHederaClient = (
   // operatorAccountId: string | AccountId,
   // operatorKeyType: HederaKeyType
 ): [ Client, HederaNetwork, PrivateKey ] => {
+  if (!process.env.HEDERA_NETWORK_SELECTED) {
+    throw new Error('HEDERA_NETWORK_SELECTED not set in environment variables')
+  }
   const network: HederaNetwork = process.env.HEDERA_NETWORK_SELECTED as 'testnet' | 'mainnet' | 'previewnet'
   const accountId: string = process.env[`${network.toUpperCase()}_HEDERA_OPERATOR_ID`] as string
   const keyType: HederaKeyType = process.env[`${network.toUpperCase()}_HEDERA_OPERATOR_KEY_TYPE`] as HederaKeyType

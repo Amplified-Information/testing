@@ -17,10 +17,11 @@ service ApiService {
   rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
   rpc PriceHistory(PriceHistoryRequest) returns (PriceHistoryResponse);
   rpc AvailableNetworks(Empty) returns (StdResponse);
+  // rpc AddComment ticket#27
+  rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
+  rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse);
   // rpc CancelPosition ticket#6
   // rpc UserPositions ticket#7
-  // rpc AddComment ticket#27
-  // rpc ViewComments ticket#27
 }
 
 message Empty {}
@@ -48,7 +49,6 @@ message StdResponse {
 
 message MarketIdRequest {
   string market_id = 1 [json_name = "marketId",     (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
-  string net = 2       [json_name = "net",          (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
 }
 
 message LimitOffsetRequest {
@@ -87,4 +87,37 @@ message PriceHistoryRequest {
 
 message PriceHistoryResponse {
   repeated float ticks = 1;
+}
+
+message GetCommentsRequest {
+  string market_id = 1      [json_name = "marketId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  optional int32 limit = 2  [json_name = "limit",     (validate.rules).int32 = {gt: 0, lte: 100} /* max 100 comments per request */];
+  optional int32 offset = 3 [json_name = "offset",    (validate.rules).int32 = {gte: 0} /* offset in comments */];
+}
+
+message Comment {
+  string comment_id = 1    [json_name = "commentId"];
+  string account_id = 3    [json_name = "accountId"];
+  string content = 4       [json_name = "content"];
+  string sig = 5           [json_name = "sig"];
+  string public_key = 7    [json_name = "publicKey"];
+  uint32 key_type = 8      [json_name = "keyType"];
+  string created_at = 6    [json_name = "createdAt"];
+}
+
+message GetCommentsResponse {
+  repeated Comment comments = 1;
+}
+
+message CreateCommentRequest {
+  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string account_id = 2   [json_name = "accountId",   (validate.rules).string = {pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"} /* Hedera account ID (no leading zeros) */];
+  string content = 3      [json_name = "content",     (validate.rules).string = {min_len: 1, max_len: 1000}];
+  string sig = 4          [json_name = "sig",         (validate.rules).string = {pattern: "^[A-Za-z0-9+/]{20,100}={0,2}$"} /* base64-encoded signature (URL-safe base64 without padding, min 20 chars, max 100 chars) */];
+  string public_key = 5   [json_name = "publicKey",   (validate.rules).string = {pattern: "^(04|03|02)[0-9a-fA-F]{32,256}$"} /* uncompressed (04...) or compressed (02... or 03...) public key (ed25519, ecdsa, etc.) in hex format */];
+  uint32 key_type = 6     [json_name = "keyType",     (validate.rules).uint32 = {in: [1, 2]} /* 1 = ed25519, 2 = ecdsa_secp256k1 */];
+}
+
+message CreateCommentResponse {
+  Comment comment = 1;
 }

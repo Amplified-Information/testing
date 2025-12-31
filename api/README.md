@@ -107,6 +107,16 @@ Price history:
 grpcurl -plaintext -import-path ./proto -proto ./proto/api.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003","net":"testnet","offset":0,"limit":1000,"resolution":"minute","from":"2025-12-30T10:00:00Z","to":"2025-12-30T17:55:00Z"}' localhost:8888 api.ApiService/PriceHistory
 ```
 
+Get comments:
+```bash
+grpcurl -plaintext -import-path ./proto -proto ./proto/api.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003","offset":0,"limit":1000}' localhost:8888 api.ApiService/GetComments
+```
+
+Add a comment:
+```bash
+grpcurl -plaintext -import-path ./proto -proto ./proto/api.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000003","accountId":"0.0.1234","content":"Hello, world","sig":"some_sig_here","publicKey":"public_key_here","keyType":1}' localhost:8888 api.ApiService/CreateComment
+```
+
 ## Database migrations
 
 Use golang-migrate cli tool

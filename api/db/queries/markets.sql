@@ -8,6 +8,6 @@ ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CreateMarket :one
-INSERT INTO markets (market_id, statement, is_open, created_at, resolved_at)
-VALUES ($1, $2, TRUE, CURRENT_TIMESTAMP, NULL)
+INSERT INTO markets (market_id, net, statement, is_open, created_at, resolved_at)
+VALUES ($1, $2, $3, TRUE, CURRENT_TIMESTAMP, NULL)
 RETURNING *;

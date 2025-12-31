@@ -7,7 +7,9 @@ cd db
 mkdir -p /mnt/external/postgresdata
 
 source ./loadEnv.sh local
-docker run --rm -it -p 5432:5432 -e POSTGRES_USER=$DB_UNAME -e POSTGRES_PASSWORD=$DB_PWORD -e POSTGRES_DB=$DB_NAME -v /mnt/external/postgresdata:/var/lib/postgresql postgres:18
+# docker run --rm -it -p 5432:5432 -e POSTGRES_USER=$DB_UNAME -e POSTGRES_PASSWORD=$DB_PWORD -e POSTGRES_DB=$DB_NAME -v /mnt/external/postgresdata:/var/lib/postgresql postgres:18
+export VERSION=0.1.0
+docker run -p 5432:5432 -e POSTGRES_USER=$DB_UNAME -e POSTGRES_PASSWORD=$DB_PWORD -e POSTGRES_DB=$DB_NAME -v /mnt/external/postgresdata:/var/lib/postgresql ghcr.io/prismmarketlabs/db:$VERSION
 ```
 
 ## postgres cli client

@@ -27,7 +27,7 @@ BEGIN
     ) THEN
         PERFORM partman.create_parent(
             p_parent_table := 'public.price_history',
-            p_control      := 'created_at',
+            p_control      := 'ts',
             p_interval     := '7 days',
             p_premake      := 6
         );

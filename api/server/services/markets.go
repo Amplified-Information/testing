@@ -93,6 +93,7 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 
 	marketResponse := &pb_api.MarketResponse{
 		MarketId:   market.MarketID.String(),
+		Net:        market.Net,
 		Statement:  market.Statement,
 		IsOpen:     market.IsOpen,
 		CreatedAt:  createdAt,

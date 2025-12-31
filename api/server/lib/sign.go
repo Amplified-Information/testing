@@ -1,7 +1,10 @@
 package lib
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"math"
 	"math/big"
 	"strings"
@@ -191,4 +194,33 @@ func FloatToBigIntScaledDecimals(value float64, nDecimals int) (*big.Int, error)
 	}
 
 	return scaledValueBigInt, nil
+}
+
+func VerifySig(publicKey *hiero.PublicKey, payloadHex string, sigBase64 string) (bool, error) {
+	sigBytes, err := base64.StdEncoding.DecodeString(sigBase64)
+	if err != nil {
+		return false, fmt.Errorf("failed to decode signature: %w", err)
+	}
+	sigHex := fmt.Sprintf("%x", sigBytes)
+	sig := make([]byte, len(sigHex)/2)
+	_, err = hex.Decode(sig, []byte(sigHex))
+	if err != nil {
+		return false, fmt.Errorf("Error decoding signature hex: %v", err)
+	}
+
+	payload, err := Hex2utf8(payloadHex)
+	keccak := Keccak256([]byte(payload))
+	log.Printf("keccak (hex) calc'd on back-end: %x", keccak)
+
+	// JavaScript equivalent (see: test.ts:55):
+
+	keccak64 := base64.StdEncoding.EncodeToString(keccak) // N.B. this line is required for base64 hashpack encoding
+	keccak64PrefixedStr := PrefixMessageToSign(keccak64)
+
+	// Now verify the signature
+	isValid := publicKey.VerifySignedMessage([]byte(keccak64PrefixedStr), sig)
+	if isValid {
+		return true, nil
+	}
+	return false, fmt.Errorf("Invalid signature")
 }

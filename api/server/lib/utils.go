@@ -139,6 +139,11 @@ func IsValidKeyType(n uint32) bool {
 	return ok
 }
 
+func IsValidAccountId(accountId string) bool {
+	_, err := hiero.AccountIDFromString(accountId)
+	return err == nil
+}
+
 func PublicKeyForKeyType(publicKeyHex string, keyType HederaKeyType) (*hiero.PublicKey, error) {
 	publicKey := hiero.PublicKey{}
 	switch keyType {

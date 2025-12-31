@@ -19,9 +19,11 @@ type server struct {
 	pb_api.UnimplementedApiServiceServer
 	dbRepository repositories.DbRepository
 
-	prismService   services.Prism
-	natsService    services.NatsService
-	marketsService services.MarketService
+	prismService    services.Prism
+	natsService     services.NatsService
+	marketsService  services.MarketService
+	commentsService services.CommentsService
+	// don't forget to register in RegisterApiServiceServer grpc call in main()
 }
 
 func (s *server) Health(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
@@ -65,6 +67,16 @@ func (s *server) PriceHistory(ctx context.Context, req *pb_api.PriceHistoryReque
 func (s *server) AvailableNetworks(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
 	result, err := s.prismService.AvailableNetworks()
 	return result, err
+}
+
+func (s *server) GetComments(ctx context.Context, req *pb_api.GetCommentsRequest) (*pb_api.GetCommentsResponse, error) {
+	comments, err := s.commentsService.GetComments(req)
+	return comments, err
+}
+
+func (s *server) CreateComment(ctx context.Context, req *pb_api.CreateCommentRequest) (*pb_api.CreateCommentResponse, error) {
+	commentResp, err := s.commentsService.CreateComment(req)
+	return commentResp, err
 }
 
 func main() {
@@ -145,6 +157,13 @@ func main() {
 		log.Fatalf("Failed to initialize Markets service: %v", err)
 	}
 
+	// initialize Comments service
+	commentsService := services.CommentsService{}
+	err = commentsService.Init(&dbRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize Comments service: %v", err)
+	}
+
 	// initialize NATS
 	natsService := services.NatsService{}
 	err = natsService.InitNATS(&hederaService, &dbRepository)
@@ -167,7 +186,7 @@ func main() {
 		log.Fatalf("Failed to initialize Price service: %v", err)
 	}
 
-	// sNow start gRPC service
+	// Now start gRPC service
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT")))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -181,9 +200,10 @@ func main() {
 	pb_api.RegisterApiServiceServer(grpcServer, &server{
 		dbRepository: dbRepository,
 
-		prismService:   prismService,
-		natsService:    natsService,
-		marketsService: marketsService,
+		prismService:    prismService,
+		natsService:     natsService,
+		marketsService:  marketsService,
+		commentsService: commentsService,
 	})
 
 	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT"))

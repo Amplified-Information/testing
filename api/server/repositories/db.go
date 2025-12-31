@@ -10,6 +10,7 @@ import (
 	pb_api "api/gen"
 	pb_clob "api/gen/clob"
 	sqlc "api/gen/sqlc"
+	"api/server/lib"
 
 	"time"
 
@@ -246,8 +247,6 @@ func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Tim
 		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
 	}
 
-	log.Printf("MarketId = %s, from = %s, to = %s, Limit = %d, Offet = %d", marketId, from, to, limit, offset)
-
 	q := sqlc.New(dbRepository.db)
 	priceHistory, err := q.GetPriceHistorySafer(context.Background(), sqlc.GetPriceHistorySaferParams{
 		MarketID: marketUUID,
@@ -259,8 +258,6 @@ func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Tim
 	if err != nil {
 		return nil, fmt.Errorf("GetAggregatedPriceHistory failed: %v", err)
 	}
-
-	log.Printf("Fetched %d price history records from database", len(priceHistory))
 
 	return priceHistory, nil
 }
@@ -324,4 +321,72 @@ func (dbRepository *DbRepository) CreateSettlement(txIdUuid1 string, txIdUuid2 s
 	}
 
 	return nil
+}
+
+func (dbRepository *DbRepository) GetCommentsByMarketId(marketId string, limit int32, offset int32) (*pb_api.GetCommentsResponse, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	marketUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	q := sqlc.New(dbRepository.db)
+	rows, err := q.GetCommentsByMarketId(context.Background(), sqlc.GetCommentsByMarketIdParams{
+		MarketID: marketUUID,
+		Limit:    limit,
+		Offset:   offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetCommentsByMarketId failed: %v", err)
+	}
+
+	var resonseObject pb_api.GetCommentsResponse
+	for _, row := range rows {
+		commentResponse := &pb_api.Comment{
+			AccountId: row.AccountID,
+			Content:   row.Content,
+			Sig:       row.Sig,
+			PublicKey: row.PublicKey,
+			KeyType:   uint32(row.KeyType),
+			CreatedAt: row.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		}
+		resonseObject.Comments = append(resonseObject.Comments, commentResponse)
+	}
+
+	return &resonseObject, nil
+}
+
+func (dbRepository *DbRepository) CreateComment(marketId string, accountId string, content string, sig string, publicKey string, keyType uint32) (*sqlc.AddCommentRow, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	marketUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	if !lib.IsValidAccountId(accountId) {
+		return nil, fmt.Errorf("invalid accountId: %s", accountId)
+	}
+
+	params := sqlc.AddCommentParams{
+		MarketID:  marketUUID,
+		AccountID: accountId,
+		Content:   content,
+		Sig:       sig,
+		PublicKey: publicKey,
+		KeyType:   int32(keyType),
+	}
+
+	q := sqlc.New(dbRepository.db)
+	row, err := q.AddComment(context.Background(), params)
+	if err != nil {
+		return nil, fmt.Errorf("AddComment failed: %v", err)
+	}
+
+	log.Printf("Added comment to database for market %s by account %s", marketId, accountId)
+	return &row, nil
 }

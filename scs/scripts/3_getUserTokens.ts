@@ -15,13 +15,18 @@ import { getEvmAddress, uuid7_to_uint128 } from './lib/utils.ts'
 const [ client, networkSelected ] = initHederaClient()
 
 const main = async () => {
-  // CLI args: contractId, userAccountEvmAddress
-  const [contractId, marketId_uuid7, accountId] = process.argv.slice(2)
-  if (!contractId || !marketId_uuid7 || !accountId) {
-    console.error(`Usage: ts-node getUserTokens.ts <contractId> <marketId_uuid7> <accountId>\t\t(note: current operator account id = ${client.operatorAccountId})`)
+  const [marketId_uuid7, accountId] = process.argv.slice(2)
+  if (!marketId_uuid7 || !accountId) {
+    console.error(`Usage: ts-node getUserTokens.ts <marketId_uuid7> <accountId>\t\t(note: current operator account id = ${client.operatorAccountId})`)
     process.exit(1)
   }
   const marketIdBigInt = uuid7_to_uint128(marketId_uuid7)
+
+  const contractId = process.env[`${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID`]
+  if (!contractId) {
+    console.error(`Error: ${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID environment variable is not set.`)
+    process.exit(1)
+  }
 
   console.log(`Calling getUserTokens(${marketId_uuid7}/${marketIdBigInt.toString()}) on contract ${contractId} (${ContractId.fromString(contractId).toEvmAddress()})`)
   // console.log(uuid7_to_uint128('019a7e77-39e2-72a3-9bea-a63bdfa79d21').toString())

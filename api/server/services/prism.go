@@ -25,15 +25,15 @@ type Prism struct {
 	hederaService *HederaService
 }
 
-func (h *Prism) InitPrism(dbRepository *repositories.DbRepository, natsService *NatsService, hederaService *HederaService) {
-	h.dbRepository = dbRepository
-	h.natsService = natsService
-	h.hederaService = hederaService
+func (p *Prism) InitPrism(dbRepository *repositories.DbRepository, natsService *NatsService, hederaService *HederaService) {
+	p.dbRepository = dbRepository
+	p.natsService = natsService
+	p.hederaService = hederaService
 
 	log.Println("Prism service initialized successfully")
 }
 
-func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (string, error) {
+func (p *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (string, error) {
 	/////
 	// validations
 	/////
@@ -78,7 +78,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	if err != nil {
 		return "", fmt.Errorf("invalid txId uuid: %v", err)
 	}
-	exists, err := h.dbRepository.IsDuplicateTxId(txUUID)
+	exists, err := p.dbRepository.IsDuplicateTxId(txUUID)
 	if err != nil {
 		return "", fmt.Errorf("failed to check existing txId: %v", err)
 	}
@@ -94,7 +94,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 
 	// First look up the Hedera accountId against the mirror node
-	publicKeyLookedUp, keyTypeLookedUp, err := h.hederaService.GetPublicKey(accountId)
+	publicKeyLookedUp, keyTypeLookedUp, err := p.hederaService.GetPublicKey(accountId, netSelectedByUser)
 	if err != nil {
 		return "", fmt.Errorf("failed to get public key: %v", err)
 	}
@@ -128,7 +128,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	payloadUtf8 := payloadHex // Yes, this is intentional
 	log.Printf("payloadUtf8: %s", payloadUtf8)
 
-	isValidSig, err := h.hederaService.VerifySig(&publicKey, payloadUtf8, req.Sig)
+	isValidSig, err := lib.VerifySig(&publicKey, payloadUtf8, req.Sig)
 	if err != nil {
 		log.Printf("Failed to verify signature: %v", err)
 		return "", fmt.Errorf("failed to verify signature: %v", err)
@@ -154,7 +154,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 		return "", fmt.Errorf("failed to validate %s_USDC_ADDRESS: %v", strings.ToUpper(netSelectedByUser), err)
 	}
 
-	spenderAllowanceUsd, err := h.hederaService.GetSpenderAllowanceUsd(*_networkSelected, accountId, _smartContractId, usdcAddress, usdcDecimals)
+	spenderAllowanceUsd, err := p.hederaService.GetSpenderAllowanceUsd(*_networkSelected, accountId, _smartContractId, usdcAddress, usdcDecimals)
 	if err != nil {
 		return "", fmt.Errorf("failed to get spender allowance: %v", err)
 	}
@@ -168,7 +168,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	/// Now you can (attempt to) put the order on the CLOB (subject to on-chain sig verification)
 
 	// store the OrderRequest in the database - the txid must be unique or this fails
-	_, err = h.dbRepository.SaveOrderRequest(req)
+	_, err = p.dbRepository.SaveOrderRequest(req)
 	if err != nil {
 		return "", fmt.Errorf("database error: failed to save order request: %v", err)
 	}
@@ -198,7 +198,7 @@ func (h *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	}
 
 	// Publish the message to NATS:
-	err = h.natsService.Publish(lib.SUBJECT_CLOB_ORDERS, clobRequestJSON)
+	err = p.natsService.Publish(lib.SUBJECT_CLOB_ORDERS, clobRequestJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to publish to NATS: %v", err)
 	}

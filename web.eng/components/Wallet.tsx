@@ -41,7 +41,11 @@ const Wallet = () => {
 
   useEffect(() => {
     if (signerZero === undefined) return
-    getUserAccountInfo(networkSelected, signerZero.getAccountId().toString(), setUserAccountInfo)
+    ;(async () => {
+      console.log('Fetching user account info for signerZero...')
+      const uai = await getUserAccountInfo(networkSelected, signerZero.getAccountId().toString())
+      setUserAccountInfo(uai)
+    })()
   }, [networkSelected, signerZero])
 
   const updateSpenderAllowance = async () => {

@@ -67,6 +67,16 @@ const assemblePayloadHexForSigning = (predictionIntentRequest: PredictionIntentR
   return packedHex
 }
 
+const keyTypeToInt = (keyType: string): number => {
+  /* 1 = ed25519, 2 = ecdsa_secp256k1 */
+  // see: api.proto
+  switch (keyType) {
+    case 'ED25519': return 1
+    case 'ECDSA_SECP256K1': return 2
+    default: throw new Error(`Unsupported key type: ${keyType}`)
+  }
+}
+
 export {
   uint8ToBase64,
   // uint8ToHex,
@@ -75,5 +85,6 @@ export {
   floatToBigIntScaledDecimals,
   uuidToBigInt,
   isValidUUIDv7,
-  assemblePayloadHexForSigning
+  assemblePayloadHexForSigning,
+  keyTypeToInt
 }

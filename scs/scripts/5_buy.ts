@@ -27,27 +27,22 @@ import {
   PublicKey
 } from '@hashgraph/sdk'
 import { initHederaClient } from './lib/hedera.ts'
-import { netConf, networkSelected, operatorAccountId, operatorKeyType } from './constants.ts'
 import { buildSignatureMap } from './lib/utils.ts'
 import { payloadHex2components } from './lib/utils.ts'
 import { keccak256 } from 'ethers'
 import { prefixMessageToSign } from './lib/utils.ts'
 
-const [ client, _ ] = initHederaClient(
-  networkSelected,
-  operatorAccountId,
-  operatorKeyType
-)
+const [ client, networkSelected, _ ] = initHederaClient()
 
 const main = async () => {
   // CLI args: contractId, amount
-  const [contractId, payloadHex, sigRawHex, publicKeyHex] = process.argv.slice(2)
-  if (!contractId || !payloadHex || !sigRawHex || !publicKeyHex) {
-    console.error('Usage: ts-node buy.ts <contractId> <payloadHex> <sigRawHex> <publicKeyHex>')
-    console.error('Example usage: ts-node buy.ts $SMART_CONTRACT_ID $PAYLOAD_HEX $SIG_RAW_HEX $PUBLIC_KEY')
+  const [payloadHex, sigRawHex, publicKeyHex] = process.argv.slice(2)
+  if (!payloadHex || !sigRawHex || !publicKeyHex) {
+    console.error('Usage: ts-node buy.ts <payloadHex> <sigRawHex> <publicKeyHex>')
+    console.error('Example usage: ts-node buy.ts $PAYLOAD_HEX $SIG_RAW_HEX $PUBLIC_KEY')
     process.exit(1)
   }
-  // const payloadHex = '0000000000000000000000000000000000000000000000000000000000000f4240440a1d7af93b92920bce50b4c0d2a8e6dcfebfd60189c0a87e807e808000000000000003019b47ae68cd7586abcd2a72aa54e746'
+  
   const [buySell, collateralUsdAbsScaled, evmAddr, marketId, txId] = payloadHex2components(payloadHex)
   console.log(`buySell: ${buySell}, collateralUsdAbsScaled: ${collateralUsdAbsScaled}, evmAddr: ${evmAddr.toString()}, marketId: ${marketId.toString(16)}, txId: ${txId.toString(16)}`)
   console.log('\n\n')
@@ -55,6 +50,12 @@ const main = async () => {
   const operatorPublicKey = PublicKey.fromString(publicKeyHex)
   const account = client.operatorPublicKey!.toEvmAddress() 
   console.log(`account: ${operatorPublicKey.toString()}`)
+
+  const contractId = process.env[`${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID`]
+  if (!contractId) {
+    console.error(`Error: ${networkSelected.toString().toUpperCase()}_SMART_CONTRACT_ID environment variable is not set.`)
+    process.exit(1)
+  }
   
   // TODO - retrieve ECDSA or ED25519 from userAccountInfo on mirror node
   const sigObj = Buffer.from(buildSignatureMap(operatorPublicKey, Buffer.from(sigRawHex, 'hex'), 'ECDSA'))
@@ -123,8 +124,21 @@ const main = async () => {
     process.exit(1)
   }
 
-  console.log(`netConf[${networkSelected}].usdcContractId: ${netConf[networkSelected].usdcContractId}`)
   console.log(`contractId: ${contractId} - ${ContractId.fromString(contractId).toEvmAddress()}`)
+
+
+
+
+
+  const usdcContractId = process.env[`${networkSelected.toString().toUpperCase()}_USDC_ADDRESS`]
+  if (!usdcContractId) {
+    console.error(`Error: ${networkSelected.toString().toUpperCase()}_USDC_ADDRESS environment variable is not set.`)
+    process.exit(1)
+  }
+  console.log(`Using USDC contractId (${networkSelected.toString()}): ${usdcContractId} - ${ContractId.fromString(usdcContractId).toEvmAddress()}`)
+
+
+
 
   try {
     // const nPositionTokensBig = BigInt(nPositionTokens)
@@ -132,7 +146,7 @@ const main = async () => {
     
     // 1. Approve the PredictionMarket contract to spend user's USDC collateral tokens (x2)
     const approveTx = await new ContractExecuteTransaction()
-      .setContractId(ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress())
+      .setContractId(ContractId.fromString(usdcContractId).toEvmAddress())
       .setGas(10_000_000)
       .setFunction('approve', // approve inherited from ERC20 
         new ContractFunctionParameters()
@@ -146,7 +160,7 @@ const main = async () => {
   
     // 2) verify allowance (optional)
     const allowanceQuery = await new ContractCallQuery()
-      .setContractId(ContractId.fromString(netConf[networkSelected].usdcContractId).toEvmAddress())
+      .setContractId(ContractId.fromString(usdcContractId).toEvmAddress())
       .setGas(100_000)
       .setFunction('allowance', // allowance inherited from ERC20
         new ContractFunctionParameters()
@@ -155,7 +169,7 @@ const main = async () => {
       .execute(client)
 
     const allowance = allowanceQuery.getUint256(0).toString()
-    console.log(`allowance now [${netConf[networkSelected].usdcDecimals} decimals]: ${allowance}`)
+    console.log(`allowance now [including decimals]: ${allowance}`)
 
     // 3) buy outcome tokens (msg.sender must be token holder)
     // const buyTx = await new ContractExecuteTransaction()
