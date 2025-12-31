@@ -26,6 +26,13 @@ variable "aws_az" {
 }
 output "aws_az" { value = var.aws_az }
 
+variable "aws_az_2" {
+  description = "The AWS availability zone (HA placeholder)"
+  type        = string
+  default     = "us-east-1b"
+}
+output "aws_az_2" { value = var.aws_az_2 }
+
 variable "eip" {
   description = "The Elastic IP for the environment"
   type        = string
@@ -261,6 +268,8 @@ redeploy_if_changed() {
 
   echo "Changes detected in Docker Compose files. Redeploying..."
   
+  # first pull latest images
+  docker compose pull
   # Deploy with docker compose
   docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
 }
@@ -365,6 +374,16 @@ resource "aws_subnet" "public" {
   cidr_block              = "10.0.0.0/24"
   ipv6_cidr_block          = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 0) # first /64 from VPC
   availability_zone       = var.aws_az
+  map_public_ip_on_launch = true
+
+  tags = { Name = "${var.env}-public-subnet" }
+}
+
+resource "aws_subnet" "public_2" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  ipv6_cidr_block          = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 2) # third /64 from VPC
+  availability_zone       = var.aws_az_2
   map_public_ip_on_launch = true
 
   tags = { Name = "${var.env}-public-subnet" }
@@ -827,6 +846,11 @@ output "allow_bastion_db_id" {
 output "aws_subnet_public_id" {
   description = "ID of the public subnet"
   value       = aws_subnet.public.id
+}
+
+output "aws_subnet_public_id_2" {
+  description = "ID of the second public subnet (placeholder for HA)"
+  value       = aws_subnet.public_2.id
 }
 
 output "aws_subnet_private_id" {

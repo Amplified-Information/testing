@@ -9,7 +9,7 @@ FROM node:24 AS build
 
 WORKDIR /app/web
 
-COPY package*.json ./
+COPY ./web.eng/package*.json ./
 
 RUN npm install
 
