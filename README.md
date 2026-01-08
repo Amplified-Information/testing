@@ -32,19 +32,19 @@ docker compose -f docker-compose-monolith.yml up -d
 
 Access the application at:
 
-| Environment | URI                        |
-|-------------|----------------------------|
-| `local`     | http://localhost:8090      |
-| `dev`       | https://dev.prism.market   |
-| `uat`       | https://uat.prism.market   |
-| ...         | ...                        |
-| `prod`      | https://prism.market       |
+| Environment | URI                        | Password? |
+|-------------|----------------------------|-----------|
+| `local`     | http://localhost:8090      | Y         |
+| `dev`       | https://dev.prism.market   | Y         |
+| `uat`       | https://uat.prism.market   | Y         |
+| ...         | ...                        |           |
+| `prod`      | https://prism.market       | N         |
 
 ## Quickstart (local machine)
 
 Develop the application locally:
 
-- `db`: see db/README.md
+- `db`: see [db/README.md](db/README.md)
 - `eventbus`: see [eventbus/README.md](eventbus/README.md)
 - `api`: see [api/README.md](api/README.md)
 - `clob`: see [clob/README.md](clob/README.md)
@@ -53,7 +53,7 @@ Develop the application locally:
 
 ## yaak/Postman
 
-Please use [yaak](https://yaak.app/) for graphical requests to the following services:
+Please use [yaak](https://yaak.app/) (gRPC protocol) for graphical requests to the following services:
 
 - `api`
 - `clob`
@@ -186,9 +186,10 @@ There is an **intentional separation** between **configuration** (`.config.ENV`)
 1. tag the image
 2. update the VERSIONS file
 3. update the docker-compose-<SERVICE>.<ENV>.yml file
+4. push the source code
+5. login to the box (via bastion) and refresh the running image
 
-
-1. tag the image
+### 1. tag the image
 
 View all the images here: https://github.com/orgs/PrismMarketLabs/packages
 
@@ -214,18 +215,34 @@ docker images | grep $IMAGE
 docker push $IMAGE:$VER_DST
 ```
 
-2. update the VERSIONS file
+### 2. update the VERSIONS file
 
 Update the VERSION file with a short description of the change
 
 *Note: never add a VERSIONS to web.eng*
 
 
-3. update the docker-compose-<SERVICE>.<ENV>.yml file
+### 3. update the docker-compose-<SERVICE>.<ENV>.yml file
 
 And update the docker-compose-<SERVICE>.<ENV>.yml with the new version.
 
+### 4. push the source code
 
+`git add .`
+
+`git commit -m"..."`
+
+`git push`
+
+### 5. login to the box (via bastion) and refresh the running image
+
+```bash
+./0_pull_latest.sh
+source ./1_loadEnvVars.sh
+./2_dockerComposeUp.sh
+# may need to:
+docker compose restart
+```
 
 ### AWS secrets
 

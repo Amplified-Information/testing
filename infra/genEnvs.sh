@@ -40,7 +40,7 @@ echo "Generated gen/prod/main.tf"
 
 # Finally, link shared 
 cd gen
-ln -sf ../shared shared || true
+ln -sf ../shared . || true
 cd ..
 
 echo ""
