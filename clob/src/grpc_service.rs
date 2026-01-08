@@ -3,7 +3,9 @@ use tonic::{Request, Response, Status};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio::sync::mpsc;
 use crate::orderbook::OrderBookService;
-use crate::orderbook::proto::{OrderRequestClob, StdResponse, BookRequest, BookSnapshot, clob_server::{Clob, ClobServer}};
+use crate::orderbook::proto::clob_internal_server::ClobInternalServer;
+use crate::orderbook::proto::clob_public_server::ClobPublicServer;
+use crate::orderbook::proto::{OrderRequestClob, StdResponse, BookRequest, BookSnapshot, clob_public_server::{ClobPublic}, clob_internal_server::{ClobInternal}};
 
 #[derive(Debug, Clone)]
 pub struct ClobService {
@@ -17,18 +19,7 @@ impl ClobService {
 }
 
 #[tonic::async_trait]
-impl Clob for ClobService {
-    async fn health(
-        &self,
-        _request: Request<crate::orderbook::proto::Empty>,
-    ) -> Result<Response<StdResponse>, Status> {
-        let response = StdResponse {
-            message: "OK".to_string(),
-            error_code: 0,
-        };
-        Ok(Response::new(response))
-    }
-
+impl ClobInternal for ClobService {
     async fn place_order(
         &self,
         request: Request<OrderRequestClob>,
@@ -45,6 +36,45 @@ impl Clob for ClobService {
             error_code: 0,
         };
 
+        Ok(Response::new(response))
+    }
+
+    async fn add_market(
+        &self,
+        request: Request<crate::orderbook::proto::MarketRequest>,
+    ) -> Result<Response<crate::orderbook::proto::StdResponse>, Status> {
+        
+        // Guards
+        let inner = request.into_inner();
+        
+        let result = self.order_book_service.add_market(inner.market_id.clone(), inner.net.clone()).await;
+        
+        match result {
+            Ok(success) if success => (),
+            _ => {
+                log::error!("Failed to add market");
+                return Err(Status::internal("Failed to add market. Does the market already exist?"));
+            }
+        }
+        let response = crate::orderbook::proto::StdResponse {
+            message: "success".to_string(),
+            error_code: 0,
+        };
+
+        Ok(Response::new(response))
+    }
+}
+
+#[tonic::async_trait]
+impl ClobPublic for ClobService {
+    async fn health(
+        &self,
+        _request: Request<crate::orderbook::proto::Empty>,
+    ) -> Result<Response<StdResponse>, Status> {
+        let response = StdResponse {
+            message: "OK".to_string(),
+            error_code: 0,
+        };
         Ok(Response::new(response))
     }
 
@@ -95,31 +125,6 @@ impl Clob for ClobService {
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
-    
-    async fn add_market(
-        &self,
-        request: Request<crate::orderbook::proto::MarketRequest>,
-    ) -> Result<Response<crate::orderbook::proto::StdResponse>, Status> {
-        
-        // Guards
-        let inner = request.into_inner();
-        
-        let result = self.order_book_service.add_market(inner.market_id.clone(), inner.net.clone()).await;
-        
-        match result {
-            Ok(success) if success => (),
-            _ => {
-                log::error!("Failed to add market");
-                return Err(Status::internal("Failed to add market. Does the market already exist?"));
-            }
-        }
-        let response = crate::orderbook::proto::StdResponse {
-            message: "success".to_string(),
-            error_code: 0,
-        };
-
-        Ok(Response::new(response))
-    }
 }
 
 pub fn start_grpc(host: &str, port: &str, order_book_service: OrderBookService) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
@@ -127,7 +132,8 @@ pub fn start_grpc(host: &str, port: &str, order_book_service: OrderBookService) 
     log::info!("Starting gRPC server on {}", addr);
 
     tonic::transport::Server::builder()
-        .add_service(ClobServer::new(ClobService::new(order_book_service)))
+        .add_service(ClobInternalServer::new(ClobService::new(order_book_service.clone())))
+        .add_service(ClobPublicServer::new(ClobService::new(order_book_service)))
         .serve(addr)
         .map_err(|e| {
             log::error!("Failed to start gRPC server: {}", e);

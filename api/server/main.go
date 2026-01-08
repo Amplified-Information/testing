@@ -16,7 +16,9 @@ import (
 )
 
 type server struct {
-	pb_api.UnimplementedApiServiceServer
+	pb_api.UnimplementedApiServiceInternalServer
+	pb_api.UnimplementedApiServicePublicServer
+
 	dbRepository repositories.DbRepository
 
 	prismService     services.Prism
@@ -210,7 +212,8 @@ func main() {
 	log.Printf("Smart contract ID (mainnet): %s", os.Getenv("MAINNET_SMART_CONTRACT_ID"))
 
 	grpcServer := grpc.NewServer()
-	pb_api.RegisterApiServiceServer(grpcServer, &server{
+	pb_api.RegisterApiServiceInternalServer(grpcServer, &server{})
+	pb_api.RegisterApiServicePublicServer(grpcServer, &server{
 		dbRepository: dbRepository,
 
 		prismService:     prismService,

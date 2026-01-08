@@ -4,11 +4,15 @@ package clob;
 
 import "validate/validate.proto";
 
-service Clob {
+// intentionally separating public and internal services for clarity and security (espcially when using Envoy proxy)
+service ClobPublic {
   rpc Health(Empty) returns (StdResponse);
-  rpc PlaceOrder (OrderRequestClob) returns (StdResponse);
   rpc GetBook (BookRequest) returns (BookSnapshot);
-  rpc StreamBook (BookRequest) returns (stream BookSnapshot);
+  rpc StreamBook (BookRequest) returns (stream BookSnapshot); 
+}
+
+service ClobInternal {
+  rpc PlaceOrder (OrderRequestClob) returns (StdResponse);
   rpc AddMarket (MarketRequest) returns (StdResponse);
 }
 

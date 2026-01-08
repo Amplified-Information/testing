@@ -66,9 +66,22 @@ static_resources:
                       ###
                       # Route gRPC-Web requests
                       ###
-                      # whitelist /clob.*
+                      # whitelist /clob.ClobPublic*
+                      - match:
+                          prefix: "/clob.ClobPublic/"   # proto package 'clob'
+                          headers:
+                            - name: "content-type"
+                              string_match:
+                                prefix: "application/grpc-web"
+                        route:
+                          cluster: clob_service
+                          timeout: 0s
+                          max_stream_duration:
+                            grpc_timeout_header_max: 0s
+
+                      # # whitelist /clob.Clob/GetBook
                       # - match:
-                      #     prefix: "/clob."   # proto package 'clob'
+                      #     prefix: "/clob.Clob/GetBook"   # allow only Clob/GetBook
                       #     headers:
                       #       - name: "content-type"
                       #         string_match:
@@ -78,31 +91,18 @@ static_resources:
                       #     timeout: 0s
                       #     max_stream_duration:
                       #       grpc_timeout_header_max: 0s
-
-                      # whitelist /clob.Clob/GetBook
-                      - match:
-                          prefix: "/clob.Clob/GetBook"   # allow only Clob/GetBook
-                          headers:
-                            - name: "content-type"
-                              string_match:
-                                prefix: "application/grpc-web"
-                        route:
-                          cluster: clob_service
-                          timeout: 0s
-                          max_stream_duration:
-                            grpc_timeout_header_max: 0s
-                      # whitelist /clob.Clob/GetBook
-                      - match:
-                          prefix: "/clob.Clob/StreamBook"   # allow only Clob/StreamBook
-                          headers:
-                            - name: "content-type"
-                              string_match:
-                                prefix: "application/grpc-web"
-                        route:
-                          cluster: clob_service
-                          timeout: 0s
-                          max_stream_duration:
-                            grpc_timeout_header_max: 0s
+                      # # whitelist /clob.Clob/GetBook
+                      # - match:
+                      #     prefix: "/clob.Clob/StreamBook"   # allow only Clob/StreamBook
+                      #     headers:
+                      #       - name: "content-type"
+                      #         string_match:
+                      #           prefix: "application/grpc-web"
+                      #   route:
+                      #     cluster: clob_service
+                      #     timeout: 0s
+                      #     max_stream_duration:
+                      #       grpc_timeout_header_max: 0s
                       # whitelist /api.*
                       - match:
                           prefix: "/api."   # proto package 'api'

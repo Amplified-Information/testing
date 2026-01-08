@@ -9,7 +9,7 @@ option go_package = "api/gen;api";
 import "validate/validate.proto"; // PGV
 // import "google/protobuf/wrappers.proto"; // this is installed in protoc include path `ls /usr/include/google/protobuf/`
 
-service ApiService {
+service ApiServicePublic {
   rpc Health(Empty) returns (StdResponse);
   rpc PredictIntent(PredictionIntentRequest) returns (StdResponse);
   rpc GetMarketById(MarketIdRequest) returns (MarketResponse);
@@ -23,6 +23,10 @@ service ApiService {
   // rpc UserPortfolio() returns (); portfolio - all of user's holidings accross all marketIds that they participate in
   // rpc MacroData() returns (); general market data - volume, nMarkets, TVL, liquidity, etc.
   // rpc CancelPosition ticket#6
+}
+
+service ApiServiceInternal {
+  // rpc endpoints go here
 }
 
 message Empty {}
