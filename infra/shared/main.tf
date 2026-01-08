@@ -233,7 +233,7 @@ pull_config_secrets_files() {
 pull_latest_docker_images() {
   echo "Pulling latest Docker images as per docker-compose files..."
   # note: only need to pull images from the environment-specific file
-  docker compose -f "docker-compose-$MACHINE.$ENVIRONMENT.yml" pull --policy always # N.B. the policy always...
+  docker compose -f "docker-compose-$MACHINE.yml" -f "docker-compose-$MACHINE.$ENVIRONMENT.yml" pull --policy always # N.B. the policy always...
 }
 
 main() {
