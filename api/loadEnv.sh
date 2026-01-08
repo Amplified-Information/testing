@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Valid environment options
-VALID_ENVS=("local" "dev" "prod", "local2")
+VALID_ENVS=("local" "dev" "uat" "prod" "local2")
 
 # Check if argument is provided
 if [ $# -eq 0 ]; then
-  echo "Error: Environment argument required (local, dev, or prod)"
+  echo "Error: Environment argument required (local, dev, uat, prod, or local2)"
   exit 1
 fi
 
