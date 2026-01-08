@@ -22,6 +22,7 @@ jobs:
 
       - name: Sync docker-compose files to S3
         run: |
+          set -x
           aws s3 cp . s3://prismlabs-deployment/ \
             --recursive \
             --exclude "*" \
