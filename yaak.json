@@ -1,7 +1,7 @@
 {
   "yaakVersion": "2025.9.3",
   "yaakSchema": 4,
-  "timestamp": "2025-12-24T12:47:35.978100855",
+  "timestamp": "2026-01-08T11:47:03.816689241",
   "resources": {
     "workspaces": [
       {
@@ -26,7 +26,7 @@
         "id": "ev_qVqmCcV8tF",
         "workspaceId": "wk_LVLaDjimtK",
         "createdAt": "2025-12-24T11:54:05.609775734",
-        "updatedAt": "2025-12-24T11:55:24.231165942",
+        "updatedAt": "2026-01-08T11:46:32.561492616",
         "name": "prod",
         "public": false,
         "base": false,
@@ -36,13 +36,13 @@
           {
             "enabled": true,
             "name": "HOSTNAME",
-            "value": "",
+            "value": "prism.market",
             "id": "uaZ7RA6f03"
           },
           {
             "enabled": true,
             "name": "PORT",
-            "value": "8090",
+            "value": "443",
             "id": "U3NHu3H4mm"
           }
         ],
@@ -54,7 +54,7 @@
         "id": "ev_9VMDKaf7RQ",
         "workspaceId": "wk_LVLaDjimtK",
         "createdAt": "2025-12-24T11:54:03.124925736",
-        "updatedAt": "2025-12-24T12:31:26.996091604",
+        "updatedAt": "2026-01-08T11:46:28.008250963",
         "name": "dev",
         "public": false,
         "base": false,
@@ -64,13 +64,13 @@
           {
             "enabled": true,
             "name": "HOSTNAME",
-            "value": "54.210.115.180",
+            "value": "dev.prism.market",
             "id": "T2zDTDSg5E"
           },
           {
             "enabled": true,
             "name": "PORT",
-            "value": "8090",
+            "value": "443",
             "id": "YGKMsr6mMf"
           }
         ],
@@ -170,7 +170,7 @@
         "model": "grpc_request",
         "id": "gr_GfZiCmtcFX",
         "createdAt": "2025-12-24T12:36:51.511294124",
-        "updatedAt": "2025-12-24T12:38:19.178461333",
+        "updatedAt": "2025-12-31T16:16:35.083382672",
         "workspaceId": "wk_LVLaDjimtK",
         "folderId": "fl_qBPWkDxpiF",
         "authenticationType": "basic",
@@ -182,7 +182,7 @@
         "message": "",
         "metadata": [],
         "method": "Health",
-        "name": "",
+        "name": "Clob/Health",
         "service": "clob.Clob",
         "sortPriority": 0.0,
         "url": "${[ HOSTNAME ]}:${[ PORT ]}"
@@ -191,7 +191,7 @@
         "model": "grpc_request",
         "id": "gr_5iPieiRCwf",
         "createdAt": "2025-12-24T11:57:22.316648889",
-        "updatedAt": "2025-12-24T12:36:53.518895115",
+        "updatedAt": "2025-12-31T16:25:44.633559487",
         "workspaceId": "wk_LVLaDjimtK",
         "folderId": "fl_qBPWkDxpiF",
         "authenticationType": "basic",
@@ -213,7 +213,7 @@
         "model": "grpc_request",
         "id": "gr_nhKvZSEAsB",
         "createdAt": "2025-12-24T11:51:07.002805818",
-        "updatedAt": "2025-12-24T12:35:24.627017012",
+        "updatedAt": "2026-01-07T17:37:18.016935990",
         "workspaceId": "wk_LVLaDjimtK",
         "folderId": "fl_rdrks4yJps",
         "authenticationType": "basic",
@@ -223,9 +223,9 @@
           "username": "admin"
         },
         "description": "",
-        "message": "",
+        "message": "{\n  \"market_id\": \"0000\",\n  \"limit\": 1000,\n  \"offset\": 0\n}",
         "metadata": [],
-        "method": "Health",
+        "method": "UserPosition",
         "name": "ApiService/Health",
         "service": "api.ApiService",
         "sortPriority": 0.0,

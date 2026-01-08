@@ -4,9 +4,9 @@ module "shared" {
   env  = "dev"
   aws_key_bastion = "dev-bastion"
   aws_key_internal = "dev"
-  eip = "eipalloc-0a06fd4140fafdd3c"
+  # eip = "eipalloc-0a06fd4140fafdd3c"
   ebs_volume_id = "vol-0d3a782bdfffc34aa"
-  ssl_cert_arn = "arn:aws:acm:us-east-1:063088900305:certificate/0e333834-e666-4680-adc2-ff71bcd52e4b"
+  ssl_cert_arn = "arn:aws:acm:us-east-1:063088900305:certificate/fdb39519-526b-48d2-a96e-307381465c05" # https://us-east-1.console.aws.amazon.com/acm/home?region=us-east-1#/certificates/list
 }
 
 resource "aws_instance" "bastion_dev" {
@@ -52,19 +52,20 @@ resource "aws_instance" "proxy_dev" {
   key_name      = module.shared.aws_key_internal
   availability_zone = module.shared.aws_az
 
-  subnet_id              = module.shared.aws_subnet_public_id # PUBLIC subnet
+  subnet_id              = module.shared.aws_subnet_private_id # aws_subnet_public_id # PUBLIC subnet
   private_ip             = module.shared.fixed_ip_proxy
 
   vpc_security_group_ids = [
     module.shared.allow_web_egress_id,
     module.shared.allow_web_ingress_id,
-    module.shared.allow_internal_vpc_id,
-    # module.shared.allow_internal_private_subnet_id,
+    # module.shared.allow_internal_vpc_id,
+    module.shared.allow_internal_private_subnet_id,
     # module.shared.allow_ssh_ingress_id
     module.shared.allow_ssh_from_public_subnet_id,
-    module.shared.allow_8090_from_internet_id,
+    # module.shared.allow_8090_from_internet_id,
     # module.shared.allow_proxy_ingress_id,
-    module.shared.allow_monolith_egress_id,
+    # module.shared.allow_monolith_egress_id,
+    module.shared.allow_alb_ingress_id
   ]
 
   iam_instance_profile = module.shared.combined_iam_policy_name # combined IAM
@@ -85,11 +86,11 @@ resource "aws_instance" "proxy_dev" {
     Name = "${module.shared.env}.proxy"
   }
 }
-# Associate the 'dev' elastic IP with the proxy_dev instance
-resource "aws_eip_association" "proxy_dev_eip_assoc" {
-  allocation_id = module.shared.eip
-  instance_id   = aws_instance.proxy_dev.id
-}
+# # Associate the 'dev' elastic IP with the proxy_dev instance
+# resource "aws_eip_association" "proxy_dev_eip_assoc" {
+#   allocation_id = module.shared.eip
+#   instance_id   = aws_instance.proxy_dev.id
+# }
 
 
 
@@ -229,6 +230,17 @@ output "bastion_dev_private_dns" {
   value       = aws_instance.bastion_dev.private_dns
 }
 
+output "alb_name" {
+  value = aws_lb.alb_dev.name
+}
+
+output "alb_arn" {
+  value = aws_lb.alb_dev.arn
+}
+
+output "alb_dns_name" {
+  value = aws_lb.alb_dev.dns_name
+}
 
 
 
@@ -237,72 +249,122 @@ output "bastion_dev_private_dns" {
 
 
 
-# # Define an ALB
-# resource "aws_lb" "alb_dev" {
-#   name               = "${module.shared.env}-alb"
-#   internal           = false
-#   load_balancer_type = "application"
-#   security_groups    = [
-#     module.shared.allow_web_ingress_id,
-#     module.shared.allow_web_egress_id
-#   ]
-#   subnets            = [
-#     module.shared.aws_subnet_public_id,
-#     module.shared.aws_subnet_public_id_2 # A second subnet in a different availability zone (HA placeholder). ALB requires at least two subnets.
-#   ]
 
-#   enable_deletion_protection = false
 
-#   tags = {
-#     Name = "${module.shared.env}-alb"
-#   }
-# }
 
-# # Create a target group for the proxy_dev instance
-# resource "aws_lb_target_group" "alb_proxy_target_group" {
-#   name        = "${module.shared.env}-alb-proxy-tg"
-#   port        = 8090
-#   protocol    = "HTTP"
-#   vpc_id      = module.shared.vpc_id
 
-#   health_check {
-#     path                = "/"
-#     protocol            = "HTTP"
-#     interval            = 30
-#     timeout             = 5
-#     healthy_threshold   = 2
-#     unhealthy_threshold = 2
-#   }
 
-#   tags = {
-#     Name = "${module.shared.env}-alb-proxy-tg"
-#   }
-# }
 
-# # ALB listener uses HTTPS on port 443
-# resource "aws_lb_listener" "alb_listener_443" {
-#   load_balancer_arn = aws_lb.alb_dev.arn
-#   port              = 443
-#   protocol          = "HTTPS"
 
-#   ssl_policy        = "ELBSecurityPolicy-2016-08"
-#   certificate_arn   = module.shared.ssl_cert_arn # Replace with your SSL certificate ARN
 
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.alb_proxy_target_group.arn
-#   }
-# }
+#####
+# Application Load Balancer (ALB) for proxy
+#####
+resource "aws_lb" "alb_dev" {
+  name               = "${module.shared.env}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [
+    module.shared.allow_web_ingress_id,
+    module.shared.allow_web_egress_id,
+    module.shared.allow_alb_egress_id
+  ]
+  subnets            = [
+    module.shared.aws_subnet_public_id,
+    module.shared.aws_subnet_public_id_2
+  ]
 
-# # Register the proxy_dev instance with the target group
-# resource "aws_lb_target_group_attachment" "proxy_dev_attachment" {
-#   target_group_arn = aws_lb_target_group.alb_proxy_target_group.arn
-#   target_id        = aws_instance.proxy_dev.id
-#   port             = 8090
-# }
+  enable_deletion_protection = false
 
-# # Associate the ALB with the Elastic IP
-# resource "aws_eip_association" "alb_eip_assoc" {
-#   allocation_id = module.shared.eip
-#   network_interface_id = aws_lb.alb_dev.network_interface_id # Use the ALB's network interface ID
-# }
+  tags = {
+    Name = "${module.shared.env}-alb"
+  }
+}
+
+# Create a target group for the proxy_dev instance
+resource "aws_lb_target_group" "alb_proxy_target_group" {
+  name        = "${module.shared.env}-alb-proxy-tg"
+  port        = 8090
+  protocol    = "HTTP"
+  vpc_id      = module.shared.vpc_id
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+
+  tags = {
+    Name = "${module.shared.env}-alb-proxy-tg"
+  }
+}
+
+# ALB listener uses HTTPS on port 443
+resource "aws_lb_listener" "alb_listener_443" {
+  load_balancer_arn = aws_lb.alb_dev.arn
+  port              = 443
+  protocol          = "HTTPS"
+
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = module.shared.ssl_cert_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.alb_proxy_target_group.arn
+  }
+}
+
+# Register the proxy_dev instance with the target group
+resource "aws_lb_target_group_attachment" "proxy_dev_attachment" {
+  target_group_arn = aws_lb_target_group.alb_proxy_target_group.arn
+  target_id        = aws_instance.proxy_dev.id
+  port             = 8090
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####
+# Route 53 - Delegated subdomain from Namecheap
+# Add the out NS records to Namecheap for the 'dev' subdomain
+#####
+resource "aws_route53_zone" "dev_zone" {
+  name = "dev.prism.market"
+
+  tags = {
+    Name = "${module.shared.env}-hosted-zone"
+  }
+}
+
+# Alias record pointing to the ALB
+resource "aws_route53_record" "alb_alias" {
+  zone_id = aws_route53_zone.dev_zone.zone_id
+  name    = "dev.prism.market"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb_dev.dns_name
+    zone_id                = aws_lb.alb_dev.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# Output the NS records to add to Namecheap
+output "route53_nameservers" {
+  description = "Add these NS records to Namecheap for the 'dev' subdomain"
+  value       = aws_route53_zone.dev_zone.name_servers
+}

@@ -19,10 +19,11 @@ type server struct {
 	pb_api.UnimplementedApiServiceServer
 	dbRepository repositories.DbRepository
 
-	prismService    services.Prism
-	natsService     services.NatsService
-	marketsService  services.MarketService
-	commentsService services.CommentsService
+	prismService     services.Prism
+	natsService      services.NatsService
+	marketsService   services.MarketService
+	commentsService  services.CommentsService
+	positionsService services.PositionsService
 	// don't forget to register in RegisterApiServiceServer grpc call in main()
 }
 
@@ -77,6 +78,11 @@ func (s *server) GetComments(ctx context.Context, req *pb_api.GetCommentsRequest
 func (s *server) CreateComment(ctx context.Context, req *pb_api.CreateCommentRequest) (*pb_api.CreateCommentResponse, error) {
 	commentResp, err := s.commentsService.CreateComment(req)
 	return commentResp, err
+}
+
+func (s *server) UserPosition(ctx context.Context, req *pb_api.UserPositionRequest) (*pb_api.UserPositionResponse, error) {
+	positionResp, err := s.positionsService.GetUserPosition(req)
+	return positionResp, err
 }
 
 func main() {
@@ -164,6 +170,13 @@ func main() {
 		log.Fatalf("Failed to initialize Comments service: %v", err)
 	}
 
+	// initialize Positions service
+	positionsService := services.PositionsService{}
+	err = positionsService.Init()
+	if err != nil {
+		log.Fatalf("Failed to initialize Positions service: %v", err)
+	}
+
 	// initialize NATS
 	natsService := services.NatsService{}
 	err = natsService.InitNATS(&hederaService, &dbRepository)
@@ -200,10 +213,11 @@ func main() {
 	pb_api.RegisterApiServiceServer(grpcServer, &server{
 		dbRepository: dbRepository,
 
-		prismService:    prismService,
-		natsService:     natsService,
-		marketsService:  marketsService,
-		commentsService: commentsService,
+		prismService:     prismService,
+		natsService:      natsService,
+		marketsService:   marketsService,
+		commentsService:  commentsService,
+		positionsService: positionsService,
 	})
 
 	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT"))

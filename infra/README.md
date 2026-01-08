@@ -11,13 +11,13 @@ There are 4 EC2 boxes deployed on AWS for each environment
 | data      | `eventbus`, `db`     | Manages storage, retrieval, and processing of application data.             |
 | bastion   | n/a                  | Provides ssh access                                                         |
 
-Note: the proxy has a fixed IP address
+Note: the proxy is behind an AWS load balancer
 
-| environment | IP address     | hostname         |
-|-------------|----------------|------------------|
-| dev         | 54.210.115.180 | dev.prism.market |
-| uat         | TBC            | TBC              |
-| prod        | 100.29.115.146 | prism.market     |
+| environment | hostname         |
+|-------------|------------------|
+| dev         | dev.prism.market |
+| uat         | TBC              |
+| prod        | prism.market     |
 
 *Note: in future, we will use load balancers and not fixed IP addresses.*
 
@@ -25,23 +25,28 @@ Note: the proxy has a fixed IP address
 
 The following resources (static - not to be deleted) should be created manually for each env:
 
-- EIP (elastic IP address)
+- AWS certificates
 - EBS (elastic block storage) for persistent data storage
 - S3 bucket - a landing zone for deploying docker-compose* files
+- ~~EIP (elastic IP address)~~
 
-## AWS elastic IP addresses
+## AWS certificates
 
-| Environment | Allocation ID               | Public IP       | Network border group |
-|-------------|-----------------------------|-----------------|----------------------|
-| dev         | eipalloc-0a06fd4140fafdd3c  | 54.210.115.180  | us-east-1            |
-| prod        |                             | 100.29.115.146  | us-east-1            |
+| Environment | hostname         | arn                                                                                 |
+|-------------|------------------|-------------------------------------------------------------------------------------|
+| dev         | dev.prism.market | arn:aws:acm:us-east-1:063088900305:certificate/fdb39519-526b-48d2-a96e-307381465c05 |
+| uat         | uat.prism.market | arn:aws:acm:us-east-1:063088900305:certificate/48dc07e4-d1c2-488e-a085-3e499893a4e4 |
+| prod        | prism.market     | arn:aws:acm:us-east-1:063088900305:certificate/93dfad7f-8a67-43f3-a2e1-7f1f2f4b91c7 |
 
 ## AWS EBS resources
 
 | Environment | Volume Id                   | Name            | Size   |
 | ------------|-----------------------------|-----------------|--------|
 | dev         | vol-0d3a782bdfffc34aa       | datamnt_dev     | 4GB    |
-| prod        | TBC                         | datamnt_prod    | 20GB   |
+| uat         | vol-043410f6197ee2c31       | datamnt_uat     | 4GB    |
+| prod        | vol-0e4912ca44f31c1f5       | datamnt_prod    | 20GB*  |
+
+**backed up*
 
 ## S3 bucket
 
@@ -151,6 +156,10 @@ eval "$(ssh-agent -s)"
 # add the bastion key and the key for the internal boxes:
 ssh-add ~/Desktop/dev-bastion.pem
 ssh-add ~/Desktop/dev.pem
+ssh-add ~/Desktop/uat-bastion.pem
+ssh-add ~/Desktop/uat.pem
+ssh-add ~/Desktop/prod-bastion.pem
+ssh-add ~/Desktop/prod.pem
 # Can now do:
 ssh -A admin@<bastion_hostname_aws>
 ssh -A admin@10.0.1.11
@@ -180,13 +189,14 @@ Deploy AWS resources:
 
 `terraform apply`
 
+--> N.B. view the output and update the namecheap.com NS records with the updated DNS entries
+
 Tear down AWS resources:
 
 `terraform destroy`
 
-##  AWS security groups
+## AWS security groups
 
 AWS limits the number of security groups that can be applied to a EC2 resource to 5.
 
 Request an increase here (e.g. to 8): https://us-east-1.console.aws.amazon.com/servicequotas/home/services/vpc/quotas/L-2AFB9258
-

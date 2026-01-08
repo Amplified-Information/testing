@@ -17,11 +17,12 @@ service ApiService {
   rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
   rpc PriceHistory(PriceHistoryRequest) returns (PriceHistoryResponse);
   rpc AvailableNetworks(Empty) returns (StdResponse);
-  // rpc AddComment ticket#27
   rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
   rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse);
+  rpc UserPosition(UserPositionRequest) returns (UserPositionResponse);
+  // rpc UserPortfolio() returns (); portfolio - all of user's holidings accross all marketIds that they participate in
+  // rpc MacroData() returns (); general market data - volume, nMarkets, TVL, liquidity, etc.
   // rpc CancelPosition ticket#6
-  // rpc UserPositions ticket#7
 }
 
 message Empty {}
@@ -47,6 +48,17 @@ message StdResponse {
   int32 errorCode = 2;
 }
 
+message UserPositionRequest {
+  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string net = 2          [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
+  string evm_address = 3  [json_name = "evmAddress",  (validate.rules).string = {pattern: "^[0-9a-fA-F]{40}$"} /* 20-byte (40 hex chars) EVM address (no 0x prefix) */];
+}
+
+message UserPositionResponse {
+  uint64 yes = 1       [json_name = "yes"];
+  uint64 no = 2        [json_name = "no"];
+}
+
 message MarketIdRequest {
   string market_id = 1 [json_name = "marketId",     (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
 }
@@ -70,9 +82,10 @@ message MarketsResponse {
 }
 
 message NewMarketRequest {
-  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
-  string net = 2          [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
-  string statement = 3    [json_name = "statement", (validate.rules).string = {min_len: 10, max_len: 500}];
+  string market_id = 1            [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string net = 2                  [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
+  string statement = 3            [json_name = "statement",   (validate.rules).string = {min_len: 10, max_len: 500}];
+  optional string image_url = 4   [json_name = "imageUrl",    (validate.rules).string = {max_len: 2048}];
 }
 
 message PriceHistoryRequest {
@@ -90,7 +103,7 @@ message PriceHistoryResponse {
 }
 
 message GetCommentsRequest {
-  string market_id = 1      [json_name = "marketId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string market_id = 1      [json_name = "marketId",  (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
   optional int32 limit = 2  [json_name = "limit",     (validate.rules).int32 = {gt: 0, lte: 100} /* max 100 comments per request */];
   optional int32 offset = 3 [json_name = "offset",    (validate.rules).int32 = {gte: 0} /* offset in comments */];
 }

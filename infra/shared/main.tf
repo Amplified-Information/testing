@@ -33,11 +33,11 @@ variable "aws_az_2" {
 }
 output "aws_az_2" { value = var.aws_az_2 }
 
-variable "eip" {
-  description = "The Elastic IP for the environment"
-  type        = string
-}
-output "eip" { value = var.eip }
+# variable "eip" {
+#   description = "The Elastic IP for the environment"
+#   type        = string
+# }
+# output "eip" { value = var.eip }
 
 variable "aws_region" {
   description = "The AWS region to use"
@@ -60,9 +60,9 @@ output "ebs_volume_id" { value = var.ebs_volume_id }
 
 output "ami" { value = "ami-0f9c27b471bdcd702" } // Debian 13
 output "fixed_ip_bastion" { value = "10.0.0.9" } // N.B. bastion is on the public subnet 
-output "fixed_ip_proxy" { value = "10.0.0.10" } // N.B. proxy is on the public subnet 
-output "fixed_ip_monolith" { value = "10.0.1.11" }
-output "fixed_ip_data" { value = "10.0.1.12" }
+output "fixed_ip_proxy" { value = "10.0.1.10" }     // private subnet 
+output "fixed_ip_monolith" { value = "10.0.1.11" }  // private subnet 
+output "fixed_ip_data" { value = "10.0.1.12" }      // private subnet 
 
 output "install_base" {
   value = <<-EOF
@@ -156,14 +156,10 @@ newgrp docker # don't have to logout and log back in again...
 
 
 
-
-
-
-
 #####
-# Devops: Create a deploy.sh script
+# Devops: Create a 0_pull_latest.sh script
 #####
-cat <<'SCRIPT' > /home/admin/deploy.sh
+cat <<'SCRIPT' > /home/admin/0_pull_latest.sh
 #!/bin/bash
 
 # Variables
@@ -172,7 +168,6 @@ AWS_REGION="${var.aws_region}"
 SECRET_NAME="read_ghcr"
 MACHINE=$(hostname) # should be 'proxy', 'monolith', or 'data'
 S3_BUCKET="prismlabs-deployment"
-# Retrieve the service names from docker-compose-$MACHINE.yml:
 
 login_to_github() {
   echo "Logging in to GitHub Container Registry..."
@@ -227,72 +222,103 @@ pull_config_secrets_files() {
   done
 }
 
-load_env_vars() {
-  # Load environment variables (reads .config* files and loads .secrets from AWS SSM)
-  for SERVICE in $(yq '.services | keys | join(" ")' ./docker-compose-$MACHINE.yml | tr -d '"'); do
-    source ./$SERVICE/loadEnv.sh $ENVIRONMENT
-  done
-}
-
-redeploy_if_changed() {
-  echo "Checking for changes in Docker Compose files..."
-  BASE_FILE="docker-compose-$MACHINE.yml"
-  ENV_FILE="docker-compose-$MACHINE.$ENVIRONMENT.yml"
-
-  # Temporary files for comparison
-  TMP_BASE_FILE="/tmp/$BASE_FILE"
-  TMP_ENV_FILE="/tmp/$ENV_FILE"
-
-  # Ensure the /tmp files exist
-  touch /tmp/$BASE_FILE
-  touch /tmp/$ENV_FILE
-
-  # Calculate hashes and compare
-  if [ -f "$TMP_BASE_FILE" ] && [ -f "$TMP_ENV_FILE" ]; then
-    BASE_HASH_NEW=$(sha256sum "$BASE_FILE" | awk '{print $1}')
-    BASE_HASH_OLD=$(sha256sum "$TMP_BASE_FILE" | awk '{print $1}')
-    ENV_HASH_NEW=$(sha256sum "$ENV_FILE" | awk '{print $1}')
-    ENV_HASH_OLD=$(sha256sum "$TMP_ENV_FILE" | awk '{print $1}')
-
-    if [ "$BASE_HASH_NEW" == "$BASE_HASH_OLD" ] && [ "$ENV_HASH_NEW" == "$ENV_HASH_OLD" ]; then
-      echo "No changes detected in Docker Compose files. Skipping redeploy."
-      return
-    fi
-  fi
-
-  # Got here? Re-deploy the service...
-
-  # but first, copy new files to /tmp for future comparison
-  cp "$BASE_FILE" "$TMP_BASE_FILE"
-  cp "$ENV_FILE" "$TMP_ENV_FILE"
-
-  echo "Changes detected in Docker Compose files. Redeploying..."
-  
-  # first pull latest images
-  docker compose pull
-  # Deploy with docker compose
-  docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
+pull_latest_docker_images() {
+  echo "Pulling latest Docker images as per docker-compose files..."
+  # note: only need to pull images from the environment-specific file
+  docker compose -f "docker-compose-$MACHINE.$ENVIRONMENT.yml" pull --policy always # N.B. the policy always...
 }
 
 main() {
   login_to_github
   pull_docker_compose_files
   pull_config_secrets_files
-  load_env_vars
-  redeploy_if_changed
+  pull_latest_docker_images
 }
 
 main
 SCRIPT
 
+# Make the 0_pull_latest.sh script executable
+chown admin:admin /home/admin/0_pull_latest.sh
+chmod +x /home/admin/0_pull_latest.sh
 
 
-# Make the deploy.sh script executable
-chown admin:admin /home/admin/deploy.sh
-chmod +x /home/admin/deploy.sh
 
-# and run it:
-/home/admin/deploy.sh
+
+
+
+
+
+
+
+#####
+# Devops: Create a 1_loadEnvVars.sh script
+#####
+cat <<'SCRIPT' > /home/admin/1_loadEnvVars.sh
+#!/bin/bash
+
+# Detect if the script is being sourced
+# If $BASH_SOURCE[0] == $0, the script is executed, not sourced
+if [[ "$${BASH_SOURCE[0]}" == "$0" ]]; then
+  echo "ERROR: This script must be sourced, not executed."
+  echo "Usage: source $0"
+  exit 1  # exit script execution
+fi
+
+
+ENVIRONMENT="${var.env}"
+MACHINE=$(hostname) # should be 'proxy', 'monolith', or 'data'
+
+echo "Loading config and secrets..."
+# Load environment variables (reads .config* files and loads .secrets from AWS SSM)
+for SERVICE in $(yq '.services | keys | join(" ")' ./docker-compose-$MACHINE.yml | tr -d '"'); do
+  source ./$SERVICE/loadEnv.sh $ENVIRONMENT
+done
+
+SCRIPT
+
+# Make the 1_loadEnvVars.sh script executable
+chown admin:admin /home/admin/1_loadEnvVars.sh
+# chmod +x /home/admin/1_loadEnvVars.sh # can only source this script - exec not needed
+
+
+
+
+
+
+
+
+
+
+
+
+#####
+# Devops: Create a 2_dockerComposeUp.sh script
+#####
+cat <<'SCRIPT' > /home/admin/2_dockerComposeUp.sh
+#!/bin/bash
+
+ENVIRONMENT="${var.env}"
+MACHINE=$(hostname) # should be 'proxy', 'monolith', or 'data'
+
+BASE_FILE="docker-compose-$MACHINE.yml"
+ENV_FILE="docker-compose-$MACHINE.$ENVIRONMENT.yml"
+
+
+echo "Starting docker compose..."
+docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
+
+SCRIPT
+
+# Make the 2_dockerComposeUp.sh script executable
+chown admin:admin /home/admin/2_dockerComposeUp.sh
+chmod +x /home/admin/2_dockerComposeUp.sh
+
+
+
+
+
+
 
 EOF
 }
@@ -402,7 +428,7 @@ resource "aws_internet_gateway" "main" {
 #####
 # NAT Gateway for IPv4 (IPv6 doesn't need NAT)
 #####
-resource "aws_eip" "nat" { # need another Elastic IP for the NAT Gateway
+resource "aws_eip" "nat" { # need an Elastic IP for the NAT Gateway
   tags = { Name = "${var.env}-nat" }
 }
 
@@ -722,6 +748,36 @@ resource "aws_security_group" "allow_bastion_db" {
   }
 }
 
+resource "aws_security_group" "allow_alb_egress" {
+  name        = "allow_alb_egress"
+  description = "Allow internal traffic from ALB to proxy"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    description = "Allow outbound traffic to port 8090 (ALB to target group)"
+    from_port   = 8090
+    to_port     = 8090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+
+# Security group for proxy to accept traffic from ALB (in public subnet)
+resource "aws_security_group" "allow_alb_ingress" {
+  name        = "alb_ingress"
+  description = "Allow ingress from ALB on port 8090"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "Allow inbound traffic from public subnet (where ALB lives) on port 8090"
+    from_port   = 8090
+    to_port     = 8090
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/24"]  # Public subnet CIDR
+  }
+}
+
 #####
 # IAM roles
 # - view files with `aws s3 ls s3://prismlabs-deployment --region us-east-1`
@@ -841,6 +897,13 @@ output "allow_bastion_db_id" {
   value       = aws_security_group.allow_bastion_db.id
 }
 
+output "allow_alb_egress_id" {
+  value       = aws_security_group.allow_alb_egress.id
+}
+
+output "allow_alb_ingress_id" {
+  value       = aws_security_group.allow_alb_ingress.id
+}
 
 
 output "aws_subnet_public_id" {

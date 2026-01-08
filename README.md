@@ -35,9 +35,10 @@ Access the application at:
 | Environment | URI                        |
 |-------------|----------------------------|
 | `local`     | http://localhost:8090      |
-| `dev`       | http://54.210.115.180:8090 |
+| `dev`       | https://dev.prism.market   |
+| `uat`       | https://uat.prism.market   |
 | ...         | ...                        |
-| `prod`      | http://100.29.115.146:8090 |
+| `prod`      | https://prism.market       |
 
 ## Quickstart (local machine)
 

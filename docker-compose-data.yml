@@ -5,6 +5,7 @@
 services:
   db:
     image: ghcr.io/prismmarketlabs/db:0.1.0
+    # pull_policy: always
     restart: always
     volumes:
       - /mnt/external/postgresdata:/var/lib/postgresql
@@ -18,6 +19,7 @@ services:
 
   eventbus:
     image: ghcr.io/prismmarketlabs/eventbus:0.1.0
+    # pull_policy: always
     restart: always
     ports:
       - "4222:4222"

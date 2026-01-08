@@ -4,6 +4,7 @@
 services:
   proxy:
     image: ghcr.io/prismmarketlabs/proxy:0.1.0
+    # pull_policy: always
     restart: always
     ports:
       - "8090:8090"

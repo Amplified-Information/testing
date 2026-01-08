@@ -102,6 +102,9 @@ func (c *CommentsService) CreateComment(req *pb_api.CreateCommentRequest) (*pb_a
 	// if we get here, the sig is valid
 	log.Printf("**CreateComment - sig is valid for account %s**", req.AccountId)
 
+	// TODO - AI moderation (e.g. Gemini)
+	// Moderate the content using AI moderation (e.g., Gemini)
+
 	/////
 	// OK
 	/////

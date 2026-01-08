@@ -48,6 +48,9 @@ RUN go build -o main ./server/
 # A minimal Debian 13 base image for the final stage
 FROM debian:bookworm-slim
 
+# install psql (PostgreSQL client tools)
+RUN apt-get update && apt-get install -y postgresql-client
+
 WORKDIR /app
 
 # copy the main binary

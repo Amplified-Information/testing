@@ -4,5 +4,6 @@ CREATE TABLE markets (
   statement TEXT NOT NULL,
   is_open BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  resolved_at TIMESTAMP
+  resolved_at TIMESTAMP,
+  image_url VARCHAR(2048)
 );
