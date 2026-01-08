@@ -4,6 +4,7 @@ module "shared" {
   env  = "dev"
   aws_key_bastion = "dev-bastion"
   aws_key_internal = "dev"
+  domain_name = "dev.prism.market"
   # eip = "eipalloc-0a06fd4140fafdd3c"
   ebs_volume_id = "vol-0d3a782bdfffc34aa"
   ssl_cert_arn = "arn:aws:acm:us-east-1:063088900305:certificate/fdb39519-526b-48d2-a96e-307381465c05" # https://us-east-1.console.aws.amazon.com/acm/home?region=us-east-1#/certificates/list
@@ -86,11 +87,6 @@ resource "aws_instance" "proxy_dev" {
     Name = "${module.shared.env}.proxy"
   }
 }
-# # Associate the 'dev' elastic IP with the proxy_dev instance
-# resource "aws_eip_association" "proxy_dev_eip_assoc" {
-#   allocation_id = module.shared.eip
-#   instance_id   = aws_instance.proxy_dev.id
-# }
 
 
 
@@ -200,20 +196,10 @@ output "proxy_dev_private_dns" {
   value       = aws_instance.proxy_dev.private_dns
 }
 
-# output "monolith_dev_public_dns" {
-#   description = "Public DNS name of the monolith_dev instance"
-#   value       = aws_instance.monolith_dev.public_dns
-# }
-
 output "monolith_dev_private_dns" {
   description = "Private DNS name of the monolith_dev instance"
   value       = aws_instance.monolith_dev.private_dns
 }
-
-# output "data_dev_public_dns" {
-#   description = "Public DNS name of the data_dev instance"
-#   value       = aws_instance.data_dev.public_dns
-# }
 
 output "data_dev_private_dns" {
   description = "Private DNS name of the data_dev instance"
@@ -282,7 +268,7 @@ resource "aws_lb" "alb_dev" {
 }
 
 # Create a target group for the proxy_dev instance
-resource "aws_lb_target_group" "alb_proxy_target_group" {
+resource "aws_lb_target_group" "alb_proxy_target_group_dev" {
   name        = "${module.shared.env}-alb-proxy-tg"
   port        = 8090
   protocol    = "HTTP"
@@ -313,13 +299,13 @@ resource "aws_lb_listener" "alb_listener_443" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.alb_proxy_target_group.arn
+    target_group_arn = aws_lb_target_group.alb_proxy_target_group_dev.arn
   }
 }
 
 # Register the proxy_dev instance with the target group
 resource "aws_lb_target_group_attachment" "proxy_dev_attachment" {
-  target_group_arn = aws_lb_target_group.alb_proxy_target_group.arn
+  target_group_arn = aws_lb_target_group.alb_proxy_target_group_dev.arn
   target_id        = aws_instance.proxy_dev.id
   port             = 8090
 }
@@ -339,21 +325,13 @@ resource "aws_lb_target_group_attachment" "proxy_dev_attachment" {
 
 
 #####
-# Route 53 - Delegated subdomain from Namecheap
-# Add the out NS records to Namecheap for the 'dev' subdomain
+# Route 53 - connect the ALB to the domain
 #####
-resource "aws_route53_zone" "dev_zone" {
-  name = "dev.prism.market"
 
-  tags = {
-    Name = "${module.shared.env}-hosted-zone"
-  }
-}
-
-# Alias record pointing to the ALB
+# Add an alias record pointing to the ALB
 resource "aws_route53_record" "alb_alias" {
-  zone_id = aws_route53_zone.dev_zone.zone_id
-  name    = "dev.prism.market"
+  zone_id = "Z07868573V3HLWHKP9WV6" # yes, this is fixed
+  name    = "${module.shared.domain_name}"
   type    = "A"
 
   alias {
@@ -361,10 +339,4 @@ resource "aws_route53_record" "alb_alias" {
     zone_id                = aws_lb.alb_dev.zone_id
     evaluate_target_health = true
   }
-}
-
-# Output the NS records to add to Namecheap
-output "route53_nameservers" {
-  description = "Add these NS records to Namecheap for the 'dev' subdomain"
-  value       = aws_route53_zone.dev_zone.name_servers
 }

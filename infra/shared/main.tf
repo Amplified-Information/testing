@@ -13,6 +13,12 @@ variable "aws_key_internal" {
 }
 output "aws_key_internal" { value = var.aws_key_internal }
 
+variable "domain_name" {
+  description = "The domain name for the environment"
+  type        = string
+}
+output "domain_name" { value = var.domain_name }
+
 variable "aws_key_bastion" {
   description = "The name of the key pair to use for SSH access to the bastion host"
   type        = string
@@ -76,6 +82,7 @@ wait_for_machine_ready() {
     echo "Checking if the machine is ready (attempt $i)..."
     if curl -I --silent http://google.com | head -n 1 | grep "HTTP" > /dev/null; then
       echo "Machine is ready."
+      sleep 10 # for good measure
       return 0
     fi
 

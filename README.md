@@ -181,6 +181,35 @@ There is an **intentional separation** between **configuration** (`.config.ENV`)
 
 **N.B. do NOT check in secrets - only check-in references to secrets**
 
+## Release procedure
+
+View all the images here: https://github.com/orgs/PrismMarketLabs/packages
+
+**Please do NOT push tagged images that were built locally/manually**
+
+On your local machine, pull the image you want to tag:
+
+```bash
+# first set these three env vars:
+export IMAGE=ghcr.io/prismmarketlabs/api
+export VER_SRC=456091bd553e2b3cf073da1bf8a6b2e0a03f6521@sha256:a13f15a06ab618da1da78f5dd2e08768fcdd155cdb80d0ba1ccdb546eb099a5e
+export VER_DST=0.1.1
+
+docker pull $IMAGE:$VER_SRC
+# may need to make an exception here for web/web.eng/etc.
+docker tag $IMAGE:$VER_SRC $IMAGE:$VER_DST
+
+docker images | grep $IMAGE
+```
+
+Now do:
+
+```bash
+docker push $IMAGE:$VER_DST
+```
+
+And update the docker-compose-<SERVICE>.<ENV>.yml with the new version.
+
 ### AWS secrets
 
 Use `aws ssm` to store and retrieve secrets for a particular environment.

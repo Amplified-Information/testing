@@ -25,10 +25,21 @@ Note: the proxy is behind an AWS load balancer
 
 The following resources (static - not to be deleted) should be created manually for each env:
 
+- DNS hosted zone on Route 53 (AWS)
 - AWS certificates
 - EBS (elastic block storage) for persistent data storage
 - S3 bucket - a landing zone for deploying docker-compose* files
 - ~~EIP (elastic IP address)~~
+
+## DNS hosted zone
+
+A DNS hosted zone has been set up.
+
+The NS records provided by Amazon have been added to prism.market on namecheap.com
+
+https://us-east-1.console.aws.amazon.com/route53/v2/hostedzones
+
+hosted zone ID: `Z07868573V3HLWHKP9WV6`
 
 ## AWS certificates
 
