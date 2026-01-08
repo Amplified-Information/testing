@@ -2,7 +2,7 @@
 
 Cloud platform -agnostic infrastructure deployment files (Terraform)
 
-There are 4 EC2 boxes deployed on AWS for each environment
+There are 3 EC2 boxes deployed on AWS for each environment
 
 | EC2 name  | Services             | Description                                                                 |
 |-----------|----------------------|-----------------------------------------------------------------------------|
@@ -11,13 +11,16 @@ There are 4 EC2 boxes deployed on AWS for each environment
 | data      | `eventbus`, `db`     | Manages storage, retrieval, and processing of application data.             |
 | bastion   | n/a                  | Provides ssh access                                                         |
 
-Note: the proxy is behind an AWS load balancer
+*Note: the proxy is behind an AWS load balancer*
 
-| environment | hostname         |
-|-------------|------------------|
-| dev         | dev.prism.market |
-| uat         | uat.prism.market |
-| prod        | prism.market     |
+
+Take note of the private subnets for each env:
+
+| environment | hostname         | private subnet  |
+|-------------|------------------|-----------------|
+| dev         | dev.prism.market | 10.0.1.0/24     |
+| uat         | uat.prism.market | 10.0.1.0/24     |
+| prod        | prism.market     | 10.0.1.0/24     |
 
 *Note: in future, we will use load balancers and not fixed IP addresses.*
 
