@@ -24,7 +24,6 @@ jobs:
         run: |
           set -x
           aws s3 cp . s3://prismlabs-deployment/ \
-            --recursive \
             --exclude "*" \
             --include "docker-compose-*"
 
