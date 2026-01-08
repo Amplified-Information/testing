@@ -1,16 +1,16 @@
 module "shared" {
   source = "../shared"
   
-  env  = "prod"
-  aws_key_bastion = "prod-bastion"
-  aws_key_internal = "prod"
-  domain_name = "prism.market"
-  ebs_volume_id = "vol-0e4912ca44f31c1f5"
-  ssl_cert_arn = "arn:aws:acm:us-east-1:063088900305:certificate/93dfad7f-8a67-43f3-a2e1-7f1f2f4b91c7" # https://us-east-1.console.aws.amazon.com/acm/home?region=us-east-1#/certificates/list
+  env  = "$ENV"
+  aws_key_bastion = "$ENV-bastion"
+  aws_key_internal = "$ENV"
+  domain_name = "$DOMAIN_NAME"
+  ebs_volume_id = "$EBS_VOLUME_ID"
+  ssl_cert_arn = "$SSL_CERT_ARN"
 }
 
 
-resource "aws_instance" "bastion_prod" {
+resource "aws_instance" "bastion_$ENV" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
   key_name      = module.shared.aws_key_bastion
@@ -47,7 +47,7 @@ resource "aws_instance" "bastion_prod" {
 
 
 
-resource "aws_instance" "proxy_prod" {
+resource "aws_instance" "proxy_$ENV" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
   key_name      = module.shared.aws_key_internal
@@ -91,7 +91,7 @@ resource "aws_instance" "proxy_prod" {
 
 
 
-resource "aws_instance" "monolith_prod" {
+resource "aws_instance" "monolith_$ENV" {
   ami           = module.shared.ami
   instance_type = "t3.micro"
   key_name      = module.shared.aws_key_internal
@@ -132,7 +132,7 @@ resource "aws_instance" "monolith_prod" {
 }
 
 
-resource "aws_instance" "data_prod" {
+resource "aws_instance" "data_$ENV" {
   ami           = module.shared.ami
   instance_type = "t3.nano"
   key_name      = module.shared.aws_key_internal
@@ -173,10 +173,10 @@ resource "aws_instance" "data_prod" {
     Name = "${module.shared.env}.data"
   }
 }
-# Attach the EBS volume to the data_prod instance
-resource "aws_volume_attachment" "data_prod_volume_attachment" {
+# Attach the EBS volume to the data_$ENV instance
+resource "aws_volume_attachment" "data_${ENV}_volume_attachment" {
   device_name = "/dev/xvdf"
-  instance_id = aws_instance.data_prod.id
+  instance_id = aws_instance.data_$ENV.id
   volume_id   = module.shared.ebs_volume_id
 }
 
@@ -186,46 +186,46 @@ resource "aws_volume_attachment" "data_prod_volume_attachment" {
 #####
 # Outputs
 #####
-output "proxy_prod_public_dns" {
-  description = "Public DNS name of the proxy_prod instance"
-  value       = aws_instance.proxy_prod.public_dns
+output "proxy_${ENV}_public_dns" {
+  description = "Public DNS name of the proxy_$ENV instance"
+  value       = aws_instance.proxy_$ENV.public_dns
 }
 
-output "proxy_prod_private_dns" {
-  description = "Private DNS name of the proxy_prod instance"
-  value       = aws_instance.proxy_prod.private_dns
+output "proxy_${ENV}_private_dns" {
+  description = "Private DNS name of the proxy_$ENV instance"
+  value       = aws_instance.proxy_$ENV.private_dns
 }
 
-output "monolith_prod_private_dns" {
-  description = "Private DNS name of the monolith_prod instance"
-  value       = aws_instance.monolith_prod.private_dns
+output "monolith_${ENV}_private_dns" {
+  description = "Private DNS name of the monolith_$ENV instance"
+  value       = aws_instance.monolith_$ENV.private_dns
 }
 
-output "data_prod_private_dns" {
-  description = "Private DNS name of the data_prod instance"
-  value       = aws_instance.data_prod.private_dns
+output "data_${ENV}_private_dns" {
+  description = "Private DNS name of the data_$ENV instance"
+  value       = aws_instance.data_$ENV.private_dns
 }
 
-output "bastion_prod_public_dns" {
-  description = "Public DNS name of the bastion_prod instance"
-  value       = aws_instance.bastion_prod.public_dns
+output "bastion_${ENV}_public_dns" {
+  description = "Public DNS name of the bastion_$ENV instance"
+  value       = aws_instance.bastion_$ENV.public_dns
 }
 
-output "bastion_prod_private_dns" {
-  description = "Private DNS name of the bastion_prod instance"
-  value       = aws_instance.bastion_prod.private_dns
+output "bastion_${ENV}_private_dns" {
+  description = "Private DNS name of the bastion_$ENV instance"
+  value       = aws_instance.bastion_$ENV.private_dns
 }
 
 output "alb_name" {
-  value = aws_lb.alb_prod.name
+  value = aws_lb.alb_$ENV.name
 }
 
 output "alb_arn" {
-  value = aws_lb.alb_prod.arn
+  value = aws_lb.alb_$ENV.arn
 }
 
 output "alb_dns_name" {
-  value = aws_lb.alb_prod.dns_name
+  value = aws_lb.alb_$ENV.dns_name
 }
 
 
@@ -246,7 +246,7 @@ output "alb_dns_name" {
 #####
 # Application Load Balancer (ALB) for proxy
 #####
-resource "aws_lb" "alb_prod" {
+resource "aws_lb" "alb_$ENV" {
   name               = "${module.shared.env}-alb"
   internal           = false
   load_balancer_type = "application"
@@ -267,8 +267,8 @@ resource "aws_lb" "alb_prod" {
   }
 }
 
-# Create a target group for the proxy_prod instance
-resource "aws_lb_target_group" "alb_proxy_target_group_prod" {
+# Create a target group for the proxy_$ENV instance
+resource "aws_lb_target_group" "alb_proxy_target_group_$ENV" {
   name        = "${module.shared.env}-alb-proxy-tg"
   port        = 8090
   protocol    = "HTTP"
@@ -290,7 +290,7 @@ resource "aws_lb_target_group" "alb_proxy_target_group_prod" {
 
 # ALB listener uses HTTPS on port 443
 resource "aws_lb_listener" "alb_listener_443" {
-  load_balancer_arn = aws_lb.alb_prod.arn
+  load_balancer_arn = aws_lb.alb_$ENV.arn
   port              = 443
   protocol          = "HTTPS"
 
@@ -299,14 +299,14 @@ resource "aws_lb_listener" "alb_listener_443" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.alb_proxy_target_group_prod.arn
+    target_group_arn = aws_lb_target_group.alb_proxy_target_group_$ENV.arn
   }
 }
 
-# Register the proxy_prod instance with the target group
-resource "aws_lb_target_group_attachment" "proxy_prod_attachment" {
-  target_group_arn = aws_lb_target_group.alb_proxy_target_group_prod.arn
-  target_id        = aws_instance.proxy_prod.id
+# Register the proxy_$ENV instance with the target group
+resource "aws_lb_target_group_attachment" "proxy_${ENV}_attachment" {
+  target_group_arn = aws_lb_target_group.alb_proxy_target_group_$ENV.arn
+  target_id        = aws_instance.proxy_$ENV.id
   port             = 8090
 }
 
@@ -335,8 +335,8 @@ resource "aws_route53_record" "alb_alias" {
   type    = "A"
 
   alias {
-    name                   = aws_lb.alb_prod.dns_name
-    zone_id                = aws_lb.alb_prod.zone_id
+    name                   = aws_lb.alb_$ENV.dns_name
+    zone_id                = aws_lb.alb_$ENV.zone_id
     evaluate_target_health = true
   }
 }

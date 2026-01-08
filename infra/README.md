@@ -16,10 +16,20 @@ Note: the proxy is behind an AWS load balancer
 | environment | hostname         |
 |-------------|------------------|
 | dev         | dev.prism.market |
-| uat         | TBC              |
+| uat         | uat.prism.market |
 | prod        | prism.market     |
 
 *Note: in future, we will use load balancers and not fixed IP addresses.*
+
+### Quickstart
+
+`./genEnvs.sh`
+
+Follow the instructions to deploy to dev
+
+`cd gen/dev`
+
+`terraform apply`
 
 ## Manually-created resources
 

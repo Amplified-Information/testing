@@ -49,7 +49,7 @@ Develop the application locally:
 - `api`: see [api/README.md](api/README.md)
 - `clob`: see [clob/README.md](clob/README.md)
 - `web`: see [web/README.md](web/README.md)
-- `proxy`
+- `proxy`: see [proxy/README.md](proxy/README.md)
 
 ## yaak/Postman
 
@@ -99,29 +99,6 @@ AWS (dev):
 
 For further information, see the infra [README](infra/README.md)
 
-## Versioning
-
-Each service MUST be versioned.
-
-Semver (semantic versioning) MUST be used.
-
-For example, build a new docker image using the service NAME and the latest VERSION:
-
-```bash
-export NAME=eventbus
-export VERSION=0.1.0
-```
-
-*Note: NAME must be one of {api, clob, db, eventbus, proxy, web, web.eng}*
-
-`docker build -t ghcr.io/prismmarketlabs/${NAME}$:${VERSION} .`
-
-`docker push ghcr.io/prismmarketlabs/${NAME}:$(VERSION)`
-
-*Note: the latest version doesn't just get deployed automatically - a release is assembled together using a number of known-to-be stable service versions*
-
-*Note: version numbers should never go down, always advancing*
-
 ## Docker container registry
 
 Please use ghcr (Github container registry) only for images.
@@ -158,7 +135,30 @@ All (tagged) images should be pushed to this location.
 
 All images **must** use [semantic versioning](https://semver.org/).
 
-## Releases
+## Versioning
+
+Each service MUST be versioned.
+
+Semver (semantic versioning) MUST be used.
+
+For example, version a docker image using the service NAME and the latest VERSION:
+
+```bash
+export NAME=ghcr.io/prismmarketlabs/api
+export VERSION=0.1.0
+```
+
+*Note: NAME must be one of {api, clob, db, eventbus, proxy, web, web.eng}*
+
+`docker build -t ghcr.io/prismmarketlabs/${NAME}$:${VERSION} .`
+
+`docker push ghcr.io/prismmarketlabs/${NAME}:$(VERSION)`
+
+*Note: the latest version doesn't just get deployed automatically - a release is assembled together using a number of known-to-be stable service versions*
+
+*Note: version numbers should never go down, always advancing*
+
+## Releases/deployments
 
 All releases are specified in `docker-compose-SERVICE.ENV.yml` override files.
 
@@ -183,6 +183,13 @@ There is an **intentional separation** between **configuration** (`.config.ENV`)
 
 ## Release procedure
 
+1. tag the image
+2. update the VERSIONS file
+3. update the docker-compose-<SERVICE>.<ENV>.yml file
+
+
+1. tag the image
+
 View all the images here: https://github.com/orgs/PrismMarketLabs/packages
 
 **Please do NOT push tagged images that were built locally/manually**
@@ -197,18 +204,28 @@ export VER_DST=0.1.1
 
 docker pull $IMAGE:$VER_SRC
 # may need to make an exception here for web/web.eng/etc.
+# never add a tag to web.eng!
 docker tag $IMAGE:$VER_SRC $IMAGE:$VER_DST
 
 docker images | grep $IMAGE
-```
 
-Now do:
 
-```bash
+# now do:
 docker push $IMAGE:$VER_DST
 ```
 
+2. update the VERSIONS file
+
+Update the VERSION file with a short description of the change
+
+*Note: never add a VERSIONS to web.eng*
+
+
+3. update the docker-compose-<SERVICE>.<ENV>.yml file
+
 And update the docker-compose-<SERVICE>.<ENV>.yml with the new version.
+
+
 
 ### AWS secrets
 
