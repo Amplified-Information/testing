@@ -53,6 +53,8 @@ func (p *PositionsService) GetUserPosition(req *pb_api.UserPositionRequest) (*pb
 		SetContractID(contractID).
 		SetGas(100_000).
 		SetFunction("getUserTokens", params)
+		// TODO - remove this print!
+	fmt.Println(query.GetContractID().String())
 
 	return &pb_api.UserPositionResponse{
 		Yes: 0,

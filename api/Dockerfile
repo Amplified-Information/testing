@@ -42,7 +42,7 @@ COPY ./clob/proto /app/clob/proto
 # now generate the interfaces:
 RUN sh /app/api/genInterfaces.sh
 
-RUN go build -o main ./server/
+RUN go build -o main /app/api/server/
 
 # RUN stage
 # A minimal Debian 13 base image for the final stage
