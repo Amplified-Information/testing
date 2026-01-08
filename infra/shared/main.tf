@@ -213,6 +213,7 @@ pull_docker_compose_files() {
   aws s3 cp "s3://$S3_BUCKET/$ENV_FILE" "./$ENV_FILE" --region "$AWS_REGION"
 
   # symlink the base file to docker-compose.yml (for docker compose logging, etc.)
+  rm -f docker-compose.yml # if symlink exists
   ln -s "$BASE_FILE" docker-compose.yml
 }
 
@@ -314,6 +315,9 @@ ENV_FILE="docker-compose-$MACHINE.$ENVIRONMENT.yml"
 
 echo "Starting docker compose..."
 docker compose -f "$BASE_FILE" -f "$ENV_FILE" up -d # daemon mode
+
+# List running containers:
+docker ps
 
 SCRIPT
 
