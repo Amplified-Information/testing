@@ -4,7 +4,7 @@
 # docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.dev.yml up -d
 services:
   api:
-    image: ghcr.io/prismmarketlabs/api:0.2.4
+    image: ghcr.io/prismmarketlabs/api:0.2.5
     # pull_policy: always
     restart: always
     ports:

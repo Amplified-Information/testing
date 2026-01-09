@@ -12,3 +12,6 @@ More newsletter refinements
 
 0.2.4
 Added ca-certificates to Docker image
+
+0.2.5
+Added ca-certificates to Docker image (run stage)

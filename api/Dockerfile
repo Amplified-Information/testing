@@ -66,9 +66,6 @@ RUN CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)-pgdg && echo
 RUN apt-get update
 RUN apt-get install -y postgresql-client-18
 
-# need ca-certificates installed for sending emails via SMTP over TLS
-RUN apt-get install -y ca-certificates
-
 # install golang-migrate for DB migrations:
 RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.19.0/migrate.linux-amd64.tar.gz | tar xvz
 RUN mv migrate ./migrate-tool
@@ -92,6 +89,8 @@ FROM debian:bookworm-slim
 
 # install psql (PostgreSQL client tools)
 RUN apt-get update && apt-get install -y postgresql-client
+# need ca-certificates installed for sending emails via SMTP over TLS
+RUN apt-get install -y ca-certificates
 
 WORKDIR /app
 
