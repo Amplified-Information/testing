@@ -90,7 +90,7 @@ FROM debian:bookworm-slim
 # install psql (PostgreSQL client tools)
 RUN apt-get update && apt-get install -y postgresql-client
 # need ca-certificates installed for sending emails via SMTP over TLS
-RUN apt-get install -y ca-certificates
+RUN apt-get install -y ca-certificates && update-ca-certificates
 
 WORKDIR /app
 

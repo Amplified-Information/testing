@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/mail"
 	"os"
+	"strings"
 
 	pb "api/gen"
 
@@ -214,6 +215,24 @@ func GetUserAgentFromContext(ctx context.Context) string {
 }
 
 func GetIPFromContext(ctx context.Context) string {
+	// Check for forwarded headers first (from proxy)
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		// X-Forwarded-For may contain multiple IPs: "client, proxy1, proxy2"
+		if xff := md.Get("x-forwarded-for"); len(xff) > 0 && xff[0] != "" {
+			// Take the first IP (original client)
+			ip := xff[0]
+			if idx := bytes.IndexByte([]byte(ip), ','); idx != -1 {
+				ip = ip[:idx]
+			}
+			return strings.TrimSpace(ip)
+		}
+		if xri := md.Get("x-real-ip"); len(xri) > 0 && xri[0] != "" {
+			return strings.TrimSpace(xri[0])
+		}
+	}
+
+	// Fallback to peer address
 	p, ok := peer.FromContext(ctx)
 	if !ok {
 		return ""
