@@ -29,6 +29,7 @@ const Index = () => {
 
     setIsSubmitting(true);
     
+    
     // const { error } = await supabase
     //   .from("waitlist")
     //   .insert({ email: result.data });
