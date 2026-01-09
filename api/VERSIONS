@@ -9,3 +9,6 @@ Added newsletter signup
 
 0.2.3
 More newsletter refinements
+
+0.2.4
+Added ca-certificates to Docker image

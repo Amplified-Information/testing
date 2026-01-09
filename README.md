@@ -52,6 +52,34 @@ Develop the application locally:
 - `web`: see [web/README.md](web/README.md)
 - `proxy`: see [proxy/README.md](proxy/README.md)
 
+## database
+
+Connect the the database as follows:
+
+| environment | host       | port |
+|-------------|------------|------|
+| local       | localhost  | 5432 |
+| dev         | localhost* | 9999 |
+| uat         | localhost* | 9999 |
+| ...         |            |      |
+| prod        | localhost* | 9999 |
+
+To connect to a remove database (e.g. `dev`), in a separate termina, open up an ssh tunnel:
+
+```bash
+# add keys to ssh-agent
+ssh-add ~/Desktop/dev-bastion.pem
+ssh-add ~/Desktop/dev.pem
+ssh-add ~/Desktop/uat-bastion.pem
+ssh-add ~/Desktop/uat.pem
+ssh-add ~/Desktop/prod-bastion.pem
+ssh-add ~/Desktop/prod.pem
+
+# example of setting up the tunnel for a remote db connection:
+export HOST=ec2-44-222-140-176.compute-1.amazonaws.com # retrieve from AWS EC2 web UI
+ssh -A -L 9999:10.0.1.12:5432 -N admin@$HOST
+```
+
 ## yaak/Postman
 
 Please use [yaak](https://yaak.app/) (gRPC protocol) for graphical requests to the following services:
@@ -203,8 +231,8 @@ On your local machine, pull the image you want to tag:
 ```bash
 # first set these three env vars:
 export IMAGE=ghcr.io/prismmarketlabs/api
-export VER_SRC=456091bd553e2b3cf073da1bf8a6b2e0a03f6521@sha256:a13f15a06ab618da1da78f5dd2e08768fcdd155cdb80d0ba1ccdb546eb099a5e
 export VER_DST=0.1.1
+export VER_SRC=...
 
 docker pull $IMAGE:$VER_SRC
 # may need to make an exception here for web/web.eng/etc.
