@@ -1,20 +1,20 @@
-# cd prism # yes, need access to protos in other dirs
-# export VERSION=0.1.0
-# docker build -f ./web/Dockerfile -t ghcr.io/prismmarketlabs/web:$VERSION .
+# export VERSION=0.3.1
+# docker build -f ./Dockerfile -t ghcr.io/prismmarketlabs/web:$VERSION .
 # docker push ghcr.io/prismmarketlabs/web:$VERSION
 #
 # docker run -p 5173:80 ghcr.io/prismmarketlabs/web:$VERSION
+# http://localhost:5173
 
 # BUILD stage
 FROM node:24 AS build
 
 WORKDIR /app/web
 
-COPY ./web/package*.json ./
+COPY ./package*.json ./
 
 RUN npm install
 
-COPY ./web /app/web
+COPY . /app/web
 
 RUN npm run build
 
