@@ -5,8 +5,9 @@ This project is divided into a number of folders:
 - `scs`: on-chain smart contracts
 - `clob`: an off-chain CLOB which matches cryptographically signed buy/sell order intents
 - `infra`: infrastructure-as-code (AWS-orientated)
-- `web`: a web front-end
+- `web`: prism web front-end
 - `web.eng`: an engineering front-end
+- `web.lp`: a landing page
 - `api`: an API backend
 - `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication

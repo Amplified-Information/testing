@@ -4,6 +4,6 @@ services:
   # api:
   #   deploy:
   #     replicas: 0
-  clob:
-    deploy:
-      replicas: 0
+  # clob:
+  #   deploy:
+  #     replicas: 0
