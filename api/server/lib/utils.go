@@ -225,18 +225,18 @@ func GetIPFromContext(ctx context.Context) string {
 	return host
 }
 
-func SendEmail(to string, subject string, body string) {
+func SendEmail(to string, subject string, body string) error {
 	// validate to is a valid email address
 	_, err := mail.ParseAddress(to)
 	if err != nil {
 		log.Printf("Invalid email address: %v", err)
-		return
+		return err
 	}
 
 	// don't send email if SEND_EMAIL is not true (e.g. lower environments)
 	if os.Getenv("SEND_EMAIL") != "true" {
 		log.Println("SEND_EMAIL is not set to true. Skipping email sending.")
-		return
+		return err
 	}
 
 	from := os.Getenv("EMAIL_ADDRESS")
@@ -247,7 +247,7 @@ func SendEmail(to string, subject string, body string) {
 
 	if from == "" || smtpUser == "" || smtpPass == "" {
 		log.Println("Missing required environment variables for email sending.")
-		return
+		return err
 	}
 
 	// Create a new email message
@@ -263,8 +263,9 @@ func SendEmail(to string, subject string, body string) {
 	// Send the email
 	if err := d.DialAndSend(m); err != nil {
 		log.Printf("Failed to send email: %v", err)
-		return
+		return err
 	}
 
 	log.Println("Email sent successfully.")
+	return nil
 }

@@ -558,6 +558,28 @@ resource "aws_security_group" "allow_web_egress" {
   }
 }
 
+resource "aws_security_group" "allow_email_egress" {
+  name        = "allow_email_egress"
+  description = "Allow outbound SMTP traffic to AWS SES"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    description = "Allow SMTP submission on port 587"
+    from_port   = 587
+    to_port     = 587
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow SMTP submission on port 465 (implicit TLS)"
+    from_port   = 465
+    to_port     = 465
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_security_group" "allow_web_ingress" {
   name        = "allow_web_ingress"
   description = "Security group allowing HTTP (port 80) and HTTPS (port 443) ingress for IPv4 and IPv6"
@@ -870,6 +892,10 @@ resource "aws_iam_instance_profile" "combined_instance_profile" {
 #####
 output "allow_web_egress_id" {
   value       = aws_security_group.allow_web_egress.id
+}
+
+output "allow_email_egress_id" {
+  value = aws_security_group.allow_email_egress.id
 }
 
 output "allow_web_ingress_id" {

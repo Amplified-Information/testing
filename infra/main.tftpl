@@ -102,6 +102,7 @@ resource "aws_instance" "monolith_$ENV" {
 
   vpc_security_group_ids = [
     module.shared.allow_web_egress_id,
+    module.shared.allow_email_egress_id,
     module.shared.allow_web_ingress_id,
     # module.shared.allow_internal_vpc_id,
     module.shared.allow_internal_private_subnet_id,
