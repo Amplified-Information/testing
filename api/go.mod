@@ -14,6 +14,11 @@ require (
 )
 
 require (
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
+)
+
+require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.5 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

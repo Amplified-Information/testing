@@ -21,11 +21,12 @@ type server struct {
 
 	dbRepository repositories.DbRepository
 
-	prismService     services.Prism
-	natsService      services.NatsService
-	marketsService   services.MarketService
-	commentsService  services.CommentsService
-	positionsService services.PositionsService
+	prismService      services.Prism
+	natsService       services.NatsService
+	marketsService    services.MarketService
+	commentsService   services.CommentsService
+	newsletterService services.NewsletterService
+	positionsService  services.PositionsService
 	// don't forget to register in RegisterApiServiceServer grpc call in main()
 }
 
@@ -82,6 +83,11 @@ func (s *server) CreateComment(ctx context.Context, req *pb_api.CreateCommentReq
 	return commentResp, err
 }
 
+func (s *server) SubscribeNewsletter(ctx context.Context, req *pb_api.NewsLetterRequest) (*pb_api.StdResponse, error) {
+	newsletterResp, err := s.newsletterService.SubscribeNewsletter(ctx, req)
+	return newsletterResp, err
+}
+
 func (s *server) UserPosition(ctx context.Context, req *pb_api.UserPositionRequest) (*pb_api.UserPositionResponse, error) {
 	positionResp, err := s.positionsService.GetUserPosition(req)
 	return positionResp, err
@@ -90,34 +96,45 @@ func (s *server) UserPosition(ctx context.Context, req *pb_api.UserPositionReque
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
 	vars := []string{
-		"AVAILABLE_NETWORKS",
+		// keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets
 		"API_HOST",
 		"API_PORT",
 		"USDC_DECIMALS",
 		"PREVIEWNET_USDC_ADDRESS",
 		"TESTNET_USDC_ADDRESS",
 		"MAINNET_USDC_ADDRESS",
+		"AVAILABLE_NETWORKS",
 		"PREVIEWNET_SMART_CONTRACT_ID",
-		"TESTNET_SMART_CONTRACT_ID",
-		"MAINNET_SMART_CONTRACT_ID",
 		"PREVIEWNET_HEDERA_OPERATOR_ID",
 		"PREVIEWNET_HEDERA_OPERATOR_KEY_TYPE",
 		"PREVIEWNET_PUBLIC_KEY",
+		"TESTNET_SMART_CONTRACT_ID",
 		"TESTNET_HEDERA_OPERATOR_ID",
 		"TESTNET_HEDERA_OPERATOR_KEY_TYPE",
 		"TESTNET_PUBLIC_KEY",
+		"MAINNET_SMART_CONTRACT_ID",
 		"MAINNET_HEDERA_OPERATOR_ID",
 		"MAINNET_HEDERA_OPERATOR_KEY_TYPE",
 		"MAINNET_PUBLIC_KEY",
-		"NATS_URL",
 		"DB_HOST",
 		"DB_PORT",
 		"DB_UNAME",
-		"DB_PWORD",
 		"DB_NAME",
 		"DB_MAX_ROWS",
-		"TIMESTAMP_ALLOWED_FUTURE_SECONDS",
+		"NATS_URL",
 		"TIMESTAMP_ALLOWED_PAST_SECONDS",
+		"TIMESTAMP_ALLOWED_FUTURE_SECONDS",
+		"SEND_EMAIL",
+		"EMAIL_ADDRESS",
+		"SMTP_ENDPOINT",
+		"IAM_USERNAME",
+		"SMTP_USERNAME",
+		// secrets:
+		"DB_PWORD",
+		"PREVIEWNET_HEDERA_OPERATOR_KEY",
+		"TESTNET_HEDERA_OPERATOR_KEY",
+		"MAINNET_HEDERA_OPERATOR_KEY",
+		"SMTP_PWORD",
 	}
 	vals := make(map[string]string)
 
@@ -172,6 +189,13 @@ func main() {
 		log.Fatalf("Failed to initialize Comments service: %v", err)
 	}
 
+	// initialize Newsletter service
+	newsletterService := services.NewsletterService{}
+	err = newsletterService.Init(&dbRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize Newsletter service: %v", err)
+	}
+
 	// initialize Positions service
 	positionsService := services.PositionsService{}
 	err = positionsService.Init()
@@ -216,11 +240,12 @@ func main() {
 	pb_api.RegisterApiServicePublicServer(grpcServer, &server{
 		dbRepository: dbRepository,
 
-		prismService:     prismService,
-		natsService:      natsService,
-		marketsService:   marketsService,
-		commentsService:  commentsService,
-		positionsService: positionsService,
+		prismService:      prismService,
+		natsService:       natsService,
+		marketsService:    marketsService,
+		commentsService:   commentsService,
+		newsletterService: newsletterService,
+		positionsService:  positionsService,
 	})
 
 	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT"))

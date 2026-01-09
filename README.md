@@ -78,9 +78,11 @@ The following files and documentation notes MUST be kept in sync. If you add/rem
  - api/Dockerfile
  - api/.config*
  - api/.secrets
+ - main.go
  - clob/Dockerfile
  - clob/.config*
  - clob/.secrets
+ - main.rs
 
 `docker-compose-proxy.yml`
  - proxy/Dockerfile

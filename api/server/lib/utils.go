@@ -2,18 +2,25 @@ package lib
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/mail"
+	"os"
 
 	pb "api/gen"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/encoding/protojson"
+	"gopkg.in/gomail.v2"
 )
 
 type HTTPMethod string
@@ -186,3 +193,78 @@ func PublicKeyForKeyType(publicKeyHex string, keyType HederaKeyType) (*hiero.Pub
 // 		return -1, fmt.Errorf("unknown key type with length: %d", len(decodedKey))
 // 	}
 // }
+
+func GetUserAgentFromContext(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+
+	// gRPC uses "user-agent" header
+	if ua := md.Get("user-agent"); len(ua) > 0 {
+		return ua[0]
+	}
+
+	// If behind a proxy like Envoy, check grpcgateway-user-agent
+	if ua := md.Get("grpcgateway-user-agent"); len(ua) > 0 {
+		return ua[0]
+	}
+
+	return ""
+}
+
+func GetIPFromContext(ctx context.Context) string {
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(p.Addr.String())
+	if err != nil {
+		return p.Addr.String()
+	}
+	return host
+}
+
+func SendEmail(to string, subject string, body string) {
+	// validate to is a valid email address
+	_, err := mail.ParseAddress(to)
+	if err != nil {
+		log.Printf("Invalid email address: %v", err)
+		return
+	}
+
+	// don't send email if SEND_EMAIL is not true (e.g. lower environments)
+	if os.Getenv("SEND_EMAIL") != "true" {
+		log.Println("SEND_EMAIL is not set to true. Skipping email sending.")
+		return
+	}
+
+	from := os.Getenv("EMAIL_ADDRESS")
+	smtpUser := os.Getenv("SMTP_USERNAME")
+	smtpPass := os.Getenv("SMTP_PWORD")
+	smtpHost := os.Getenv("SMTP_ENDPOINT")
+	smtpPort := 587
+
+	if from == "" || smtpUser == "" || smtpPass == "" {
+		log.Println("Missing required environment variables for email sending.")
+		return
+	}
+
+	// Create a new email message
+	m := gomail.NewMessage()
+	m.SetHeader("From", from)
+	m.SetHeader("To", to)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/plain", body)
+
+	// Create a new SMTP dialer
+	d := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
+
+	// Send the email
+	if err := d.DialAndSend(m); err != nil {
+		log.Printf("Failed to send email: %v", err)
+		return
+	}
+
+	log.Println("Email sent successfully.")
+}

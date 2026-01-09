@@ -153,6 +153,43 @@ ALTER SEQUENCE public.matches_id_seq OWNED BY public.matches.id;
 
 
 --
+-- Name: newsletter; Type: TABLE; Schema: public; Owner: your_db_user
+--
+
+CREATE TABLE public.newsletter (
+    id integer NOT NULL,
+    email character varying(255) NOT NULL,
+    ip_address character varying(45),
+    user_agent text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.newsletter OWNER TO your_db_user;
+
+--
+-- Name: newsletter_id_seq; Type: SEQUENCE; Schema: public; Owner: your_db_user
+--
+
+CREATE SEQUENCE public.newsletter_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.newsletter_id_seq OWNER TO your_db_user;
+
+--
+-- Name: newsletter_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: your_db_user
+--
+
+ALTER SEQUENCE public.newsletter_id_seq OWNED BY public.newsletter.id;
+
+
+--
 -- Name: order_requests; Type: TABLE; Schema: public; Owner: your_db_user
 --
 
@@ -557,6 +594,13 @@ ALTER TABLE ONLY public.matches ALTER COLUMN id SET DEFAULT nextval('public.matc
 
 
 --
+-- Name: newsletter id; Type: DEFAULT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.newsletter ALTER COLUMN id SET DEFAULT nextval('public.newsletter_id_seq'::regclass);
+
+
+--
 -- Name: settlements id; Type: DEFAULT; Schema: public; Owner: your_db_user
 --
 
@@ -585,6 +629,22 @@ ALTER TABLE ONLY public.markets
 
 ALTER TABLE ONLY public.matches
     ADD CONSTRAINT matches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: newsletter newsletter_email_key; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.newsletter
+    ADD CONSTRAINT newsletter_email_key UNIQUE (email);
+
+
+--
+-- Name: newsletter newsletter_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.newsletter
+    ADD CONSTRAINT newsletter_pkey PRIMARY KEY (id);
 
 
 --

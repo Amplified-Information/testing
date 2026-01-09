@@ -390,3 +390,24 @@ func (dbRepository *DbRepository) CreateComment(marketId string, accountId strin
 	log.Printf("Added comment to database for market %s by account %s", marketId, accountId)
 	return &row, nil
 }
+
+func (dbRepository *DbRepository) CreateNewsletterSubscription(email string, ipAddress string, userAgent string) error {
+	if dbRepository.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	params := sqlc.CreateNewsletterSubscriptionParams{
+		Email:     email,
+		IpAddress: sql.NullString{String: ipAddress, Valid: ipAddress != ""},
+		UserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
+	}
+
+	q := sqlc.New(dbRepository.db)
+	err := q.CreateNewsletterSubscription(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("CreateNewsletterSubscription failed: %v", err)
+	}
+
+	log.Printf("Created newsletter subscription for email: %s", email)
+	return nil
+}

@@ -4,12 +4,13 @@
 # docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.dev.yml up -d
 services:
   api:
-    image: ghcr.io/prismmarketlabs/api:0.1.0
+    image: ghcr.io/prismmarketlabs/api:0.2.2
     # pull_policy: always
     restart: always
     ports:
       - "8888:8888"
     environment:
+      # keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets
       API_HOST: ${API_HOST}
       API_PORT: ${API_PORT}
       USDC_DECIMALS: ${USDC_DECIMALS}
@@ -19,11 +20,11 @@ services:
       AVAILABLE_NETWORKS: ${AVAILABLE_NETWORKS}
       PREVIEWNET_SMART_CONTRACT_ID: ${PREVIEWNET_SMART_CONTRACT_ID}
       PREVIEWNET_HEDERA_OPERATOR_ID: ${PREVIEWNET_HEDERA_OPERATOR_ID}
-      PREVIEWNET_PUBLIC_KEY: ${PREVIEWNET_PUBLIC_KEY}
       PREVIEWNET_HEDERA_OPERATOR_KEY_TYPE: ${PREVIEWNET_HEDERA_OPERATOR_KEY_TYPE}
+      PREVIEWNET_PUBLIC_KEY: ${PREVIEWNET_PUBLIC_KEY}
       TESTNET_SMART_CONTRACT_ID: ${TESTNET_SMART_CONTRACT_ID}
-      TESTNET_HEDERA_OPERATOR_ID: ${TESTNET_HEDERA_OPERATOR_ID}
       TESTNET_HEDERA_OPERATOR_KEY_TYPE: ${TESTNET_HEDERA_OPERATOR_KEY_TYPE}
+      TESTNET_HEDERA_OPERATOR_ID: ${TESTNET_HEDERA_OPERATOR_ID}
       TESTNET_PUBLIC_KEY: ${TESTNET_PUBLIC_KEY}
       MAINNET_SMART_CONTRACT_ID: ${MAINNET_SMART_CONTRACT_ID}
       MAINNET_HEDERA_OPERATOR_ID: ${MAINNET_HEDERA_OPERATOR_ID}
@@ -37,14 +38,20 @@ services:
       NATS_URL: ${NATS_URL}
       TIMESTAMP_ALLOWED_PAST_SECONDS: ${TIMESTAMP_ALLOWED_PAST_SECONDS}
       TIMESTAMP_ALLOWED_FUTURE_SECONDS: ${TIMESTAMP_ALLOWED_FUTURE_SECONDS}
+      SEND_EMAIL: ${SEND_EMAIL}
+      EMAIL_ADDRESS: ${EMAIL_ADDRESS}
+      SMTP_ENDPOINT: ${SMTP_ENDPOINT}
+      IAM_USERNAME: ${IAM_USERNAME}
+      SMTP_USERNAME: ${SMTP_USERNAME}
       # secrets
       DB_PWORD: ${DB_PWORD}
       PREVIEWNET_HEDERA_OPERATOR_KEY: ${PREVIEWNET_HEDERA_OPERATOR_KEY}
       TESTNET_HEDERA_OPERATOR_KEY: ${TESTNET_HEDERA_OPERATOR_KEY}
       MAINNET_HEDERA_OPERATOR_KEY: ${MAINNET_HEDERA_OPERATOR_KEY}
+      SMTP_PWORD: ${SMTP_PWORD}
 
   clob:
-    image: ghcr.io/prismmarketlabs/clob:0.1.0
+    image: ghcr.io/prismmarketlabs/clob:0.2.1
     # pull_policy: always
     restart: always
     ports:
@@ -57,7 +64,7 @@ services:
       NATS_PORT: ${NATS_PORT}
 
   web:
-    image: ghcr.io/prismmarketlabs/web:0.1.0
+    image: ghcr.io/prismmarketlabs/web:0.2.1
     # pull_policy: always
     restart: always
     ports:
