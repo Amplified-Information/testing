@@ -8,7 +8,10 @@ Additional progress on the web app
 More progress
 
 0.3.0
-web.lp landing page
+web.lp - landing page
 
 0.3.1
-fixed favicon. Added newsletter signup gRPC functionality
+web.lp - fixed favicon. Added newsletter signup gRPC functionality
+
+0.3.2
+web.lp - updated frontend to communicate with API
