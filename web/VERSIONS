@@ -15,3 +15,6 @@ web.lp - fixed favicon. Added newsletter signup gRPC functionality
 
 0.3.2
 web.lp - updated frontend to communicate with API
+
+0.3.3
+web.lp - new favicon

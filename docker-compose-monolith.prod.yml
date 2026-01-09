@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/prismmarketlabs/web:0.3.2
+    image: ghcr.io/prismmarketlabs/web:0.3.3
   # api:
   #   deploy:
   #     replicas: 0

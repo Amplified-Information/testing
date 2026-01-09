@@ -27,6 +27,8 @@ func (n *NewsletterService) SubscribeNewsletter(ctx context.Context, req *pb_api
 	userAgent := lib.GetUserAgentFromContext(ctx)
 	email := req.GetEmail()
 
+	req.Em
+
 	log.Printf("Subscribing email %s to newsletter from IP %s with User-Agent %s", email, ipAddress, userAgent)
 
 	// TODO - send email to the user inviting them to prism
