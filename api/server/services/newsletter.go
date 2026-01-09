@@ -34,7 +34,7 @@ func (n *NewsletterService) SubscribeNewsletter(ctx context.Context, req *pb_api
 		return &pb_api.StdResponse{
 			Message:   "Failed to subscribe to newsletter",
 			ErrorCode: 1,
-		}, fmt.Errorf("failed to create newsletter subscription: %v", err)
+		}, fmt.Errorf("failed to create newsletter subscription: %v", "internal error" /* err - don't pass the full reason to the user*/)
 	}
 
 	// TODO - send email to the user inviting them to prism

@@ -83,7 +83,7 @@ func (s *server) CreateComment(ctx context.Context, req *pb_api.CreateCommentReq
 	return commentResp, err
 }
 
-func (s *server) SubscribeNewsletter(ctx context.Context, req *pb_api.NewsLetterRequest) (*pb_api.StdResponse, error) {
+func (s *server) NewsLetter(ctx context.Context, req *pb_api.NewsLetterRequest) (*pb_api.StdResponse, error) {
 	newsletterResp, err := s.newsletterService.SubscribeNewsletter(ctx, req)
 	return newsletterResp, err
 }
@@ -96,7 +96,7 @@ func (s *server) UserPosition(ctx context.Context, req *pb_api.UserPositionReque
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
 	vars := []string{
-		// keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets
+		// keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets and the run command in Dockerfile
 		"API_HOST",
 		"API_PORT",
 		"USDC_DECIMALS",

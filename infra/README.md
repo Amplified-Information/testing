@@ -42,6 +42,7 @@ The following resources (static - not to be deleted) should be created manually 
 - AWS certificates
 - EBS (elastic block storage) for persistent data storage
 - S3 bucket - a landing zone for deploying docker-compose* files
+- AWS SES service
 - ~~EIP (elastic IP address)~~
 
 ## DNS hosted zone
@@ -141,6 +142,10 @@ On your laptop, save this PAT in the aws secrets manager:
 Now, on the EC2 instance, can do (Terraform has already set the permsissions for you)
 
 `aws ssm get-parameter --name "read_ghcr" --with-decryption --region "us-east-1"`
+
+## AWS SES service
+
+https://us-east-1.console.aws.amazon.com/ses/home?region=us-east-1
 
 ## AWS login
 

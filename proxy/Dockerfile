@@ -1,10 +1,16 @@
 # cd prism/proxy
-# export VERSION=0.1.0
+# export VERSION=0.1.2
 # docker build -t ghcr.io/prismmarketlabs/proxy:$VERSION .
 # docker push ghcr.io/prismmarketlabs/proxy:$VERSION
 #
+# When everything is inside a container
 # source loadEnv.sh local
 # docker run -p 8090:8090 -p 9901:9901 -e IS_BASIC_AUTH_DISABLED=${IS_BASIC_AUTH_DISABLED} -e ENVOY_HOST_CLOB=${ENVOY_HOST_CLOB} -e ENVOY_HOST_API=${ENVOY_HOST_API} -e ENVOY_HOST_WEB=${ENVOY_HOST_WEB} ghcr.io/prismmarketlabs/proxy:$VERSION
+#
+# When clob, api, web are all on localhost when running locally:
+# source loadEnv.sh local2
+# docker run --network host ...
+
 
 # BUILD stage
 FROM envoyproxy/envoy:contrib-v1.35-latest

@@ -68,25 +68,25 @@ Note on syncing:
 The following files and documentation notes MUST be kept in sync. If you add/remove/change a config or secret, please ensure it's documented and is reflected everywhere else.
 
 `docker-compose-data.yml`
- - db/Dockerfile
+ - db/Dockerfile (including the run command documentation)
  - db/.config*
  - db/.secrets
- - eventbus/Dockerfile
+ - eventbus/Dockerfile (including the run command documentation)
  - eventbus/.config*
  - eventbus/.secrets
 
 `docker-compose-monolith.yml`
- - api/Dockerfile
+ - api/Dockerfile (including the run command documentation)
  - api/.config*
  - api/.secrets
  - main.go
- - clob/Dockerfile
+ - clob/Dockerfile (including the run command documentation)
  - clob/.config*
  - clob/.secrets
  - main.rs
 
 `docker-compose-proxy.yml`
- - proxy/Dockerfile
+ - proxy/Dockerfile (including the run command documentation)
  - proxy/.config*
  - proxy/.secrets (if applicable)
 

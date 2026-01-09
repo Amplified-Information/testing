@@ -1,5 +1,5 @@
 # cd prism/eventbus
-# export VERSION=0.1.0
+# export VERSION=0.1.1
 # docker build -t ghcr.io/prismmarketlabs/eventbus:$VERSION .
 # docker push ghcr.io/prismmarketlabs/eventbus:$VERSION
 # 

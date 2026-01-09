@@ -16,8 +16,9 @@ const Index = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const result = emailSchema.safeParse(email);
+
     if (!result.success) {
       toast({
         title: "Invalid email",
@@ -27,42 +28,32 @@ const Index = () => {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    
-    // const { error } = await supabase
-    //   .from("waitlist")
-    //   .insert({ email: result.data });
+    try {
+      setIsSubmitting(true)
 
-    const response = await apiClient.newsLetter({
-      email: email
-    })
-    const stdResponse = response.response
-    console.log(stdResponse)
+      const response = await apiClient.newsLetter({ email })
+      const stdResponse = response.response
+      console.log(stdResponse)
 
-    setIsSubmitting(false);
+      if (stdResponse.errorCode > 0) {
+        throw new Error(stdResponse.message)
+      }
 
-    // if (error) {
-    //   if (error.code === "23505") {
-    //     toast({
-    //       title: "Already registered",
-    //       description: "This email is already on the waitlist.",
-    //     });
-    //   } else {
-    //     toast({
-    //       title: "Something went wrong",
-    //       description: "Please try again later.",
-    //       variant: "destructive",
-    //     });
-    //   }
-    //   return;
-    // }
-
-    toast({
-      title: "You're on the list!",
-      description: "We'll notify you when Prism.Market launches.",
-    });
+      toast({
+        title: "You're on the list!",
+        description: "We'll notify you when prism.market launches.",
+      })
     setEmail("");
+    } catch (e) {
+      console.error(e)
+      toast({
+        title: "Something went wrong",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false)
+    }
   };
 
   return (
@@ -102,8 +93,11 @@ const Index = () => {
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animation: `dust-${i} ${duration}s ease-in-out ${delay}s infinite`,
               animationName: `dust-${i}`,
+              animationDuration: `${duration}s`,
+              animationTimingFunction: 'ease-in-out',
+              animationDelay: `${delay}s`,
+              animationIterationCount: 'infinite',
             }}
           >
             <style>{`
