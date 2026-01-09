@@ -1,3 +1,4 @@
+# cd prism
 # export VERSION=0.3.1
 # docker build -f ./Dockerfile -t ghcr.io/prismmarketlabs/web:$VERSION .
 # docker push ghcr.io/prismmarketlabs/web:$VERSION
@@ -10,11 +11,11 @@ FROM node:24 AS build
 
 WORKDIR /app/web
 
-COPY ./package*.json ./
+COPY ./web/package*.json ./
 
 RUN npm install
 
-COPY . /app/web
+COPY ./web /app/web
 
 RUN npm run build
 
