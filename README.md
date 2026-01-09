@@ -230,20 +230,21 @@ On your local machine, pull the image you want to tag:
 
 ```bash
 # first set these three env vars:
-export IMAGE=ghcr.io/prismmarketlabs/api
-export VER_DST=0.1.1
+export IMAGE_SRC=ghcr.io/prismmarketlabs/web.eng
+export IMAGE_DST=ghcr.io/prismmarketlabs/web
 export VER_SRC=...
+export VER_DST=0.1.1
 
-docker pull $IMAGE:$VER_SRC
-# may need to make an exception here for web/web.eng/etc.
-# never add a tag to web.eng!
-docker tag $IMAGE:$VER_SRC $IMAGE:$VER_DST
 
-docker images | grep $IMAGE
+docker pull $IMAGE_SRC:$VER_SRC
+# never add a tag to derived namespaces such as web.eng!
+docker tag $IMAGE_SRC:$VER_SRC $IMAGE_DST:$VER_DST
+
+docker images | grep $VER_DST
 
 
 # now do:
-docker push $IMAGE:$VER_DST
+docker push $IMAGE_DST:$VER_DST
 ```
 
 ### 2. update the VERSIONS file

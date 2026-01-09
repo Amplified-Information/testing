@@ -18,3 +18,6 @@ web.lp - updated frontend to communicate with API
 
 0.3.3
 web.lp - new favicon
+
+0.3.4
+web.lp - link preview metadata update
