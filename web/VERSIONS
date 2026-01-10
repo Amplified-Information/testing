@@ -24,3 +24,6 @@ web.lp - link preview metadata update
 
 0.4.0
 web - started on new design. Major initial integration work done.
+
+0.4.1
+web - visual fixes for hamburger menu
