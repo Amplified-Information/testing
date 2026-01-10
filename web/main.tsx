@@ -1,4 +1,5 @@
 import './shim-buffer'
+import { proto } from '@hashgraph/proto'
 // import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -11,6 +12,8 @@ import { Toaster } from 'react-hot-toast'
 import MacroMetadata from './components/MacroMetadata'
 
 import './i18n/i18n'
+
+console.log(proto) // TODO - will use this in Signer.tsx. Added here to to avoid tree-shaking of @hashgraph/proto
 
 createRoot(document.getElementById('root')!).render(
   // <StrictMode>

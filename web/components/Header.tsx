@@ -17,7 +17,7 @@ const Header = () => {
     if (!menuOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuOpen(false)
-    };
+    }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [menuOpen])

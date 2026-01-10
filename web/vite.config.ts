@@ -20,7 +20,7 @@ export default defineConfig({
       // output: {
       //   preserveModules: true
       // },
-      external: ['@hashgraph/proto'] // necessary to avoid bundling issues with @hashgraph/proto
+      // external: ['@hashgraph/proto'] // necessary to avoid bundling issues with @hashgraph/proto
     }
     // assetsDir: 'assets',
     // rollupOptions: {
@@ -63,10 +63,14 @@ export default defineConfig({
   // },
   // optimizeDeps: {
   //   exclude: [
+  //     // '@hashgraph/hedera-wallet-connect',
+  //     // '@reown/appkit',
+  //     // '@reown/appkit/*'
   //     '@hashgraph/hedera-wallet-connect',
-  //     '@reown/appkit',
-  //     '@reown/appkit/*'
+  //     '@hashgraph/proto'
   //   ]
+  // }
+
   // }
   // optimizeDeps: {
   //   exclude: [
