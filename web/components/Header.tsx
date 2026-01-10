@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import Wallet from './Wallet'
 import logo from '../img/prism.png'
@@ -11,6 +11,16 @@ const Header = () => {
   const { networkSelected, smartContractIds, signerZero } = useAppContext()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // Close menu on Escape key
+  useEffect(() => {
+    if (!menuOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    };
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [menuOpen])
   
   return (
     <div className="relative">
@@ -65,10 +75,17 @@ const Header = () => {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <nav className="mobile-menu">
-            <button className="btn-primary">
-              Connect Wallet
-            </button>
+          <nav className="mobile-menu" style={{ zIndex: 1000, position: 'absolute', top: '100%', left: 0, width: '100%' }}>
+            
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ margin: '0 auto' }}>
+                <Wallet />
+              </div>
+            </div>
+
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <SelectLang />
+            </div>
             
             <a href="#" className="mobile-nav-link">Explore</a>
             <a href="#" className="mobile-nav-link">Create</a>
