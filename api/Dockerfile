@@ -1,5 +1,6 @@
 # BUILD stage
 # cd prism
+# cat ../docker-compose-monolith.yml | grep image:
 # export VERSION=0.1.0
 # docker build -f api/Dockerfile -t ghcr.io/prismmarketlabs/api:$VERSION .
 # docker push ghcr.io/prismmarketlabs/api:$VERSION

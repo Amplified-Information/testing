@@ -1,4 +1,5 @@
 # cd prism/clob
+# cat ../docker-compose-monolith.yml | grep image:
 # export VERSION=0.1.0
 # docker build -t ghcr.io/prismmarketlabs/clob:$VERSION .
 # docker push ghcr.io/prismmarketlabs/clob:$VERSION

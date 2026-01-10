@@ -1,4 +1,5 @@
 # cd prism/db
+# cat ../docker-compose-data.yml | grep image:
 # export VERSION=0.1.1
 # docker build -t ghcr.io/prismmarketlabs/db:$VERSION .
 # docker push ghcr.io/prismmarketlabs/db:$VERSION

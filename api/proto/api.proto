@@ -17,12 +17,12 @@ service ApiServicePublic {
   rpc GetMarkets(LimitOffsetRequest) returns (MarketsResponse);
   rpc CreateMarket(NewMarketRequest) returns (MarketResponse);
   rpc PriceHistory(PriceHistoryRequest) returns (PriceHistoryResponse);
-  rpc AvailableNetworks(Empty) returns (StdResponse);
+  // rpc AvailableNetworks(Empty) returns (StdResponse);
+  rpc MacroMetadata(Empty) returns (MacroMetadataResponse); // general market data - volume, nMarkets, TVL, liquidity, etc.
   rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
   rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse);
   rpc UserPosition(UserPositionRequest) returns (UserPositionResponse);
   // rpc UserPortfolio() returns (); portfolio - all of user's holidings accross all marketIds that they participate in
-  // rpc MacroData() returns (); general market data - volume, nMarkets, TVL, liquidity, etc.
   // rpc CancelPosition ticket#6
 }
 
@@ -51,6 +51,13 @@ message PredictionIntentRequest {
 message StdResponse {
   string message = 1;
   int32 errorCode = 2;
+}
+
+message MacroMetadataResponse {
+  repeated string available_networks = 1  [json_name = "availableNetworks"];
+  map<string, string> smart_contracts = 2 [json_name = "smartContracts"];
+  map<string, string> usdc_addresses = 3  [json_name = "usdcAddresses"];
+  uint32 usdc_decimals = 4                [json_name = "usdcDecimals"];
 }
 
 message NewsLetterRequest {

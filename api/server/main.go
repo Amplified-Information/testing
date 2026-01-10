@@ -68,8 +68,8 @@ func (s *server) PriceHistory(ctx context.Context, req *pb_api.PriceHistoryReque
 	return result, err
 }
 
-func (s *server) AvailableNetworks(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
-	result, err := s.prismService.AvailableNetworks()
+func (s *server) MacroMetadata(ctx context.Context, req *pb_api.Empty) (*pb_api.MacroMetadataResponse, error) {
+	result, err := s.prismService.MacroMetadata()
 	return result, err
 }
 

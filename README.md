@@ -232,6 +232,7 @@ On your local machine, pull the image you want to tag:
 # first set these three env vars:
 export IMAGE_SRC=ghcr.io/prismmarketlabs/web.eng
 export IMAGE_DST=ghcr.io/prismmarketlabs/web
+# note: it is comment for IMAGE_SRC and IMAGE_DST to be the same
 export VER_SRC=...
 export VER_DST=0.1.1
 

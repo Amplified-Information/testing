@@ -1,15 +1,12 @@
 import { DAppConnector, HederaChainId, HederaJsonRpcMethod, HederaSessionEvent } from '@hashgraph/hedera-wallet-connect'
-import { smartContractId, walletConnectProjectId, walletMetaData } from '../constants'
+import { walletConnectProjectId, walletMetaData } from '../constants'
 import { useEffect, useState } from 'react'
 import { useAppContext } from '../AppProvider'
-import NetworkSelector from './NetworkSelector'
-import { getSpenderAllowanceUsd, getUserAccountInfo } from '../lib/hedera'
-import GrantAllowance from './GrantAllowance'
+import { getUserAccountInfo } from '../lib/hedera'
 
 const Wallet = () => {
-  const { dAppConnector, setDappConnector, networkSelected, signerZero, setSignerZero, spenderAllowanceUsd, setSpenderAllowanceUsd, setUserAccountInfo } = useAppContext()
+  const { dAppConnector, setDappConnector, networkSelected, signerZero, setSignerZero, setUserAccountInfo } = useAppContext()
   const [ thinger, setThinger ] = useState(false)
-  const [showGrantAllowance, setShowGrantAllowance] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -31,14 +28,6 @@ const Wallet = () => {
   }, [])
 
   useEffect(() => {
-    ;(async () => {
-      if (!signerZero) return
-
-      updateSpenderAllowance()
-    })()
-  }, [signerZero])
-
-  useEffect(() => {
     if (signerZero === undefined) return
     ;(async () => {
       console.log('Fetching user account info for signerZero...')
@@ -46,15 +35,6 @@ const Wallet = () => {
       setUserAccountInfo(uai)
     })()
   }, [networkSelected, signerZero])
-
-  const updateSpenderAllowance = async () => {
-    try {
-      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, smartContractId, signerZero!.getAccountId().toString())
-      setSpenderAllowanceUsd(_spenderAllowance)
-    } catch (error) {
-      console.error('Error updating spender allowance:', error)
-    }
-  }
 
   const initDAppConnector = async () => {
     // https://www.npmjs.com/package/@hashgraph/hedera-wallet-connect
@@ -68,7 +48,11 @@ const Wallet = () => {
     )
 
     setDappConnector(_dAppConnector)
-    await _dAppConnector.init()
+    try {
+      await _dAppConnector.init()
+    } catch (error) {
+      console.warn('Warn when initializing dAppConnector:', error)
+    }
     return _dAppConnector
   }
 
@@ -115,7 +99,7 @@ const Wallet = () => {
 
       console.log('Available sessions:')
       console.log(_dAppConnector!.signers)
-      const _signerZero = _dAppConnector!.signers.find(signer => signer.getLedgerId() === networkSelected) // find first signer on the selected network
+      const _signerZero = _dAppConnector!.signers.find(signer => { console.log(signer.getLedgerId().toString()); return signer.getLedgerId().toString() === networkSelected.toString() } ) // find first signer on the selected network
       if (!_signerZero) {
         console.log(`No connected signer found for network ${networkSelected.toString()}`)
         setSignerZero(undefined)
@@ -130,32 +114,23 @@ const Wallet = () => {
 
   return (
     <div className="flex items-center gap-2 ml-auto">
-      <NetworkSelector />
+      {/* <NetworkSelector /> */}
       { signerZero === undefined ? (
         <>
-          <button className='btn' title='Connect wallet' disabled={thinger} onClick={() => { connect() }}>
+          <button className='btn-primary' title='Connect wallet' disabled={thinger} onClick={() => { connect() }}>
             {thinger ? 'Connecting...' : 'Connect'}
           </button>
         </>
       ) : (
         <>
-            <span>
-              <div className='text-sm text-center -mt-1'>
-                Spender allowance: <a className='text-blue-500 underline cursor-pointer' onClick={() => setShowGrantAllowance(true)} target="#"> ${spenderAllowanceUsd.toFixed(2)}</a>
-              </div>
-            </span>
-            {/* <span>{signerZero.getLedgerId().toString()}</span> */}
-            <button className='btn orange' title='Disconnect wallet' onClick={() => { disconnect() }}>
-              {thinger ? 'Disconnecting...' : 
-                <>
-                  Disconnect
-                  <div className='text-xs text-center font-bold'>
-                    {signerZero!.getAccountId().toString()}
-                  </div>
-                </>
-              }
-            </button>
-            <GrantAllowance open={showGrantAllowance} onClose={() => { setShowGrantAllowance(false) }} />
+          {/* <span>{signerZero.getLedgerId().toString()}</span> */}
+          <button className='btn-primary' title='Disconnect wallet' onClick={() => { disconnect() }}>
+            {thinger ? 'Disconnecting...' : 
+              <>
+                Disconnect
+              </>
+            }
+          </button>
         </>
       )}
     </div>

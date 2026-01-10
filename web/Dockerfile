@@ -1,4 +1,5 @@
 # cd prism # yes, need access to protos in other dirs
+# cat ../docker-compose-monolith.yml | grep image:
 # export VERSION=0.1.0
 # docker build -f ./web/Dockerfile -t ghcr.io/prismmarketlabs/web:$VERSION .
 # docker push ghcr.io/prismmarketlabs/web:$VERSION

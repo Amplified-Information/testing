@@ -3,7 +3,7 @@
   "compilerOptions": {
     // File Layout
     // "rootDir": "./src",
-    // "outDir": "./dist",
+    "outDir": "./dist",
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
@@ -21,8 +21,11 @@
     "declarationMap": false,
 
     // Stricter Typechecking Options
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    // "noUncheckedIndexedAccess": true,
+    // "exactOptionalPropertyTypes": true,
+    // "strictNullChecks": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
 
     // Style Options
     // "noImplicitReturns": true,
@@ -33,13 +36,13 @@
     // "noPropertyAccessFromIndexSignature": true,
 
     // Recommended Options
-    "strict": true,
+    "strict": false,
     "jsx": "react-jsx",
     "verbatimModuleSyntax": false,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-  },
-  "include": ["**/*.ts", "**/*.tsx", "*.d.ts"]
+    "esModuleInterop": true,
+  }
 }

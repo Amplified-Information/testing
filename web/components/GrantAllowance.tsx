@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { smartContractId } from '../constants'
 import { useAppContext } from '../AppProvider'
 import { grantAllowanceUsd } from '../lib/hedera'
 import ButtonAmount from './ButtonAmount'
 
 const GrantAllowance = ({ open, onClose }: { open: boolean, onClose: () => void }) => {
   const [ amountUsd, setAmountUsd ] = useState<number>(0)
-  const { signerZero, spenderAllowanceUsd, setSpenderAllowanceUsd } = useAppContext()
+  const { signerZero, spenderAllowanceUsd, setSpenderAllowanceUsd, smartContractIds, networkSelected } = useAppContext()
   const [ thinger, setThinger ] = useState(false)
+  const [ smartContractId, setSmartContractId ] = useState<string>('')
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -17,6 +17,10 @@ const GrantAllowance = ({ open, onClose }: { open: boolean, onClose: () => void 
     if (open) document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  useEffect(() => {
+    setSmartContractId(smartContractIds[networkSelected.toString().toLowerCase()] || '')
+  }, [smartContractIds, networkSelected])
 
   if (!open) return null
   return createPortal(

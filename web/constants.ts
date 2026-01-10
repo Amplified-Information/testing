@@ -1,7 +1,6 @@
+// import { LedgerId } from '@hashgraph/sdk'
 import { PredictionIntentRequest } from './gen/api'
 import { v7 as uuidv7 } from 'uuid'
-
-const smartContractId = '0.0.7510299' // '0.0.7418181'
 
 const usdcAddresses = {
   PREVIEWNET: '0.0.32531',
@@ -9,7 +8,6 @@ const usdcAddresses = {
   MAINNET: '0.0.456858'
 }
 const usdcDecimals = 6
-const TMP_MARKET_ID = '019a7e77-39e2-72a3-9bea-a63bdfa79d20'
 
 const priceUsdStepSize = 0.0001
 const midPriceUsdDefault = 0.5
@@ -27,7 +25,7 @@ const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
   return {
     txId: uuidv7(),
     net: 'testnet',
-    marketId: TMP_MARKET_ID,
+    marketId: '019a7e77-39e2-72a3-9bea-a63bdfa79d20',
     generatedAt: new Date().toISOString(),
     accountId: '0.0.1',
     marketLimit: 'limit',
@@ -41,10 +39,8 @@ const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
 }
 
 export { 
-  smartContractId,
   usdcAddresses,
   usdcDecimals,
-  TMP_MARKET_ID,
 
   priceUsdStepSize,
   midPriceUsdDefault,

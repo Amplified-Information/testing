@@ -12,9 +12,9 @@ interface AppContextType {
   networkSelected: LedgerId
   setNetworkSelected: React.Dispatch<React.SetStateAction<LedgerId>>
   dAppConnector: DAppConnector | undefined
+  setDappConnector: React.Dispatch<React.SetStateAction<DAppConnector | undefined>>
   networksAvailable: LedgerId[]
   setNetworksAvailable: React.Dispatch<React.SetStateAction<LedgerId[]>>
-  setDappConnector: React.Dispatch<React.SetStateAction<DAppConnector | undefined>>
   signerZero: DAppSigner | undefined
   setSignerZero: React.Dispatch<React.SetStateAction<DAppSigner | undefined>>
   isToggled: boolean[]
@@ -27,6 +27,14 @@ interface AppContextType {
   setMarket: React.Dispatch<React.SetStateAction<MarketResponse | undefined>>
   userAccountInfo: UserAccountInfo | undefined
   setUserAccountInfo: React.Dispatch<React.SetStateAction<UserAccountInfo | undefined>>
+  smartContractIds: {[key: string]: string }
+  setSmartContractIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
+  usdcAddresses: {[key: string]: string }
+  setUsdcAddresses: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
+  usdcNdecimals: number
+  setUsdcNdecimals: React.Dispatch<React.SetStateAction<number>>
+  selectedLang: string
+  setSelectedLang: React.Dispatch<React.SetStateAction<string>>
 }
 
 // 2. Create the context with `undefined` (so we can inject real values later)
@@ -50,6 +58,10 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [spenderAllowanceUsd, setSpenderAllowanceUsd] = useState<number>(0)
   const [market, setMarket] = useState<MarketResponse | undefined>(undefined)
   const [userAccountInfo, setUserAccountInfo] = useState<UserAccountInfo | undefined>(undefined)
+  const [smartContractIds, setSmartContractIds] = useState<{[key: string]: string }>({})
+  const [usdcAddresses, setUsdcAddresses] = useState<{[key: string]: string }>({})
+  const [usdcNdecimals, setUsdcNdecimals] = useState<number>(2)
+  const [selectedLang, setSelectedLang] = useState<string>('en')
   return (
     <AppContext.Provider
       value={{
@@ -72,7 +84,15 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         market,
         setMarket,
         userAccountInfo,
-        setUserAccountInfo
+        setUserAccountInfo,
+        smartContractIds,
+        setSmartContractIds,
+        usdcAddresses,
+        setUsdcAddresses,
+        usdcNdecimals,
+        setUsdcNdecimals,
+        selectedLang,
+        setSelectedLang
       }}
     >
       {children}

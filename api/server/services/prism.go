@@ -208,13 +208,35 @@ func (p *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	return fmt.Sprintf("Processed input for user %s", req.AccountId), nil
 }
 
-func (h *Prism) AvailableNetworks() (*pb_api.StdResponse, error) {
+func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 	networksEnv := os.Getenv("AVAILABLE_NETWORKS")
 	networks := strings.Split(networksEnv, ",")
 
-	response := &pb_api.StdResponse{
-		Message:   fmt.Sprintf("%s", strings.Join(networks, ", ")),
-		ErrorCode: 0,
+	smartContractsMap := make(map[string]string)
+	for _, net := range networks { // loop through networks and get the smart contract IDs from env vars
+		netLower := strings.ToLower(strings.TrimSpace(net))
+		envVarName := fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(netLower))
+		smartContractId := os.Getenv(envVarName)
+		if smartContractId != "" {
+			smartContractsMap[netLower] = smartContractId
+		}
+	}
+
+	usdcAddressesMap := make(map[string]string)
+	for _, net := range networks { // loop through networks and get the USDC addresses from env vars
+		netLower := strings.ToLower(strings.TrimSpace(net))
+		envVarName := fmt.Sprintf("%s_USDC_ADDRESS", strings.ToUpper(netLower))
+		usdcAddress := os.Getenv(envVarName)
+		if usdcAddress != "" {
+			usdcAddressesMap[netLower] = usdcAddress
+		}
+	}
+
+	response := &pb_api.MacroMetadataResponse{
+		AvailableNetworks: networks,
+		SmartContracts:    smartContractsMap,
+		UsdcAddresses:     usdcAddressesMap,
+		UsdcDecimals:      6,
 	}
 
 	return response, nil
