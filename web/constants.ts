@@ -12,7 +12,7 @@ const usdcDecimals = 6
 const priceUsdStepSize = 0.0001
 const midPriceUsdDefault = 0.5
 
-const walletConnectProjectId = '07b98cad4c3b13377e45793d50df9181'
+const walletConnectProjectId = 'ebcd4c5afffdc20de7e4f30a8a9b1344'
 const walletMetaData = {
   name: 'Hedera-Prediction',
   description: 'Hedera dAppConnector Example',
