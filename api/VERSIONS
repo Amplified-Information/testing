@@ -15,3 +15,6 @@ Added ca-certificates to Docker image
 
 0.2.5
 Added ca-certificates to Docker image (run stage)
+
+0.2.7
+New macroMetadata endpoint to support the new web app

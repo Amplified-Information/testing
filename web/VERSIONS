@@ -21,3 +21,6 @@ web.lp - new favicon
 
 0.3.4
 web.lp - link preview metadata update
+
+0.4.0
+web - started on new design. Major initial integration work done.
