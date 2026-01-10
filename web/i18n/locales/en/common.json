@@ -164,7 +164,10 @@
     "refreshFailed": "Failed to refresh balances"
   },
   "footer": {
-    "copyright": "© 2025 Prism Market. All rights reserved."
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "contactUs": "Contact Us",
+    "copyright": "All rights reserved."
   },
   "common": {
     "loading": "Loading...",

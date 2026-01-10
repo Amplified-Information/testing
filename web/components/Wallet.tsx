@@ -117,14 +117,20 @@ const Wallet = () => {
       {/* <NetworkSelector /> */}
       { signerZero === undefined ? (
         <>
-          <button className='btn-primary' title='Connect wallet' disabled={thinger} onClick={() => { connect() }}>
+          <button className='btn-primary' title='Connect wallet' disabled={thinger} 
+            onClick={async () => { 
+              /* dAppConnector.connect(() => {
+                console.log('Connected callback from dAppConnector')
+              })*/
+              await connect() 
+            }}>
             {thinger ? 'Connecting...' : 'Connect'}
           </button>
         </>
       ) : (
         <>
           {/* <span>{signerZero.getLedgerId().toString()}</span> */}
-          <button className='btn-primary' title='Disconnect wallet' onClick={() => { disconnect() }}>
+          <button className='btn-primary' title='Disconnect wallet' onClick={async () => { await disconnect() }}>
             {thinger ? 'Disconnecting...' : 
               <>
                 Disconnect

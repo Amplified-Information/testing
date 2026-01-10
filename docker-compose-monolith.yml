@@ -64,7 +64,7 @@ services:
       NATS_PORT: ${NATS_PORT}
 
   web:
-    image: ghcr.io/prismmarketlabs/web:0.4.1
+    image: ghcr.io/prismmarketlabs/web:0.4.2
     # pull_policy: always
     restart: always
     ports:

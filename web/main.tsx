@@ -8,6 +8,7 @@ import AppProvider from './AppProvider'
 import DustParticles from './components/DustParticles'
 import Routes from './components/Routes'
 import Header from './components/Header'
+import Footer from './components/Footer'
 import { Toaster } from 'react-hot-toast'
 import MacroMetadata from './components/MacroMetadata'
 
@@ -18,16 +19,19 @@ console.log(proto) // TODO - remove eventually. Will use `proto` in Signer.tsx. 
 createRoot(document.getElementById('root')!).render(
   // <StrictMode>
     <BrowserRouter basename="/"> {/* also see vite.config.ts */}
+    <DustParticles />
       <AppProvider>
         <MacroMetadata />
+        
         <Header />
         <Routes />
+        <Footer />
 
         <Toaster
           position="bottom-right"
           reverseOrder={false}
         />
-        <DustParticles />
+        
       </AppProvider>
     </BrowserRouter>
   // </StrictMode>

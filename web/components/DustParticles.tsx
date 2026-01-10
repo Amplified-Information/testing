@@ -36,10 +36,10 @@ const DustParticles = () => {
       return {
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.4, // Increased speed (was 0.2)
-        vy: (Math.random() - 0.5) * 0.4, // Increased speed (was 0.2)
+        vx: (Math.random() - 0.5) * 0.5, // Slow random horizontal speed
+        vy: (Math.random() - 0.5) * 0.5, // Balanced random vertical drift
         size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.5 + 0.3, // Brighter: min 0.3, max 0.8 (was 0.1-0.5)
+        opacity: Math.random() * 0.4 + 0.1,
         life: forceFullRandom ? Math.random() * maxLife : 0,
         maxLife
       }
@@ -89,7 +89,7 @@ const DustParticles = () => {
         // Draw particle
         ctx.beginPath()
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(0, 0%, 90%, ${particle.opacity * fadeMultiplier})` // Brighter: 90% lightness (was 80%)
+        ctx.fillStyle = `hsla(0, 0%, 80%, ${particle.opacity * fadeMultiplier})`
         ctx.fill()
       })
 
@@ -109,8 +109,9 @@ const DustParticles = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 -z-10"
+      className="pointer-events-none fixed inset-0 -z-1"
       aria-hidden="true"
+      style={{backgroundColor: 'var(--color-bg-dark)'}}
     />
   )
 }

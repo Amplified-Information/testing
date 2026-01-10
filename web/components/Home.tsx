@@ -17,11 +17,11 @@ const Home = () => {
   }, [highlights.length])
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden bg-transparent">
       <br/>
       <br/>
       {/* Content */}
-      <div className="space-y-8">
+      <div className="space-y-8 relative z-10">
         <div className="space-y-4">
           <h1 className="text-4xl lg:text-6xl font-bold tracking-tight">
             <span style={{ color: 'var(--prism-yellow)' }}>
@@ -89,8 +89,20 @@ const Home = () => {
               </Card>
             ))}
           </div> */}
+
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
     </div>
   )
 }
+
 
 export default Home

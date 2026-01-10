@@ -18,7 +18,7 @@ All colors MUST be HSL.
 }
 
 html, body {
-  background-color: var(--color-bg-dark);
+  /* background-color: var(--color-bg-dark); */
   color: var(--color-text-primary);
   font-family: var(--font-main);
   font-size: 1.4rem;
