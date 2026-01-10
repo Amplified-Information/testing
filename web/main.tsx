@@ -13,7 +13,7 @@ import MacroMetadata from './components/MacroMetadata'
 
 import './i18n/i18n'
 
-console.log(proto) // TODO - will use this in Signer.tsx. Added here to to avoid tree-shaking of @hashgraph/proto
+console.log(proto) // TODO - remove eventually. Will use `proto` in Signer.tsx. Added here to to avoid tree-shaking of @hashgraph/proto
 
 createRoot(document.getElementById('root')!).render(
   // <StrictMode>
