@@ -18,7 +18,7 @@ echo "Generated gen/dev/main.tf"
 # uat
 export ENV="uat"
 export DOMAIN_NAME="uat.prism.market"
-export EBS_VOLUME_ID="vol-0d3a782bdfffc34aa"
+export EBS_VOLUME_ID="vol-043410f6197ee2c31"
 export SSL_CERT_ARN="arn:aws:acm:us-east-1:063088900305:certificate/48dc07e4-d1c2-488e-a085-3e499893a4e4"
 
 mkdir -p gen/uat

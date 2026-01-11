@@ -33,3 +33,6 @@ web - more visual updates for hamburger menu
 
 0.4.3
 web - Footer mobile friendly. New walletconnect ID. Added walletconnect whitelisting
+
+0.4.4
+web - Added market create form. Can explore markets

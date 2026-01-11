@@ -4,7 +4,7 @@
 # docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.dev.yml up -d
 services:
   api:
-    image: ghcr.io/prismmarketlabs/api:0.2.7
+    image: ghcr.io/prismmarketlabs/api:0.2.8
     # pull_policy: always
     restart: always
     ports:
@@ -53,7 +53,7 @@ services:
       SMTP_PWORD: ${SMTP_PWORD}
 
   clob:
-    image: ghcr.io/prismmarketlabs/clob:0.2.1
+    image: ghcr.io/prismmarketlabs/clob:0.2.2
     # pull_policy: always
     restart: always
     ports:
@@ -66,7 +66,7 @@ services:
       NATS_PORT: ${NATS_PORT}
 
   web:
-    image: ghcr.io/prismmarketlabs/web:0.4.3
+    image: ghcr.io/prismmarketlabs/web:0.4.4
     # pull_policy: always
     restart: always
     ports:
