@@ -6,8 +6,9 @@ This project is divided into a number of folders:
 - `clob`: an off-chain CLOB which matches cryptographically signed buy/sell order intents
 - `infra`: infrastructure-as-code (AWS-orientated)
 - `web`: prism web front-end
-- `web.eng`: an engineering front-end
 - `web.lp`: a landing page
+- ~~`web.eng`: a (stale) engineering front-end~~
+- ~~`web.lvbl`: an attempt to integrate the lovable app~~
 - `api`: an API backend
 - `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication

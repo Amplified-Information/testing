@@ -1,4 +1,4 @@
-AVAILABLE_NETWORKS=previewnet,testnet,mainnet
+AVAILABLE_NETWORKS=previewnet,testnet
 
 DB_HOST=10.0.1.12
 NATS_URL=nats://10.0.1.12:4222
