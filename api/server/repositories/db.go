@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	pb_api "api/gen"
 	pb_clob "api/gen/clob"
@@ -108,7 +109,7 @@ func (dbRepository *DbRepository) SaveOrderRequest(req *pb_api.PredictionIntentR
 	return &newOrderRequest, nil
 }
 
-func (dbRepository *DbRepository) RecordMatch(orderRequestClobTuple [2]*pb_clob.OrderRequestClob, isPartial bool) (*sqlc.Match, error) {
+func (dbRepository *DbRepository) RecordMatch(orderRequestClobTuple [2]*pb_clob.CreateOrderRequestClob, isPartial bool) (*sqlc.Match, error) {
 	// Record the match in the database for auditing
 	if dbRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
@@ -179,7 +180,7 @@ func (dbRepository *DbRepository) GetMarkets(limit int32, offset int32) ([]sqlc.
 	return markets, nil
 }
 
-func (dbRepository *DbRepository) CreateMarket(marketId string, statement string) (*sqlc.Market, error) {
+func (dbRepository *DbRepository) CreateMarket(marketId string, statement string, net string, smartContractId string) (*sqlc.Market, error) {
 	if dbRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
@@ -187,6 +188,17 @@ func (dbRepository *DbRepository) CreateMarket(marketId string, statement string
 	marketUUID, err := uuid.Parse(marketId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	net = strings.ToLower(net)
+	isValid := lib.IsValidNetwork(net)
+	if !isValid {
+		return nil, fmt.Errorf("invalid network: %s", net)
+	}
+
+	isValidSmartContractId := lib.IsValidAccountId(smartContractId)
+	if !isValidSmartContractId {
+		return nil, fmt.Errorf("invalid smart contract ID: %s", smartContractId)
 	}
 
 	// Start a transaction
@@ -198,8 +210,10 @@ func (dbRepository *DbRepository) CreateMarket(marketId string, statement string
 	// Use the transaction with the query builder
 	q := sqlc.New(tx)
 	market, err := q.CreateMarket(context.Background(), sqlc.CreateMarketParams{
-		MarketID:  marketUUID,
-		Statement: statement,
+		MarketID:        marketUUID,
+		Net:             net,
+		Statement:       statement,
+		SmartContractID: smartContractId,
 	})
 	if err != nil {
 		tx.Rollback() // Rollback the transaction on error
@@ -410,4 +424,18 @@ func (dbRepository *DbRepository) CreateNewsletterSubscription(email string, ipA
 
 	log.Printf("Created newsletter subscription for email: %s", email)
 	return nil
+}
+
+func (dbRepository *DbRepository) CountOpenMarkets() (int64, error) {
+	if dbRepository.db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbRepository.db)
+	count, err := q.CountOpenMarkets(context.Background())
+	if err != nil {
+		return 0, fmt.Errorf("CountOpenMarkets failed: %v", err)
+	}
+
+	return count, nil
 }

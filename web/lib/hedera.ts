@@ -41,7 +41,7 @@ const getUserAccountInfo = async (networkSelected: LedgerId, accountId: string) 
     const data = await response.json()
     return data as UserAccountInfo
   } catch (error) {
-    console.error('Error fetching allowance:', error)
+    console.error('Error fetching account info from mirrornode:', error)
     throw error
   }
 }

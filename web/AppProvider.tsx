@@ -35,6 +35,8 @@ interface AppContextType {
   setUsdcNdecimals: React.Dispatch<React.SetStateAction<number>>
   selectedLang: string
   setSelectedLang: React.Dispatch<React.SetStateAction<string>>
+  marketCreationFeeScaledUsdc: number
+  setMarketCreationFeeScaledUsdc: React.Dispatch<React.SetStateAction<number>>
 }
 
 // 2. Create the context with `undefined` (so we can inject real values later)
@@ -62,6 +64,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [usdcAddresses, setUsdcAddresses] = useState<{[key: string]: string }>({})
   const [usdcNdecimals, setUsdcNdecimals] = useState<number>(2)
   const [selectedLang, setSelectedLang] = useState<string>('en')
+  const [marketCreationFeeScaledUsdc, setMarketCreationFeeScaledUsdc] = useState<number>(0)
   return (
     <AppContext.Provider
       value={{
@@ -92,7 +95,9 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         usdcNdecimals,
         setUsdcNdecimals,
         selectedLang,
-        setSelectedLang
+        setSelectedLang,
+        marketCreationFeeScaledUsdc,
+        setMarketCreationFeeScaledUsdc
       }}
     >
       {children}

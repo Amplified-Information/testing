@@ -32,6 +32,7 @@ const Wallet = () => {
     ;(async () => {
       console.log('Fetching user account info for signerZero...')
       const uai = await getUserAccountInfo(networkSelected, signerZero.getAccountId().toString())
+      console.log('user account info:', uai)
       setUserAccountInfo(uai)
     })()
   }, [networkSelected, signerZero])

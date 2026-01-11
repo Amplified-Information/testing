@@ -5,7 +5,7 @@ use log;
 pub mod proto {
     tonic::include_proto!("clob");
 }
-use proto::{OrderRequestClob, BookSnapshot, OrderDetail};
+use proto::{CreateOrderRequestClob, BookSnapshot, OrderDetail};
 
 use crate::{nats};
 
@@ -51,7 +51,7 @@ impl OrderBookService {
     //     order_books.remove(market_id);
     // }
 
-    pub async fn place_order(&self, order: OrderRequestClob) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn place_order(&self, order: CreateOrderRequestClob) -> Result<(), Box<dyn std::error::Error>> {
         // No guards for performance - assume validated upstream
 
         let order_books = self.order_books.read().await;
@@ -100,8 +100,8 @@ impl OrderBookService {
 
 #[derive(Debug)]
 pub struct OrderBook {
-    buy_orders: Vec<OrderRequestClob>,
-    sell_orders: Vec<OrderRequestClob>,
+    buy_orders: Vec<CreateOrderRequestClob>,
+    sell_orders: Vec<CreateOrderRequestClob>,
     nats_service: Arc<nats::NatsService> // wrap in arc to make cloning cheap
 }
 
@@ -114,10 +114,10 @@ impl OrderBook {
         }
     }
 
-    pub async fn add_order(&mut self, order: OrderRequestClob) {
+    pub async fn add_order(&mut self, order: CreateOrderRequestClob) {
         // No guards for performance - assume validated upstream
 
-        log::info!("CREATE \t OrderRequestClob: {:?}", order); // Log the incoming order
+        log::info!("CREATE \t CreateOrderRequestClob: {:?}", order); // Log the incoming order
 
         if order.price_usd < 0.0 {
             Self::match_order(&self.nats_service, order, &mut self.buy_orders, &mut self.sell_orders).await;
@@ -126,7 +126,7 @@ impl OrderBook {
         }
     }
 
-    async fn match_order(nats_service: &nats::NatsService, mut incoming_order: OrderRequestClob, opposite_orders: &mut Vec<OrderRequestClob>, same_side_orders: &mut Vec<OrderRequestClob>) {
+    async fn match_order(nats_service: &nats::NatsService, mut incoming_order: CreateOrderRequestClob, opposite_orders: &mut Vec<CreateOrderRequestClob>, same_side_orders: &mut Vec<CreateOrderRequestClob>) {
         // No guards for performance - assume validated upstream
 
         opposite_orders.sort_by(|a, b| b.price_usd.partial_cmp(&a.price_usd).unwrap());

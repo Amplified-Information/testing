@@ -43,7 +43,7 @@ Access the application at:
 
 ## Quickstart (local machine)
 
-Develop the application locally:
+To develop the application locally, start up each of the following services (in the order below) in a separate terminal window:
 
 - `db`: see [db/README.md](db/README.md)
 - `eventbus`: see [eventbus/README.md](eventbus/README.md)
@@ -54,7 +54,7 @@ Develop the application locally:
 
 ## database
 
-Connect the the database as follows:
+Connect to the database as follows:
 
 | environment | host       | port |
 |-------------|------------|------|
@@ -64,10 +64,13 @@ Connect the the database as follows:
 | ...         |            |      |
 | prod        | localhost* | 9999 |
 
-To connect to a remove database (e.g. `dev`), in a separate termina, open up an ssh tunnel:
+**via ssh tunnel - see instructions below to start an ssh tunnel to the environment you want to connect to*
+
+To connect to a remote database (e.g. `dev`), in a separate terminal, open up an ssh tunnel:
 
 ```bash
-# add keys to ssh-agent
+# first, ensure you have added the keys for all the environments to your ssh agent
+# these keys can be downloaded from the Prism Bitwarden account
 ssh-add ~/Desktop/dev-bastion.pem
 ssh-add ~/Desktop/dev.pem
 ssh-add ~/Desktop/uat-bastion.pem
@@ -75,8 +78,10 @@ ssh-add ~/Desktop/uat.pem
 ssh-add ~/Desktop/prod-bastion.pem
 ssh-add ~/Desktop/prod.pem
 
+# You can now connect to a remote box using `ssh -A ...` and the ssh agent will automatically use the appropriate key you loaded into the ssh agent using the ssh-add command above
+
 # example of setting up the tunnel for a remote db connection:
-export HOST=ec2-44-222-140-176.compute-1.amazonaws.com # retrieve from AWS EC2 web UI
+export HOST=ec2-44-222-140-176.compute-1.amazonaws.com # retrieve from the AWS EC2 web UI
 ssh -A -L 9999:10.0.1.12:5432 -N admin@$HOST
 ```
 

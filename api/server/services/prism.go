@@ -23,12 +23,14 @@ type Prism struct {
 	dbRepository  *repositories.DbRepository
 	natsService   *NatsService
 	hederaService *HederaService
+	marketService *MarketService
 }
 
-func (p *Prism) InitPrism(dbRepository *repositories.DbRepository, natsService *NatsService, hederaService *HederaService) {
+func (p *Prism) InitPrism(dbRepository *repositories.DbRepository, natsService *NatsService, hederaService *HederaService, marketService *MarketService) {
 	p.dbRepository = dbRepository
 	p.natsService = natsService
 	p.hederaService = hederaService
+	p.marketService = marketService
 
 	log.Println("Prism service initialized successfully")
 }
@@ -178,7 +180,7 @@ func (p *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (str
 	/////
 
 	// Marshal the CLOB req: *pb_api.PredictionIntentRequest to JSON
-	clobRequestObj := &pb_clob.OrderRequestClob{
+	clobRequestObj := &pb_clob.CreateOrderRequestClob{
 		TxId:        req.TxId,
 		Net:         req.Net,
 		MarketId:    req.MarketId,
@@ -232,11 +234,23 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 		}
 	}
 
+	marketCreationFeeUsdc := os.Getenv("MARKET_CREATION_FEE_USDC")
+	// Validate MARKET_CREATION_FEE_USDC is not empty and is a valid number
+	if marketCreationFeeUsdc == "" {
+		return nil, fmt.Errorf("MARKET_CREATION_FEE_USDC environment variable is empty")
+	}
+	marketCreationFeeScaledUsdc, err := strconv.ParseUint(marketCreationFeeUsdc, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("MARKET_CREATION_FEE_USDC environment variable is not a valid float: %v", err)
+	}
+
 	response := &pb_api.MacroMetadataResponse{
-		AvailableNetworks: networks,
-		SmartContracts:    smartContractsMap,
-		UsdcAddresses:     usdcAddressesMap,
-		UsdcDecimals:      6,
+		AvailableNetworks:           networks,
+		SmartContracts:              smartContractsMap,
+		UsdcAddresses:               usdcAddressesMap,
+		UsdcDecimals:                6,
+		MarketCreationFeeScaledUsdc: marketCreationFeeScaledUsdc,
+		NMarkets:                    p.marketService.GetNumMarkets(),
 	}
 
 	return response, nil

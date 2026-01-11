@@ -1,4 +1,4 @@
-CREATE TABLE settlements (
+CREATE TABLE IF NOT EXISTS settlements (
   id SERIAL PRIMARY KEY,
   tx_id1 UUID NOT NULL,
   tx_id2 UUID NOT NULL,

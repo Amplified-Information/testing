@@ -58,7 +58,7 @@ func (s *server) GetMarkets(ctx context.Context, req *pb_api.LimitOffsetRequest)
 	return result, err
 }
 
-func (s *server) CreateMarket(ctx context.Context, req *pb_api.NewMarketRequest) (*pb_api.MarketResponse, error) {
+func (s *server) CreateMarket(ctx context.Context, req *pb_api.CreateMarketRequest) (*pb_api.MarketResponse, error) {
 	result, err := s.marketsService.CreateMarket(req)
 	return result, err
 }
@@ -99,6 +99,8 @@ func main() {
 		// keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets and the run command in Dockerfile
 		"API_HOST",
 		"API_PORT",
+		"CLOB_HOST",
+		"CLOB_PORT",
 		"USDC_DECIMALS",
 		"PREVIEWNET_USDC_ADDRESS",
 		"TESTNET_USDC_ADDRESS",
@@ -177,7 +179,7 @@ func main() {
 
 	// initialize Markets service
 	marketsService := services.MarketService{}
-	err = marketsService.Init(&dbRepository)
+	err = marketsService.Init(&dbRepository, &hederaService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Markets service: %v", err)
 	}
@@ -215,7 +217,7 @@ func main() {
 
 	// initialize prism service
 	prismService := services.Prism{}
-	prismService.InitPrism(&dbRepository, &natsService, &hederaService)
+	prismService.InitPrism(&dbRepository, &natsService, &hederaService, &marketsService)
 	// TODO: defer prismService cleanup
 
 	// initialize price service

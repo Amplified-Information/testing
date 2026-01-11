@@ -75,7 +75,7 @@ func (n *NatsService) HandleOrderMatches() error {
 
 		fmt.Printf("NATS %s: %s\n", msg.Subject, string(msg.Data))
 
-		var orderRequestClobTuple [2]*pb_clob.OrderRequestClob
+		var orderRequestClobTuple [2]*pb_clob.CreateOrderRequestClob
 		if err := json.Unmarshal(msg.Data, &orderRequestClobTuple); err != nil {
 			log.Printf("Error parsing order data: %v", err)
 			return
@@ -125,7 +125,7 @@ func (n *NatsService) HandleOrderMatches() error {
 		}
 
 		_, err := n.dbRepository.RecordMatch(
-			[2]*pb_clob.OrderRequestClob{orderRequestClobTuple[0], orderRequestClobTuple[1]},
+			[2]*pb_clob.CreateOrderRequestClob{orderRequestClobTuple[0], orderRequestClobTuple[1]},
 			isPartial,
 		)
 		if err != nil {

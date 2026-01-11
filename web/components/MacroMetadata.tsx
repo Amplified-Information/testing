@@ -7,7 +7,7 @@ import { LedgerId } from '@hiero-ledger/sdk'
 // set shared state variables accordingly
 const MacroMetadata = () => {
 
-  const { setNetworksAvailable, setSmartContractIds, setUsdcAddresses, setUsdcNdecimals } = useAppContext()
+  const { setNetworksAvailable, setSmartContractIds, setUsdcAddresses, setUsdcNdecimals, setMarketCreationFeeScaledUsdc } = useAppContext()
 
   useEffect(() => {
     ;(async () => {
@@ -25,6 +25,8 @@ const MacroMetadata = () => {
       setUsdcAddresses(response.usdcAddresses)
 
       setUsdcNdecimals(response.usdcDecimals)
+
+      setMarketCreationFeeScaledUsdc(Number(response.marketCreationFeeScaledUsdc))
 
     })()
   }, [])

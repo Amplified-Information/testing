@@ -83,6 +83,16 @@ h1 {
   background-color: hsl(61, 100%, 70%);
 }
 
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"] {
+  background-color: hsl(61, 20%, 85%);
+  color: hsl(0, 0%, 60%);
+  cursor: not-allowed;
+  opacity: 0.7;
+  /* pointer-events: none; */
+  cursor: not-allowed;
+}
+
 .btn-outline {
   display: inline-flex;
   align-items: center;

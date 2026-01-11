@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use crate::orderbook::OrderBookService;
 use crate::orderbook::proto::clob_internal_server::ClobInternalServer;
 use crate::orderbook::proto::clob_public_server::ClobPublicServer;
-use crate::orderbook::proto::{OrderRequestClob, StdResponse, BookRequest, BookSnapshot, clob_public_server::{ClobPublic}, clob_internal_server::{ClobInternal}};
+use crate::orderbook::proto::{CreateOrderRequestClob, StdResponse, BookRequest, BookSnapshot, clob_public_server::{ClobPublic}, clob_internal_server::{ClobInternal}};
 
 #[derive(Debug, Clone)]
 pub struct ClobService {
@@ -20,9 +20,9 @@ impl ClobService {
 
 #[tonic::async_trait]
 impl ClobInternal for ClobService {
-    async fn place_order(
+    async fn create_order(
         &self,
-        request: Request<OrderRequestClob>,
+        request: Request<CreateOrderRequestClob>,
     ) -> Result<Response<StdResponse>, Status> {
         let order = request.into_inner();
         
@@ -39,9 +39,9 @@ impl ClobInternal for ClobService {
         Ok(Response::new(response))
     }
 
-    async fn add_market(
+    async fn create_market(
         &self,
-        request: Request<crate::orderbook::proto::MarketRequest>,
+        request: Request<crate::orderbook::proto::CreateMarketRequest>,
     ) -> Result<Response<crate::orderbook::proto::StdResponse>, Status> {
         
         // Guards

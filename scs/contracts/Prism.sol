@@ -43,6 +43,8 @@ contract Prism {
   
   mapping(uint128 => mapping(address => uint256)) public yesTokens;
   mapping(uint128 => mapping(address => uint256)) public noTokens;
+
+  uint256 public marketCreationFeeUsdc;
   
   event PositionTokensPurchased(uint128 marketId, address indexed buyer, uint256 collateralUsd, bool isSell);
   event MarketResolved(uint128 marketId, bool outcome);
@@ -58,6 +60,8 @@ contract Prism {
   constructor(address _collateralToken) {
     collateralToken = IERC20(_collateralToken);
     owner = msg.sender;
+
+    marketCreationFeeUsdc = 100000; // defaults to 0.10 USDC (6 decimals)
   }
 
   /**
@@ -65,11 +69,20 @@ contract Prism {
   @param marketId The unique identifier for the new market.
   @param _statement The statement or question for the prediction market.
   */
-  function createNewMarket(uint128 marketId, string memory _statement/*, TODO: uint8 txFee - configure fees per-market? */) external onlyOwner {
+  function createNewMarket(uint128 marketId, string memory _statement) public { // TODO: uint8 txFee - configure fees per-market?
     require(keccak256(abi.encodePacked(statements[marketId])) == keccak256(abi.encodePacked("")), "Market already exists");
+    
+    // transfer the market creation fee from the owner to the contract
+    // msg.sender must provide an allowance for this amount of USDC or this entire function call will fail
+    require(collateralToken.transferFrom(msg.sender, address(this), marketCreationFeeUsdc), "Transfer failed");
+    
     statements[marketId] = _statement;
     resolutionTimes[marketId] = 0;
     totalCollaterals[marketId] = 0;
+  }
+
+  function setMarketCreationFee(uint256 _marketCreationFeeUsdc) external onlyOwner {
+    marketCreationFeeUsdc = _marketCreationFeeUsdc; // including nDecimals
   }
 
   /**
@@ -84,6 +97,9 @@ contract Prism {
   @param txIdNo txId of the No side
   @param sigObjYes The signatureObject (includes the key type) of the YES transaction
   @param sigObjNo The signatureObject (includes the key type) of the NO transaction
+
+  @return yes The updated number of YES position tokens held by the signerYes account.
+  @return no The updated number of NO position tokens held by the signerNo account.
   */
   function buyPositionTokensOnBehalfAtomic(
     uint128 marketId,
@@ -95,7 +111,7 @@ contract Prism {
     uint128 txIdNo,
     bytes calldata sigObjYes,
     bytes calldata sigObjNo
-  ) external onlyOwner { // TODO remove onlyOwner?
+  ) external onlyOwner returns (uint256 yes, uint256 no) {
     require(resolutionTimes[marketId] == 0, "Market resolved");
     require(bytes(statements[marketId]).length > 0, "No market statement has been set");
     // prevent replay attacks by ensuring unique txIds // TODO - storage size ;(
@@ -124,6 +140,8 @@ contract Prism {
     totalCollaterals[marketId] += (2 * collateralUsdAbsScaled_lower);
     emit PositionTokensPurchased(marketId, signerYes, collateralUsdAbsScaled_lower, false);
     emit PositionTokensPurchased(marketId, signerNo, collateralUsdAbsScaled_lower, true);
+
+    return (yesTokens[marketId][signerYes] , noTokens[marketId][signerNo]); // return current balances
   }
   
   /**

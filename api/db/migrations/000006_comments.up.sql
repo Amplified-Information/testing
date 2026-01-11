@@ -1,4 +1,4 @@
-CREATE TABLE comments (
+CREATE TABLE IF NOT EXISTS comments (
   comment_id SERIAL PRIMARY KEY, -- Auto-incrementing integer for the comment ID
   market_id UUID NOT NULL, -- UUID for the market ID
   account_id VARCHAR(255) NOT NULL, -- accountId

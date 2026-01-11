@@ -12,13 +12,13 @@ service ClobPublic {
 }
 
 service ClobInternal {
-  rpc PlaceOrder (OrderRequestClob) returns (StdResponse);
-  rpc AddMarket (MarketRequest) returns (StdResponse);
+  rpc CreateOrder (CreateOrderRequestClob) returns (StdResponse);
+  rpc CreateMarket (CreateMarketRequest) returns (StdResponse);
 }
 
 message Empty {}
 
-message OrderRequestClob {
+message CreateOrderRequestClob {
   string tx_id = 1 [json_name = "txId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
   string net = 2 [json_name = "net"];
   string market_id = 3 [json_name = "marketId"];
@@ -58,7 +58,7 @@ message BookSnapshot {
 }
 
 
-message MarketRequest {
+message CreateMarketRequest {
   string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
   string net = 2          [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
 }

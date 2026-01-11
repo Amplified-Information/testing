@@ -204,7 +204,7 @@ This function takes a number of input parameters from the YES and NO side
 * @return bool - Returns true if the transaction is successful, otherwise false.
 * @return error - Returns an error if the transaction fails or the receipt cannot be retrieved.
 */
-func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sideNo *pb_clob.OrderRequestClob) (bool, error) {
+func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClob, sideNo *pb_clob.CreateOrderRequestClob) (bool, error) {
 	// validate that sideYes.MarketId == sideNo.MarketId and sideYes.MarketId != ""
 	if sideYes.MarketId != sideNo.MarketId || sideYes.MarketId == "" {
 		return false, fmt.Errorf("market IDs do not match or invalid: %s vs %s", sideYes.MarketId, sideNo.MarketId)
@@ -383,6 +383,7 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 	// db
 	// - Record the tx on the database (auditing)
 	// - record the price on the price table
+	// - record the YES/NO balances
 	/////
 
 	if h.dbRepository == nil {
@@ -410,4 +411,35 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.OrderRequestClob, sid
 
 	// if we get here, return true
 	return true, nil
+}
+
+func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) error {
+	// call the smart contract function createNewMarket(uint128 marketId, string memory _statement)
+	marketIdBig, err := lib.Uuid7_to_bigint(req.MarketId)
+	if err != nil {
+		return fmt.Errorf("failed to convert marketId to bigint: %w", err)
+	}
+	params := hiero.NewContractFunctionParameters()
+	params.AddUint128BigInt(marketIdBig) // marketId
+	params.AddString(req.Statement)      // statement
+
+	contractID, err := hiero.ContractIDFromString(
+		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(req.Net))),
+	)
+	if err != nil {
+		return fmt.Errorf("invalid smart contract ID: %v", err)
+	}
+
+	tx, err := hiero.NewContractExecuteTransaction().
+		SetContractID(contractID).
+		SetGas(2_000_000). // TODO - can this be lowered?
+		SetFunction("createNewMarket", params).
+		Execute(h.hedera_clients[req.Net])
+	if err != nil {
+		return fmt.Errorf("failed to execute contract: %v", err)
+	}
+
+	log.Printf("CreateNewMarket (txId=%s)", tx.TransactionID.String())
+
+	return nil
 }

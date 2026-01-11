@@ -1,4 +1,4 @@
-CREATE TABLE markets (
+CREATE TABLE IF NOT EXISTS markets (
   market_id UUID PRIMARY KEY NOT NULL,
   net VARCHAR(32) NOT NULL,
   statement TEXT NOT NULL,

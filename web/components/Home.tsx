@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
+import Stats from './Stats'
 
 const Home = () => {
 
@@ -64,42 +65,17 @@ const Home = () => {
         </div>
       </div>
 
-          {/* Stats Cards */}
-          {/* <div className="grid grid-cols-2 gap-4">
-            {stats.map((stat, index) => (
-              <Card key={index} className="group hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-card to-card/50">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {stat.label}
-                      </p>
-                      {stat.subtitle && (
-                        <p className="text-xs text-muted-foreground/70 mt-0.5">
-                          {stat.subtitle}
-                        </p>
-                      )}
-                      <p className="text-2xl font-bold mt-1">
-                        {stat.value}
-                      </p>
-                    </div>
-                    <stat.icon className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div> */}
+      <br/>
+      <br/>
+      <br/>
+
+      <Stats />
 
       <br/>
       <br/>
       <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
+      
+      
     </div>
   )
 }

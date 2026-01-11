@@ -1,4 +1,4 @@
-use crate::{constants, orderbook::{OrderBookService, proto::OrderRequestClob}};
+use crate::{constants, orderbook::{OrderBookService, proto::CreateOrderRequestClob}};
 use async_nats::ServerAddr;
 use futures_util::StreamExt;
 
@@ -24,7 +24,7 @@ impl NatsService {
         let mut subscriber = nats.subscribe(constants::CLOB_ORDERS.to_string()).await?;
 
         while let Some(message) = subscriber.next().await {
-            match serde_json::from_slice::<OrderRequestClob>(&message.payload) {
+            match serde_json::from_slice::<CreateOrderRequestClob>(&message.payload) {
                 Ok(order) => {
                     let _ = order_book_service.place_order(order)
                         .await;
@@ -41,8 +41,8 @@ impl NatsService {
         Ok(())
     }
 
-    pub async fn publish_match(&self, is_partial_match: bool, orc1: &OrderRequestClob, orc2: &OrderRequestClob) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let orders: Vec<OrderRequestClob> = vec![orc1.clone(), orc2.clone()]; // Create a vector of OrderRequestClob
+    pub async fn publish_match(&self, is_partial_match: bool, orc1: &CreateOrderRequestClob, orc2: &CreateOrderRequestClob) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let orders: Vec<CreateOrderRequestClob> = vec![orc1.clone(), orc2.clone()]; // Create a vector of CreateOrderRequestClob
         let payload = serde_json::to_vec(&orders).unwrap();
         let _ = self.nats_client.publish(if is_partial_match { constants::CLOB_MATCHES_PARTIAL } else { constants::CLOB_MATCHES_FULL }, payload.into()).await;
         log::info!("NATS \t Published MATCH for order: {:?}", orc1);

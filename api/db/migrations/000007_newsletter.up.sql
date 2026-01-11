@@ -1,4 +1,4 @@
-CREATE TABLE newsletter (
+CREATE TABLE IF NOT EXISTS newsletter (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   ip_address VARCHAR(45),

@@ -109,7 +109,10 @@ CREATE TABLE public.markets (
     statement text NOT NULL,
     is_open boolean DEFAULT true NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    resolved_at timestamp without time zone
+    resolved_at timestamp without time zone,
+    image_url character varying(2048),
+    smart_contract_id character varying(256) NOT NULL,
+    CONSTRAINT smart_contract_id_check CHECK (((length((smart_contract_id)::text) >= 5) AND ((smart_contract_id)::text ~~ '%.%.%'::text)))
 );
 
 
@@ -222,6 +225,47 @@ CREATE TABLE public.order_requests (
 ALTER TABLE public.order_requests OWNER TO your_db_user;
 
 --
+-- Name: positions; Type: TABLE; Schema: public; Owner: your_db_user
+--
+
+CREATE TABLE public.positions (
+    id integer NOT NULL,
+    market_id uuid NOT NULL,
+    account_id text NOT NULL,
+    n_yes bigint NOT NULL,
+    n_no bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT positions_account_id_check CHECK ((length(account_id) >= 5)),
+    CONSTRAINT positions_n_no_check CHECK ((n_no >= 0)),
+    CONSTRAINT positions_n_yes_check CHECK ((n_yes >= 0))
+);
+
+
+ALTER TABLE public.positions OWNER TO your_db_user;
+
+--
+-- Name: positions_id_seq; Type: SEQUENCE; Schema: public; Owner: your_db_user
+--
+
+CREATE SEQUENCE public.positions_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.positions_id_seq OWNER TO your_db_user;
+
+--
+-- Name: positions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: your_db_user
+--
+
+ALTER SEQUENCE public.positions_id_seq OWNED BY public.positions.id;
+
+
+--
 -- Name: price_history; Type: TABLE; Schema: public; Owner: your_db_user
 --
 
@@ -249,188 +293,6 @@ CREATE TABLE public.price_history_default (
 
 
 ALTER TABLE public.price_history_default OWNER TO your_db_user;
-
---
--- Name: price_history_p20251119; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20251119 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20251119 OWNER TO your_db_user;
-
---
--- Name: price_history_p20251126; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20251126 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20251126 OWNER TO your_db_user;
-
---
--- Name: price_history_p20251203; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20251203 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20251203 OWNER TO your_db_user;
-
---
--- Name: price_history_p20251210; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20251210 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20251210 OWNER TO your_db_user;
-
---
--- Name: price_history_p20251217; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20251217 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20251217 OWNER TO your_db_user;
-
---
--- Name: price_history_p20251224; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20251224 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20251224 OWNER TO your_db_user;
-
---
--- Name: price_history_p20251231; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20251231 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20251231 OWNER TO your_db_user;
-
---
--- Name: price_history_p20260107; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20260107 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20260107 OWNER TO your_db_user;
-
---
--- Name: price_history_p20260114; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20260114 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20260114 OWNER TO your_db_user;
-
---
--- Name: price_history_p20260121; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20260121 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20260121 OWNER TO your_db_user;
-
---
--- Name: price_history_p20260128; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20260128 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20260128 OWNER TO your_db_user;
-
---
--- Name: price_history_p20260204; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20260204 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20260204 OWNER TO your_db_user;
-
---
--- Name: price_history_p20260211; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.price_history_p20260211 (
-    market_id uuid CONSTRAINT price_history_market_id_not_null NOT NULL,
-    tx_id uuid CONSTRAINT price_history_tx_id_not_null NOT NULL,
-    price numeric(18,10) CONSTRAINT price_history_price_not_null NOT NULL,
-    ts timestamp with time zone CONSTRAINT price_history_ts_not_null NOT NULL
-);
-
-
-ALTER TABLE public.price_history_p20260211 OWNER TO your_db_user;
 
 --
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: your_db_user
@@ -489,97 +351,6 @@ ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_defa
 
 
 --
--- Name: price_history_p20251119; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20251119 FOR VALUES FROM ('2025-11-19 00:00:00+00') TO ('2025-11-26 00:00:00+00');
-
-
---
--- Name: price_history_p20251126; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20251126 FOR VALUES FROM ('2025-11-26 00:00:00+00') TO ('2025-12-03 00:00:00+00');
-
-
---
--- Name: price_history_p20251203; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20251203 FOR VALUES FROM ('2025-12-03 00:00:00+00') TO ('2025-12-10 00:00:00+00');
-
-
---
--- Name: price_history_p20251210; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20251210 FOR VALUES FROM ('2025-12-10 00:00:00+00') TO ('2025-12-17 00:00:00+00');
-
-
---
--- Name: price_history_p20251217; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20251217 FOR VALUES FROM ('2025-12-17 00:00:00+00') TO ('2025-12-24 00:00:00+00');
-
-
---
--- Name: price_history_p20251224; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20251224 FOR VALUES FROM ('2025-12-24 00:00:00+00') TO ('2025-12-31 00:00:00+00');
-
-
---
--- Name: price_history_p20251231; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20251231 FOR VALUES FROM ('2025-12-31 00:00:00+00') TO ('2026-01-07 00:00:00+00');
-
-
---
--- Name: price_history_p20260107; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20260107 FOR VALUES FROM ('2026-01-07 00:00:00+00') TO ('2026-01-14 00:00:00+00');
-
-
---
--- Name: price_history_p20260114; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20260114 FOR VALUES FROM ('2026-01-14 00:00:00+00') TO ('2026-01-21 00:00:00+00');
-
-
---
--- Name: price_history_p20260121; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20260121 FOR VALUES FROM ('2026-01-21 00:00:00+00') TO ('2026-01-28 00:00:00+00');
-
-
---
--- Name: price_history_p20260128; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20260128 FOR VALUES FROM ('2026-01-28 00:00:00+00') TO ('2026-02-04 00:00:00+00');
-
-
---
--- Name: price_history_p20260204; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20260204 FOR VALUES FROM ('2026-02-04 00:00:00+00') TO ('2026-02-11 00:00:00+00');
-
-
---
--- Name: price_history_p20260211; Type: TABLE ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_p20260211 FOR VALUES FROM ('2026-02-11 00:00:00+00') TO ('2026-02-18 00:00:00+00');
-
-
---
 -- Name: comments comment_id; Type: DEFAULT; Schema: public; Owner: your_db_user
 --
 
@@ -598,6 +369,13 @@ ALTER TABLE ONLY public.matches ALTER COLUMN id SET DEFAULT nextval('public.matc
 --
 
 ALTER TABLE ONLY public.newsletter ALTER COLUMN id SET DEFAULT nextval('public.newsletter_id_seq'::regclass);
+
+
+--
+-- Name: positions id; Type: DEFAULT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.positions ALTER COLUMN id SET DEFAULT nextval('public.positions_id_seq'::regclass);
 
 
 --
@@ -656,6 +434,22 @@ ALTER TABLE ONLY public.order_requests
 
 
 --
+-- Name: positions positions_market_id_account_id_key; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.positions
+    ADD CONSTRAINT positions_market_id_account_id_key UNIQUE (market_id, account_id);
+
+
+--
+-- Name: positions positions_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.positions
+    ADD CONSTRAINT positions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: price_history price_history_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
 --
 
@@ -669,110 +463,6 @@ ALTER TABLE ONLY public.price_history
 
 ALTER TABLE ONLY public.price_history_default
     ADD CONSTRAINT price_history_default_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20251119 price_history_p20251119_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20251119
-    ADD CONSTRAINT price_history_p20251119_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20251126 price_history_p20251126_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20251126
-    ADD CONSTRAINT price_history_p20251126_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20251203 price_history_p20251203_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20251203
-    ADD CONSTRAINT price_history_p20251203_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20251210 price_history_p20251210_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20251210
-    ADD CONSTRAINT price_history_p20251210_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20251217 price_history_p20251217_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20251217
-    ADD CONSTRAINT price_history_p20251217_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20251224 price_history_p20251224_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20251224
-    ADD CONSTRAINT price_history_p20251224_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20251231 price_history_p20251231_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20251231
-    ADD CONSTRAINT price_history_p20251231_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20260107 price_history_p20260107_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20260107
-    ADD CONSTRAINT price_history_p20260107_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20260114 price_history_p20260114_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20260114
-    ADD CONSTRAINT price_history_p20260114_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20260121 price_history_p20260121_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20260121
-    ADD CONSTRAINT price_history_p20260121_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20260128 price_history_p20260128_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20260128
-    ADD CONSTRAINT price_history_p20260128_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20260204 price_history_p20260204_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20260204
-    ADD CONSTRAINT price_history_p20260204_pkey PRIMARY KEY (market_id, ts);
-
-
---
--- Name: price_history_p20260211 price_history_p20260211_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
---
-
-ALTER TABLE ONLY public.price_history_p20260211
-    ADD CONSTRAINT price_history_p20260211_pkey PRIMARY KEY (market_id, ts);
 
 
 --
@@ -820,97 +510,6 @@ CREATE INDEX price_history_default_market_id_ts_idx ON public.price_history_defa
 
 
 --
--- Name: price_history_p20251119_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20251119_market_id_ts_idx ON public.price_history_p20251119 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20251126_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20251126_market_id_ts_idx ON public.price_history_p20251126 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20251203_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20251203_market_id_ts_idx ON public.price_history_p20251203 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20251210_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20251210_market_id_ts_idx ON public.price_history_p20251210 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20251217_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20251217_market_id_ts_idx ON public.price_history_p20251217 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20251224_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20251224_market_id_ts_idx ON public.price_history_p20251224 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20251231_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20251231_market_id_ts_idx ON public.price_history_p20251231 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20260107_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20260107_market_id_ts_idx ON public.price_history_p20260107 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20260114_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20260114_market_id_ts_idx ON public.price_history_p20260114 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20260121_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20260121_market_id_ts_idx ON public.price_history_p20260121 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20260128_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20260128_market_id_ts_idx ON public.price_history_p20260128 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20260204_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20260204_market_id_ts_idx ON public.price_history_p20260204 USING btree (market_id, ts DESC);
-
-
---
--- Name: price_history_p20260211_market_id_ts_idx; Type: INDEX; Schema: public; Owner: your_db_user
---
-
-CREATE INDEX price_history_p20260211_market_id_ts_idx ON public.price_history_p20260211 USING btree (market_id, ts DESC);
-
-
---
 -- Name: price_history_default_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
 --
 
@@ -922,188 +521,6 @@ ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_
 --
 
 ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_default_pkey;
-
-
---
--- Name: price_history_p20251119_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20251119_market_id_ts_idx;
-
-
---
--- Name: price_history_p20251119_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20251119_pkey;
-
-
---
--- Name: price_history_p20251126_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20251126_market_id_ts_idx;
-
-
---
--- Name: price_history_p20251126_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20251126_pkey;
-
-
---
--- Name: price_history_p20251203_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20251203_market_id_ts_idx;
-
-
---
--- Name: price_history_p20251203_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20251203_pkey;
-
-
---
--- Name: price_history_p20251210_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20251210_market_id_ts_idx;
-
-
---
--- Name: price_history_p20251210_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20251210_pkey;
-
-
---
--- Name: price_history_p20251217_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20251217_market_id_ts_idx;
-
-
---
--- Name: price_history_p20251217_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20251217_pkey;
-
-
---
--- Name: price_history_p20251224_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20251224_market_id_ts_idx;
-
-
---
--- Name: price_history_p20251224_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20251224_pkey;
-
-
---
--- Name: price_history_p20251231_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20251231_market_id_ts_idx;
-
-
---
--- Name: price_history_p20251231_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20251231_pkey;
-
-
---
--- Name: price_history_p20260107_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20260107_market_id_ts_idx;
-
-
---
--- Name: price_history_p20260107_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20260107_pkey;
-
-
---
--- Name: price_history_p20260114_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20260114_market_id_ts_idx;
-
-
---
--- Name: price_history_p20260114_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20260114_pkey;
-
-
---
--- Name: price_history_p20260121_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20260121_market_id_ts_idx;
-
-
---
--- Name: price_history_p20260121_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20260121_pkey;
-
-
---
--- Name: price_history_p20260128_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20260128_market_id_ts_idx;
-
-
---
--- Name: price_history_p20260128_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20260128_pkey;
-
-
---
--- Name: price_history_p20260204_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20260204_market_id_ts_idx;
-
-
---
--- Name: price_history_p20260204_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20260204_pkey;
-
-
---
--- Name: price_history_p20260211_market_id_ts_idx; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_history_p20260211_market_id_ts_idx;
-
-
---
--- Name: price_history_p20260211_pkey; Type: INDEX ATTACH; Schema: public; Owner: your_db_user
---
-
-ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_p20260211_pkey;
 
 
 --
