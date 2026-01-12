@@ -1,8 +1,2 @@
-API_HOST=10.0.1.11
-CLOB_HOST=10.0.1.11
-
-DB_HOST=10.0.1.12
-NATS_URL=nats://10.0.1.12:4222
-
 SEND_EMAIL=true
 EMAIL_ADDRESS=development@prism.market
