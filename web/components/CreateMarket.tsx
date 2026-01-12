@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import { v7 as uuidv7 } from 'uuid'
 import { apiClient } from '../grpcClient'
 import { useAppContext } from '../AppProvider'
+import { bigIntScaledDecimalsToFloat, delay } from '../lib/utils'
+import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router'
 
 const CreateMarket = () => {
-  // const navigate = useNavigate()
+  const navigate = useNavigate()
   // const location = useLocation()
 
-  const { signerZero, spenderAllowanceUsd, marketCreationFeeScaledUsdc, usdcNdecimals } = useAppContext()
+  const { signerZero, spenderAllowanceUsd, marketCreationFeeScaledUsdc, usdcNdecimals, setShowPopupAllowance, setSpenderAllowanceUsd } = useAppContext()
   const [statement, setStatement] = useState('')
   const [imageUrl, setImageUrl] = useState(window.location.origin + '/640_480.png')
   const [ isSubmitDisabled, setIsSubmitDisabled ] = useState(true)
@@ -49,7 +52,7 @@ const CreateMarket = () => {
           <h2>To create a new market, you must deposit at least {(marketCreationFeeScaledUsdc / (10 ** usdcNdecimals)).toFixed(2)} USDC into your account. </h2>
 
           {/* TODO */}
-          <span className="text-blue-600 underline cursor-pointer" title="Click here to deposit" onClick={() => { }}>Deposit</span>
+          <span className="text-blue-600 underline cursor-pointer" title="Click here to deposit" onClick={() => { setShowPopupAllowance(true) }}>Deposit</span>
         </>
       )}
 
@@ -115,13 +118,24 @@ const CreateMarket = () => {
           onClick={async () => {
             try {
               setIsSubmitDisabled(true)
-              const response = await apiClient.createMarket({
+              const result = await apiClient.createMarket({
                 marketId: uuidv7(),
                 net: 'testnet',
                 statement,
                 imageUrl: imageUrl
               })
-              console.log('CreateMarket response', response)
+              const response = result.response
+              console.log('CreateMarketResponse', response)
+
+              // CreateMarketResponse includes the remaining allowance in the smart contract response
+              // relying on the mirrornode network has too much latency to reflect the new allowance immediately after market creation
+              setSpenderAllowanceUsd(bigIntScaledDecimalsToFloat(response.remainingAllowance, usdcNdecimals))
+
+              toast.success(`Market created successfully with marketId: ${response.marketResponse.marketId}`)
+              
+              await delay(1000)
+              navigate(`/market/${response.marketResponse.marketId}`)
+              
             } catch (error) {
               console.error('Error creating market:', error)
             } finally {
@@ -129,7 +143,8 @@ const CreateMarket = () => {
             }
           }}
         >
-            Create Market
+            { isSubmitDisabled ? 'Creating Market...' : 'Create Market' }
+            { isSubmitDisabled && <span className="ml-2 spinner-border spinner-border-sm inline-block w-4 h-4 border-2 rounded-full border-white border-t-transparent animate-spin"></span> }
         </button>
       </div>
 

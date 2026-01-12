@@ -180,21 +180,25 @@ func (dbRepository *DbRepository) GetMarkets(limit int32, offset int32) ([]sqlc.
 	return markets, nil
 }
 
-func (dbRepository *DbRepository) CreateMarket(marketId string, statement string, net string, smartContractId string) (*sqlc.Market, error) {
+func (dbRepository *DbRepository) CreateMarket(req *pb_api.CreateMarketRequest, smartContractId string) (*sqlc.Market, error) {
 	if dbRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	marketUUID, err := uuid.Parse(marketId)
+	marketUUID, err := uuid.Parse(req.MarketId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
 	}
 
-	net = strings.ToLower(net)
+	net := strings.ToLower(req.Net)
 	isValid := lib.IsValidNetwork(net)
 	if !isValid {
 		return nil, fmt.Errorf("invalid network: %s", net)
 	}
+
+	imageUrl := strings.TrimSpace(req.ImageUrl)
+
+	statement := strings.TrimSpace(req.Statement)
 
 	isValidSmartContractId := lib.IsValidAccountId(smartContractId)
 	if !isValidSmartContractId {
@@ -213,6 +217,7 @@ func (dbRepository *DbRepository) CreateMarket(marketId string, statement string
 		MarketID:        marketUUID,
 		Net:             net,
 		Statement:       statement,
+		ImageUrl:        sql.NullString{String: imageUrl, Valid: imageUrl != ""},
 		SmartContractID: smartContractId,
 	})
 	if err != nil {

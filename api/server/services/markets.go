@@ -75,7 +75,7 @@ func (m *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsRe
 	return response, nil
 }
 
-func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.MarketResponse, error) {
+func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.CreateMarketResponse, error) {
 	// guards
 	// protobuf validation does a great job sofar ;)
 
@@ -85,7 +85,7 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.M
 
 	// Step 1:
 	// create a market on the **smart contract** - return with error if it fails
-	err := m.hederaService.CreateNewMarket(req)
+	remainingAllowance, err := m.hederaService.CreateNewMarket(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new market (marketId=%s) on Hedera: %w", req.MarketId, err)
 	}
@@ -119,7 +119,7 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.M
 	contractID, err := hiero.ContractIDFromString(
 		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(req.Net))),
 	)
-	market, err := m.dbRepository.CreateMarket(req.MarketId, req.Statement, req.Net, contractID.String())
+	market, err := m.dbRepository.CreateMarket(req, contractID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a new market row (marketId=%s) on the db: %w", req.MarketId, err)
 	}
@@ -127,11 +127,14 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.M
 	/////
 	// Output: map the result to MarketResponse
 	/////
-	response, err := mapMarketToMarketResponse(market)
+	marketResponse, err := mapMarketToMarketResponse(market)
 	if err != nil {
 		return nil, err
 	}
-	return response, nil
+	return &pb_api.CreateMarketResponse{
+		MarketResponse:     marketResponse,
+		RemainingAllowance: remainingAllowance,
+	}, nil
 }
 
 func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, error) {
@@ -146,6 +149,13 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 	createdAt = market.CreatedAt.Time.Format("2006-01-02T15:04:05Z")
 	resolvedAt = market.ResolvedAt.Time.Format("2006-01-02T15:04:05Z")
 
+	var imageUrl string
+	if market.ImageUrl.Valid {
+		imageUrl = market.ImageUrl.String
+	} else {
+		imageUrl = ""
+	}
+
 	marketResponse := &pb_api.MarketResponse{
 		MarketId:   market.MarketID.String(),
 		Net:        market.Net,
@@ -153,6 +163,7 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 		IsOpen:     market.IsOpen,
 		CreatedAt:  createdAt,
 		ResolvedAt: resolvedAt,
+		ImageUrl:   imageUrl,
 	}
 	return marketResponse, nil
 }

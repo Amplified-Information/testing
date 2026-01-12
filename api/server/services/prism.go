@@ -224,13 +224,13 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 		}
 	}
 
-	usdcAddressesMap := make(map[string]string)
+	usdcTokenIdsMap := make(map[string]string)
 	for _, net := range networks { // loop through networks and get the USDC addresses from env vars
 		netLower := strings.ToLower(strings.TrimSpace(net))
 		envVarName := fmt.Sprintf("%s_USDC_ADDRESS", strings.ToUpper(netLower))
-		usdcAddress := os.Getenv(envVarName)
-		if usdcAddress != "" {
-			usdcAddressesMap[netLower] = usdcAddress
+		usdcTokenId := os.Getenv(envVarName)
+		if usdcTokenId != "" {
+			usdcTokenIdsMap[netLower] = usdcTokenId
 		}
 	}
 
@@ -244,13 +244,24 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 		return nil, fmt.Errorf("MARKET_CREATION_FEE_USDC environment variable is not a valid float: %v", err)
 	}
 
+	tokenIdsMap := make(map[string]string)
+	for _, net := range networks { // loop through networks and get the token addresses from env vars
+		netLower := strings.ToLower(strings.TrimSpace(net))
+		envVarName := fmt.Sprintf("%s_TOKEN", strings.ToUpper(netLower))
+		tokenId := os.Getenv(envVarName)
+		if tokenId != "" {
+			tokenIdsMap[netLower] = tokenId
+		}
+	}
+
 	response := &pb_api.MacroMetadataResponse{
 		AvailableNetworks:           networks,
 		SmartContracts:              smartContractsMap,
-		UsdcAddresses:               usdcAddressesMap,
+		UsdcTokenIds:                usdcTokenIdsMap,
 		UsdcDecimals:                6,
 		MarketCreationFeeScaledUsdc: marketCreationFeeScaledUsdc,
 		NMarkets:                    p.marketService.GetNumMarkets(),
+		TokenIds:                    tokenIdsMap,
 	}
 
 	return response, nil

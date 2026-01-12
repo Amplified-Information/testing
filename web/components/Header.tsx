@@ -4,7 +4,7 @@ import Wallet from './Wallet'
 import logo from '../img/prism.png'
 import { useAppContext } from '../AppProvider'
 import NetworkSelector from './NetworkSelector'
-import Allowance from './Allowance'
+import Balances from './Balances'
 import SelectLang from './SelectLang'
 
 const Header = () => {
@@ -43,7 +43,8 @@ const Header = () => {
   
   return (
     <div className="relative">
-      <header className="header" style={{ borderColor: `${networkSelected.isTestnet() ? 'orange' : networkSelected.isPreviewnet() ? 'purple' : ''}` }}>
+      <Balances />
+      <header className="header z-1000" style={{ borderColor: `${networkSelected.isTestnet() ? 'orange' : networkSelected.isPreviewnet() ? 'purple' : ''}` }}>
         {/* Logo on the left */}
         <div className="logo-container" onClick={() => navigate('/')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -163,7 +164,7 @@ const Header = () => {
 
       <div>
         <NetworkSelector />
-        <Allowance />
+        {/* <Balances /> */}
       </div>
     </div>
   )

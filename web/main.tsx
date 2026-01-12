@@ -13,6 +13,7 @@ import { Toaster } from 'react-hot-toast'
 import MacroMetadata from './components/MacroMetadata'
 
 import './i18n/i18n'
+import PopupAllowance from './components/PopupAllowance'
 
 console.log(proto) // TODO - remove eventually. Will use `proto` in Signer.tsx. Added here to to avoid tree-shaking of @hashgraph/proto
 
@@ -31,6 +32,9 @@ createRoot(document.getElementById('root')!).render(
           position="bottom-right"
           reverseOrder={false}
         />
+
+        {/* Popups */}
+        <PopupAllowance />
         
       </AppProvider>
     </BrowserRouter>

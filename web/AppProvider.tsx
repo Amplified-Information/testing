@@ -29,14 +29,20 @@ interface AppContextType {
   setUserAccountInfo: React.Dispatch<React.SetStateAction<UserAccountInfo | undefined>>
   smartContractIds: {[key: string]: string }
   setSmartContractIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
-  usdcAddresses: {[key: string]: string }
-  setUsdcAddresses: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
+  usdcTokenIds: {[key: string]: string }
+  setUsdcTokenIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
   usdcNdecimals: number
   setUsdcNdecimals: React.Dispatch<React.SetStateAction<number>>
   selectedLang: string
   setSelectedLang: React.Dispatch<React.SetStateAction<string>>
   marketCreationFeeScaledUsdc: number
   setMarketCreationFeeScaledUsdc: React.Dispatch<React.SetStateAction<number>>
+  showPopupAllowance: boolean
+  setShowPopupAllowance: React.Dispatch<React.SetStateAction<boolean>>
+  tokenIds: {[key: string]: string }
+  setTokenIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
+  nMarkets: number
+  setNmarkets: React.Dispatch<React.SetStateAction<number>>
 }
 
 // 2. Create the context with `undefined` (so we can inject real values later)
@@ -61,10 +67,13 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [market, setMarket] = useState<MarketResponse | undefined>(undefined)
   const [userAccountInfo, setUserAccountInfo] = useState<UserAccountInfo | undefined>(undefined)
   const [smartContractIds, setSmartContractIds] = useState<{[key: string]: string }>({})
-  const [usdcAddresses, setUsdcAddresses] = useState<{[key: string]: string }>({})
+  const [usdcTokenIds, setUsdcTokenIds] = useState<{[key: string]: string }>({})
   const [usdcNdecimals, setUsdcNdecimals] = useState<number>(2)
   const [selectedLang, setSelectedLang] = useState<string>('en')
   const [marketCreationFeeScaledUsdc, setMarketCreationFeeScaledUsdc] = useState<number>(0)
+  const [showPopupAllowance, setShowPopupAllowance] = useState<boolean>(false)
+  const [tokenIds, setTokenIds] = useState<{[key: string]: string }>({})
+  const [nMarkets, setNmarkets] = useState<number>(0)
   return (
     <AppContext.Provider
       value={{
@@ -90,14 +99,20 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setUserAccountInfo,
         smartContractIds,
         setSmartContractIds,
-        usdcAddresses,
-        setUsdcAddresses,
+        usdcTokenIds,
+        setUsdcTokenIds,
         usdcNdecimals,
         setUsdcNdecimals,
         selectedLang,
         setSelectedLang,
         marketCreationFeeScaledUsdc,
-        setMarketCreationFeeScaledUsdc
+        setMarketCreationFeeScaledUsdc,
+        showPopupAllowance,
+        setShowPopupAllowance,
+        tokenIds,
+        setTokenIds,
+        nMarkets,
+        setNmarkets
       }}
     >
       {children}

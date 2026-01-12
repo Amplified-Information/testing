@@ -58,7 +58,7 @@ func (s *server) GetMarkets(ctx context.Context, req *pb_api.LimitOffsetRequest)
 	return result, err
 }
 
-func (s *server) CreateMarket(ctx context.Context, req *pb_api.CreateMarketRequest) (*pb_api.MarketResponse, error) {
+func (s *server) CreateMarket(ctx context.Context, req *pb_api.CreateMarketRequest) (*pb_api.CreateMarketResponse, error) {
 	result, err := s.marketsService.CreateMarket(req)
 	return result, err
 }
@@ -132,6 +132,9 @@ func main() {
 		"IAM_USERNAME",
 		"SMTP_USERNAME",
 		"MARKET_CREATION_FEE_USDC",
+		"PREVIEWNET_TOKEN",
+		"TESTNET_TOKEN",
+		"MAINNET_TOKEN",
 		// secrets:
 		"DB_PWORD",
 		"PREVIEWNET_HEDERA_OPERATOR_KEY",

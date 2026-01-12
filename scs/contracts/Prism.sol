@@ -7,6 +7,7 @@ interface IERC20 {
   function transfer(address to, uint256 amount) external returns (bool);
   function transferFrom(address from, address to, uint256 amount) external returns (bool);
   function balanceOf(address account) external view returns (uint256);
+  function allowance(address owner, address spender) external view returns (uint256);
 }
 
 // Hedera Token Service (HTS) precompile interface (testnet/mainnet share the same precompile)
@@ -68,8 +69,10 @@ contract Prism {
   Function to create a new prediction market with a unique market ID and statement.
   @param marketId The unique identifier for the new market.
   @param _statement The statement or question for the prediction market.
+
+  @return allowance The remaining allowance of the collateral token for the market creator.
   */
-  function createNewMarket(uint128 marketId, string memory _statement) public { // TODO: uint8 txFee - configure fees per-market?
+  function createNewMarket(uint128 marketId, string memory _statement) public returns (uint256 allowance) { // TODO: uint8 txFee - configure fees per-market?
     require(keccak256(abi.encodePacked(statements[marketId])) == keccak256(abi.encodePacked("")), "Market already exists");
     
     // transfer the market creation fee from the owner to the contract
@@ -79,6 +82,8 @@ contract Prism {
     statements[marketId] = _statement;
     resolutionTimes[marketId] = 0;
     totalCollaterals[marketId] = 0;
+
+    return collateralToken.allowance(msg.sender, address(this));
   }
 
   function setMarketCreationFee(uint256 _marketCreationFeeUsdc) external onlyOwner {

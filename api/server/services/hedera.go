@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -413,11 +414,11 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	return true, nil
 }
 
-func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) error {
+func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) (uint64, error) {
 	// call the smart contract function createNewMarket(uint128 marketId, string memory _statement)
 	marketIdBig, err := lib.Uuid7_to_bigint(req.MarketId)
 	if err != nil {
-		return fmt.Errorf("failed to convert marketId to bigint: %w", err)
+		return 0, fmt.Errorf("failed to convert marketId to bigint: %w", err)
 	}
 	params := hiero.NewContractFunctionParameters()
 	params.AddUint128BigInt(marketIdBig) // marketId
@@ -427,19 +428,33 @@ func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) error {
 		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(req.Net))),
 	)
 	if err != nil {
-		return fmt.Errorf("invalid smart contract ID: %v", err)
+		return 0, fmt.Errorf("invalid smart contract ID: %v", err)
 	}
 
-	tx, err := hiero.NewContractExecuteTransaction().
+	result, err := hiero.NewContractExecuteTransaction().
 		SetContractID(contractID).
 		SetGas(2_000_000). // TODO - can this be lowered?
 		SetFunction("createNewMarket", params).
 		Execute(h.hedera_clients[req.Net])
 	if err != nil {
-		return fmt.Errorf("failed to execute contract: %v", err)
+		return 0, fmt.Errorf("failed to execute contract: %v", err)
 	}
 
-	log.Printf("CreateNewMarket (txId=%s)", tx.TransactionID.String())
+	log.Printf("CreateNewMarket (txId=%s)", result.TransactionID.String())
 
-	return nil
+	record, err := result.GetRecord(h.hedera_clients[req.Net])
+	if err != nil {
+		return 0, fmt.Errorf("failed to get transaction record: %v", err)
+	}
+
+	// receipt, err := result.GetReceipt(h.hedera_clients[req.Net])
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get transaction receipt: %v", err)
+	// }
+
+	remainingAllowance := new(big.Int).SetBytes(record.CallResult.GetUint256(0))
+
+	log.Printf("Remaining allowance: %v", remainingAllowance.Uint64())
+
+	return remainingAllowance.Uint64(), nil
 }

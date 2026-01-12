@@ -8,8 +8,8 @@ ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CreateMarket :one
-INSERT INTO markets (market_id, net, statement, smart_contract_id, is_open, created_at, resolved_at)
-VALUES ($1, $2, $3, $4, TRUE, CURRENT_TIMESTAMP, NULL)
+INSERT INTO markets (market_id, net, statement, image_url, smart_contract_id, is_open, created_at, resolved_at)
+VALUES ($1, $2, $3, $4, $5, TRUE, CURRENT_TIMESTAMP, NULL)
 RETURNING *;
 
 -- name: CountOpenMarkets :one

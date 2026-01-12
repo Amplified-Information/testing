@@ -70,9 +70,26 @@ const grantAllowanceUsd = async (signerZero: DAppSigner, contractId: string, amo
     }
 }
 
+const getTokenBalance = async (networkSelected: LedgerId, tokenId: string, accountId: string): Promise<number> => {
+  try {
+    const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}/tokens?token.id=${tokenId}`
+    const response = await fetch(mirrornode)
+    if (!response.ok) {
+      throw new Error('Network response was not ok')
+    }
+    const data = await response.json()
+    console.log(data.tokens[0])
+    return data.tokens[0].balance || 0
+  } catch (error) {
+    console.error('Error fetching token balance:', error)
+    throw error
+  }
+}
+
 export { 
   getAllPositions, 
   getSpenderAllowanceUsd, 
   grantAllowanceUsd,
-  getUserAccountInfo
+  getUserAccountInfo,
+  getTokenBalance
 }

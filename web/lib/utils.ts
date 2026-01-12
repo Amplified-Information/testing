@@ -44,6 +44,13 @@ const floatToBigIntScaledDecimals = (value: number, nDecimals: number): bigint =
   return BigInt(scaledValue)
 }
 
+const bigIntScaledDecimalsToFloat = (value: bigint, nDecimals: number): number => {
+  const valueStr = value.toString().padStart(nDecimals + 1, '0')
+  const integerPart = valueStr.slice(0, -nDecimals)
+  const fractionalPart = valueStr.slice(-nDecimals)
+  return parseFloat(`${integerPart}.${fractionalPart}`)
+}
+
 const uuidToBigInt = (uuid7_str: string): bigint => {
   const hexStr = uuid7_str.replace(/-/g, '')
   return BigInt(`0x${hexStr}`)
@@ -83,14 +90,20 @@ const keyTypeToInt = (keyType: string): number => {
   }
 }
 
+const delay = (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export {
   uint8ToBase64,
   // uint8ToHex,
   getMidPrice,
   getSpreadPercent,
   floatToBigIntScaledDecimals,
+  bigIntScaledDecimalsToFloat,
   uuidToBigInt,
   isValidUUIDv7,
   assemblePayloadHexForSigning,
-  keyTypeToInt
+  keyTypeToInt,
+  delay
 }
