@@ -26,6 +26,9 @@ RUN npm run build
 # RUN stage
 FROM nginx:alpine
 
+# Add custom nginx config for SPA routing
+COPY ./web/nginx.conf /etc/nginx/conf.d/default.conf
+
 COPY --from=build /app/web/dist /usr/share/nginx/html
 
 CMD ["nginx", "-g", "daemon off;"]
