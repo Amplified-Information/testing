@@ -24,3 +24,6 @@ Updates to support the latest front-end changes.
 
 0.2.9
 Create market operational. Some protobuf changes to support hydration of frontend. Added HTS token addresses
+
+0.2.10
+config changes - ensure connecting to clob on 10.0.1.11 and not 0.0.0.0
