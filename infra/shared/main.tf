@@ -811,6 +811,28 @@ resource "aws_security_group" "allow_alb_ingress" {
   }
 }
 
+resource "aws_security_group" "allow_hedera_rpc_egress" {
+  name        = "allow_hedera_rpc_egress"
+  description = "Allow outbound Hedera RPC traffic"
+  vpc_id      = aws_vpc.main.id
+
+  # ipv4
+  egress {
+    from_port   = 50212
+    to_port     = 50212
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # or restrict to Hedera node IP(s) if preferred
+  }
+
+  # ipv6
+  egress {
+    from_port        = 50212
+    to_port          = 50212
+    protocol         = "tcp"
+    ipv6_cidr_blocks = ["::/0"] # or restrict to Hedera node IP(s) if preferred
+  }
+}
+
 #####
 # IAM roles
 # - view files with `aws s3 ls s3://prismlabs-deployment --region us-east-1`
@@ -941,6 +963,14 @@ output "allow_alb_egress_id" {
 output "allow_alb_ingress_id" {
   value       = aws_security_group.allow_alb_ingress.id
 }
+
+output "allow_hedera_rpc_egress_id" {
+  value       = aws_security_group.allow_hedera_rpc_egress.id
+}
+
+
+
+
 
 
 output "aws_subnet_public_id" {
