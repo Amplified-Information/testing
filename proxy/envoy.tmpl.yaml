@@ -120,7 +120,7 @@ static_resources:
                           prefix: "/"
                         route:
                           cluster: web_service
-                          timeout: 0x # infinite 30s
+                          timeout: 0s # infinite 30s
                     typed_per_filter_config:
                       envoy.filters.http.cors:
                         "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy
@@ -160,7 +160,7 @@ static_resources:
                 #       preserve_proto_field_names: false
   clusters:
     - name: clob_service
-      connect_timeout: 20s
+      connect_timeout: 0s
       type: logical_dns
       typed_extension_protocol_options:
         envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
@@ -178,7 +178,7 @@ static_resources:
                       address: ${ENVOY_HOST_CLOB}   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 50051
     - name: api_service
-      connect_timeout: 20s
+      connect_timeout: 0s
       type: logical_dns
       typed_extension_protocol_options:
         envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
@@ -196,7 +196,7 @@ static_resources:
                       address: ${ENVOY_HOST_API}   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 8888
     - name: web_service
-      connect_timeout: 20s
+      connect_timeout: 0s
       type: logical_dns
       # http2_protocol_options: {} # definitely don't want http2 for web!
       lb_policy: round_robin
