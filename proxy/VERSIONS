@@ -15,3 +15,6 @@ All Envoy proxy timeouts to 0s (infinity) - allow ALB handle timeouts
 
 0.1.5
 Set cluster timeouts to 30s
+
+0.1.6
+Support SPA routing

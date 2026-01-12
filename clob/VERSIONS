@@ -9,3 +9,6 @@ Changed naming of some interface endpoints for better consistency
 
 0.2.3
 Some protobuf naming changes
+
+0.2.4
+Resolved conflicting .config env vars

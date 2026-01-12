@@ -27,3 +27,6 @@ Create market operational. Some protobuf changes to support hydration of fronten
 
 0.2.10
 config changes - ensure connecting to clob on 10.0.1.11 and not 0.0.0.0
+
+0.2.11
+Resolve conflicting env vars in .config
