@@ -1,12 +1,18 @@
 #!/bin/bash
 
+# Ensure this script is only sourced, not executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "Error: This script must be sourced, not executed."
+  exit 1
+fi
+
 # Valid environment options
 VALID_ENVS=("local" "dev" "uat" "prod" "local2")
 
 # Check if argument is provided
 if [ $# -eq 0 ]; then
   echo "Error: Environment argument required (local, dev, uat, prod, or local2)"
-  exit 1
+  return 1
 fi
 
 ENV=$1
@@ -14,7 +20,7 @@ ENV=$1
 # Validate environment argument
 if [[ ! " ${VALID_ENVS[*]} " =~ " ${ENV} " ]]; then
   echo "Error: Invalid environment. Must be one of: ${VALID_ENVS[*]}"
-  exit 1
+  return 1
 fi
 
 # Resolve the directory of the script

@@ -111,7 +111,7 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create a market (marketId=%s) on the CLOB: %w", req.MarketId, err)
+		return nil, fmt.Errorf("failed to create a market (marketId=%s) on the CLOB (%s): %w", req.MarketId, clobAddr, err)
 	}
 
 	// Step 3:

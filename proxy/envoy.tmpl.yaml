@@ -120,7 +120,8 @@ static_resources:
                           prefix: "/"
                         route:
                           cluster: web_service
-                          timeout: 0s # infinite 30s
+                          timeout: 0s
+                          prefix_rewrite: "/" # SPA routing (React)!
                     typed_per_filter_config:
                       envoy.filters.http.cors:
                         "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy

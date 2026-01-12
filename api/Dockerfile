@@ -7,8 +7,8 @@
 # 
 # source ./api/loadEnv.sh local
 # docker run -p 8888:8888 \
-#   -e API_HOST=$API_HOST \
-#   -e API_PORT=$API_PORT \
+#   -e API_SELF_HOST=$API_SELF_HOST \
+#   -e API_SELF_PORT=$API_SELF_PORT \
 #   -e CLOB_HOST=$CLOB_HOST \
 #   -e CLOB_PORT=$CLOB_PORT \
 #   -e USDC_DECIMALS=$USDC_DECIMALS \

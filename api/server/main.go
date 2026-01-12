@@ -97,8 +97,8 @@ func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
 	vars := []string{
 		// keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets and the run command in Dockerfile
-		"API_HOST",
-		"API_PORT",
+		"API_SELF_HOST",
+		"API_SELF_PORT",
 		"CLOB_HOST",
 		"CLOB_PORT",
 		"USDC_DECIMALS",
@@ -232,7 +232,7 @@ func main() {
 	}
 
 	// Now start gRPC service
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT")))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("API_SELF_HOST"), os.Getenv("API_SELF_PORT")))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -254,7 +254,7 @@ func main() {
 		positionsService:  positionsService,
 	})
 
-	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT"))
+	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_SELF_HOST"), os.Getenv("API_SELF_PORT"))
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
