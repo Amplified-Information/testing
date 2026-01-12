@@ -247,7 +247,7 @@ docker pull $IMAGE_SRC:$VER_SRC
 # never add a tag to derived namespaces such as web.eng!
 docker tag $IMAGE_SRC:$VER_SRC $IMAGE_DST:$VER_DST
 
-docker images | grep $VER_DST
+docker images | grep $IMAGE_DST
 
 
 # now do:
