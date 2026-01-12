@@ -12,3 +12,6 @@ increased timeouts on proxy
 
 0.1.4
 All Envoy proxy timeouts to 0s (infinity) - allow ALB handle timeouts
+
+0.1.5
+Set cluster timeouts to 30s
