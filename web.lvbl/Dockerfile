@@ -18,9 +18,9 @@ RUN npm i --force
 COPY ./web.lvbl /app/web
 
 # need to copy the protobuf definitions which are outside the web directory:
-COPY ./api/proto /app/api/proto
-COPY ./clob/proto /app/clob/proto
-RUN npm run gen
+# COPY ./api/proto /app/api/proto
+# COPY ./clob/proto /app/clob/proto
+# RUN npm run gen
 
 RUN npm run build
 
