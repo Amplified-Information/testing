@@ -20,9 +20,6 @@ const Index = () => {
           <div className="flex justify-center items-center gap-4">
             <span>{t('footer.copyright')}</span>
             <span className="text-border">•</span>
-            <Link to="/dev-notes" className="hover:text-foreground transition-colors">
-              Dev Notes
-            </Link>
           </div>
         </div>
       </footer>

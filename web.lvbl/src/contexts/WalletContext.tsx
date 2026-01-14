@@ -399,7 +399,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const connector = new DAppConnector(
           metadata,
           targetLedger,
-          import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
+          "1dc022e82a5cf85ffbca783c4edaac1a",
           Object.values(HederaJsonRpcMethod),
           [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
           [targetChainId]
