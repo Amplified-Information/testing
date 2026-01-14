@@ -32,7 +32,7 @@ func (p *Prism) InitPrism(dbRepository *repositories.DbRepository, natsService *
 	p.hederaService = hederaService
 	p.marketService = marketService
 
-	log.Println("Prism service initialized successfully")
+	log.Printf("InitPrism called on Prism instance: %p", p)
 }
 
 func (p *Prism) SubmitPredictionIntent(req *pb_api.PredictionIntentRequest) (string, error) {
@@ -265,4 +265,37 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 	}
 
 	return response, nil
+}
+
+func (p *Prism) TriggerRecreateClob() error {
+	log.Printf("TriggerRecreateClob called on Prism instance: %p", p)
+
+	// retrieve all unresolved markets from the database:
+	if p.dbRepository == nil {
+		return fmt.Errorf("dbRepository is not initialized")
+	}
+	markets, err := p.dbRepository.GetAllUnresolvedMarkets()
+	if err != nil {
+		return fmt.Errorf("failed to get unresolved markets: %v", err)
+	}
+
+	// loop through each unresolved market:
+	for _, market := range markets {
+
+		log.Printf("Recreating CLOB for market ID: %s", market.MarketID.String())
+		err = lib.CreateMarketOnClob(market.MarketID.String())
+		if err != nil {
+			return fmt.Errorf("failed to create new market (marketId=%s) on CLOB: %w", market.MarketID.String(), err)
+		}
+		// // create the CreateMarketRequest:
+		// createMarketRequest := &pb_api.CreateMarketRequest{}
+		// createMarketResponse, err := p.marketService.CreateMarket(createMarketRequest)
+		// if err != nil {
+		// 	log.Printf("Failed to recreate CLOB for market ID %s: %v", market.MarketID.String(), err)
+		// 	continue
+		// }
+		// log.Printf("Successfully recreated CLOB for market ID: %s", market.MarketID.String())
+	}
+
+	return nil
 }

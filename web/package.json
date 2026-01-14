@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "dev": "vite",
-    "gen": "rm -rf gen && mkdir -p gen && ./node_modules/.bin/protoc -I=../api/proto -I=../clob/proto --ts_out=gen ../api/proto/*.proto ../clob/proto/*.proto",
+    "gen": "rm -rf gen && mkdir -p gen && ./node_modules/.bin/protoc -I=../clob/proto --ts_out=gen ../clob/proto/*.proto",
+    "gen.old": "rm -rf gen && mkdir -p gen && ./node_modules/.bin/protoc -I=../api/proto -I=../clob/proto --ts_out=gen ../api/proto/*.proto ../clob/proto/*.proto",
     "lint": "eslint .",
     "stub": "mkdir -p node_modules/@hashgraph/proto && echo \"export const proto = {};\" > node_modules/@hashgraph/proto/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"

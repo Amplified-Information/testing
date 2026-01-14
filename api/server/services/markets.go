@@ -2,10 +2,9 @@ package services
 
 import (
 	pb_api "api/gen"
-	pb_clob "api/gen/clob"
 	sqlc "api/gen/sqlc"
+	"api/server/lib"
 	repositories "api/server/repositories"
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -14,8 +13,6 @@ import (
 	"time"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type MarketService struct {
@@ -75,6 +72,7 @@ func (m *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsRe
 	return response, nil
 }
 
+// TODO - idempotent?
 func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.CreateMarketResponse, error) {
 	// guards
 	// protobuf validation does a great job sofar ;)
@@ -91,27 +89,10 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 	}
 
 	// Step 2:
-	// create market on the **CLOB** (noauth on port 500051 - not thru the proxy)
-	// grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001","net":"testnet"}' $SERVER clob.Clob/AddMarket
-	//
-	clobAddr := os.Getenv("CLOB_HOST") + ":" + os.Getenv("CLOB_PORT")
-
-	conn, err := grpc.NewClient(clobAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// create market on the **CLOB**
+	err = lib.CreateMarketOnClob(req.MarketId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new market (marketId=%s) - connect to CLOB gRPC server failed: %w", req.MarketId, err)
-	}
-	defer conn.Close()
-
-	clobClient := pb_clob.NewClobInternalClient(conn)
-	_, err = clobClient.CreateMarket(
-		context.Background(),
-		&pb_clob.CreateMarketRequest{
-			MarketId: req.MarketId,
-			Net:      req.Net,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create a market (marketId=%s) on the CLOB (%s): %w", req.MarketId, clobAddr, err)
+		return nil, fmt.Errorf("failed to create new market (marketId=%s) on CLOB: %w", req.MarketId, err)
 	}
 
 	// Step 3:
@@ -160,7 +141,7 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 		MarketId:   market.MarketID.String(),
 		Net:        market.Net,
 		Statement:  market.Statement,
-		IsOpen:     market.IsOpen,
+		IsOpen:     market.IsPaused,
 		CreatedAt:  createdAt,
 		ResolvedAt: resolvedAt,
 		ImageUrl:   imageUrl,
@@ -253,7 +234,7 @@ func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.P
 }
 
 func (m *MarketService) GetNumMarkets() uint32 {
-	nMarkets, err := m.dbRepository.CountOpenMarkets()
+	nMarkets, err := m.dbRepository.CountUnresolvedMarkets()
 	if err != nil {
 		return 0
 	}

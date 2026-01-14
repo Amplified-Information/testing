@@ -1,5 +1,7 @@
+-- add a field smart_contract_id (keep track of which smart contract was used to create the market!)
+
 ALTER TABLE markets
-ADD COLUMN smart_contract_id VARCHAR(256);
+ADD COLUMN smart_contract_id VARCHAR(256) NOT NULL DEFAULT '0.0.0';
 
 -- any existing rows must be filled in to avoid NOT NULL constraint violation
 UPDATE markets

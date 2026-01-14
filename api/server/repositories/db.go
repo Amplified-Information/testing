@@ -431,16 +431,30 @@ func (dbRepository *DbRepository) CreateNewsletterSubscription(email string, ipA
 	return nil
 }
 
-func (dbRepository *DbRepository) CountOpenMarkets() (int64, error) {
+func (dbRepository *DbRepository) CountUnresolvedMarkets() (int64, error) {
 	if dbRepository.db == nil {
 		return 0, fmt.Errorf("database not initialized")
 	}
 
 	q := sqlc.New(dbRepository.db)
-	count, err := q.CountOpenMarkets(context.Background())
+	count, err := q.CountUnresolvedMarkets(context.Background())
 	if err != nil {
-		return 0, fmt.Errorf("CountOpenMarkets failed: %v", err)
+		return 0, fmt.Errorf("CountUnresolvedMarkets failed: %v", err)
 	}
 
 	return count, nil
+}
+
+func (dbRepository *DbRepository) GetAllUnresolvedMarkets() ([]sqlc.Market, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbRepository.db)
+	markets, err := q.GetAllUnresolvedMarkets(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("GetUnresolvedMarkets failed: %v", err)
+	}
+
+	return markets, nil
 }

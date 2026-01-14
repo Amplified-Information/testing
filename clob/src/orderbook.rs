@@ -24,20 +24,20 @@ impl OrderBookService {
         }
     }
 
-    pub async fn add_market(&self, market_id: String, net: String) -> Result<bool, Box<dyn std::error::Error>> {
+    pub async fn add_market(&self, market_id: String) -> Result<bool, Box<dyn std::error::Error>> {
         // No guards for performance - assume validated upstream
 
         // prevent overwriting existing market
-        let poly_id = net.clone() + ":" + &market_id;   // <hederaNet>:<UUID>
-        if self.order_books.read().await.contains_key(&poly_id) {
-            log::error!("Attempt to create a market ({}) which already exists in OrderBookService", market_id);
+        // let poly_id = net.clone() + ":" + &market_id;   // <hederaNet>:<UUID>
+        if self.order_books.read().await.contains_key(&market_id.to_lowercase()) {
+            log::warn!("WARN: Attempt to create a market ({}) which already exists in OrderBookService", market_id.to_ascii_lowercase());
             return Ok(false);
         }
 
         let mut order_books = self.order_books.write().await;
-        order_books.insert(poly_id, Arc::new(RwLock::new(OrderBook::new(&self.nats_service))));
+        order_books.insert(market_id.to_lowercase(), Arc::new(RwLock::new(OrderBook::new(&self.nats_service))));
 
-        log::info!("New market \"{}:{}\" added to OrderBookService", net, market_id);
+        log::info!("New market \"{}\" added to OrderBookService", market_id.to_lowercase());
         return Ok(true);
     }
 
@@ -55,8 +55,8 @@ impl OrderBookService {
         // No guards for performance - assume validated upstream
 
         let order_books = self.order_books.read().await;
-        let poly_id = order.net.clone() + ":" + &order.market_id;   // <hederaNet>:<UUID>
-        if let Some(order_book) = order_books.get(&poly_id) {
+        // let poly_id = order.net.clone() + ":" + &order.market_id;   // <hederaNet>:<UUID>
+        if let Some(order_book) = order_books.get(&order.market_id.to_lowercase()) {
             let mut book = order_book.write().await;
             book.add_order(order).await;
             Ok(())
@@ -65,12 +65,12 @@ impl OrderBookService {
         }
     }
 
-    pub async fn get_book(&self, market_id: &str, net: &str, depth: usize) -> Result<BookSnapshot, Box<dyn std::error::Error>> {
+    pub async fn get_book(&self, market_id: &str, depth: usize) -> Result<BookSnapshot, Box<dyn std::error::Error>> {
         // No guards for performance - assume validated upstream
 
-        let order_books = self.order_books.read().await;
-        let poly_id = net.to_string() + ":" + market_id;   // <hederaNet>:<UUID>
-        if let Some(order_book) = order_books.get(&poly_id) {
+        let order_books: tokio::sync::RwLockReadGuard<'_, HashMap<String, Arc<RwLock<OrderBook>>>> = self.order_books.read().await;
+        // let poly_id = net.to_string() + ":" + market_id;   // <hederaNet>:<UUID>
+        if let Some(order_book) = order_books.get(&market_id.to_string()) {
             let book = order_book.read().await;
             Ok(book.snapshot(depth))
         } else {
@@ -80,9 +80,9 @@ impl OrderBookService {
 
     // pub fn start_periodic_scan(&self, market_id: &str, duration_seconds: u64) -> Result<impl Future<Output = Result<(), Box<dyn std::error::Error>>>, Box<dyn std::error::Error>> {
     //     let order_books = self.order_books.clone();
-    //     let market_id = market_id.to_string();
+    //     let market_id = market_id.to_string().to_lowercase();
 
-    //     if let Some(order_book) = order_books.blocking_read().get(&market_id) {
+    //     if let Some(order_book) = order_books.blocking_read().get(&market_id.to_lowercase()) {
     //         let order_book = Arc::clone(order_book);
     //         Ok(async move {
     //             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(duration_seconds));
@@ -96,6 +96,40 @@ impl OrderBookService {
     //         Err("Market not found".into())
     //     }
     // }
+
+    pub async fn get_price_update(&self, market_id: &str) -> Result<proto::PriceUpdate, Box<dyn std::error::Error>> {
+        // No guards for performance - assume validated upstream
+
+        let order_books = self.order_books.read().await;
+        // let poly_id = net.to_string() + ":" + market_id;   // <hederaNet>:<UUID>
+        if let Some(order_book) = order_books.get(&market_id.to_lowercase()) {
+            let book = order_book.read().await;
+
+            // Determine the latest price from the order book
+            let best_bid = book.buy_orders.iter().map(|o| o.price_usd).max_by(|a, b| a.partial_cmp(b).unwrap());
+            let best_ask = book.sell_orders.iter().map(|o| o.price_usd).min_by(|a, b| a.partial_cmp(b).unwrap());
+
+            // let latest_price = match (best_bid, best_ask) {
+            //     (Some(bid), Some(ask)) => (bid + ask) / 2.0, // Midpoint
+            //     (Some(bid), None) => bid,
+            //     (None, Some(ask)) => ask,
+            //     (None, None) => 0.5, // No orders
+            // };
+
+            let best_bid = best_bid.unwrap_or(0.5);
+            let best_ask = best_ask.unwrap_or(0.5);
+
+            let price_update = proto::PriceUpdate {
+                price_usd_bid: best_bid,
+                price_usd_ask: best_ask,
+                unix_timestamp_ms: chrono::Utc::now().timestamp_millis(),
+            };
+
+            Ok(price_update)
+        } else {
+            Err(format!("Market not found {}", market_id).into())
+        }
+    }   
 }
 
 #[derive(Debug)]

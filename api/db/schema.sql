@@ -107,11 +107,11 @@ CREATE TABLE public.markets (
     market_id uuid NOT NULL,
     net character varying(32) NOT NULL,
     statement text NOT NULL,
-    is_open boolean DEFAULT true NOT NULL,
+    is_paused boolean DEFAULT true CONSTRAINT markets_is_open_not_null NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     resolved_at timestamp without time zone,
     image_url character varying(2048),
-    smart_contract_id character varying(256) NOT NULL,
+    smart_contract_id character varying(256) DEFAULT '0.0.0'::character varying NOT NULL,
     CONSTRAINT smart_contract_id_check CHECK (((length((smart_contract_id)::text) >= 5) AND ((smart_contract_id)::text ~~ '%.%.%'::text)))
 );
 

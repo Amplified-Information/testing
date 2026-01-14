@@ -93,6 +93,20 @@ func (s *server) UserPosition(ctx context.Context, req *pb_api.UserPositionReque
 	return positionResp, err
 }
 
+func (s *server) TriggerRecreateClob(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
+	err := s.prismService.TriggerRecreateClob()
+
+	var errorCode int32 = 0
+	if err != nil {
+		errorCode = 1
+	}
+
+	return &pb_api.StdResponse{
+		Message:   "Triggered recreate CLOB",
+		ErrorCode: errorCode,
+	}, err
+}
+
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
 	vars := []string{
@@ -242,17 +256,18 @@ func main() {
 	log.Printf("Smart contract ID (mainnet): %s", os.Getenv("MAINNET_SMART_CONTRACT_ID"))
 
 	grpcServer := grpc.NewServer()
-	pb_api.RegisterApiServiceInternalServer(grpcServer, &server{})
-	pb_api.RegisterApiServicePublicServer(grpcServer, &server{
-		dbRepository: dbRepository,
-
+	sharedServer := &server{
+		dbRepository:      dbRepository,
 		prismService:      prismService,
 		natsService:       natsService,
 		marketsService:    marketsService,
 		commentsService:   commentsService,
 		newsletterService: newsletterService,
 		positionsService:  positionsService,
-	})
+	}
+	// must pass the grpc server to bother internal and the public servers!
+	pb_api.RegisterApiServiceInternalServer(grpcServer, sharedServer)
+	pb_api.RegisterApiServicePublicServer(grpcServer, sharedServer)
 
 	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_SELF_HOST"), os.Getenv("API_SELF_PORT"))
 	if err := grpcServer.Serve(lis); err != nil {

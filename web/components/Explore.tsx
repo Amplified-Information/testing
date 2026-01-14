@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { apiClient } from '../grpcClient'
-import { MarketResponse } from '../gen/api'
+// import { MarketResponse } from '../gen/api'
 import { useNavigate } from 'react-router'
+import { useAppContext } from '../AppProvider'
 
 const Explore = () => {
   // const { signerZero } = useAppContext()
-  const [ markets, setMarkets ] = useState<MarketResponse[]>([])
-  
+  const { markets, setMarkets } = useAppContext()
+
   const navigate = useNavigate()
   
   useEffect(() => {

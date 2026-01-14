@@ -2,11 +2,6 @@
 import { PredictionIntentRequest } from './gen/api'
 import { v7 as uuidv7 } from 'uuid'
 
-const usdcAddresses = {
-  PREVIEWNET: '0.0.32531',
-  TESTNET: '0.0.5449', // '0.0.429274'
-  MAINNET: '0.0.456858'
-}
 const usdcDecimals = 6
 
 const priceUsdStepSize = 0.0001
@@ -30,7 +25,7 @@ const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
     accountId: '0.0.1',
     marketLimit: 'limit',
     priceUsd: 0.5,
-    qty: 0,
+    qty: 1.00,
     sig: '',
     publicKey: '',
     evmAddress: '0123456789012345678901234567890123456789',
@@ -39,7 +34,6 @@ const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
 }
 
 export { 
-  usdcAddresses,
   usdcDecimals,
 
   priceUsdStepSize,

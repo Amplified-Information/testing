@@ -6,6 +6,7 @@
 # docker push ghcr.io/prismmarketlabs/api:$VERSION
 # 
 # source ./api/loadEnv.sh local
+### keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets and the run command in Dockerfile
 # docker run -p 8888:8888 \
 #   -e API_SELF_HOST=$API_SELF_HOST \
 #   -e API_SELF_PORT=$API_SELF_PORT \

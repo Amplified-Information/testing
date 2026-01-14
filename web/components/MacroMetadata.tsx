@@ -11,6 +11,7 @@ const MacroMetadata = () => {
 
   useEffect(() => {
     ;(async () => {
+      console.log('retrieving macro metadata...')
       const response = (await apiClient.macroMetadata({}).response)
       console.log('macro metadata response:', response)
       

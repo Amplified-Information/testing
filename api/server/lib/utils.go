@@ -16,12 +16,16 @@ import (
 	"strings"
 
 	pb "api/gen"
+	pb_clob "api/gen/clob"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/gomail.v2"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type HTTPMethod string
@@ -286,5 +290,35 @@ func SendEmail(to string, subject string, body string) error {
 	}
 
 	log.Println("Email sent successfully.")
+	return nil
+}
+
+/*
+*
+Create a market on the clob
+*/
+func CreateMarketOnClob(marketId string) error {
+	// (noauth on port 500051 - not thru the proxy)
+	// grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001","net":"testnet"}' $SERVER clob.Clob/AddMarket
+	//
+	clobAddr := os.Getenv("CLOB_HOST") + ":" + os.Getenv("CLOB_PORT")
+
+	conn, err := grpc.NewClient(clobAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to create new market (marketId=%s) - connect to CLOB gRPC server failed: %w", marketId, err)
+	}
+	defer conn.Close()
+
+	clobClient := pb_clob.NewClobInternalClient(conn)
+	_, err = clobClient.CreateMarket(
+		context.Background(),
+		&pb_clob.CreateMarketRequest{
+			MarketId: marketId,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create a market (marketId=%s) on the CLOB (%s): %w", marketId, clobAddr, err)
+	}
+
 	return nil
 }

@@ -171,8 +171,8 @@ migrate -database $DB_URL -path db/migrations down
 N.B. maintain a database schema:
 
 ```bash
-cd api/db
-pg_dump $DB_URL --schema-only | sed '/^\\/d' > schema.sql
+cd api
+pg_dump $DB_URL --schema-only | sed '/^\\/d' > ./db/schema.sql
 ```
 
 Can now do:

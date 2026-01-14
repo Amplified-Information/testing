@@ -10,5 +10,7 @@ func (p *PriceService) InitPriceService(d *repositories.DbRepository) error {
 	// inject the DbService:
 	p.dbRepository = d
 
+	// TODO - implement
+
 	return nil
 }

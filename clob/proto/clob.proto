@@ -1,14 +1,17 @@
 syntax = "proto3";
 
 package clob;
+option go_package = "clob/gen;clob"; // Golang requires this!
 
-import "validate/validate.proto";
+import "validate/validate.proto"; // PGV
 
 // intentionally separating public and internal services for clarity and security (espcially when using Envoy proxy)
 service ClobPublic {
   rpc Health(Empty) returns (StdResponse);
   rpc GetBook (BookRequest) returns (BookSnapshot);
-  rpc StreamBook (BookRequest) returns (stream BookSnapshot); 
+  rpc StreamBook (BookRequest) returns (stream BookSnapshot);
+  rpc GetPrice (MarketIdRequest) returns (PriceUpdate);
+  rpc StreamPrice (MarketIdRequest) returns (stream PriceUpdate);
 }
 
 service ClobInternal {
@@ -41,7 +44,6 @@ message StdResponse {
 
 message BookRequest {
   string market_id = 1 [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
-  string net = 2       [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
   uint32 depth = 3     [json_name = "depth",       (validate.rules).uint32 = {gt: 0, lt: 1000}];
 }
 
@@ -60,5 +62,14 @@ message BookSnapshot {
 
 message CreateMarketRequest {
   string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
-  string net = 2          [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
+}
+
+message MarketIdRequest {
+  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+}
+
+message PriceUpdate {
+  double price_usd_bid = 1    [json_name = "priceUsdBid"];
+  double price_usd_ask = 2    [json_name = "priceUsdAsk"];
+  int64 unix_timestamp_ms = 3 [json_name = "unixTimestampMs"];
 }

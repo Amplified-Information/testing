@@ -3,11 +3,11 @@
 syntax = "proto3";
 
 package api;
-
-option go_package = "api/gen;api";
+option go_package = "api/gen;api";  // Golang requires this!
 
 import "validate/validate.proto"; // PGV
 // import "google/protobuf/wrappers.proto"; // this is installed in protoc include path `ls /usr/include/google/protobuf/`
+// import "clob.proto";
 
 service ApiServicePublic {
   rpc Health(Empty) returns (StdResponse);
@@ -28,6 +28,7 @@ service ApiServicePublic {
 
 service ApiServiceInternal {
   // rpc endpoints go here
+  rpc TriggerRecreateClob(Empty) returns (StdResponse);
 }
 
 message Empty {}
@@ -159,3 +160,13 @@ message CreateCommentRequest {
 message CreateCommentResponse {
   Comment comment = 1;
 }
+
+message ClobOrder {
+  string market_id = 1;
+  string tx_id = 2;
+}
+
+
+// message ClobOrders { // the API retrieves information from the db and returns it to the clob so it can recreate the orderbooks
+//   repeated clob.CreateOrderRequestClob orders = 1;
+// }

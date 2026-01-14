@@ -1,5 +1,5 @@
 import { AccountId, ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk'
-import { usdcAddresses, usdcDecimals } from '../constants'
+import { usdcDecimals } from '../constants'
 import { DAppSigner } from '@hashgraph/hedera-wallet-connect'
 import { Position, UserAccountInfo } from '../types'
 
@@ -16,9 +16,9 @@ const getAllPositions = async (accountId: AccountId): Promise<Position[]> => {
   return []
 }
 
-const getSpenderAllowanceUsd = async (networkSelected: LedgerId, smartContractId: string, accountId: string): Promise<number> => {
+const getSpenderAllowanceUsd = async (networkSelected: LedgerId, usdcTokenIds: Record<string, string>, smartContractId: string, accountId: string): Promise<number> => {
   try {
-    const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}/allowances/tokens?spender.id=eq:${smartContractId}&token.id=eq:${usdcAddresses[networkSelected.toString().toUpperCase()]}`
+    const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}/allowances/tokens?spender.id=eq:${smartContractId}&token.id=eq:${usdcTokenIds[networkSelected.toString().toLowerCase()]}`
     const response = await fetch(mirrornode)
     if (!response.ok) {
       throw new Error('Network response was not ok')
@@ -46,14 +46,14 @@ const getUserAccountInfo = async (networkSelected: LedgerId, accountId: string) 
   }
 }
 
-const grantAllowanceUsd = async (signerZero: DAppSigner, contractId: string, amountUsd: number): Promise<boolean> => {
+const grantAllowanceUsd = async (signerZero: DAppSigner, usdcTokenIds: Record<string, string>, contractId: string, amountUsd: number): Promise<boolean> => {
   // console.log(signerZero.getLedgerId().toString)
-  console.log(usdcAddresses[signerZero.getLedgerId().toString().toUpperCase()])
+  console.log(usdcTokenIds[signerZero.getLedgerId().toString().toLowerCase()])
   console.log(contractId)
   console.log(amountUsd)
   console.log(ContractId.fromString(contractId).toEvmAddress())
   const approveTx = await new ContractExecuteTransaction()
-    .setContractId(usdcAddresses[signerZero.getLedgerId().toString().toUpperCase()])
+    .setContractId(usdcTokenIds[signerZero.getLedgerId().toString().toLowerCase()])
     .setGas(10_000_000) // TODO: this is coming up as infinity HBAR?
     .setFunction('approve', new ContractFunctionParameters()
       .addAddress(ContractId.fromString(contractId).toEvmAddress()) // spender (the smart contract)

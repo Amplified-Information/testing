@@ -94,6 +94,18 @@ const delay = (ms: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+const formatNumberShort = (num: number): string => {
+  if (num >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(2) + 'B'
+  } else if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(2) + 'M'
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(2) + 'K'
+  } else {
+    return num.toFixed(2)
+  }
+}
+
 export {
   uint8ToBase64,
   // uint8ToHex,
@@ -105,5 +117,6 @@ export {
   isValidUUIDv7,
   assemblePayloadHexForSigning,
   keyTypeToInt,
-  delay
+  delay,
+  formatNumberShort
 }

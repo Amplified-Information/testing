@@ -5,7 +5,8 @@
 # docker push ghcr.io/prismmarketlabs/clob:$VERSION
 # 
 # source loadEnv.sh local
-# docker run -p 50051:50051 -e CLOB_SELF_HOST=${CLOB_SELF_HOST} -e CLOB_SELF_PORT=$CLOB_SELF_PORT -e CLOB_MATCHING_INTERVAL_SECONDS=$CLOB_MATCHING_INTERVAL_SECONDS -e NATS_HOST=$NATS_HOST -e NATS_PORT=$NATS_PORT ghcr.io/prismmarketlabs/clob:$VERSION
+### keep in sync with main.rs, docker-compose-monolith.yml, .config and .secrets and the run command in clob Dockerfile
+# docker run -p 50051:50051 -e CLOB_SELF_HOST=${CLOB_SELF_HOST} -e CLOB_SELF_PORT=$CLOB_SELF_PORT -e API_HOST=${API_HOST} -e API_PORT=${API_PORT} -e CLOB_MATCHING_INTERVAL_SECONDS=$CLOB_MATCHING_INTERVAL_SECONDS -e NATS_HOST=$NATS_HOST -e NATS_PORT=$NATS_PORT ghcr.io/prismmarketlabs/clob:$VERSION
 
 # BUILD stage
 FROM rust:latest AS builder

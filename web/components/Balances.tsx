@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAppContext } from '../AppProvider'
 import { getSpenderAllowanceUsd, getTokenBalance } from '../lib/hedera'
+import { formatNumberShort } from '../lib/utils'
 
 const Balances = () => {
-  const { smartContractIds, spenderAllowanceUsd, setSpenderAllowanceUsd, networkSelected, signerZero, setShowPopupAllowance, tokenIds } = useAppContext()
+  const { smartContractIds, usdcTokenIds, spenderAllowanceUsd, setSpenderAllowanceUsd, networkSelected, signerZero, setShowPopupAllowance, tokenIds } = useAppContext()
   const [prsmBalance, setPrsmBalance] =  useState<number>(0)
 
   useEffect(() => {
@@ -25,9 +26,15 @@ const Balances = () => {
       console.warn('smartContractIds not set yet, cannot fetch allowance')
       return
     }
+     if (Object.keys(usdcTokenIds).length === 0) {
+      console.warn('usdcTokenIds not set yet, cannot fetch allowance')
+      return
+    }
+
+    console.log('***', networkSelected, '***', usdcTokenIds, '***', smartContractIds)
 
     try {
-      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, smartContractIds[networkSelected.toString().toLowerCase()], signerZero!.getAccountId().toString())
+      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, usdcTokenIds, smartContractIds[networkSelected.toString().toLowerCase()], signerZero!.getAccountId().toString())
       setSpenderAllowanceUsd(_spenderAllowance)
     } catch (error) {
       console.error('Error updating spender allowance:', error)
@@ -38,7 +45,7 @@ const Balances = () => {
     ;(async () => {
       await updateSpenderAllowance()
     })()
-  }, [signerZero])
+  }, [signerZero, networkSelected, smartContractIds, usdcTokenIds])
 
   
   if (signerZero === undefined) {
@@ -77,8 +84,8 @@ const Balances = () => {
           <span 
             title='PRSM balance'
           >
-            PRSM: <a className='text-blue-500'>
-              {prsmBalance.toFixed(2)}
+            <a className='text-blue-500'>
+              {formatNumberShort(prsmBalance)} PRSM
             </a>
           </span>
 

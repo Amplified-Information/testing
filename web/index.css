@@ -113,6 +113,28 @@ h1 {
   cursor: pointer;
 }
 
+.btn-orange {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  width: max-content;
+  padding: 0.5rem 1rem;
+  background-color: hsl(24, 100%, 50%);
+  color: hsl(0, 0%, 100%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+.btn-orange:hover {
+  background-color: hsl(24, 100%, 60%);
+}
+
 
 /* Header - make it relative for mobile menu positioning */
 .header {

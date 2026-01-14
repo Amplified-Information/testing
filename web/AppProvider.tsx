@@ -23,10 +23,9 @@ interface AppContextType {
   setBook: React.Dispatch<React.SetStateAction<BookSnapshot>>
   spenderAllowanceUsd: number
   setSpenderAllowanceUsd: React.Dispatch<React.SetStateAction<number>>
-  market: MarketResponse | undefined
-  setMarket: React.Dispatch<React.SetStateAction<MarketResponse | undefined>>
   userAccountInfo: UserAccountInfo | undefined
   setUserAccountInfo: React.Dispatch<React.SetStateAction<UserAccountInfo | undefined>>
+  
   smartContractIds: {[key: string]: string }
   setSmartContractIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
   usdcTokenIds: {[key: string]: string }
@@ -37,12 +36,22 @@ interface AppContextType {
   setSelectedLang: React.Dispatch<React.SetStateAction<string>>
   marketCreationFeeScaledUsdc: number
   setMarketCreationFeeScaledUsdc: React.Dispatch<React.SetStateAction<number>>
-  showPopupAllowance: boolean
-  setShowPopupAllowance: React.Dispatch<React.SetStateAction<boolean>>
   tokenIds: {[key: string]: string }
   setTokenIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
   nMarkets: number
   setNmarkets: React.Dispatch<React.SetStateAction<number>>
+
+  showPopupAllowance: boolean
+  setShowPopupAllowance: React.Dispatch<React.SetStateAction<boolean>>
+  showPopupTradePanel: boolean
+  setShowPopupTradePanel: React.Dispatch<React.SetStateAction<boolean>>
+  
+  marketId: string | undefined
+  setMarketId: React.Dispatch<React.SetStateAction<string | undefined>>
+  market: MarketResponse | undefined
+  setMarket: React.Dispatch<React.SetStateAction<MarketResponse | undefined>>
+  markets: MarketResponse[]
+  setMarkets: React.Dispatch<React.SetStateAction<MarketResponse[]>>
 }
 
 // 2. Create the context with `undefined` (so we can inject real values later)
@@ -64,16 +73,22 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isToggled, setIsToggled] = useState<boolean[]>(Array(4).fill(false))
   const [book, setBook] = useState<BookSnapshot>({ bids: [], asks: [] })
   const [spenderAllowanceUsd, setSpenderAllowanceUsd] = useState<number>(0)
-  const [market, setMarket] = useState<MarketResponse | undefined>(undefined)
   const [userAccountInfo, setUserAccountInfo] = useState<UserAccountInfo | undefined>(undefined)
+  
   const [smartContractIds, setSmartContractIds] = useState<{[key: string]: string }>({})
   const [usdcTokenIds, setUsdcTokenIds] = useState<{[key: string]: string }>({})
   const [usdcNdecimals, setUsdcNdecimals] = useState<number>(2)
   const [selectedLang, setSelectedLang] = useState<string>('en')
   const [marketCreationFeeScaledUsdc, setMarketCreationFeeScaledUsdc] = useState<number>(0)
-  const [showPopupAllowance, setShowPopupAllowance] = useState<boolean>(false)
   const [tokenIds, setTokenIds] = useState<{[key: string]: string }>({})
   const [nMarkets, setNmarkets] = useState<number>(0)
+  
+  const [showPopupAllowance, setShowPopupAllowance] = useState<boolean>(false)
+  const [showPopupTradePanel, setShowPopupTradePanel] = useState<boolean>(false)
+
+  const [marketId, setMarketId] = useState<string | undefined>(undefined)
+  const [market, setMarket] = useState<MarketResponse | undefined>(undefined)
+  const [markets, setMarkets] = useState<MarketResponse[]>([])
   return (
     <AppContext.Provider
       value={{
@@ -93,8 +108,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setBook,
         spenderAllowanceUsd,
         setSpenderAllowanceUsd,
-        market,
-        setMarket,
+
         userAccountInfo,
         setUserAccountInfo,
         smartContractIds,
@@ -107,12 +121,22 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setSelectedLang,
         marketCreationFeeScaledUsdc,
         setMarketCreationFeeScaledUsdc,
-        showPopupAllowance,
-        setShowPopupAllowance,
         tokenIds,
         setTokenIds,
         nMarkets,
-        setNmarkets
+        setNmarkets,
+
+        showPopupAllowance,
+        setShowPopupAllowance,
+        showPopupTradePanel,
+        setShowPopupTradePanel,
+
+        marketId,
+        setMarketId,
+        market,
+        setMarket,
+        markets,
+        setMarkets
       }}
     >
       {children}

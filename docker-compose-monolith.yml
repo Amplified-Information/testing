@@ -60,11 +60,16 @@ services:
     image: ghcr.io/prismmarketlabs/clob:0.2.4
     # pull_policy: always
     restart: always
+    depends_on:
+      - api # API must be running so the clob can re-create orderbooks from the API on startup
     ports:
       - "50051:50051"
     environment:
+      # keep in sync with main.rs, docker-compose-monolith.yml, .config and .secrets and the run command in clob Dockerfile
       CLOB_SELF_HOST: ${CLOB_SELF_HOST}
       CLOB_SELF_PORT: ${CLOB_SELF_PORT}
+      API_HOST: ${API_HOST}
+      API_PORT: ${API_PORT}
       CLOB_MATCHING_INTERVAL_SECONDS: ${CLOB_MATCHING_INTERVAL_SECONDS}
       NATS_HOST: ${NATS_HOST}
       NATS_PORT: ${NATS_PORT}
