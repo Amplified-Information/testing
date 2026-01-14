@@ -13,7 +13,7 @@ WORKDIR /app/web
 
 COPY ./web.lvbl/package*.json ./
 
-RUN npm install
+RUN npm i --force
 
 COPY ./web.lvbl /app/web
 
