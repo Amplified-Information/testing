@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Generates a deterministic avatar for a wallet ID

@@ -19,8 +19,8 @@
   },
   "features": {
     "betOnEvents": {
-      "title": "イベントに賭ける",
-      "description": "YES/NO予測で現実世界のイベントを取引。オーダーブックを確認し、希望のオッズで取引を行えます。"
+      "title": "イベントを予測する",
+      "description": "YES/NO予測で現実世界のイベントを取引。オーダーブックを確認し、希望の価格で取引を行えます。"
     },
     "provideLiquidity": {
       "title": "流動性を提供",

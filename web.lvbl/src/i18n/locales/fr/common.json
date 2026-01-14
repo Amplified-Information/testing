@@ -19,8 +19,8 @@
   },
   "features": {
     "betOnEvents": {
-      "title": "Parier sur les Événements",
-      "description": "Tradez sur des événements réels avec des prédictions OUI/NON. Consultez les carnets d'ordres et placez des trades à vos cotes préférées."
+      "title": "Prédire des Événements",
+      "description": "Tradez sur des événements réels avec des prédictions OUI/NON. Consultez les carnets d'ordres et placez des trades à vos prix préférés."
     },
     "provideLiquidity": {
       "title": "Fournir de la Liquidité",

@@ -19,8 +19,8 @@
   },
   "features": {
     "betOnEvents": {
-      "title": "Auf Events wetten",
-      "description": "Handeln Sie reale Ereignisse mit JA/NEIN-Vorhersagen. Sehen Sie Orderbücher und platzieren Sie Trades zu Ihren bevorzugten Quoten."
+      "title": "Ereignisse vorhersagen",
+      "description": "Handeln Sie reale Ereignisse mit JA/NEIN-Vorhersagen. Sehen Sie Orderbücher und platzieren Sie Trades zu Ihren bevorzugten Preisen."
     },
     "provideLiquidity": {
       "title": "Liquidität bereitstellen",

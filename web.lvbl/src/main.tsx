@@ -12,14 +12,14 @@ initWalletConnectFixes();
 // Additional comprehensive error suppression for early initialization
 const suppressWalletConnectError = (error: any) => {
   return error?.name === 'DataCloneError' || 
-    error?.message?.includes('URL object could not be cloned') ||
-    error?.message?.includes('postMessage') ||
-    error?.stack?.includes('WalletConnect') ||
-    error?.stack?.includes('lovable.js') ||
-    error?.stack?.includes('fetchListings') ||
-    error?.stack?.includes('getRecomendedWallets') ||
-    error?.stack?.includes('getRecommendedWallets') ||
-    error?.stack?.includes('preloadListings');
+         error?.message?.includes('URL object could not be cloned') ||
+         error?.message?.includes('postMessage') ||
+         error?.stack?.includes('WalletConnect') ||
+         error?.stack?.includes('lovable.js') ||
+         error?.stack?.includes('fetchListings') ||
+         error?.stack?.includes('getRecomendedWallets') ||
+         error?.stack?.includes('getRecommendedWallets') ||
+         error?.stack?.includes('preloadListings');
 };
 
 // Early error interception

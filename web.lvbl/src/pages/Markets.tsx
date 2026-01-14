@@ -11,6 +11,7 @@ import { Search, TrendingUp, Calendar, DollarSign, Trophy, Zap, Globe, Briefcase
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import Header from "@/components/Layout/Header";
 import SmartMarketCard from "@/components/Markets/SmartMarketCard";
+import { supabase } from "@/integrations/supabase/client";
 import { useFavoriteMarkets } from "@/hooks/useFavoriteMarkets";
 const Markets = () => {
   const { t } = useTranslation();

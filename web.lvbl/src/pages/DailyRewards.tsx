@@ -5,7 +5,7 @@ import Header from "@/components/Layout/Header";
 import DailyRewardsHero from "@/components/Rewards/DailyRewardsHero";
 import CategoryTabs from "@/components/Rewards/CategoryTabs";
 import RewardsTable from "@/components/Rewards/RewardsTable";
-
+import { supabase } from "@/integrations/supabase/client";
 import {
   Pagination,
   PaginationContent,

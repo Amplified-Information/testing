@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useWallet } from '@/contexts/WalletContext';
 import { useGovernanceTokenBalance } from './useGovernanceTokenBalance';
 import { toast } from 'sonner';

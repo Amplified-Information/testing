@@ -19,8 +19,8 @@
   },
   "features": {
     "betOnEvents": {
-      "title": "Bet on Events",
-      "description": "Trade on real-world events with YES/NO predictions. View order books and place trades at your preferred odds."
+      "title": "Predict Events",
+      "description": "Trade on real-world events with YES/NO predictions. View order books and place trades at your preferred prices."
     },
     "provideLiquidity": {
       "title": "Provide Liquidity",

@@ -19,8 +19,8 @@
   },
   "features": {
     "betOnEvents": {
-      "title": "事件投注",
-      "description": "通过是/否预测交易真实世界事件。查看订单簿并以您偏好的赔率进行交易。"
+      "title": "事件预测",
+      "description": "通过是/否预测交易真实世界事件。查看订单簿并以您偏好的价格进行交易。"
     },
     "provideLiquidity": {
       "title": "提供流动性",

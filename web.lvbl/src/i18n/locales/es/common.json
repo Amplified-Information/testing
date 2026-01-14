@@ -19,8 +19,8 @@
   },
   "features": {
     "betOnEvents": {
-      "title": "Apuesta en Eventos",
-      "description": "Opera en eventos del mundo real con predicciones SÍ/NO. Ve los libros de órdenes y realiza operaciones a tus probabilidades preferidas."
+      "title": "Predice Eventos",
+      "description": "Opera en eventos del mundo real con predicciones SÍ/NO. Ve los libros de órdenes y realiza operaciones a tus precios preferidos."
     },
     "provideLiquidity": {
       "title": "Proporcionar Liquidez",

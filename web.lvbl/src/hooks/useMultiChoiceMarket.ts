@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { MarketDetail, MarketOption, MultiChoiceCandidate, CandidateGroup } from '@/types/market';
 
 export const useMultiChoiceMarket = (marketId: string) => {

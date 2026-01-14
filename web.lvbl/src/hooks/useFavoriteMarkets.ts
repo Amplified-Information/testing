@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 

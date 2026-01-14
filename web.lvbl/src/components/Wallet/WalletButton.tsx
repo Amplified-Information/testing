@@ -7,6 +7,7 @@ import { useHederaBalance } from "@/hooks/useHederaBalance";
 import { useUsdcBalance } from "@/hooks/useUsdcBalance";
 
 import { useTranslation } from "react-i18next";
+import { supabase } from "@/integrations/supabase/client";
 import usdcLogo from "@/assets/usdc-logo.png";
 import { hederaConfig, isMainnet, getAccountHashscanUrl } from "@/config/hedera";
 

@@ -19,6 +19,7 @@ import {
 import { LedgerId } from "@hashgraph/sdk";
 import { toast } from "@/hooks/use-toast";
 import { useDebugger } from "@/hooks/useDebugger";
+import { supabase } from "@/integrations/supabase/client";
 import { generateWalletAvatar, getExistingWalletAvatar, updateWalletAvatar } from "@/lib/avatarGenerator";
 import { hederaConfig, isMainnet } from "@/config/hedera";
 

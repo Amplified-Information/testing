@@ -65,13 +65,15 @@ const PopupTradePanel = () => {
       }
     }
 
-    startStream()
+    if (showPopupTradePanel) { // only start stream if panel is shown!
+      startStream()
+    }
 
     return () => {
       console.log('Aborting price stream for marketId:', marketId)
       ac.abort() // cancels the stream on unmount
     }
-  }, [])
+  }, [showPopupTradePanel])
 
   useEffect(() => {
     console.log('predictionIntentRequest updated:', predictionIntentRequest)

@@ -7,9 +7,11 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: true,
-    port: 5555,
+    port: 8080,
     headers: {
-      'Content-Security-Policy': "frame-ancestors 'self' https://*.walletconnect.com https://*.walletconnect.org",
+      // Allow Lovable preview iframe + WalletConnect related embeds
+      "Content-Security-Policy":
+        "frame-ancestors 'self' https://*.lovable.app https://*.lovableproject.com https://*.walletconnect.com https://*.walletconnect.org",
     },
   },
   appType: 'spa',

@@ -62,6 +62,8 @@ message MacroMetadataResponse {
   uint64 market_creation_fee_scaled_usdc = 5  [json_name = "marketCreationFeeScaledUsdc"];
   uint32 n_markets = 6                        [json_name = "nMarkets"];
   map<string, string> token_ids = 7           [json_name = "tokenIds"];
+  // double tvl_usd = 8                          [json_name = "tvlUsd"];
+  // double total_volume_usd = 9                 [json_name = "totalVolumeUsd"];
 }
 
 message NewsLetterRequest {
