@@ -54,3 +54,6 @@ web.lvbl - 2025 -> 2026 in the footer
 
 0.4.8
 web - major updates to web functionality. Streaming, etc.
+
+0.5.2
+web.lvbl - restored walletconnect project id. Removed Dev Notes
