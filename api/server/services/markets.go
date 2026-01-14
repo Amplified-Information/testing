@@ -141,7 +141,7 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 		MarketId:   market.MarketID.String(),
 		Net:        market.Net,
 		Statement:  market.Statement,
-		IsOpen:     market.IsPaused,
+		IsPaused:   market.IsPaused,
 		CreatedAt:  createdAt,
 		ResolvedAt: resolvedAt,
 		ImageUrl:   imageUrl,

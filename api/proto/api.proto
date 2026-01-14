@@ -94,7 +94,7 @@ message MarketResponse {
   string market_id = 1    [json_name = "marketId"];
   string net = 2          [json_name = "net"];
   string statement = 3    [json_name = "statement"];
-  bool is_open = 4        [json_name = "isOpen"];
+  bool is_paused = 4      [json_name = "isPaused"];
   string created_at = 5   [json_name = "createdAt"];
   string resolved_at = 6  [json_name = "resolvedAt"];
   string image_url = 7    [json_name = "imageUrl"];

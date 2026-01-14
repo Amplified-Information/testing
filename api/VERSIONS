@@ -33,3 +33,6 @@ Resolve conflicting env vars in .config
 
 0.2.12
 major updates to support new frontend
+
+0.2.13
+some isOpen isPaused issues fixed
