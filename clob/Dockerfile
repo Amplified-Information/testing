@@ -17,6 +17,7 @@ RUN apt-get update
 RUN apt-get install -y protobuf-compiler
 
 COPY ./clob /app/clob
+COPY ./api/proto/api.proto /app/clob/proto/api.proto
 
 RUN cargo build --release
 
