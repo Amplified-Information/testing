@@ -30,3 +30,6 @@ config changes - ensure connecting to clob on 10.0.1.11 and not 0.0.0.0
 
 0.2.11
 Resolve conflicting env vars in .config
+
+0.2.12
+major updates to support new frontend

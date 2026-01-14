@@ -35,8 +35,8 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         # N.B.
-        context: ./clob
-        # file: # Dockerfile by default
+        context: .
+        file: clob/Dockerfile
         push: true
         tags: |
           ghcr.io/prismmarketlabs/clob:${{ github.sha}}
