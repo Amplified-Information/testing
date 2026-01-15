@@ -2,34 +2,74 @@ import { useEffect, useState } from 'react'
 import { ServerStreamingCall } from '@protobuf-ts/runtime-rpc' // Ensure this is the correct library for your project
 import { useAppContext } from '../AppProvider'
 // import { MarketResponse } from '../gen/api'
-import { clobClient } from '../grpcClient'
+import { apiClient, clobClient } from '../grpcClient'
 import { PriceUpdate } from '../gen/clob'
 import { PredictionIntentRequest } from '../gen/api'
 import { defaultPredictionIntentRequest } from '../constants'
+import { assemblePayloadHexForSigning, keyTypeToInt } from '../lib/utils'
+import { v7 as uuidv7 } from 'uuid'
+import { keccak256 } from 'ethers'
+import toast from 'react-hot-toast'
+import { getSpenderAllowanceUsd } from '../lib/hedera'
+
+const TIMESTAMP_ALLOWED_PAST_SECONDS = 300
 
 const PopupTradePanel = () => {
-  const { showPopupTradePanel, setShowPopupTradePanel, marketId } = useAppContext()
+  const { showPopupTradePanel, setShowPopupTradePanel, marketId, signerZero, userAccountInfo, networkSelected, usdcNdecimals, spenderAllowanceUsd, setSpenderAllowanceUsd, minOrderSizeUsd, usdcTokenIds, smartContractIds } = useAppContext()
 
-  const [thinger, setThinger] = useState(false)
-  const [isSigned, setIsSigned] = useState(false)
-  const [amountUsd, setAmountUsd] = useState(1.00)
-  // const [priceUsd, setPriceUsd] = useState(0.50)
-  // // const [qty, setQty] = useState(0.00)
-  // const [marketLimit, setMarketLimit] = useState<'market' | 'limit'>('market')
+  const [thingerSign, setThingerSign] = useState(false)
+  const [thingerSubmit, setThingerSubmit] = useState(false)
+  // const [isSigned, setIsSigned] = useState(false)
+
+  const [buySell, setBuySell] = useState<'buy' | 'sell'>('buy')
+  const [amountUsd, setAmountUsd] = useState(defaultPredictionIntentRequest().qty * defaultPredictionIntentRequest().priceUsd)
+  const [marketLimit, setMarketLimit] = useState<'market' | 'limit'>(defaultPredictionIntentRequest().marketLimit as 'market' | 'limit')
+  const [priceUsd, setPriceUsd] = useState(defaultPredictionIntentRequest().priceUsd)
+  
   const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>({...defaultPredictionIntentRequest(), marketId: marketId})
 
   const [bidUsd, setBidUsd] = useState<number>(0.00)
   const [askUsd, setAskUsd] = useState<number>(0.00)
 
+  const [isPredictionIntentRequestValid, setIsPredictionIntentRequestValid] = useState<boolean>(false)
+
+  useEffect(() => {
+    // one-time price fetch to initialize 'priceUsd'
+    (async () => {
+      const result = await clobClient.getPrice({ marketId: marketId })
+      const priceUpdate = result.response
+      setPriceUsd((Math.abs(priceUpdate.priceUsdAsk) + priceUpdate.priceUsdBid) / 2)
+    })()
+  }, [])
+
+  // validate predictionIntentRequest whenever it changes
+  useEffect(() => {
+    validatePredictionIntentRequest()
+  }, [predictionIntentRequest, predictionIntentRequest.sig, buySell, amountUsd, priceUsd, marketLimit, spenderAllowanceUsd])
+
+  // invalidate the signature if any of the inputs change
+  useEffect(() => {
+    setPredictionIntentRequest({...predictionIntentRequest, sig: '' })
+  }, [priceUsd, buySell, amountUsd, marketLimit]) 
+
+  // show/hide the PopupTradePanel
   useEffect(() => {
     console.log('PopupTradePanel mounted for marketId:', marketId)
+
+    if (showPopupTradePanel === false) {
+      console.log('DISAPPEAR: PopupTradePanel closing...')
+      setThingerSign(false)
+      setThingerSubmit(false)
+      setIsPredictionIntentRequestValid(false)
+    } else {
+      console.log('APPEAR: PopupTradePanel opening...')
+      // set the current price to the instantaneous price when opening the panel
+      // with a fixed decimal precision of 3
+      setPriceUsd(Number(((bidUsd + Math.abs(askUsd)) / 2).toFixed(3)))
+    }
   }, [marketId, showPopupTradePanel])
 
-
-  /**
-   * Effect to start streaming the order book data for the given marketId.
-   * Cleanly end the stream (abort) when the component unmounts
-   */
+  // stream the price:
   useEffect(() => {
     const ac = new AbortController()
 
@@ -75,9 +115,51 @@ const PopupTradePanel = () => {
     }
   }, [showPopupTradePanel])
 
-  useEffect(() => {
-    console.log('predictionIntentRequest updated:', predictionIntentRequest)
-  }, [predictionIntentRequest])
+  const generatePredictionIntentObject = (_predictionIntentRequest: PredictionIntentRequest): PredictionIntentRequest => {
+    // TODO - more guards
+    // apply guards
+    // signerZero
+    // userAccountInfo 
+
+    if (typeof signerZero === 'undefined' || !signerZero) {
+      console.warn('generatePredictionIntentObject: signerZero is undefined')
+      return _predictionIntentRequest
+    }
+
+    return {
+      ..._predictionIntentRequest,
+      accountId: signerZero!.getAccountId().toString() || '0.0.1',
+      evmAddress: userAccountInfo.evm_address.slice(2), // remove '0x' prefix
+      generatedAt: new Date().toISOString(),
+      keyType: keyTypeToInt(userAccountInfo.key._type),
+      marketId: marketId,
+      net: networkSelected.toString().toLowerCase(),
+      priceUsd: buySell === 'buy' ? priceUsd : 0 - priceUsd,
+      publicKey: userAccountInfo.key.key,
+      qty: amountUsd * priceUsd,
+      sig: '',
+      txId: uuidv7()
+    }
+  }
+
+  const validatePredictionIntentRequest = (): boolean => {
+    if (
+      predictionIntentRequest.sig.length === 0 ||
+      !predictionIntentRequest.generatedAt ||
+      ((Date.now() - new Date(predictionIntentRequest.generatedAt).getTime()) / 1000 > TIMESTAMP_ALLOWED_PAST_SECONDS) ||
+      (predictionIntentRequest.priceUsd * predictionIntentRequest.qty) > spenderAllowanceUsd
+      // TODO - more validations
+    ) {
+      console.log('INVALID predictionIntentRequest')
+      console.log(predictionIntentRequest)
+      setIsPredictionIntentRequestValid(false)
+      return false
+    }
+    console.log('VALID predictionIntentRequest')
+    console.log(predictionIntentRequest)
+    setIsPredictionIntentRequestValid(true)
+    return true
+  }
 
   if (!showPopupTradePanel) {
     return null 
@@ -117,12 +199,12 @@ const PopupTradePanel = () => {
           <input
             type="radio"
             name="tradeType"
-            value="buy"
+            value='buy'
             className="hidden peer"
             defaultChecked
             onClick={() => {
               // buy order is indicated by positive priceUsd
-              setPredictionIntentRequest(prev => ({ ...prev, priceUsd: Math.abs(prev.priceUsd) }))
+              setBuySell('buy')
             }}
           />
           <span className="px-3 py-1 rounded-l border border-gray-600 bg-gray-800 text-white peer-checked:bg-green-700 peer-checked:border-green-400 transition-colors">
@@ -133,52 +215,59 @@ const PopupTradePanel = () => {
           <input
             type="radio"
             name="tradeType"
-            value="sell"
+            value='sell'
             className="hidden peer"
              onClick={() => {
-              // a sell order is indicated by negative priceUsd
-              setPredictionIntentRequest(prev => ({ ...prev, priceUsd: 0 - Math.abs(prev.priceUsd) }))
+              setBuySell('sell')
             }}
           />
           <span className="px-3 py-1 rounded-r border border-gray-600 bg-gray-800 text-white peer-checked:bg-red-700 peer-checked:border-red-400 transition-colors">
             Sell
           </span>
         </label>
-        &nbsp;&nbsp; ${bidUsd.toFixed(2)} | ${askUsd.toFixed(2)}
+        &nbsp;&nbsp; ${bidUsd.toFixed(2)} | ${Math.abs(askUsd).toFixed(2)}
       </div>
 
       <label>Amount you wish to bet</label>
       <input
         type="number"
-        value={amountUsd}
+        value={amountUsd.toFixed(2)}
         placeholder="Amount"
         className="input input-bordered w-full mb-2"
-
         onChange={(e) => {
+          // guards
           const _amountUsd = Number(e.currentTarget.value)
+
+          // attempt to place order above allowance:
+          if (_amountUsd > spenderAllowanceUsd) {
+            toast.error(`Order size exceeds your current allowance of $${spenderAllowanceUsd.toFixed(2)}`)
+          }
+
+          if (_amountUsd < minOrderSizeUsd) {
+            toast.error(`Minimum order amount is $${minOrderSizeUsd.toFixed(2)}`)
+            return
+          }
+
+          // OK
           setAmountUsd(_amountUsd)
-
-          const currentPrice = predictionIntentRequest.priceUsd < 0 ? askUsd : bidUsd
-
-          setPredictionIntentRequest(prev => ({
-            ...prev, 
-            qty: _amountUsd / currentPrice,
-            priceUsd: prev.priceUsd < 0 ? 0 - currentPrice : currentPrice
-          }))
         }}
       />
 
+      {/* limit order by default - disabling market order for now */}
       <div className="flex items-center mb-2">
         <label className="flex items-center mr-4 cursor-pointer">
         <input
           type="radio"
           name="orderType"
           className="hidden peer"
-          checked={predictionIntentRequest.marketLimit === 'market'}
+          checked={marketLimit === 'market'}
           value='market'
-          onChange={(e) => {
-            setPredictionIntentRequest(prev => ({ ...prev, marketLimit: e.currentTarget.value as 'market' | 'limit' }))
+          onClick={(e) => {
+            console.log(e.currentTarget.value)
+            // setMarketLimit('market')
+            toast.success('Market orders are not currently available. Please use Limit orders.')
           }}
+          onChange={() => {}}
         />
         <span className="px-3 py-1 rounded-l border border-gray-600 bg-gray-800 text-white peer-checked:bg-blue-700 peer-checked:border-blue-400 transition-colors">
           Market Order
@@ -190,10 +279,12 @@ const PopupTradePanel = () => {
           name="orderType"
           className="hidden peer"
           value='limit'
-          checked={predictionIntentRequest.marketLimit === 'limit'}
-          onChange={(e) => {
-            setPredictionIntentRequest(prev => ({ ...prev, marketLimit: e.currentTarget.value as 'market' | 'limit' }))
+          checked={marketLimit === 'limit'}
+          onClick={(e) => {
+            console.log(e.currentTarget.value)
+            setMarketLimit('limit')
           }}
+          onChange={() => {}}
         />
         <span className="px-3 py-1 rounded-r border border-gray-600 bg-gray-800 text-white peer-checked:bg-purple-700 peer-checked:border-purple-400 transition-colors">
           Limit Order
@@ -201,34 +292,109 @@ const PopupTradePanel = () => {
         </label>
       </div>
       
-      {predictionIntentRequest.marketLimit === 'limit' && (
+      {marketLimit === 'limit' && (
         <>
         <label>Price</label>
         <input
           type="number"
-          value={predictionIntentRequest.priceUsd}
-          placeholder="Amount"
+          value={priceUsd}
+          min={0.00}
+          max={1.00}
+          step={0.01}
+          placeholder="Price"
           className="input input-bordered w-full mb-2"
           onChange={(e) => {
-            setPredictionIntentRequest(prev => ({ ...prev, priceUsd: Number(e.target.value) }))
+            // guards
+            const _priceUsd = Number(e.currentTarget.value)
+
+            // priceUsd must be between 0.00 and 1.00
+            if (_priceUsd < 0 || _priceUsd > 1) {
+              toast.error('Price must be between $0.00 and $1.00')
+              return
+            }
+            
+            // OK
+            setPriceUsd(_priceUsd)
           }}
         />
         </>
       )}
 
-      <button className="btn-orange" onClick={() => {
-        try {
-          // TODO - can we remove isSigned?
-          setThinger(true)
-          setIsSigned(true)
-        } catch (e) {
-        console.error(e)
-        } finally {
-          setThinger(false)
-        }
-      }}>Sign</button>
+      {!isPredictionIntentRequestValid && (
+        <button 
+          className="btn-orange" 
+          disabled={thingerSign || thingerSubmit}
+          onClick={async () => {
+            console.log('Signing OrderIntent...')
+            try {
+              setThingerSign(true)
+              
+              const _predictionIntentRequest = generatePredictionIntentObject(predictionIntentRequest)
+              // setPredictionIntentRequest(_predictionIntentRequest)
 
-      <button className="btn-primary" disabled={thinger || !isSigned}>Submit{thinger ? 'ing ...': ''}</button>
+              const packedHex = assemblePayloadHexForSigning(_predictionIntentRequest, usdcNdecimals)
+              console.log(`packedHex: ${packedHex}`)
+              const packedKeccakHex = keccak256(Buffer.from(packedHex, 'hex')).slice(2)
+              console.log(`packedKeccakHex (len=${Buffer.from(packedKeccakHex, 'hex').length}): ${packedKeccakHex}`)
+              console.log('verify at: https://emn178.github.io/online-tools/keccak_256.html')
+              
+              const msgToSign64 = Buffer.from(packedKeccakHex, 'hex').toString('base64')
+              console.log(`msgToSign (base64) (len=${msgToSign64.length}): ${msgToSign64}`)
+              // console.log(`packedKeccakHex (len=${Buffer.from(packedKeccakHex, 'hex').length}): ${packedKeccakHex}`)
+              const sigHex = (await signerZero!.sign([Buffer.from(packedKeccakHex, 'hex')], { encoding: 'base64' }))[0].signature
+              console.log(`sig (hex) (len=${sigHex.length}): ${Buffer.from(sigHex).toString('hex')}`)
+              console.log(`sig (base64): ${Buffer.from(sigHex).toString('base64')}`)
+              
+              const signedObj = { ..._predictionIntentRequest, sig: Buffer.from(sigHex).toString('base64') }
+              setPredictionIntentRequest(signedObj)
+              console.log('predictionIntentRequest (signed):', signedObj)
+              
+            } catch (e) {
+            console.error(e)
+            } finally {
+              setThingerSign(false)
+            }
+          }
+        }>Sign{thingerSign ? 'ing ...' : ''}</button>
+      )}
+      
+      {isPredictionIntentRequestValid && (
+        <div className="ml-0 text-sm" title={`Signed by ${predictionIntentRequest.accountId}. Signature: ${predictionIntentRequest.sig}`}>
+         Transaction is signed ✅
+         <br/><br/>
+        </div>
+      )}
+
+      {isPredictionIntentRequestValid && (
+        <button
+          className="btn-primary"
+          disabled={
+            thingerSign ||
+            thingerSubmit
+          }
+          onClick={async () => {
+            setThingerSubmit(true)
+            try {
+              console.log('Submitting predictionOrderIntentRequest...')
+              console.log(predictionIntentRequest)
+
+              const result = await apiClient.predictIntent(predictionIntentRequest)
+              console.log('PredictIntent response:', result)
+            } catch (e) {
+              console.error(e)
+            } finally {
+              setThingerSubmit(false)
+
+              // update spender allowance after spending:
+              // Note: delay!!!
+              const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, usdcTokenIds, usdcNdecimals, smartContractIds[networkSelected.toString().toLowerCase()], signerZero!.getAccountId().toString())
+              setSpenderAllowanceUsd(_spenderAllowance)
+            }
+          }}
+        >
+          Submit{thingerSubmit ? 'ing ...' : ''}
+        </button>
+      )}
       </div>
     </div>
   )

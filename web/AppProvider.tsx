@@ -13,8 +13,6 @@ interface AppContextType {
   setNetworkSelected: React.Dispatch<React.SetStateAction<LedgerId>>
   dAppConnector: DAppConnector | undefined
   setDappConnector: React.Dispatch<React.SetStateAction<DAppConnector | undefined>>
-  networksAvailable: LedgerId[]
-  setNetworksAvailable: React.Dispatch<React.SetStateAction<LedgerId[]>>
   signerZero: DAppSigner | undefined
   setSignerZero: React.Dispatch<React.SetStateAction<DAppSigner | undefined>>
   isToggled: boolean[]
@@ -26,6 +24,8 @@ interface AppContextType {
   userAccountInfo: UserAccountInfo | undefined
   setUserAccountInfo: React.Dispatch<React.SetStateAction<UserAccountInfo | undefined>>
   
+  availableNetworks: LedgerId[]
+  setAvailableNetworks: React.Dispatch<React.SetStateAction<LedgerId[]>>
   smartContractIds: {[key: string]: string }
   setSmartContractIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
   usdcTokenIds: {[key: string]: string }
@@ -40,6 +40,12 @@ interface AppContextType {
   setTokenIds: React.Dispatch<React.SetStateAction<{[key: string]: string }>>
   nMarkets: number
   setNmarkets: React.Dispatch<React.SetStateAction<number>>
+  minOrderSizeUsd: number
+  setMinOrderSizeUsd: React.Dispatch<React.SetStateAction<number>>
+  tvlUsd: number
+  setTvlUsd: React.Dispatch<React.SetStateAction<number>>
+  totalVolumeUsd: {[key: string]: number }
+  setTotalVolumeUsd: React.Dispatch<React.SetStateAction<{[key: string]: number }>>
 
   showPopupAllowance: boolean
   setShowPopupAllowance: React.Dispatch<React.SetStateAction<boolean>>
@@ -67,7 +73,6 @@ const useAppContext = () => {
 const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [networkSelected, setNetworkSelected] = useState<LedgerId>(LedgerId.TESTNET)
-  const [networksAvailable, setNetworksAvailable] = useState<LedgerId[]>([])
   const [dAppConnector, setDappConnector] = useState<DAppConnector | undefined>(undefined)
   const [signerZero, setSignerZero] = useState<DAppSigner | undefined>(undefined)
   const [isToggled, setIsToggled] = useState<boolean[]>(Array(4).fill(false))
@@ -75,6 +80,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [spenderAllowanceUsd, setSpenderAllowanceUsd] = useState<number>(0)
   const [userAccountInfo, setUserAccountInfo] = useState<UserAccountInfo | undefined>(undefined)
   
+  const [availableNetworks, setAvailableNetworks] = useState<LedgerId[]>([])
   const [smartContractIds, setSmartContractIds] = useState<{[key: string]: string }>({})
   const [usdcTokenIds, setUsdcTokenIds] = useState<{[key: string]: string }>({})
   const [usdcNdecimals, setUsdcNdecimals] = useState<number>(2)
@@ -82,6 +88,9 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [marketCreationFeeScaledUsdc, setMarketCreationFeeScaledUsdc] = useState<number>(0)
   const [tokenIds, setTokenIds] = useState<{[key: string]: string }>({})
   const [nMarkets, setNmarkets] = useState<number>(0)
+  const [minOrderSizeUsd, setMinOrderSizeUsd] = useState<number>(0.00)
+  const [tvlUsd, setTvlUsd] = useState<number>(0)
+  const [totalVolumeUsd, setTotalVolumeUsd] = useState<{[key: string]: number }>({})
   
   const [showPopupAllowance, setShowPopupAllowance] = useState<boolean>(false)
   const [showPopupTradePanel, setShowPopupTradePanel] = useState<boolean>(false)
@@ -96,8 +105,6 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoggedIn,
         networkSelected,
         setNetworkSelected,
-        networksAvailable,
-        setNetworksAvailable,
         dAppConnector,
         setDappConnector,
         signerZero,
@@ -108,9 +115,11 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setBook,
         spenderAllowanceUsd,
         setSpenderAllowanceUsd,
-
         userAccountInfo,
         setUserAccountInfo,
+
+        availableNetworks,
+        setAvailableNetworks,
         smartContractIds,
         setSmartContractIds,
         usdcTokenIds,
@@ -125,6 +134,12 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setTokenIds,
         nMarkets,
         setNmarkets,
+        minOrderSizeUsd,
+        setMinOrderSizeUsd,
+        tvlUsd,
+        setTvlUsd,
+        totalVolumeUsd,
+        setTotalVolumeUsd,
 
         showPopupAllowance,
         setShowPopupAllowance,

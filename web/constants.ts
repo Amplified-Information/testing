@@ -2,10 +2,8 @@
 import { PredictionIntentRequest } from './gen/api'
 import { v7 as uuidv7 } from 'uuid'
 
-const usdcDecimals = 6
-
-const priceUsdStepSize = 0.0001
-const midPriceUsdDefault = 0.5
+// const priceUsdStepSize = 0.0001
+// const midPriceUsdDefault = 0.5
 
 const walletConnectProjectId = 'ebcd4c5afffdc20de7e4f30a8a9b1344'
 const walletMetaData = {
@@ -25,7 +23,7 @@ const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
     accountId: '0.0.1',
     marketLimit: 'limit',
     priceUsd: 0.5,
-    qty: 1.00,
+    qty: 2.00,
     sig: '',
     publicKey: '',
     evmAddress: '0123456789012345678901234567890123456789',
@@ -34,10 +32,7 @@ const defaultPredictionIntentRequest = (): PredictionIntentRequest => {
 }
 
 export { 
-  usdcDecimals,
-
-  priceUsdStepSize,
-  midPriceUsdDefault,
+  // priceUsdStepSize,
 
   walletConnectProjectId,
   walletMetaData,

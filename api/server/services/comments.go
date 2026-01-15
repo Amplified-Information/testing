@@ -36,6 +36,7 @@ func (c *CommentsService) GetComments(req *pb_api.GetCommentsRequest) (*pb_api.G
 			Sig:       row.Sig,
 			PublicKey: row.PublicKey,
 			KeyType:   uint32(row.KeyType),
+			CreatedAt: row.CreatedAt,
 		}
 		comments = append(comments, commentResponse)
 	}

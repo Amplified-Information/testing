@@ -214,13 +214,13 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 	networksEnv := os.Getenv("AVAILABLE_NETWORKS")
 	networks := strings.Split(networksEnv, ",")
 
-	smartContractsMap := make(map[string]string)
+	smartContractIdsMap := make(map[string]string)
 	for _, net := range networks { // loop through networks and get the smart contract IDs from env vars
 		netLower := strings.ToLower(strings.TrimSpace(net))
 		envVarName := fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(netLower))
 		smartContractId := os.Getenv(envVarName)
 		if smartContractId != "" {
-			smartContractsMap[netLower] = smartContractId
+			smartContractIdsMap[netLower] = smartContractId
 		}
 	}
 
@@ -254,14 +254,34 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 		}
 	}
 
+	minOrderSizeUsdEnv := os.Getenv("MIN_ORDER_SIZE_USD")
+	minOrderSizeUsd, err := strconv.ParseFloat(minOrderSizeUsdEnv, 64)
+	if err != nil {
+		return nil, fmt.Errorf("MIN_ORDER_SIZE_USD environment variable is not a valid float: %v", err)
+	}
+
+	totalVolumeUsd := make(map[string]float64)
+	resolutionPeriods := []string{"1h", "24h", "7d", "30d"}
+	for _, period := range resolutionPeriods {
+		period := strings.ToLower(strings.TrimSpace(period))
+		volume, err := p.dbRepository.GetTotalVolumeUsdInTimePeriod(period)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get total volume USD for network %s: %v", period, err)
+		}
+		totalVolumeUsd[period] = volume
+	}
+
 	response := &pb_api.MacroMetadataResponse{
 		AvailableNetworks:           networks,
-		SmartContracts:              smartContractsMap,
+		SmartContractIds:            smartContractIdsMap,
 		UsdcTokenIds:                usdcTokenIdsMap,
 		UsdcDecimals:                6,
 		MarketCreationFeeScaledUsdc: marketCreationFeeScaledUsdc,
 		NMarkets:                    p.marketService.GetNumMarkets(),
 		TokenIds:                    tokenIdsMap,
+		MinOrderSizeUsd:             minOrderSizeUsd,
+		TvlUsd:                      1234567.89, // TODO - implement real TVL calculation
+		TotalVolumeUsd:              totalVolumeUsd,
 	}
 
 	return response, nil

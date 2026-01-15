@@ -1,7 +1,7 @@
 import { useAppContext } from '../AppProvider'
 
 const Stats = () => {
-  const { nMarkets } = useAppContext()
+  const { nMarkets, tvlUsd, totalVolumeUsd } = useAppContext()
   return (
     <>
       <div style={{
@@ -12,8 +12,8 @@ const Stats = () => {
       }}>
         {[
           { label: '# markets', value: nMarkets },
-          { label: 'TVL', value: '0.000 USDC' },
-          { label: '24h Volume', value: '0.00 USDC' }
+          { label: 'TVL', value: `$${tvlUsd.toFixed(2)}` },
+          { label: '24h Volume', value: `$${totalVolumeUsd['24h']?.toFixed(2) ?? '0.00'}` }
         ].map((stat, i) => (
               <div
               key={i}

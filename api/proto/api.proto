@@ -56,14 +56,15 @@ message StdResponse {
 
 message MacroMetadataResponse {
   repeated string available_networks = 1      [json_name = "availableNetworks"];
-  map<string, string> smart_contracts = 2     [json_name = "smartContracts"];
+  map<string, string> smart_contract_ids = 2  [json_name = "smartContractIds"];
   map<string, string> usdc_token_ids = 3      [json_name = "usdcTokenIds"];
   uint32 usdc_decimals = 4                    [json_name = "usdcDecimals"];
   uint64 market_creation_fee_scaled_usdc = 5  [json_name = "marketCreationFeeScaledUsdc"];
   uint32 n_markets = 6                        [json_name = "nMarkets"];
   map<string, string> token_ids = 7           [json_name = "tokenIds"];
-  // double tvl_usd = 8                          [json_name = "tvlUsd"];
-  // double total_volume_usd = 9                 [json_name = "totalVolumeUsd"];
+  double min_order_size_usd = 8               [json_name = "minOrderSizeUsd"];
+  double tvl_usd = 9                          [json_name = "tvlUsd"];
+  map<string, double> total_volume_usd = 10   [json_name = "totalVolumeUsd"];
 }
 
 message NewsLetterRequest {
@@ -137,12 +138,12 @@ message GetCommentsRequest {
 }
 
 message Comment {
-  string comment_id = 1    [json_name = "commentId"];
-  string account_id = 3    [json_name = "accountId"];
-  string content = 4       [json_name = "content"];
-  string sig = 5           [json_name = "sig"];
-  string public_key = 7    [json_name = "publicKey"];
-  uint32 key_type = 8      [json_name = "keyType"];
+  // string comment_id = 1    [json_name = "commentId"];
+  string account_id = 1    [json_name = "accountId"];
+  string content = 2       [json_name = "content"];
+  string sig = 3           [json_name = "sig"];
+  string public_key = 4    [json_name = "publicKey"];
+  uint32 key_type = 5      [json_name = "keyType"];
   string created_at = 6    [json_name = "createdAt"];
 }
 

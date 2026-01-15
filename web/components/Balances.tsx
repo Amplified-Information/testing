@@ -4,7 +4,7 @@ import { getSpenderAllowanceUsd, getTokenBalance } from '../lib/hedera'
 import { formatNumberShort } from '../lib/utils'
 
 const Balances = () => {
-  const { smartContractIds, usdcTokenIds, spenderAllowanceUsd, setSpenderAllowanceUsd, networkSelected, signerZero, setShowPopupAllowance, tokenIds } = useAppContext()
+  const { smartContractIds, usdcTokenIds, spenderAllowanceUsd, usdcNdecimals, setSpenderAllowanceUsd, networkSelected, signerZero, setShowPopupAllowance, tokenIds } = useAppContext()
   const [prsmBalance, setPrsmBalance] =  useState<number>(0)
 
   useEffect(() => {
@@ -15,6 +15,9 @@ const Balances = () => {
         console.warn('PRSM token ID not found for network:', networkSelected.toString())
         return
       } 
+      console.log('signerZero.getAccountId().toString()', signerZero.getAccountId().toString())
+      console.log('prsmTokenId', prsmTokenId)
+      console.log('networkSelected', networkSelected.toString())
       const balance = await getTokenBalance(networkSelected, prsmTokenId, signerZero.getAccountId().toString())
       setPrsmBalance(balance)
     }
@@ -22,19 +25,23 @@ const Balances = () => {
   }, [signerZero, networkSelected, tokenIds])
 
   const updateSpenderAllowance = async () => {
+    if (signerZero === undefined) {
+      console.warn('signerZero not yet available, cannot update allowance')
+      return
+    }
     if (Object.keys(smartContractIds).length === 0) {
-      console.warn('smartContractIds not set yet, cannot fetch allowance')
+      console.warn('smartContractIds not set yet, cannot update allowance')
       return
     }
      if (Object.keys(usdcTokenIds).length === 0) {
-      console.warn('usdcTokenIds not set yet, cannot fetch allowance')
+      console.warn('usdcTokenIds not set yet, cannot update allowance')
       return
     }
 
     console.log('***', networkSelected, '***', usdcTokenIds, '***', smartContractIds)
 
     try {
-      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, usdcTokenIds, smartContractIds[networkSelected.toString().toLowerCase()], signerZero!.getAccountId().toString())
+      const _spenderAllowance = await getSpenderAllowanceUsd(networkSelected, usdcTokenIds, usdcNdecimals, smartContractIds[networkSelected.toString().toLowerCase()], signerZero!.getAccountId().toString())
       setSpenderAllowanceUsd(_spenderAllowance)
     } catch (error) {
       console.error('Error updating spender allowance:', error)
@@ -45,7 +52,7 @@ const Balances = () => {
     ;(async () => {
       await updateSpenderAllowance()
     })()
-  }, [signerZero, networkSelected, smartContractIds, usdcTokenIds])
+  }, [signerZero, networkSelected, smartContractIds, usdcTokenIds, usdcNdecimals])
 
   
   if (signerZero === undefined) {

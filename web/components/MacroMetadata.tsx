@@ -7,7 +7,7 @@ import { LedgerId } from '@hiero-ledger/sdk'
 // set shared state variables accordingly
 const MacroMetadata = () => {
 
-  const { setNetworksAvailable, setSmartContractIds, setUsdcTokenIds, setUsdcNdecimals, setMarketCreationFeeScaledUsdc, setTokenIds, setNmarkets} = useAppContext()
+  const { setTvlUsd, setTotalVolumeUsd, setMinOrderSizeUsd, setAvailableNetworks, setSmartContractIds, setUsdcTokenIds, setUsdcNdecimals, setMarketCreationFeeScaledUsdc, setTokenIds, setNmarkets} = useAppContext()
 
   useEffect(() => {
     ;(async () => {
@@ -15,13 +15,13 @@ const MacroMetadata = () => {
       const response = (await apiClient.macroMetadata({}).response)
       console.log('macro metadata response:', response)
       
-      const _networksAvailable = response.availableNetworks.map(netStr => {
+      const _availableNetworks = response.availableNetworks.map(netStr => {
         return LedgerId.fromString(netStr.trim())
       })
-      setNetworksAvailable(_networksAvailable)
+      setAvailableNetworks(_availableNetworks)
       //// setNetworkSelected(LedgerId.MAINNET)
 
-      setSmartContractIds(response.smartContracts)
+      setSmartContractIds(response.smartContractIds)
 
       setUsdcTokenIds(response.usdcTokenIds)
 
@@ -29,9 +29,15 @@ const MacroMetadata = () => {
 
       setMarketCreationFeeScaledUsdc(Number(response.marketCreationFeeScaledUsdc))
 
+      setNmarkets(Number(response.nMarkets))
+
       setTokenIds(response.tokenIds)
 
-      setNmarkets(Number(response.nMarkets))
+      setMinOrderSizeUsd(response.minOrderSizeUsd)
+
+      setTvlUsd(response.tvlUsd)
+
+      setTotalVolumeUsd(response.totalVolumeUsd)
 
     })()
   }, [])

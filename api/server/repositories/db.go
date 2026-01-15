@@ -458,3 +458,18 @@ func (dbRepository *DbRepository) GetAllUnresolvedMarkets() ([]sqlc.Market, erro
 
 	return markets, nil
 }
+
+func (dbRepository *DbRepository) GetTotalVolumeUsdInTimePeriod(timePeriod string) (float64, error) {
+	if dbRepository.db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+
+	// TODO - implement real total volume calculation
+	// q := sqlc.New(dbRepository.db)
+	// totalVolume, err := q.GetTotalVolumeUsdInTimePeriod(context.Background(), timePeriod)
+	// if err != nil {
+	// 	return 0, fmt.Errorf("GetTotalVolumeUsdInTimePeriod failed: %v", err)
+	// }
+
+	return 42, nil
+}

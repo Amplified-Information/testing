@@ -33,7 +33,7 @@ const Market = () => {
       }
       const priceResult = await clobClient.getPrice({ marketId })
       setBidUsd(priceResult.response.priceUsdBid)
-      setAskUsd(priceResult.response.priceUsdAsk)
+      setAskUsd(Math.abs(priceResult.response.priceUsdAsk))
     })()
   })
 

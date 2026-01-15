@@ -1,5 +1,4 @@
 import { AccountId, ContractExecuteTransaction, ContractFunctionParameters, ContractId, LedgerId, Status } from '@hashgraph/sdk'
-import { usdcDecimals } from '../constants'
 import { DAppSigner } from '@hashgraph/hedera-wallet-connect'
 import { Position, UserAccountInfo } from '../types'
 
@@ -16,7 +15,7 @@ const getAllPositions = async (accountId: AccountId): Promise<Position[]> => {
   return []
 }
 
-const getSpenderAllowanceUsd = async (networkSelected: LedgerId, usdcTokenIds: Record<string, string>, smartContractId: string, accountId: string): Promise<number> => {
+const getSpenderAllowanceUsd = async (networkSelected: LedgerId, usdcTokenIds: Record<string, string>, usdcNdecimals: number, smartContractId: string, accountId: string): Promise<number> => {
   try {
     const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}/allowances/tokens?spender.id=eq:${smartContractId}&token.id=eq:${usdcTokenIds[networkSelected.toString().toLowerCase()]}`
     const response = await fetch(mirrornode)
@@ -24,7 +23,7 @@ const getSpenderAllowanceUsd = async (networkSelected: LedgerId, usdcTokenIds: R
       throw new Error('Network response was not ok')
     }
     const data = await response.json()
-    return data.allowances[0]?.amount / (10 ** usdcDecimals) || 0
+    return data.allowances[0]?.amount / (10 ** usdcNdecimals) || 0
   } catch (error) {
     console.error('Error fetching allowance:', error)
     throw error
@@ -46,7 +45,7 @@ const getUserAccountInfo = async (networkSelected: LedgerId, accountId: string) 
   }
 }
 
-const grantAllowanceUsd = async (signerZero: DAppSigner, usdcTokenIds: Record<string, string>, contractId: string, amountUsd: number): Promise<boolean> => {
+const grantAllowanceUsd = async (signerZero: DAppSigner, usdcTokenIds: Record<string, string>, usdcNdecimals: number,contractId: string, amountUsd: number): Promise<boolean> => {
   // console.log(signerZero.getLedgerId().toString)
   console.log(usdcTokenIds[signerZero.getLedgerId().toString().toLowerCase()])
   console.log(contractId)
@@ -57,7 +56,7 @@ const grantAllowanceUsd = async (signerZero: DAppSigner, usdcTokenIds: Record<st
     .setGas(10_000_000) // TODO: this is coming up as infinity HBAR?
     .setFunction('approve', new ContractFunctionParameters()
       .addAddress(ContractId.fromString(contractId).toEvmAddress()) // spender (the smart contract)
-      .addUint256(amountUsd * (10 ** usdcDecimals)))
+      .addUint256(amountUsd * (10 ** usdcNdecimals)))
     .executeWithSigner(signerZero)
 
     const approveReceipt = await approveTx.getReceiptWithSigner(signerZero)
@@ -72,13 +71,18 @@ const grantAllowanceUsd = async (signerZero: DAppSigner, usdcTokenIds: Record<st
 
 const getTokenBalance = async (networkSelected: LedgerId, tokenId: string, accountId: string): Promise<number> => {
   try {
-    const mirrornode = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}/tokens?token.id=${tokenId}`
-    const response = await fetch(mirrornode)
+    const url = `https://${networkSelected}.mirrornode.hedera.com/api/v1/accounts/${accountId}/tokens?token.id=${tokenId}`
+    console.log('url', url)
+    const response = await fetch(url)
     if (!response.ok) {
       throw new Error('Network response was not ok')
     }
     const data = await response.json()
-    console.log(data.tokens[0])
+
+    if (data.tokens.length === 0) {
+      console.warn(`No balance found for token ${tokenId} on account ${accountId}`)
+      return 0
+    }
     return data.tokens[0].balance || 0
   } catch (error) {
     console.error('Error fetching token balance:', error)
