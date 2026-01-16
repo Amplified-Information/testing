@@ -15,3 +15,6 @@ Resolved conflicting .config env vars
 
 0.2.5
 interface updates. Removed mainnet: testnet: prefix etc. New pricing streaming. Started recreation of orderbook functionality
+
+0.2.6
+pre-MVP release version
