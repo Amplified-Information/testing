@@ -2,7 +2,7 @@ import { useAppContext } from '../AppProvider'
 import { useState } from 'react'
 
 const NetworkSelector = () => {
-  const { signerZero, networkSelected, setNetworkSelected, networksAvailable  } = useAppContext()
+  const { signerZero, networkSelected, setNetworkSelected, availableNetworks  } = useAppContext()
   const [networkMenuOpen, setNetworkMenuOpen] = useState(false)
 
   return (
@@ -22,7 +22,7 @@ const NetworkSelector = () => {
         
         {networkMenuOpen && (
           <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-300 rounded shadow z-30">
-            {networksAvailable.map((network) => (
+            {availableNetworks.map((network) => (
               <div
                 key={network._ledgerId.toString()}
                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-gray-900 text-xs"
