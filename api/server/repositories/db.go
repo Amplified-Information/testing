@@ -256,7 +256,7 @@ func (dbRepository *DbRepository) CreateMarket(req *pb_api.CreateMarketRequest, 
 
 //		return priceHistory, nil
 //	}
-func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Time, to time.Time, limit int32, offset int32) ([]string, error) { // yes, it returns []string due to - price NUMERIC(18,10)
+func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Time, to time.Time, limit int32, offset int32) ([]sqlc.GetPriceHistoryEfficientRow, error) { // yes, it returns []string due to - price NUMERIC(18,10)
 	if dbRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
@@ -267,7 +267,7 @@ func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Tim
 	}
 
 	q := sqlc.New(dbRepository.db)
-	priceHistory, err := q.GetPriceHistorySafer(context.Background(), sqlc.GetPriceHistorySaferParams{
+	rows, err := q.GetPriceHistoryEfficient(context.Background(), sqlc.GetPriceHistoryEfficientParams{
 		MarketID: marketUUID,
 		Ts:       from,
 		Ts_2:     to,
@@ -278,7 +278,7 @@ func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Tim
 		return nil, fmt.Errorf("GetAggregatedPriceHistory failed: %v", err)
 	}
 
-	return priceHistory, nil
+	return rows, nil
 }
 
 func (dbRepository *DbRepository) SavePriceHistory(marketId string, txId string, price float64) error {

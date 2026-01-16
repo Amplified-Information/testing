@@ -127,8 +127,9 @@ message PriceHistoryRequest {
   optional int32 offset = 7        [json_name = "offset",    (validate.rules).int32 = {gte: 0} /* offset in ticks */];
 }
 
-message PriceHistoryResponse {
-  repeated float ticks = 1;
+message PriceHistoryResponse { // want [timestampMs[], priceUsd[]] for graphing (e.g. uplot)
+  repeated uint64 timestamp_ms = 1   [json_name = "timestampMs"];
+  repeated float price_usd = 2       [json_name = "priceUsd"];
 }
 
 message GetCommentsRequest {

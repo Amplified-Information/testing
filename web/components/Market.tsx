@@ -22,6 +22,8 @@ const Market = () => {
       setMarketId(result.response.marketId)
       setMarket(result.response)
       setMarkets([result.response, ...markets.filter(m => m.marketId !== marketId)])
+
+      console.log('market: ', result.response)
     })()
   }, [])
 
@@ -32,11 +34,11 @@ const Market = () => {
         return
       }
       const priceResult = await clobClient.getPrice({ marketId })
-      setBidUsd(priceResult.response.priceUsdBid)
-      setAskUsd(Math.abs(priceResult.response.priceUsdAsk))
+      setBidUsd(priceResult.response.priceBidUsd)
+      setAskUsd(Math.abs(priceResult.response.priceAskUsd))
     })()
   })
-
+ 
   return (
     <>
       <div>
@@ -58,9 +60,10 @@ const Market = () => {
 
         <span className="block text-xs text-muted-foreground mt-1">marketId: {marketId}</span>
 
-        
-
-        <GraphPrice marketId={marketId!} />
+        <br/>
+        <span style={{ width: 640, height: 480 }}>
+          <GraphPrice marketId={marketId!} />
+        </span>
         <GraphOrderbook marketId={marketId!} />
 
         <Comments marketId={marketId!} />

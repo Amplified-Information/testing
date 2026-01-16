@@ -23,6 +23,7 @@
     "@walletconnect/core": "^2.23.1",
     "@walletconnect/utils": "^2.23.1",
     "i18next-browser-languagedetector": "^8.2.0",
+    "lightweight-charts": "^5.0.9",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hot-toast": "^2.6.0",

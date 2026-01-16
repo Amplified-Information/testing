@@ -9,9 +9,9 @@ VALUES ($1, $2, $3, $4)
 RETURNING market_id, tx_id, price, ts;
 
 
--- name: GetPriceHistorySafer :many
+-- name: GetPriceHistoryEfficient :many
 -- params: market_id, from, to, limit, offset
-SELECT price
+SELECT price, ts
 FROM price_history
 WHERE market_id = $1 
   AND ts >= $2

@@ -68,8 +68,8 @@ message MarketIdRequest {
   string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
 }
 
-message PriceUpdate {
-  double price_usd_bid = 1    [json_name = "priceUsdBid"];
-  double price_usd_ask = 2    [json_name = "priceUsdAsk"];
-  int64 unix_timestamp_ms = 3 [json_name = "unixTimestampMs"];
+message PriceUpdate {  // want [timestampMs[], priceUsdBid[], priceUsdAsk[]] for graphing (e.g. uplot)
+  double price_bid_usd = 1    [json_name = "priceBidUsd"];
+  double price_ask_usd = 2    [json_name = "priceAskUsd"];
+  int64 timestamp_ms = 3      [json_name = "timestampMs"];
 }

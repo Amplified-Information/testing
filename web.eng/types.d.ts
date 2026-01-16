@@ -1,10 +1,16 @@
 // import { Decimal } from 'decimal.js'
 
-type Position = {
-  market_id: string
-  yes: number
-  no: number
-}
+// type Position = {
+//   market_id: string
+//   yes: number
+//   no: number
+// }
+
+// type PricePoint = {
+//   timestampMs: bigint
+//   priceUsdAsk: number
+//   priceUsdBid: number
+// }
 
 interface UserAccountInfo {
   account: string
@@ -27,7 +33,8 @@ interface UserAccountInfo {
 // }
 
 export type {
-  Position,
+  // PricePoint,
+  // Position,
   // ObjForSigning
   UserAccountInfo
 }

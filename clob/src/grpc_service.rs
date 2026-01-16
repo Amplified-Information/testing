@@ -137,7 +137,7 @@ impl ClobPublic for ClobService {
         match price_update {
             Ok(price_update) => Ok(Response::new(price_update)),
             Err(e) => {
-                log::error!("Failed to get price: {} {}", inner.market_id, e);
+                log::error!("Failed to get price: marketId={}, '{}'", inner.market_id, e);
                 Err(Status::internal(e.to_string()))
             }
         }

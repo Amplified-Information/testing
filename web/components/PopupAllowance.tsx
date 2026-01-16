@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 
 const PopupAllowance = () => {
   const [ amountUsd, setAmountUsd ] = useState<number>(0.00)
-  const { signerZero, spenderAllowanceUsd, usdcTokenIds, setSpenderAllowanceUsd, smartContractIds, networkSelected, showPopupAllowance, setShowPopupAllowance } = useAppContext()
+  const { signerZero, spenderAllowanceUsd, usdcTokenIds, setSpenderAllowanceUsd, smartContractIds, networkSelected, showPopupAllowance, setShowPopupAllowance, usdcNdecimals } = useAppContext()
   const [ thinger, setThinger ] = useState(false)
   const [ smartContractId, setSmartContractId ] = useState<string>('')
 
@@ -74,7 +74,7 @@ const PopupAllowance = () => {
         <div className="flex justify-end">
           <button className='btn-outline' disabled={thinger} onClick={async () => {
           setThinger(true)
-          const wasSuccessful = await grantAllowanceUsd(signerZero!, usdcTokenIds, smartContractId, 0)
+          const wasSuccessful = await grantAllowanceUsd(signerZero!, usdcTokenIds, usdcNdecimals, smartContractId, 0)
           if (wasSuccessful) {
             setSpenderAllowanceUsd(0)
             toast.success(`Allowance successfully removed from ${smartContractId}`)
@@ -84,7 +84,7 @@ const PopupAllowance = () => {
           &nbsp;
           <button className='btn-primary' disabled={thinger} onClick={async () => {
             setThinger(true)
-            const wasSuccessful = await grantAllowanceUsd(signerZero!, usdcTokenIds, smartContractId, spenderAllowanceUsd + amountUsd)
+            const wasSuccessful = await grantAllowanceUsd(signerZero!, usdcTokenIds, usdcNdecimals, smartContractId, spenderAllowanceUsd + amountUsd)
             if (wasSuccessful) {
               setSpenderAllowanceUsd(spenderAllowanceUsd + amountUsd)
               setShowPopupAllowance(false)

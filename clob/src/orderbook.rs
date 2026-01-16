@@ -120,9 +120,9 @@ impl OrderBookService {
             let best_ask = best_ask.unwrap_or(0.5);
 
             let price_update = proto::PriceUpdate {
-                price_usd_bid: best_bid,
-                price_usd_ask: best_ask,
-                unix_timestamp_ms: chrono::Utc::now().timestamp_millis(),
+                price_bid_usd: best_bid,
+                price_ask_usd: best_ask,
+                timestamp_ms: chrono::Utc::now().timestamp_millis(),
             };
 
             Ok(price_update)

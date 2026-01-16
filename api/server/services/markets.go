@@ -190,19 +190,22 @@ func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.P
 		offset = *req.Offset
 	}
 
-	priceHistory, err := m.dbRepository.GetPriceHistory(req.MarketId, from, to, limit, offset)
+	rows, err := m.dbRepository.GetPriceHistory(req.MarketId, from, to, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
 
-	ticks := make([]float32, len(priceHistory))
-	for i, p := range priceHistory {
-		priceFloat, _ := strconv.ParseFloat(p, 32) // convert price NUMERIC(18,10) to float32
+	ticks := make([]float32, len(rows))
+	timestamps := make([]int64, len(rows))
+	for i, row := range rows {
+		priceFloat, _ := strconv.ParseFloat(row.Price, 32) // convert price NUMERIC(18,10) to float32
 		ticks[i] = float32(priceFloat)
+		timestamps[i] = row.Ts.UnixMilli()
 	}
 
 	response := &pb_api.PriceHistoryResponse{
-		Ticks: ticks,
+		TimestampMs: timestamps,
+		PriceUsd: ticks,
 	}
 	return response, nil
 

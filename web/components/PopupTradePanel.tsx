@@ -28,8 +28,8 @@ const PopupTradePanel = () => {
   
   const [predictionIntentRequest, setPredictionIntentRequest] = useState<PredictionIntentRequest>({...defaultPredictionIntentRequest(), marketId: marketId})
 
-  const [bidUsd, setBidUsd] = useState<number>(0.00)
-  const [askUsd, setAskUsd] = useState<number>(0.00)
+  const [bidUsd, setBidUsd] = useState<number>(0.50)
+  const [askUsd, setAskUsd] = useState<number>(0.50)
 
   const [isPredictionIntentRequestValid, setIsPredictionIntentRequestValid] = useState<boolean>(false)
 
@@ -38,7 +38,7 @@ const PopupTradePanel = () => {
     (async () => {
       const result = await clobClient.getPrice({ marketId: marketId })
       const priceUpdate = result.response
-      setPriceUsd((Math.abs(priceUpdate.priceUsdAsk) + priceUpdate.priceUsdBid) / 2)
+      setPriceUsd((Math.abs(priceUpdate.priceAskUsd) + priceUpdate.priceBidUsd) / 2)
     })()
   }, [])
 
@@ -90,8 +90,8 @@ const PopupTradePanel = () => {
             return
           }
           console.log('msg', msg)
-          setBidUsd((msg as PriceUpdate).priceUsdBid)
-          setAskUsd((msg as PriceUpdate).priceUsdAsk)
+          setBidUsd((msg as PriceUpdate).priceBidUsd)
+          setAskUsd((msg as PriceUpdate).priceAskUsd)
         }
       } catch (err) {
         if (!ac.signal.aborted) {
