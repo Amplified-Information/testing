@@ -196,16 +196,16 @@ func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.P
 	}
 
 	ticks := make([]float32, len(rows))
-	timestamps := make([]int64, len(rows))
+	timestamps := make([]uint64, len(rows))
 	for i, row := range rows {
 		priceFloat, _ := strconv.ParseFloat(row.Price, 32) // convert price NUMERIC(18,10) to float32
 		ticks[i] = float32(priceFloat)
-		timestamps[i] = row.Ts.UnixMilli()
+		timestamps[i] = uint64(row.Ts.UnixMilli())
 	}
 
 	response := &pb_api.PriceHistoryResponse{
 		TimestampMs: timestamps,
-		PriceUsd: ticks,
+		PriceUsd:    ticks,
 	}
 	return response, nil
 
