@@ -57,3 +57,6 @@ web - major updates to web functionality. Streaming, etc.
 
 0.5.2
 web.lvbl - restored walletconnect project id. Removed Dev Notes
+
+0.4.9
+web - pre-MVP release version
