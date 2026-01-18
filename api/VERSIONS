@@ -39,3 +39,6 @@ some isOpen isPaused issues fixed
 
 0.2.14
 pre-MVP release version
+
+0.2.15
+config changes added support for return vals from smart contract creation
