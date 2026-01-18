@@ -8,6 +8,8 @@ on:
   push:
     paths:
       - 'clob/**'
+    # paths-ignore:
+    #   - 'clob/VERSIONS'
 
 permissions:
   contents: read

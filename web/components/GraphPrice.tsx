@@ -91,9 +91,19 @@ const GraphPrice = ({ marketId }: { marketId: string }) => {
         for (let i = 0; i < priceResult.response.priceUsd.length; i++) {
           const dataPoint: DataPoint = {
             time: Number(priceResult.response.timestampMs[i] / BigInt(1000)) as UTCTimestamp,
-            value: priceResult.response.priceUsd[i]
+            value: Math.abs(priceResult.response.priceUsd[i])
           }
           console.log(dataPoint)
+          _dataPoints.push(dataPoint)
+        }
+
+        // if there is no price data for this market, set a default price
+        if (priceResult.response.priceUsd.length === 0) {
+          console.warn('No price data returned for marketId:', marketId)
+          const dataPoint: DataPoint = {
+            time: Number(new Date().getTime() / 1000) as UTCTimestamp,
+            value: 0.5
+          }
           _dataPoints.push(dataPoint)
         }
         
@@ -157,10 +167,9 @@ const GraphPrice = ({ marketId }: { marketId: string }) => {
           // add the datapoint:
           const dataPoint: DataPoint = {
             time: Number(BigInt(timestampMs) / BigInt(1000)) as UTCTimestamp,
-            value: (priceAskUsd + priceBidUsd) / 2
+            value: (Math.abs(priceAskUsd) + priceBidUsd) / 2
           }
           lineSeriesRef.current.update(dataPoint)
-          
         }
       } catch (err) {
         if (!ac.signal.aborted) {

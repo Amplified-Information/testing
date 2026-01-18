@@ -116,7 +116,7 @@ contract Prism {
     uint128 txIdNo,
     bytes calldata sigObjYes,
     bytes calldata sigObjNo
-  ) external onlyOwner returns (uint256 yes, uint256 no) {
+  ) external onlyOwner returns (uint256 yes, uint256 no, uint256 yes2, uint256 no2) {
     require(resolutionTimes[marketId] == 0, "Market resolved");
     require(bytes(statements[marketId]).length > 0, "No market statement has been set");
     // prevent replay attacks by ensuring unique txIds // TODO - storage size ;(
@@ -146,7 +146,7 @@ contract Prism {
     emit PositionTokensPurchased(marketId, signerYes, collateralUsdAbsScaled_lower, false);
     emit PositionTokensPurchased(marketId, signerNo, collateralUsdAbsScaled_lower, true);
 
-    return (yesTokens[marketId][signerYes] , noTokens[marketId][signerNo]); // return current balances
+    return (yesTokens[marketId][signerYes] , noTokens[marketId][signerYes], yesTokens[marketId][signerNo] , noTokens[marketId][signerNo]); // return current balances
   }
   
   /**

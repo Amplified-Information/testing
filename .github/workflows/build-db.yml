@@ -8,6 +8,8 @@ on:
   push:
     paths:
       - 'db/**'
+    # paths-ignore:
+    #   - 'db/VERSIONS'
 
 permissions:
   contents: read

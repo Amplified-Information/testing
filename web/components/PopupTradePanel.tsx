@@ -384,6 +384,7 @@ const PopupTradePanel = () => {
               console.error(e)
             } finally {
               setThingerSubmit(false)
+              setIsPredictionIntentRequestValid(false) // duplicate tx prevention
 
               // update spender allowance after spending:
               // Note: delay!!!

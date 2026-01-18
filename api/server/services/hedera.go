@@ -378,6 +378,19 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 		return false, fmt.Errorf("failed to get transaction receipt: %v", err)
 	}
 
+	// the smart contract function returns (nYes, nNo)
+	record, err := tx.GetRecord(h.hedera_clients[sideYes.Net])
+	if err != nil {
+		return false, fmt.Errorf("failed to get transaction record: %v", err)
+	}
+	nYesTokens := new(big.Int).SetBytes(record.CallResult.GetUint256(0))
+	nNoTokens := new(big.Int).SetBytes(record.CallResult.GetUint256(1))
+	nYesTokens2 := new(big.Int).SetBytes(record.CallResult.GetUint256(2))
+	nNoTokens2 := new(big.Int).SetBytes(record.CallResult.GetUint256(3))
+
+	log.Printf("Token balances (marketId=%s): %s (yes=%s, no=%s) |  %s (yes=%s, no=%s)", sideYes.MarketId /* yes===no*/, sideYes.EvmAddress, nYesTokens.String(), nNoTokens.String(), sideNo.EvmAddress, nYesTokens2.String(), nNoTokens2.String())
+	// TODO - log these to database
+
 	log.Printf("buyPositionTokensOnBehalfAtomic(marketId=%s, ...) status: %s", sideYes.MarketId, receipt.Status.String())
 
 	/////

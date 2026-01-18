@@ -13,6 +13,9 @@ admin:
     socket_address:
       address: 0.0.0.0
       port_value: 9901
+runtime:
+  admin: true
+
 # TODO 
 # - add a subset of endpoints to port 8090 for public access
 # - full suite of endpoints is available on 8080 - only for access on 10.0.1.0/24
@@ -29,7 +32,7 @@ static_resources:
           - name: envoy.filters.network.http_connection_manager
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-              codec_type: auto
+              codec_type: http2 # auto
               stat_prefix: ingress_http
               upgrade_configs:
                 - upgrade_type: websocket
@@ -50,6 +53,7 @@ static_resources:
                         route:
                           cluster: clob_service
                           timeout: 0s
+                          idle_timeout: 0s
                           max_stream_duration:
                             grpc_timeout_header_max: 0s
                       - match:
@@ -161,14 +165,14 @@ static_resources:
                 #       preserve_proto_field_names: false
   clusters:
     - name: clob_service
-      connect_timeout: 30s
+      connect_timeout: 5s
       type: logical_dns
+      lb_policy: round_robin
       typed_extension_protocol_options:
         envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
           "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
           explicit_http_config:
             http2_protocol_options: {}
-      lb_policy: round_robin
       load_assignment:
         cluster_name: clob_service
         endpoints:
@@ -179,14 +183,14 @@ static_resources:
                       address: ${ENVOY_HOST_CLOB}   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 50051
     - name: api_service
-      connect_timeout: 30s
+      connect_timeout: 5s
       type: logical_dns
+      lb_policy: round_robin
       typed_extension_protocol_options:
         envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
           "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
           explicit_http_config:
             http2_protocol_options: {}
-      lb_policy: round_robin
       load_assignment:
         cluster_name: api_service
         endpoints:
@@ -197,7 +201,7 @@ static_resources:
                       address: ${ENVOY_HOST_API}   # or your host's Docker bridge IP (e.g., 172.17.0.1 for Docker)
                       port_value: 8888
     - name: web_service
-      connect_timeout: 30s
+      connect_timeout: 5s
       type: logical_dns
       # http2_protocol_options: {} # definitely don't want http2 for web!
       lb_policy: round_robin

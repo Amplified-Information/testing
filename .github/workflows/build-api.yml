@@ -8,6 +8,8 @@ on:
   push:
     paths:
       - 'api/**'
+    # paths-ignore:
+    #   - 'api/VERSIONS'
 
 permissions:
   contents: read
