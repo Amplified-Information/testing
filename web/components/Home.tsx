@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
 import Stats from './Stats'
 import CopyTiles from './CopyTiles'
+import { apiClient } from '../grpcClient'
 
 const Home = () => {
 
@@ -17,6 +18,17 @@ const Home = () => {
     }, 1800)
     return () => clearInterval(interval)
   }, [highlights.length])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await apiClient.health({})
+        console.log('API Health:', result)
+      } catch (error) {
+        console.error('API Health check failed:', error)
+      }
+    })()
+  }, [])
 
   return (
     <div>

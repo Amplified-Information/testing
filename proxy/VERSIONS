@@ -24,3 +24,6 @@ Removed SPA - handle on nginx (web)
 
 0.1.8
 Enabled "runtime.admin=true" reduced some timeouts
+
+0.1.9
+Additional config for CORS

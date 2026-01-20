@@ -7,6 +7,7 @@ use crate::orderbook::OrderBookService;
 use crate::orderbook::proto::clob_internal_server::ClobInternalServer;
 use crate::orderbook::proto::clob_public_server::ClobPublicServer;
 use crate::orderbook::proto::{CreateOrderRequestClob, StdResponse, BookRequest, BookSnapshot, clob_public_server::{ClobPublic}, clob_internal_server::{ClobInternal}};
+// use tonic_reflection::server::Builder as ReflectionBuilder;
 
 #[derive(Debug, Clone)]
 pub struct ClobService {
@@ -190,6 +191,13 @@ pub fn start_grpc(
     tonic::transport::Server::builder()
         .add_service(ClobInternalServer::new(ClobService::new(order_book_service.clone())))
         .add_service(ClobPublicServer::new(ClobService::new(order_book_service)))
+        // reflection support (tonic-reflection): 
+        // .add_service(
+        //     ReflectionBuilder::configure()
+        //         .register_encoded_file_descriptor_set(crate::orderbook::proto::FILE_DESCRIPTOR_SET)
+        //         .build()
+        //         .unwrap()
+        // )
         .serve(addr)
         .map_err(|e| {
             log::error!("Failed to start gRPC server: {}", e);

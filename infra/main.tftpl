@@ -274,6 +274,7 @@ resource "aws_lb_target_group" "alb_proxy_target_group_$ENV" {
   name        = "${module.shared.env}-alb-proxy-tg"
   port        = 8090
   protocol    = "HTTP"
+  protocol_version = "HTTP1" # HTTP1 (default), HTTP2, GRPC
   vpc_id      = module.shared.vpc_id
 
   health_check {
