@@ -27,3 +27,6 @@ Enabled "runtime.admin=true" reduced some timeouts
 
 0.1.9
 Additional config for CORS
+
+0.1.10
+Additional config debugging gRPC
