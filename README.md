@@ -15,6 +15,20 @@ This project is divided into a number of folders:
 - `resources`: a version-controlled area to store artifacts, design files, images, etc.
 - `scripts`: some general usage scripts
 
+## Quickstart
+
+To develop the application locally, edit `grpcClient.ts` and set the baseUrl to the dev environment:
+
+`baseUrl: 'https://dev.prism.market:443'`
+
+`npm run gen`
+
+`npm run dev`
+
+Open the application at:
+
+`localhost:5173`
+
 ## Quickstart (docker-compose)
 
 ```bash
@@ -23,7 +37,7 @@ source ./api/loadEnv.sh local
 source ./clob/loadEnv.sh local
 source ./db/loadEnv.sh local
 source ./eventbus/loadEnv.sh local
-source ./proxy/loadEnv.sh local # note: local2
+source ./proxy/loadEnv.sh local # local2
 # source ./web/loadEnv.sh local # note: the web app is zero config
 
 # now do:

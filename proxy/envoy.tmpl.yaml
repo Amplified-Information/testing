@@ -148,12 +148,14 @@ static_resources:
                           cluster: web_service
                           timeout: 0s
                           # prefix_rewrite: "/" # SPA routing (React)! - No. Do this on the nginx level in the web service
+                        ### IS_BASIC_AUTH_DISABLED
                         typed_per_filter_config: # basic auth applied to this specific to this route only
                           envoy.filters.http.basic_auth:
                             "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuthPerRoute
                             users:
                               inline_string: |-
-                                admin:{SHA}cb139wnHtEw+LxCG6hOFfbtg3Vs=
+                                ${HTACCESS_STR}
+                        ### END IS_BASIC_AUTH_DISABLED
 
                     # applied to everything...
                     typed_per_filter_config: 

@@ -9,6 +9,7 @@ services:
     restart: always
     ports:
       - "8888:8888"
+      - "8889:8889" # /health
     environment:
       # keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets and the run command in Dockerfile
       API_SELF_HOST: ${API_SELF_HOST}
