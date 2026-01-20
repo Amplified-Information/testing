@@ -62,7 +62,10 @@ web.lvbl - restored walletconnect project id. Removed Dev Notes
 web - pre-MVP release version
 
 0.4.10
-small updates to UI
+web - small updates to UI
 
 0.4.11
-Update to web app - gRPC issues
+web - Update to web app - gRPC issues
+
+0.4.12
+web - resolve gPRC issues

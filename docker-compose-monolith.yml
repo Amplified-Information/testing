@@ -4,7 +4,7 @@
 # docker compose -f docker-compose-monolith.yml -f docker-compose-monolith.dev.yml up -d
 services:
   api:
-    image: ghcr.io/prismmarketlabs/api:0.2.15
+    image: ghcr.io/prismmarketlabs/api:0.2.16
     # pull_policy: always
     restart: always
     ports:
@@ -77,7 +77,7 @@ services:
       NATS_PORT: ${NATS_PORT}
 
   web:
-    image: ghcr.io/prismmarketlabs/web:0.4.11
+    image: ghcr.io/prismmarketlabs/web:0.4.12
     # pull_policy: always
     restart: always
     ports:

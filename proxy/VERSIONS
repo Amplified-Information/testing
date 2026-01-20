@@ -30,3 +30,6 @@ Additional config for CORS
 
 0.1.10
 Additional config debugging gRPC
+
+0.1.11
+basic auth updates - added template to exclude auth

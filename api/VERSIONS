@@ -42,3 +42,6 @@ pre-MVP release version
 
 0.2.15
 config changes added support for return vals from smart contract creation
+
+0.2.16
+added a /health endpoint
