@@ -2,6 +2,14 @@
 
 Proxy application
 
+N.B. Envoy cannot be configured using env vars.
+
+Must generate `/etc/envoy/envoy.yaml`
+
+You can apply hot changes using the admin port.
+
+It is not possible to modify `.config*` or `.secrets` and re-run the container. You must rebuild the container and push a new image containing the `envoy.yaml` config.
+
 ## Quickstart
 
 Envoy proxy on local:
@@ -19,6 +27,20 @@ Note: enable debugging on a live Envoy proxy: `curl -X POST "http://127.0.0.1:99
 
 Access the admin panel at: http://localhost:9901/
 
+###
+
+Test the proxy locally:
+
+Should return 200:
+
+`curl -I localhost:8090/health`
+
+Should return 401:
+
+`curl -I localhost:8090/`
+
+Should return 401 Unauthorized:
+`easyrpc c -a localhost:8090 -w -i ./proto -p api.proto api.ApiServicePublic.Health`
 
 ### OLD
 

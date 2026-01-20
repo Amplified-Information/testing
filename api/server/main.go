@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 
 	pb_api "api/gen"
@@ -113,6 +114,7 @@ func main() {
 		// keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets and the run command in Dockerfile
 		"API_SELF_HOST",
 		"API_SELF_PORT",
+		"API_SELF_PORT_HEALTH",
 		"CLOB_HOST",
 		"CLOB_PORT",
 		"USDC_DECIMALS",
@@ -269,6 +271,18 @@ func main() {
 	// must pass the grpc server to bother internal and the public servers!
 	pb_api.RegisterApiServiceInternalServer(grpcServer, sharedServer)
 	pb_api.RegisterApiServicePublicServer(grpcServer, sharedServer)
+
+	// Start a HTTP health check server on port 8889
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(200)
+			w.Write([]byte("200"))
+		})
+		log.Printf("✅ HTTP health endpoint running on %s:%s/health", os.Getenv("API_SELF_HOST"), os.Getenv("API_SELF_PORT_HEALTH"))
+		if err := http.ListenAndServe(fmt.Sprintf("%s:%s", os.Getenv("API_SELF_HOST"), os.Getenv("API_SELF_PORT_HEALTH")), nil); err != nil {
+			log.Fatalf("Failed to start HTTP health endpoint: %v", err)
+		}
+	}()
 
 	log.Printf("✅ gRPC server running on %s:%s", os.Getenv("API_SELF_HOST"), os.Getenv("API_SELF_PORT"))
 	if err := grpcServer.Serve(lis); err != nil {

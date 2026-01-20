@@ -13,6 +13,7 @@ services:
       # keep in sync with main.go, docker-compose-monolith.yml, .config and .secrets and the run command in Dockerfile
       API_SELF_HOST: ${API_SELF_HOST}
       API_SELF_PORT: ${API_SELF_PORT}
+      API_SELF_PORT_HEALTH: ${API_SELF_PORT_HEALTH}
       CLOB_HOST: ${CLOB_HOST}
       CLOB_PORT: ${CLOB_PORT}
       USDC_DECIMALS: ${USDC_DECIMALS}

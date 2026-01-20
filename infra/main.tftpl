@@ -278,7 +278,7 @@ resource "aws_lb_target_group" "alb_proxy_target_group_$ENV" {
   vpc_id      = module.shared.vpc_id
 
   health_check {
-    path                = "/"
+    path                = "/health"
     protocol            = "HTTP"
     interval            = 30
     timeout             = 5

@@ -6,16 +6,20 @@ const transport = new GrpcWebFetchTransport({
   // baseUrl: 'http://127.0.0.1:8080',
   // baseUrl: 'https://dev.prism.market:443', // https => grpc-web
   baseUrl: '/',
+  // fetchInit: { credentials: 'include' }
+  // withCredentials: true, // improbable - https://github.com/improbable-eng/grpc-web/blob/master/client/grpc-web/docs/transport.md
+  fetchInit: { credentials: 'include' }
+
   // maxReceiveMessageLength: 10485760, // 10MB
   
-  fetch: (input: RequestInfo, init: RequestInit = {}) => {
-    init.headers = {
-      ...(init.headers || {}),
-      // 'Authorization': basicAuth,
-      'Content-Type': 'application/grpc-web'
-    }
-    return fetch(input, init)
-  }
+  // fetch: (input: RequestInfo, init: RequestInit = {}) => {
+  //   init.headers = {
+  //     ...(init.headers || {})
+  //     // 'Authorization': basicAuth,
+  //     // 'Content-Type': 'application/grpc-web'
+  //   }
+  //   return fetch(input, init)
+  // }
   
   // Allow messages larger than the default max (e.g., 100MB)
   // sendMaxBytes: 100 * 1024 * 1024,

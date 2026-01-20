@@ -720,6 +720,13 @@ resource "aws_security_group" "allow_proxy_ingress" {
   }
 
   ingress {
+    from_port   = 8889
+    to_port     = 8889
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/24"] # Public subnet CIDR
+  }
+
+  ingress {
     from_port   = 50051
     to_port     = 50051
     protocol    = "tcp"
@@ -742,6 +749,13 @@ resource "aws_security_group" "allow_monolith_egress" {
   egress {
     from_port   = 8888
     to_port     = 8888
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.1.0/24"] # Private subnet CIDR
+  }
+
+  egress {
+    from_port   = 8889
+    to_port     = 8889
     protocol    = "tcp"
     cidr_blocks = ["10.0.1.0/24"] # Private subnet CIDR
   }
