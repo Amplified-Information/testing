@@ -60,6 +60,45 @@ CREATE TABLE partman.template_public_price_history (
 ALTER TABLE partman.template_public_price_history OWNER TO your_db_user;
 
 --
+-- Name: categories; Type: TABLE; Schema: public; Owner: your_db_user
+--
+
+CREATE TABLE public.categories (
+    id integer NOT NULL,
+    name character varying(256) NOT NULL,
+    is_active boolean DEFAULT true,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    description text
+);
+
+
+ALTER TABLE public.categories OWNER TO your_db_user;
+
+--
+-- Name: categories_id_seq; Type: SEQUENCE; Schema: public; Owner: your_db_user
+--
+
+CREATE SEQUENCE public.categories_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.categories_id_seq OWNER TO your_db_user;
+
+--
+-- Name: categories_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: your_db_user
+--
+
+ALTER SEQUENCE public.categories_id_seq OWNED BY public.categories.id;
+
+
+--
 -- Name: comments; Type: TABLE; Schema: public; Owner: your_db_user
 --
 
@@ -98,6 +137,18 @@ ALTER SEQUENCE public.comments_comment_id_seq OWNER TO your_db_user;
 
 ALTER SEQUENCE public.comments_comment_id_seq OWNED BY public.comments.comment_id;
 
+
+--
+-- Name: market_categories; Type: TABLE; Schema: public; Owner: your_db_user
+--
+
+CREATE TABLE public.market_categories (
+    market_id uuid NOT NULL,
+    category_id integer NOT NULL
+);
+
+
+ALTER TABLE public.market_categories OWNER TO your_db_user;
 
 --
 -- Name: markets; Type: TABLE; Schema: public; Owner: your_db_user
@@ -231,11 +282,11 @@ ALTER TABLE public.order_requests OWNER TO your_db_user;
 CREATE TABLE public.positions (
     id integer NOT NULL,
     market_id uuid NOT NULL,
-    account_id text NOT NULL,
+    evm_address text CONSTRAINT positions_account_id_not_null NOT NULL,
     n_yes bigint NOT NULL,
     n_no bigint NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT positions_account_id_check CHECK ((length(account_id) >= 5)),
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP CONSTRAINT positions_created_at_not_null NOT NULL,
+    CONSTRAINT positions_account_id_check CHECK ((length(evm_address) >= 5)),
     CONSTRAINT positions_n_no_check CHECK ((n_no >= 0)),
     CONSTRAINT positions_n_yes_check CHECK ((n_yes >= 0))
 );
@@ -351,6 +402,13 @@ ALTER TABLE ONLY public.price_history ATTACH PARTITION public.price_history_defa
 
 
 --
+-- Name: categories id; Type: DEFAULT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.categories ALTER COLUMN id SET DEFAULT nextval('public.categories_id_seq'::regclass);
+
+
+--
 -- Name: comments comment_id; Type: DEFAULT; Schema: public; Owner: your_db_user
 --
 
@@ -386,11 +444,35 @@ ALTER TABLE ONLY public.settlements ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: categories categories_name_key; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_name_key UNIQUE (name);
+
+
+--
+-- Name: categories categories_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: comments comments_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
 --
 
 ALTER TABLE ONLY public.comments
     ADD CONSTRAINT comments_pkey PRIMARY KEY (comment_id);
+
+
+--
+-- Name: market_categories market_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.market_categories
+    ADD CONSTRAINT market_categories_pkey PRIMARY KEY (market_id, category_id);
 
 
 --
@@ -438,7 +520,7 @@ ALTER TABLE ONLY public.order_requests
 --
 
 ALTER TABLE ONLY public.positions
-    ADD CONSTRAINT positions_market_id_account_id_key UNIQUE (market_id, account_id);
+    ADD CONSTRAINT positions_market_id_account_id_key UNIQUE (market_id, evm_address);
 
 
 --
@@ -479,6 +561,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.settlements
     ADD CONSTRAINT settlements_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: positions unique_market_id_evm_address; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.positions
+    ADD CONSTRAINT unique_market_id_evm_address UNIQUE (market_id, evm_address);
 
 
 --
@@ -529,6 +619,22 @@ ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_defa
 
 ALTER TABLE ONLY public.comments
     ADD CONSTRAINT fk_market FOREIGN KEY (market_id) REFERENCES public.markets(market_id) ON DELETE CASCADE;
+
+
+--
+-- Name: market_categories market_categories_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.market_categories
+    ADD CONSTRAINT market_categories_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
+
+
+--
+-- Name: market_categories market_categories_market_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: your_db_user
+--
+
+ALTER TABLE ONLY public.market_categories
+    ADD CONSTRAINT market_categories_market_id_fkey FOREIGN KEY (market_id) REFERENCES public.markets(market_id) ON DELETE CASCADE;
 
 
 --

@@ -18,11 +18,13 @@ import (
 type MarketService struct {
 	dbRepository  *repositories.DbRepository
 	hederaService *HederaService
+	priceService  *PriceService
 }
 
-func (m *MarketService) Init(dbRepository *repositories.DbRepository, hederaService *HederaService) error {
+func (m *MarketService) Init(dbRepository *repositories.DbRepository, hederaService *HederaService, priceService *PriceService) error {
 	m.dbRepository = dbRepository
 	m.hederaService = hederaService
+	m.priceService = priceService
 
 	log.Printf("Market service initialized successfully")
 	return nil
@@ -34,7 +36,7 @@ func (m *MarketService) GetMarketById(marketId string) (*pb_api.MarketResponse, 
 		return nil, err
 	}
 
-	response, err := mapMarketToMarketResponse(market)
+	response, err := m.mapMarketToMarketResponse(market)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +61,7 @@ func (m *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsRe
 
 	var marketResponses []*pb_api.MarketResponse
 	for _, market := range markets {
-		marketResponse, err := mapMarketToMarketResponse(&market)
+		marketResponse, err := m.mapMarketToMarketResponse(&market)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +110,7 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 	/////
 	// Output: map the result to MarketResponse
 	/////
-	marketResponse, err := mapMarketToMarketResponse(market)
+	marketResponse, err := m.mapMarketToMarketResponse(market)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +120,7 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 	}, nil
 }
 
-func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, error) {
+func (m *MarketService) mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, error) {
 	var createdAt string
 	var resolvedAt string
 	if !market.CreatedAt.Valid {
@@ -137,6 +139,13 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 		imageUrl = ""
 	}
 
+	priceUsd, err := m.priceService.GetLatestPriceByMarket(market.MarketID.String())
+	if err != nil {
+		log.Printf("Warning: failed to get latest price for market %s: %v", market.MarketID.String(), err)
+		// set the market price to 0.5
+		priceUsd = 0.5
+	}
+
 	marketResponse := &pb_api.MarketResponse{
 		MarketId:   market.MarketID.String(),
 		Net:        market.Net,
@@ -145,6 +154,7 @@ func mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, err
 		CreatedAt:  createdAt,
 		ResolvedAt: resolvedAt,
 		ImageUrl:   imageUrl,
+		PriceUsd:   priceUsd,
 	}
 	return marketResponse, nil
 }

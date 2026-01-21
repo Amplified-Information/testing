@@ -159,10 +159,10 @@ const GraphPrice = ({ marketId }: { marketId: string }) => {
           // Use type assertion to access timestampMs
           
           const { timestampMs, priceBidUsd, priceAskUsd  } = msg as { timestampMs: bigint, priceBidUsd: number, priceAskUsd: number }
-          console.log(priceBidUsd)
-          console.log(priceAskUsd)
-          console.log((BigInt(timestampMs) / BigInt(1000)).toString())
-          console.log('msg', msg)
+          // console.log(priceBidUsd)
+          // console.log(priceAskUsd)
+          // console.log((BigInt(timestampMs) / BigInt(1000)).toString())
+          // console.log('msg', msg)
 
           // add the datapoint:
           const dataPoint: DataPoint = {

@@ -473,3 +473,71 @@ func (dbRepository *DbRepository) GetTotalVolumeUsdInTimePeriod(timePeriod strin
 
 	return 42, nil
 }
+
+func (dbRespository *DbRepository) UpsertUserPositions(evmAddress string, marketId string, nYesTokens int64, nNoTokens int64) (*sqlc.Position, error) {
+	if dbRespository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbRespository.db)
+
+	result, err := q.UpsertPositions(context.Background(), sqlc.UpsertPositionsParams{
+		MarketID:   uuid.MustParse(marketId),
+		EvmAddress: evmAddress,
+		NYes:       nYesTokens,
+		NNo:        nNoTokens,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("UpsertUserPositions failed: %v", err)
+	}
+
+	log.Printf("Updated user position tokens: %+v", result)
+	return &result, nil
+}
+
+func (dbRepository *DbRepository) GetUserPortfolio(evmAddress string) ([]sqlc.GetUserPortfolioRow, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbRepository.db)
+	result, err := q.GetUserPortfolio(context.Background(), evmAddress)
+	return result, err
+}
+
+func (dbRepository *DbRepository) GetUserPortfolioByMarketId(evmAddress string, marketId string) ([]sqlc.GetUserPortfolioByMarketIdRow, error) {
+	if dbRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	marketIdUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	q := sqlc.New(dbRepository.db)
+	result, err := q.GetUserPortfolioByMarketId(context.Background(), sqlc.GetUserPortfolioByMarketIdParams{
+		EvmAddress: evmAddress,
+		MarketID:   marketIdUUID,
+	})
+	return result, err
+}
+
+func (dbRepository *DbRepository) GetLatestPriceByMarket(marketId string) (string, error) {
+	if dbRepository.db == nil {
+		return "", fmt.Errorf("database not initialized")
+	}
+
+	marketUUID, err := uuid.Parse(marketId)
+	if err != nil {
+		return "", fmt.Errorf("invalid marketId uuid: %v", err)
+	}
+
+	q := sqlc.New(dbRepository.db)
+	priceRow, err := q.GetLatestPriceByMarket(context.Background(), marketUUID)
+	if err != nil {
+		return "", fmt.Errorf("GetLatestPriceByMarket failed: %v", err)
+	}
+
+	return priceRow.Price, nil
+}

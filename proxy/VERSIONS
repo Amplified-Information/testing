@@ -33,3 +33,6 @@ Additional config debugging gRPC
 
 0.1.11
 basic auth updates - added template to exclude auth
+
+0.1.12
+removed all basic auth - done at web app level

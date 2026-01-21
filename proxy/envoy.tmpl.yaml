@@ -48,7 +48,7 @@ static_resources:
                     domains: ["*"] # ["dev.prism.market", "uat.prism.market", "prism.market", etc.]
                     routes:
                       ###
-                      # 🩺 Health check (NO AUTH)
+                      # 🩺 Health check
                       ###
                       - match:
                           prefix: "/health"
@@ -70,14 +70,6 @@ static_resources:
                           timeout: 0s
                           max_stream_duration:
                             grpc_timeout_header_max: 0s
-                        ### IS_BASIC_AUTH_DISABLED
-                        typed_per_filter_config: # basic auth applied to this specific to this route only
-                          envoy.filters.http.basic_auth:
-                            "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuthPerRoute
-                            users:
-                              inline_string: |-
-                                ${HTACCESS_STR}
-                        ### END IS_BASIC_AUTH_DISABLED
                       - match:
                           prefix: "/api.ApiServicePublic/"   # proto package 'api'
                           headers:
@@ -89,14 +81,6 @@ static_resources:
                           timeout: 0s
                           max_stream_duration:
                             grpc_timeout_header_max: 0s
-                        ### IS_BASIC_AUTH_DISABLED
-                        typed_per_filter_config: # basic auth applied to this specific to this route only
-                          envoy.filters.http.basic_auth:
-                            "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuthPerRoute
-                            users:
-                              inline_string: |-
-                                ${HTACCESS_STR}
-                        ### END IS_BASIC_AUTH_DISABLED
                       ###
                       # Route gRPC requests (identified by content-type: application/grpc) 
                       ###
@@ -112,14 +96,6 @@ static_resources:
                           idle_timeout: 0s
                           max_stream_duration:
                             grpc_timeout_header_max: 0s
-                        ### IS_BASIC_AUTH_DISABLED
-                        typed_per_filter_config: # basic auth applied to this specific to this route only
-                          envoy.filters.http.basic_auth:
-                            "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuthPerRoute
-                            users:
-                              inline_string: |-
-                                ${HTACCESS_STR}
-                        ### END IS_BASIC_AUTH_DISABLED
                       - match:
                           prefix: "/api.ApiServicePublic/"   # proto package 'api'
                           headers:
@@ -131,14 +107,6 @@ static_resources:
                           timeout: 0s
                           max_stream_duration:
                             grpc_timeout_header_max: 0s
-                        ### IS_BASIC_AUTH_DISABLED
-                        typed_per_filter_config: # basic auth applied to this specific to this route only
-                          envoy.filters.http.basic_auth:
-                            "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuthPerRoute
-                            users:
-                              inline_string: |-
-                                ${HTACCESS_STR}
-                        ### END IS_BASIC_AUTH_DISABLED
                       ###
                       # Fallback to web service for regular HTTP requests
                       ###
@@ -148,14 +116,6 @@ static_resources:
                           cluster: web_service
                           timeout: 0s
                           # prefix_rewrite: "/" # SPA routing (React)! - No. Do this on the nginx level in the web service
-                        ### IS_BASIC_AUTH_DISABLED
-                        typed_per_filter_config: # basic auth applied to this specific to this route only
-                          envoy.filters.http.basic_auth:
-                            "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuthPerRoute
-                            users:
-                              inline_string: |-
-                                ${HTACCESS_STR}
-                        ### END IS_BASIC_AUTH_DISABLED
 
                     # applied to everything...
                     typed_per_filter_config: 
@@ -180,14 +140,14 @@ static_resources:
                     "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
                 
                 # global basic auth - don't want this - want to apply more selective basic auth
-                - name: envoy.filters.http.basic_auth
-                  disabled: true # Yes, globally disabled by default ${IS_BASIC_AUTH_DISABLED}
-                  typed_config:
-                    "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuth
-                    users:
-                      # generate with: `echo -n "<some_password>" | openssl dgst -binary -sha1 | openssl base64`. N.B. the {SHA} prefix is required
-                      inline_string: |-
-                        admin:{SHA}cb139wnHtEw+LxCG6hOFfbtg3Vs=
+                # - name: envoy.filters.http.basic_auth
+                #   disabled: ${IS_BASIC_AUTH_DISABLED}
+                #   typed_config:
+                #     "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuth
+                #     users:
+                #       # generate with: `echo -n "<some_password>" | openssl dgst -binary -sha1 | openssl base64`. N.B. the {SHA} prefix is required
+                #       inline_string: |-
+                #         admin:{SHA}cb139wnHtEw+LxCG6hOFfbtg3Vs=
                 
                 - name: envoy.filters.http.grpc_web
                   typed_config:

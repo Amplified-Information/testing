@@ -280,8 +280,8 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 		NMarkets:                    p.marketService.GetNumMarkets(),
 		TokenIds:                    tokenIdsMap,
 		MinOrderSizeUsd:             minOrderSizeUsd,
-		TvlUsd:                      1234567.89, // TODO - implement real TVL calculation
-		TotalVolumeUsd:              totalVolumeUsd,
+		TvlUsd:                      1234567.89,     // TODO - implement real TVL calculation
+		TotalVolumeUsd:              totalVolumeUsd, // TODO - implement a real total volume
 	}
 
 	return response, nil
@@ -302,11 +302,19 @@ func (p *Prism) TriggerRecreateClob() error {
 	// loop through each unresolved market:
 	for _, market := range markets {
 
+		// step 1 - create the market on the CLOB:
 		log.Printf("Recreating CLOB for market ID: %s", market.MarketID.String())
 		err = lib.CreateMarketOnClob(market.MarketID.String())
 		if err != nil {
 			return fmt.Errorf("failed to create new market (marketId=%s) on CLOB: %w", market.MarketID.String(), err)
 		}
+
+		// step 2 - retrieve from db all the orders for restoring to the CLOB
+		// TODO
+
+		// step 3 - push all the retrieved orders onto the CLOB:
+		// TODO
+
 		// // create the CreateMarketRequest:
 		// createMarketRequest := &pb_api.CreateMarketRequest{}
 		// createMarketResponse, err := p.marketService.CreateMarket(createMarketRequest)

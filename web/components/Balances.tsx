@@ -4,7 +4,7 @@ import { getSpenderAllowanceUsd, getTokenBalance } from '../lib/hedera'
 import { formatNumberShort } from '../lib/utils'
 
 const Balances = () => {
-  const { smartContractIds, usdcTokenIds, spenderAllowanceUsd, usdcNdecimals, setSpenderAllowanceUsd, networkSelected, signerZero, setShowPopupAllowance, tokenIds } = useAppContext()
+  const { smartContractIds, usdcTokenIds, spenderAllowanceUsd, usdcNdecimals, setSpenderAllowanceUsd, networkSelected, signerZero, setShowPopupAllowance, tokenIds, userPortfolio } = useAppContext()
   const [prsmBalance, setPrsmBalance] =  useState<number>(0)
   const [thinger, setThinger] = useState<boolean>(false)
   
@@ -120,8 +120,13 @@ const Balances = () => {
             title='The USD value if you sold all your positions at their current market prices'
           >
             liquidated value: <a className='text-blue-500 cursor-pointer'>
-              {/* TODO */}
-              ${0.00}
+              ${(Object.values(userPortfolio.positions).reduce((acc, pos) => {
+                return (
+                  acc +
+                  Number(pos.yes) * pos.priceUsd +
+                  Number(pos.no) * (1 - pos.priceUsd)
+                )
+              }, 0) * ( 1 / 10 ** usdcNdecimals)).toFixed(2) }
             </a>
           </span>
 
@@ -132,7 +137,7 @@ const Balances = () => {
             <a className='text-blue-500' onClick={() => {
               // open wallet
               // https://www.alchemy.com/docs/wallets/api-reference/smart-wallets/wallet-api-endpoints/wallet-api-endpoints/wallet-get-calls-status
-              signerZero.request({ method: 'wallet_getCapabilities', params: [] })
+              // signerZero.request({ method: 'wallet_getCapabilities', params: [] })
             }}>
               {formatNumberShort(prsmBalance)} PRSM
             </a>

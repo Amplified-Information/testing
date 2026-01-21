@@ -10,6 +10,7 @@ import './i18n/i18n'
 import PopupAllowance from './components/PopupAllowance'
 import PopupTradePanel from './components/PopupTradePanel'
 import DustParticles from './components/DustParticles'
+import UserPortfolio from './components/UserPortfolio'
 
 const App = () => {
 
@@ -18,6 +19,7 @@ const App = () => {
   return (
     <>
       <MacroMetadata />
+      <UserPortfolio />
         
       <DustParticles />
       <Header />

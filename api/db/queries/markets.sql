@@ -9,7 +9,7 @@ LIMIT $1 OFFSET $2;
 
 -- name: CreateMarket :one
 INSERT INTO markets (market_id, net, statement, image_url, smart_contract_id, is_paused, created_at, resolved_at)
-VALUES ($1, $2, $3, $4, $5, TRUE, CURRENT_TIMESTAMP, NULL)
+VALUES ($1, $2, $3, $4, $5, FALSE, CURRENT_TIMESTAMP, NULL)
 RETURNING *;
 
 -- name: CountUnresolvedMarkets :one

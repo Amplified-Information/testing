@@ -45,3 +45,9 @@ config changes added support for return vals from smart contract creation
 
 0.2.16
 added a /health endpoint
+
+0.2.17
+user portfolio endpoints. Return priceUsd info from markets
+
+0.2.18
+support portfolio page

@@ -69,3 +69,13 @@ web - Update to web app - gRPC issues
 
 0.4.12
 web - resolve gPRC issues
+
+0.4.13
+web - user portfolio
+ 
+0.4.14
+web - added /portfolio page
+
+0.5.3
+web.uat - updated Dockerfile with password
+

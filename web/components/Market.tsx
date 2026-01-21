@@ -8,7 +8,7 @@ import Comments from './Comments'
 import { isValidUUIDv7 } from '../lib/utils'
 
 const Market = () => {
-  const { markets, setMarkets, setMarket, setMarketId, setShowPopupTradePanel } = useAppContext()
+  const { markets, setMarkets, setMarket, setMarketId, setShowPopupTradePanel, userPortfolio, usdcNdecimals } = useAppContext()
   const [ bidUsd, setBidUsd ] = useState<number>(0.00)
   const [ askUsd, setAskUsd ] = useState<number>(0.00)
   const { marketId } = useParams()
@@ -41,32 +41,59 @@ const Market = () => {
  
   return (
     <>
-      <div>
-        <MarketEndDate endDate="31/12/2025" />
+      <div className="max-w-3xl mx-auto bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <MarketEndDate endDate="31/12/2025" />
+          <span className="text-xs text-muted-foreground">marketId: {marketId}</span>
+        </div>
 
-        <i>"{markets.find(m => m.marketId === marketId)?.statement}"</i>
-        
-        <br/>
-        <button className="btn-primary" onClick={() => { setShowPopupTradePanel(true) }}>Bet now ${ ((bidUsd + askUsd) / 2).toFixed(2) }</button>
-        <br/>
-        <br/>
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1">
         <img
+          className="rounded-lg w-full h-64 object-cover border border-zinc-200 dark:border-zinc-800 shadow"
           src={
             markets.find(m => m.marketId === marketId)?.imageUrl?.trim()
-              ? markets.find(m => m.marketId === marketId)!.imageUrl
-              : `${window.location.origin}/640_480.png`
+          ? markets.find(m => m.marketId === marketId)!.imageUrl
+          : `${window.location.origin}/640_480.png`
           }
+          alt="Market"
         />
-
-        <span className="block text-xs text-muted-foreground mt-1">marketId: {marketId}</span>
-
-        <br/>
-        <span style={{ width: 640, height: 480 }}>
-          <GraphPrice marketId={marketId!} />
-        </span>
-        <GraphOrderbook marketId={marketId!} />
-
-        <Comments marketId={marketId!} />
+        <div className="mt-4 text-lg font-semibold text-zinc-800 dark:text-zinc-100 italic">
+          "{markets.find(m => m.marketId === marketId)?.statement}"
+        </div>
+        <div className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          My positions:
+          <br/>
+          <span className="ml-2 font-bold text-green-600 dark:text-green-400">
+            Yes ${(Number(userPortfolio.positions[marketId!]?.yes) / (10 ** usdcNdecimals)).toFixed(2)}
+          </span>
+          <span className="ml-4 font-bold text-red-600 dark:text-red-400">
+            No ${(Number(userPortfolio.positions[marketId!]?.no) / (10 ** usdcNdecimals)).toFixed(2)}
+          </span>
+        </div>
+        <button
+          className="mt-6 w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow transition-all duration-200 text-lg"
+          onClick={() => { setShowPopupTradePanel(true) }}
+        >
+          Bet now ${ ((bidUsd + askUsd) / 2).toFixed(2) }
+        </button>
+          </div>
+          <div className="flex-1 flex flex-col gap-4">
+        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <span className="block text-sm font-semibold mb-2 text-zinc-700 dark:text-zinc-200">Price Chart</span>
+          <div style={{ width: '100%', height: 240 }}>
+            <GraphPrice marketId={marketId!} />
+          </div>
+        </div>
+        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <span className="block text-sm font-semibold mb-2 text-zinc-700 dark:text-zinc-200">Order Book</span>
+          <GraphOrderbook marketId={marketId!} />
+        </div>
+          </div>
+        </div>
+        <div className="mt-8">
+          <Comments marketId={marketId!} />
+        </div>
       </div>
     </>
   )

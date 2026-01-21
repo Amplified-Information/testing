@@ -352,23 +352,30 @@ output "install_data" {
   value = <<-EOF
 #!/bin/bash
 
+# this maps to /dev/xvdf
+DEVICE="/dev/nvme1n1"
+
+# journal recovery, if needed
+fsck $DEVICE
+
+# Check if volume is formatted; format only if needed (i.e. only format on first boot, not on reboots)
+if ! file -s $DEVICE | grep -q "filesystem"; then
+  mkfs -t ext4 $DEVICE
+fi
+
 # prepare mount point for postgres data volume
 mkdir -p /mnt/external
 
-# Check if volume is formatted; format only if needed (i.e. only format on first boot, not on reboots)
-if ! file -s /dev/xvdf | grep -q "filesystem"; then
-  mkfs -t ext4 /dev/xvdf
-fi
-
 # Add to fstab if not present (auto-mount on reboots)
-grep -q "/dev/xvdf" /etc/fstab || echo "/dev/xvdf /mnt/external ext4 defaults,nofail 0 2" >> /etc/fstab
+grep -q "$DEVICE" /etc/fstab || echo "$DEVICE /mnt/external ext4 defaults,nofail 0 2" >> /etc/fstab
 
 # Now mount all:
 mount -a
 
-# internal user needs access to the /mnt/external area
 mkdir -p /mnt/external/postgresdata
-chown -R internal:internal /mnt/external
+# N.B. must give permission to the 999/systemd-journal user!
+sudo chown -R 999:999 /mnt/external/postgresdata
+
 EOF
 }
 

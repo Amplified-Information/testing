@@ -1,12 +1,12 @@
 # cd prism/proxy
-# export VERSION=0.1.7
+# export VERSION=0.1.11
 # cat ../docker-compose-proxy.yml | grep image:
 # docker build -t ghcr.io/prismmarketlabs/proxy:$VERSION .
 # docker push ghcr.io/prismmarketlabs/proxy:$VERSION
 #
 # When everything is inside a container
 # source loadEnv.sh local
-# docker run -p 8090:8090 -p 9901:9901 -e IS_BASIC_AUTH_DISABLED=${IS_BASIC_AUTH_DISABLED} -e ENVOY_HOST_CLOB=${ENVOY_HOST_CLOB} -e ENVOY_HOST_API=${ENVOY_HOST_API} -e ENVOY_HOST_WEB=${ENVOY_HOST_WEB} -e HTACCESS_STR=${HTACCESS_STR} ghcr.io/prismmarketlabs/proxy:$VERSION
+# docker run -p 8090:8090 -p 9901:9901 -e ENVOY_HOST_CLOB=${ENVOY_HOST_CLOB} -e ENVOY_HOST_API=${ENVOY_HOST_API} -e ENVOY_HOST_WEB=${ENVOY_HOST_WEB} ghcr.io/prismmarketlabs/proxy:$VERSION
 #
 # When clob, api, web are all on localhost when running locally:
 # source loadEnv.sh local2
@@ -23,7 +23,6 @@ RUN apt-get update && apt-get install -y gettext && rm -rf /var/lib/apt/lists/*
 # - ${ENVOY_HOST_CLOB}
 # - ${ENVOY_HOST_API}
 # - ${ENVOY_HOST_WEB}
-# - ${HTACCESS_STR}
 
 # Copy template and entrypoint
 COPY envoy.tmpl.yaml /etc/envoy/envoy.tmpl.yaml

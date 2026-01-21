@@ -28,6 +28,7 @@ type server struct {
 	commentsService   services.CommentsService
 	newsletterService services.NewsletterService
 	positionsService  services.PositionsService
+	priceService      services.PriceService
 	// don't forget to register in RegisterApiServiceServer grpc call in main()
 }
 
@@ -89,9 +90,9 @@ func (s *server) NewsLetter(ctx context.Context, req *pb_api.NewsLetterRequest) 
 	return newsletterResp, err
 }
 
-func (s *server) UserPosition(ctx context.Context, req *pb_api.UserPositionRequest) (*pb_api.UserPositionResponse, error) {
-	positionResp, err := s.positionsService.GetUserPosition(req)
-	return positionResp, err
+func (s *server) GetUserPortfolio(ctx context.Context, req *pb_api.UserPortfolioRequest) (*pb_api.UserPortfolioResponse, error) {
+	userPortfolioResponse, err := s.positionsService.GetUserPortfolio(req)
+	return userPortfolioResponse, err
 }
 
 func (s *server) TriggerRecreateClob(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
@@ -198,9 +199,16 @@ func main() {
 	}
 	// TODO: defer hederaService cleanup
 
+	// initialize price service
+	priceService := services.PriceService{}
+	err = priceService.InitPriceService(&dbRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize Price service: %v", err)
+	}
+
 	// initialize Markets service
 	marketsService := services.MarketService{}
-	err = marketsService.Init(&dbRepository, &hederaService)
+	err = marketsService.Init(&dbRepository, &hederaService, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Markets service: %v", err)
 	}
@@ -221,7 +229,7 @@ func main() {
 
 	// initialize Positions service
 	positionsService := services.PositionsService{}
-	err = positionsService.Init()
+	err = positionsService.Init(&dbRepository, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Positions service: %v", err)
 	}
@@ -240,13 +248,6 @@ func main() {
 	prismService := services.Prism{}
 	prismService.InitPrism(&dbRepository, &natsService, &hederaService, &marketsService)
 	// TODO: defer prismService cleanup
-
-	// initialize price service
-	priceService := services.PriceService{}
-	err = priceService.InitPriceService(&dbRepository)
-	if err != nil {
-		log.Fatalf("Failed to initialize Price service: %v", err)
-	}
 
 	// Now start gRPC service
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("API_SELF_HOST"), os.Getenv("API_SELF_PORT")))
@@ -267,6 +268,7 @@ func main() {
 		commentsService:   commentsService,
 		newsletterService: newsletterService,
 		positionsService:  positionsService,
+		priceService:      priceService,
 	}
 	// must pass the grpc server to bother internal and the public servers!
 	pb_api.RegisterApiServiceInternalServer(grpcServer, sharedServer)

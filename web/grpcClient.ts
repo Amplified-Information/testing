@@ -4,11 +4,14 @@ import { ApiServicePublicClient } from './gen/api.client'
 
 const transport = new GrpcWebFetchTransport({
   // baseUrl: 'http://127.0.0.1:8080',
-  // baseUrl: 'https://dev.prism.market:443', // https => grpc-web
-  baseUrl: '/',
+  baseUrl: 'https://dev.prism.market:443', // https => grpc-web
+  // baseUrl: '/', // access via the proxy on port 8090
+  
+  fetchInit: { credentials: 'include' }
+
   // fetchInit: { credentials: 'include' }
   // withCredentials: true, // improbable - https://github.com/improbable-eng/grpc-web/blob/master/client/grpc-web/docs/transport.md
-  fetchInit: { credentials: 'include' }
+  
 
   // maxReceiveMessageLength: 10485760, // 10MB
   

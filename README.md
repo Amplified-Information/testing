@@ -21,11 +21,19 @@ To develop the application locally, edit `grpcClient.ts` and set the baseUrl to 
 
 `baseUrl: 'https://dev.prism.market:443'`
 
+Install dependencies:
+
+`npm i`
+
+Generate TypeScript interfaces:
+
 `npm run gen`
+
+Run the web app (vite):
 
 `npm run dev`
 
-Open the application at:
+You can now open the application at:
 
 `localhost:5173`
 
@@ -99,6 +107,9 @@ ssh-add ~/Desktop/prod.pem
 export HOST=ec2-44-222-140-176.compute-1.amazonaws.com # retrieve from the AWS EC2 web UI
 ssh -A -L 9999:10.0.1.12:5432 -N admin@$HOST
 ```
+Use the VSCode plugin called "Database Client"
+
+![Database Client plugin](resources/db.png)
 
 ## yaak/Postman
 
@@ -250,10 +261,10 @@ On your local machine, pull the image you want to tag:
 
 ```bash
 # first set these three env vars:
-export IMAGE_SRC=ghcr.io/prismmarketlabs/web.eng
-export IMAGE_DST=ghcr.io/prismmarketlabs/web
+export IMAGE_SRC=ghcr.io/prismmarketlabs/web # web.eng
+export IMAGE_DST=$IMAGE_SRC # ghcr.io/prismmarketlabs/web
 # note: it is comment for IMAGE_SRC and IMAGE_DST to be the same
-export VER_SRC=...
+export VER_SRC=latest # or, a specific tag
 export VER_DST=0.1.1
 
 

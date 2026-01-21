@@ -17,12 +17,10 @@ service ApiServicePublic {
   rpc GetMarkets(LimitOffsetRequest) returns (MarketsResponse);
   rpc CreateMarket(CreateMarketRequest) returns (CreateMarketResponse);
   rpc PriceHistory(PriceHistoryRequest) returns (PriceHistoryResponse);
-  // rpc AvailableNetworks(Empty) returns (StdResponse);
   rpc MacroMetadata(Empty) returns (MacroMetadataResponse); // general market data - volume, nMarkets, TVL, liquidity, etc.
   rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
   rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse);
-  rpc UserPosition(UserPositionRequest) returns (UserPositionResponse);
-  // rpc UserPortfolio() returns (); portfolio - all of user's holidings accross all marketIds that they participate in
+  rpc GetUserPortfolio(UserPortfolioRequest) returns (UserPortfolioResponse);
   // rpc CancelPosition ticket#6
 }
 
@@ -71,15 +69,20 @@ message NewsLetterRequest {
   string email = 1 [json_name = "email", (validate.rules).string = {email: true}];
 }
 
-message UserPositionRequest {
-  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
-  string net = 2          [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
-  string evm_address = 3  [json_name = "evmAddress",  (validate.rules).string = {pattern: "^[0-9a-fA-F]{40}$"} /* 20-byte (40 hex chars) EVM address (no 0x prefix) */];
+message UserPortfolioRequest {
+  string evm_address = 1           [json_name = "evmAddress",  (validate.rules).string = {pattern: "^[0-9a-fA-F]{40}$"} /* 20-byte (40 hex chars) EVM address (no 0x prefix) */];
+  string net = 2                   [json_name = "net",         (validate.rules).string = {in: ["mainnet", "testnet", "previewnet"]} /* Hedera network */];
+  optional string market_id = 3    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
 }
-
-message UserPositionResponse {
-  uint64 yes = 1       [json_name = "yes"];
-  uint64 no = 2        [json_name = "no"];
+message Position {
+  uint64 yes = 1              [json_name = "yes"];
+  uint64 no = 2               [json_name = "no"];
+  float price_usd = 3         [json_name = "priceUsd"];
+  bool is_paused = 4          [json_name = "isPaused"];
+  string resolved_at = 5      [json_name = "resolvedAt"];
+}
+message UserPortfolioResponse {
+  map<string, Position> positions = 1   [json_name = "positions"];
 }
 
 message MarketIdRequest {
@@ -99,6 +102,7 @@ message MarketResponse {
   string created_at = 5   [json_name = "createdAt"];
   string resolved_at = 6  [json_name = "resolvedAt"];
   string image_url = 7    [json_name = "imageUrl"];
+  float price_usd = 8     [json_name = "priceUsd"];
 }
 
 message CreateMarketResponse {

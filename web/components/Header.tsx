@@ -111,6 +111,7 @@ const Header = () => {
 
         {/* Links + Wallet - desktop */}
         <nav className="desktop-nav mr-8">
+          <a className="nav-link" onClick={() => { navigate('/portfolio')} }>Portfolio</a>
           <a className="nav-link" onClick={() => { navigate('/explore')} }>Explore</a>
           <a className="nav-link" onClick={() => { navigate('/create')} }>Create</a>
           <SelectLang />
@@ -158,6 +159,7 @@ const Header = () => {
             </div>
             <a className="mobile-nav-link" onClick={() => { setMenuOpen(false); navigate('/explore')} }>Explore</a>
             <a className="mobile-nav-link" onClick={() => { setMenuOpen(false); navigate('/create')} }>Create</a>
+            <a className="mobile-nav-link" onClick={() => { setMenuOpen(false); navigate('/portfolio')} }>Portfolio</a>
           </nav>
         )}
       </header>

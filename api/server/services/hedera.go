@@ -389,22 +389,21 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	nNoTokens2 := new(big.Int).SetBytes(record.CallResult.GetUint256(3))
 
 	log.Printf("Token balances (marketId=%s): %s (yes=%s, no=%s) |  %s (yes=%s, no=%s)", sideYes.MarketId /* yes===no*/, sideYes.EvmAddress, nYesTokens.String(), nNoTokens.String(), sideNo.EvmAddress, nYesTokens2.String(), nNoTokens2.String())
-	// TODO - log these to database
 
 	log.Printf("buyPositionTokensOnBehalfAtomic(marketId=%s, ...) status: %s", sideYes.MarketId, receipt.Status.String())
 
 	/////
 	// db
-	// - Record the tx on the database (auditing)
-	// - record the price on the price table
-	// - record the YES/NO balances
+	// - 1. Record the tx on the database (auditing)
+	// - 2. record the price on the price table
+	// - 3. record the YES/NO balances
 	/////
 
 	if h.dbRepository == nil {
 		return false, fmt.Errorf("dbRepository is not initialized")
 	}
 
-	// record the successful on-chain settlement
+	// 1. record the successful on-chain settlement
 	txHash := receipt.TransactionID.String()
 	log.Printf("TransactionID (txHash) for successful settlement: %s", txHash)
 	err = h.dbRepository.CreateSettlement(sideYes.TxId, sideNo.TxId, txHash)
@@ -412,7 +411,7 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 		return false, fmt.Errorf("Error logging a successful tx to settlements table: %v", err)
 	}
 
-	// record the price
+	// 2. record the price
 	err = h.dbRepository.SavePriceHistory(sideYes.MarketId, sideYes.TxId, sideYes.PriceUsd) // TODO - check this
 	if err != nil {
 		return false, fmt.Errorf("Error saving price history for market %s: %v", sideYes.MarketId, err)
@@ -423,6 +422,17 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	// 	return false, fmt.Errorf("Error saving price history for market %s: %v", sideNo.MarketId, err)
 	// }
 
+	// 3. record the YES/NO balances
+	resultYes, err := h.dbRepository.UpsertUserPositions(sideYes.EvmAddress, sideYes.MarketId, nYesTokens.Int64(), nNoTokens.Int64())
+	if err != nil {
+		return false, fmt.Errorf("Error upserting user position tokens for %s on market %s: %v", sideYes.EvmAddress, sideYes.MarketId, err)
+	}
+	fmt.Printf("In marketId=%s, user with evmAddress=%s, has nYes=%d | nNo=%d\n", resultYes.MarketID, resultYes.EvmAddress, resultYes.NYes, resultYes.NNo)
+	resultNo, err := h.dbRepository.UpsertUserPositions(sideNo.EvmAddress, sideNo.MarketId, nYesTokens2.Int64(), nNoTokens2.Int64())
+	if err != nil {
+		return false, fmt.Errorf("Error upserting user position tokens for %s on market %s: %v", sideNo.EvmAddress, sideNo.MarketId, err)
+	}
+	fmt.Printf("In marketId=%s, user with evmAddress=%s, has nYes=%d | nNo=%d\n", resultNo.MarketID, resultNo.EvmAddress, resultNo.NYes, resultNo.NNo)
 	// if we get here, return true
 	return true, nil
 }

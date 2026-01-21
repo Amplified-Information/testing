@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from 'react'
 import { BookSnapshot } from './gen/clob'
 import { LedgerId } from '@hiero-ledger/sdk'
 import { DAppConnector, DAppSigner } from '@hashgraph/hedera-wallet-connect'
-import { MarketResponse } from './gen/api'
+import { MarketResponse, UserPortfolioResponse } from './gen/api'
 import { UserAccountInfo } from './types'
 
 // 1. Define a type for your context
@@ -23,7 +23,9 @@ interface AppContextType {
   setSpenderAllowanceUsd: React.Dispatch<React.SetStateAction<number>>
   userAccountInfo: UserAccountInfo | undefined
   setUserAccountInfo: React.Dispatch<React.SetStateAction<UserAccountInfo | undefined>>
-  
+  userPortfolio: UserPortfolioResponse
+  setUserPortfolio: React.Dispatch<React.SetStateAction<UserPortfolioResponse>>
+
   availableNetworks: LedgerId[]
   setAvailableNetworks: React.Dispatch<React.SetStateAction<LedgerId[]>>
   smartContractIds: {[key: string]: string }
@@ -79,7 +81,8 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [book, setBook] = useState<BookSnapshot>({ bids: [], asks: [] })
   const [spenderAllowanceUsd, setSpenderAllowanceUsd] = useState<number>(0)
   const [userAccountInfo, setUserAccountInfo] = useState<UserAccountInfo | undefined>(undefined)
-  
+  const [userPortfolio, setUserPortfolio] = useState<UserPortfolioResponse>({ positions: {} })
+
   const [availableNetworks, setAvailableNetworks] = useState<LedgerId[]>([])
   const [smartContractIds, setSmartContractIds] = useState<{[key: string]: string }>({})
   const [usdcTokenIds, setUsdcTokenIds] = useState<{[key: string]: string }>({})
@@ -117,6 +120,8 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setSpenderAllowanceUsd,
         userAccountInfo,
         setUserAccountInfo,
+        userPortfolio,
+        setUserPortfolio,
 
         availableNetworks,
         setAvailableNetworks,

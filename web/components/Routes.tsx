@@ -4,6 +4,7 @@ import Market from './Market'
 import Admin from './Admin'
 import Explore from './Explore'
 import CreateMarket from './CreateMarket'
+import Portfolio from './Portfolio'
 
 const Routes = () => {
   return (
@@ -14,6 +15,7 @@ const Routes = () => {
         <Route path='/create' element={<CreateMarket />} />
         <Route path='/explore' element={<Explore />} />
         <Route path='/admin' element={<Admin />} />
+        <Route path='/portfolio' element={<Portfolio />} />
       </Routing>
     </div>
   )
