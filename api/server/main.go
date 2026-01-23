@@ -20,15 +20,20 @@ type server struct {
 	pb_api.UnimplementedApiServiceInternalServer
 	pb_api.UnimplementedApiServicePublicServer
 
-	dbRepository repositories.DbRepository
+	commentsRepository  repositories.CommentsRepository
+	dbRepository        repositories.DbRepository
+	marketsRepository   repositories.MarketsRepository
+	positionsRepository repositories.PositionsRepository
+	priceRepository     repositories.PriceRepository
 
-	prismService      services.Prism
-	natsService       services.NatsService
-	marketsService    services.MarketService
-	commentsService   services.CommentsService
-	newsletterService services.NewsletterService
-	positionsService  services.PositionsService
-	priceService      services.PriceService
+	prismService            services.Prism
+	natsService             services.NatsService
+	marketsService          services.MarketService
+	commentsService         services.CommentsService
+	newsletterService       services.NewsletterService
+	positionsService        services.PositionsService
+	priceService            services.PriceService
+	predictionIntentService services.PredictionIntentService
 	// don't forget to register in RegisterApiServiceServer grpc call in main()
 }
 
@@ -38,12 +43,12 @@ func (s *server) Health(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResp
 	}, nil
 }
 
-func (s *server) PredictIntent(ctx context.Context, req *pb_api.PredictionIntentRequest) (*pb_api.StdResponse, error) {
+func (s *server) CreatePredictionIntent(ctx context.Context, req *pb_api.PredictionIntentRequest) (*pb_api.StdResponse, error) {
 	if err := req.ValidateAll(); err != nil { // PGV validation
 		return &pb_api.StdResponse{Message: fmt.Sprintf("Invalid request: %v", err)}, err
 	}
 
-	response, err := s.prismService.SubmitPredictionIntent(req)
+	response, err := s.predictionIntentService.CreatePredictionIntent(req)
 
 	return &pb_api.StdResponse{
 		Message: response,
@@ -109,6 +114,11 @@ func (s *server) TriggerRecreateClob(ctx context.Context, req *pb_api.Empty) (*p
 	}, err
 }
 
+func (s *server) CancelPredictionIntent(ctx context.Context, req *pb_api.CancelOrderRequest) (*pb_api.StdResponse, error) {
+	cancelResp, err := s.predictionIntentService.CancelPredictionIntent(req)
+	return cancelResp, err
+}
+
 func main() {
 	// check env vars are available (.config.ENV and .secrets.ENV are loaded):
 	vars := []string{
@@ -172,7 +182,7 @@ func main() {
 	}
 
 	if len(missing) > 0 {
-		log.Fatalf("missing required database environment variables: %v", missing)
+		log.Fatalf("Missing required environment variables: %v", missing)
 	}
 
 	var err error
@@ -181,6 +191,13 @@ func main() {
 	// data layer
 	/////
 	// initialize database
+	commentsRepository := repositories.CommentsRepository{}
+	err = commentsRepository.InitDb()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer commentsRepository.CloseDb()
+
 	dbRepository := repositories.DbRepository{}
 	err = dbRepository.InitDb()
 	if err != nil {
@@ -188,12 +205,33 @@ func main() {
 	}
 	defer dbRepository.CloseDb()
 
+	marketsRepository := repositories.MarketsRepository{}
+	err = marketsRepository.InitDb()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer marketsRepository.CloseDb()
+
+	positionsRepository := repositories.PositionsRepository{}
+	err = positionsRepository.InitDb()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer positionsRepository.CloseDb()
+
+	priceRepository := repositories.PriceRepository{}
+	err = priceRepository.InitDb()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer priceRepository.CloseDb()
+
 	/////
 	// service layer
 	/////
 	// initialize Hedera service
 	hederaService := services.HederaService{}
-	err = hederaService.InitHedera(&dbRepository)
+	err = hederaService.InitHedera(&dbRepository, &priceRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Hedera service: %v", err)
 	}
@@ -201,21 +239,21 @@ func main() {
 
 	// initialize price service
 	priceService := services.PriceService{}
-	err = priceService.InitPriceService(&dbRepository)
+	err = priceService.InitPriceService(&priceRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Price service: %v", err)
 	}
 
 	// initialize Markets service
 	marketsService := services.MarketService{}
-	err = marketsService.Init(&dbRepository, &hederaService, &priceService)
+	err = marketsService.Init(&marketsRepository, &hederaService, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Markets service: %v", err)
 	}
 
 	// initialize Comments service
 	commentsService := services.CommentsService{}
-	err = commentsService.Init(&dbRepository)
+	err = commentsService.Init(&commentsRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Comments service: %v", err)
 	}
@@ -229,7 +267,7 @@ func main() {
 
 	// initialize Positions service
 	positionsService := services.PositionsService{}
-	err = positionsService.Init(&dbRepository, &priceService)
+	err = positionsService.Init(&positionsRepository, &marketsRepository, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Positions service: %v", err)
 	}
@@ -244,9 +282,16 @@ func main() {
 	// NATS start listening for matches
 	natsService.HandleOrderMatches()
 
+	// initialize PredictionIntent service
+	predictionIntentService := services.PredictionIntentService{}
+	err = predictionIntentService.Init(&dbRepository, &marketsRepository, &natsService, &hederaService)
+	if err != nil {
+		log.Fatalf("Failed to initialize PredictionIntent service: %v", err)
+	}
+
 	// initialize prism service
 	prismService := services.Prism{}
-	prismService.InitPrism(&dbRepository, &natsService, &hederaService, &marketsService)
+	prismService.InitPrism(&dbRepository, &marketsRepository, &natsService, &hederaService, &marketsService)
 	// TODO: defer prismService cleanup
 
 	// Now start gRPC service
@@ -261,14 +306,20 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	sharedServer := &server{
-		dbRepository:      dbRepository,
-		prismService:      prismService,
-		natsService:       natsService,
-		marketsService:    marketsService,
-		commentsService:   commentsService,
-		newsletterService: newsletterService,
-		positionsService:  positionsService,
-		priceService:      priceService,
+		commentsRepository:  commentsRepository,
+		dbRepository:        dbRepository,
+		marketsRepository:   marketsRepository,
+		positionsRepository: positionsRepository,
+		priceRepository:     priceRepository,
+
+		prismService:            prismService,
+		natsService:             natsService,
+		marketsService:          marketsService,
+		commentsService:         commentsService,
+		newsletterService:       newsletterService,
+		positionsService:        positionsService,
+		priceService:            priceService,
+		predictionIntentService: predictionIntentService,
 	}
 	// must pass the grpc server to bother internal and the public servers!
 	pb_api.RegisterApiServiceInternalServer(grpcServer, sharedServer)

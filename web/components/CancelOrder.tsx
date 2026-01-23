@@ -1,8 +1,11 @@
-const CancelOrder = ({txId}: {txId: string}) => {
+import { apiClient } from '../grpcClient'
+
+const CancelOrder = ({marketId, txId}: {marketId: string, txId: string}) => {
   return (
-    <button onClick={() => {
+    <button onClick={async () => {
       console.log(`cancel txid = ${txId}`)
-      // API call - db log
+      const result = await apiClient.cancelPredictionIntent({marketId, txId})
+      console.log('CancelOrder result:', result.response)
     }}>X</button>
   )
 }

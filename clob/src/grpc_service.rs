@@ -20,6 +20,13 @@ impl ClobService {
     }
 }
 
+// TODO - will want to remove ClobInternal completely
+// --> enable Jetstream (durable consumer, ack, idempotent processing, message de-duplication)
+// ack - API fires a message, a restarting CLOB will re-process any unacked messages
+// idempotent processing - CLOB tracks processed message IDs to avoid duplicates
+// message de-duplication - NATS Jetstream can be configured to drop duplicate messages based on IDs
+// persistence + logging - Jetstream persists messages to disk, CLOB logs processing results for auditing
+// all message payloads on NATS should conform to protobuf definitions
 #[tonic::async_trait]
 impl ClobInternal for ClobService {
     async fn create_order(
@@ -64,6 +71,51 @@ impl ClobInternal for ClobService {
         };
 
         Ok(Response::new(response))
+    }
+
+    async fn cancel_order(
+        &self,
+        request: Request<crate::orderbook::proto::CancelOrderRequest>,
+    ) -> Result<Response<crate::orderbook::proto::StdResponse>, Status> {
+        let inner = request.into_inner();
+
+        let result = self.order_book_service.cancel_order(&inner.market_id, &inner.tx_id).await;
+
+        match result {
+            Ok(success) if success => (),
+            _ => {
+                log::error!("Failed to cancel order");
+                return Err(Status::internal(format!("WARN: could not cancel order for market {}", inner.market_id)));
+            }
+        }
+        let response = crate::orderbook::proto::StdResponse {
+            message: "success".to_string(),
+            error_code: 0,
+        };
+
+        Ok(Response::new(response))
+    }
+
+    async fn get_orders_for_user(
+        &self,
+        request: Request<crate::orderbook::proto::UserRequest>,
+    ) -> Result<Response<crate::orderbook::proto::OrdersForUserResponse>, Status> {
+        let inner = request.into_inner();
+
+        let result = self.order_book_service.get_orders_for_user(&inner.evm_address).await;
+
+        match result {
+            Ok(orders) => {
+                let response = crate::orderbook::proto::OrdersForUserResponse {
+                    open_orders: orders,
+                };
+                Ok(Response::new(response))
+            },
+            Err(e) => {
+                log::error!("Failed to get orders for user {}: {}", inner.evm_address, e);
+                Err(Status::internal(e.to_string()))
+            }
+        }
     }
 }
 

@@ -4,8 +4,8 @@ import { ApiServicePublicClient } from './gen/api.client'
 
 const transport = new GrpcWebFetchTransport({
   // baseUrl: 'http://127.0.0.1:8080',
-  baseUrl: 'https://dev.prism.market:443', // https => grpc-web
-  // baseUrl: '/', // access via the proxy on port 8090
+  // baseUrl: 'https://dev.prism.market:443', // https => grpc-web
+  baseUrl: '/', // access via the proxy on port 8090
   
   fetchInit: { credentials: 'include' }
 

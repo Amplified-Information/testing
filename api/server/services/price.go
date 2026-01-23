@@ -2,24 +2,24 @@ package services
 
 import (
 	repositories "api/server/repositories"
+	"log"
 	"strconv"
 )
 
 type PriceService struct {
-	dbRepository *repositories.DbRepository
+	priceRepository *repositories.PriceRepository
 }
 
-func (p *PriceService) InitPriceService(d *repositories.DbRepository) error {
+func (ps *PriceService) InitPriceService(d *repositories.PriceRepository) error {
 	// inject the DbService:
-	p.dbRepository = d
+	ps.priceRepository = d
 
-	// TODO - implement
-
+	log.Printf("Service: Price service initialized successfully")
 	return nil
 }
 
-func (p *PriceService) GetLatestPriceByMarket(marketId string) (float32, error) {
-	priceSafeNumeric, err := p.dbRepository.GetLatestPriceByMarket(marketId)
+func (ps *PriceService) GetLatestPriceByMarket(marketId string) (float32, error) {
+	priceSafeNumeric, err := ps.priceRepository.GetLatestPriceByMarket(marketId)
 	if err != nil {
 		return 0.0, err
 	}

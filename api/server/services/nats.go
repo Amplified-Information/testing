@@ -35,7 +35,7 @@ func (n *NatsService) InitNATS(h *HederaService, d *repositories.DbRepository) e
 	// and inject the DbService:
 	n.dbRepository = d
 
-	log.Println("NATS service initialized successfully")
+	log.Println("Service: NATS service initialized successfully")
 	return nil
 }
 

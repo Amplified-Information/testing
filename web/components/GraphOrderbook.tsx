@@ -67,7 +67,7 @@ const GraphOrderBook = ({ marketId }: { marketId: string }) => {
           <li key={`ask-${idx}`}>
             <span style={{ color: 'red' }}>
               ${(0 - ask.priceUsd).toFixed(4)} &mdash; {ask.qty.toFixed(2)}</span>
-              &nbsp;{ask.accountId === signerZero?.getAccountId().toString() ? <CancelOrder txId={ask.txId} /> : ''}
+              &nbsp;{ask.accountId === signerZero?.getAccountId().toString() ? <CancelOrder marketId={marketId} txId={ask.txId} /> : ''}
           </li>
         ))}
         --- mid-price: {typeof getMidPrice(book) === 'undefined' ? 'N/A' : getMidPrice(book)!.toFixed(4)}, spread: {typeof getSpreadPercent(book) === 'undefined' ? 'N/A' : getSpreadPercent(book)!.toFixed(2)}% ---
@@ -75,7 +75,7 @@ const GraphOrderBook = ({ marketId }: { marketId: string }) => {
           <li key={`bid-${idx}`}>
             <span style={{ color: 'green' }}>
             ${bid.priceUsd.toFixed(4)} &mdash; {bid.qty.toFixed(2)}</span>
-            &nbsp;{bid.accountId === signerZero?.getAccountId().toString() ? <CancelOrder txId={bid.txId} /> : ''}
+            &nbsp;{bid.accountId === signerZero?.getAccountId().toString() ? <CancelOrder marketId={marketId} txId={bid.txId} /> : ''}
           </li>
         ))}
 

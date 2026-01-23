@@ -22,29 +22,31 @@ import (
 )
 
 type HederaService struct {
-	hedera_clients map[string]*hiero.Client // look up based on 'previewnet', 'testnet', 'mainnet'
-	dbRepository   *repositories.DbRepository
+	hedera_clients  map[string]*hiero.Client // look up based on 'previewnet', 'testnet', 'mainnet'
+	dbRepository    *repositories.DbRepository
+	priceRepository *repositories.PriceRepository
 }
 
-func (h *HederaService) InitHedera(dbRepository *repositories.DbRepository) error {
-	h.dbRepository = dbRepository
+func (hs *HederaService) InitHedera(dbRepository *repositories.DbRepository, priceRepository *repositories.PriceRepository) error {
+	hs.dbRepository = dbRepository
+	hs.priceRepository = priceRepository
 
 	// First initialize the map to avoid nil map assignment
-	h.hedera_clients = make(map[string]*hiero.Client)
+	hs.hedera_clients = make(map[string]*hiero.Client)
 
 	var err error
 
-	h.hedera_clients["previewnet"], err = h.initHederaNet("previewnet")
+	hs.hedera_clients["previewnet"], err = hs.initHederaNet("previewnet")
 	if err != nil {
 		return err
 	}
 
-	h.hedera_clients["mainnet"], err = h.initHederaNet("mainnet")
+	hs.hedera_clients["mainnet"], err = hs.initHederaNet("mainnet")
 	if err != nil {
 		return err
 	}
 
-	h.hedera_clients["testnet"], err = h.initHederaNet("testnet")
+	hs.hedera_clients["testnet"], err = hs.initHederaNet("testnet")
 	if err != nil {
 		return err
 	}
@@ -52,7 +54,7 @@ func (h *HederaService) InitHedera(dbRepository *repositories.DbRepository) erro
 	return nil
 }
 
-func (h *HederaService) initHederaNet(networkSelected string) (*hiero.Client, error) {
+func (hs *HederaService) initHederaNet(networkSelected string) (*hiero.Client, error) {
 	operatorIdStr := os.Getenv(fmt.Sprintf("%s_HEDERA_OPERATOR_ID", strings.ToUpper(networkSelected)))
 	operatorKeyType := strings.ToUpper(os.Getenv(fmt.Sprintf("%s_HEDERA_OPERATOR_KEY_TYPE", strings.ToUpper(networkSelected))))
 
@@ -85,11 +87,11 @@ func (h *HederaService) initHederaNet(networkSelected string) (*hiero.Client, er
 
 	client.SetOperator(operatorId, operatorKey)
 
-	log.Printf("Hedera service (%s) initialized successfully", strings.ToUpper(networkSelected))
+	log.Printf("Service: Hedera service (%s) initialized successfully", strings.ToUpper(networkSelected))
 	return client, nil
 }
 
-func (h *HederaService) GetPublicKey(accountId hiero.AccountID, net string) (*hiero.PublicKey, lib.HederaKeyType, error) {
+func (hs *HederaService) GetPublicKey(accountId hiero.AccountID, net string) (*hiero.PublicKey, lib.HederaKeyType, error) {
 	keyType := lib.HederaKeyType(0)
 
 	// TODO... may get rate limited here...
@@ -412,7 +414,7 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	}
 
 	// 2. record the price
-	err = h.dbRepository.SavePriceHistory(sideYes.MarketId, sideYes.TxId, sideYes.PriceUsd) // TODO - check this
+	err = h.priceRepository.SavePriceHistory(sideYes.MarketId, sideYes.TxId, sideYes.PriceUsd) // TODO - check this
 	if err != nil {
 		return false, fmt.Errorf("Error saving price history for market %s: %v", sideYes.MarketId, err)
 	}
@@ -454,6 +456,7 @@ func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) (uint64
 		return 0, fmt.Errorf("invalid smart contract ID: %v", err)
 	}
 
+	log.Printf("Creating a new market on Prism smart contract (%s)", contractID)
 	result, err := hiero.NewContractExecuteTransaction().
 		SetContractID(contractID).
 		SetGas(2_000_000). // TODO - can this be lowered?
@@ -463,10 +466,9 @@ func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) (uint64
 		return 0, fmt.Errorf("failed to execute contract: %v", err)
 	}
 
-	log.Printf("CreateNewMarket (txId=%s)", result.TransactionID.String())
-
 	record, err := result.GetRecord(h.hedera_clients[req.Net])
 	if err != nil {
+		log.Printf("CreateNewMarket - tx failed (could not get transaction record). Hedera txId = %s. %v", result.TransactionID.String(), err)
 		return 0, fmt.Errorf("failed to get transaction record: %v", err)
 	}
 

@@ -246,7 +246,7 @@ There is an **intentional separation** between **configuration** (`.config.ENV`)
 ## Release procedure
 
 1. tag the image
-2. update the VERSIONS file
+2. update the TAGS file
 3. update the docker-compose-<SERVICE>.<ENV>.yml file
 4. push the source code
 5. login to the box (via bastion) and refresh the running image
@@ -279,11 +279,11 @@ docker images | grep $IMAGE_DST
 docker push $IMAGE_DST:$VER_DST
 ```
 
-### 2. update the VERSIONS file
+### 2. update the TAGS file
 
 Update the VERSION file with a short description of the change
 
-*Note: never add a VERSIONS to web.eng*
+*Note: never add a TAGS to web.eng*
 
 
 ### 3. update the docker-compose-<SERVICE>.<ENV>.yml file

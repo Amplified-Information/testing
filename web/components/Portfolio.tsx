@@ -2,6 +2,7 @@ import { useAppContext } from '../AppProvider'
 
 const Portfolio = () => {
   const { userPortfolio, usdcNdecimals } = useAppContext()
+  
   return (
     <div>
       <h1>Portfolio</h1>

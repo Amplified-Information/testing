@@ -301,6 +301,9 @@ func CreateMarketOnClob(marketId string) error {
 	// (noauth on port 500051 - not thru the proxy)
 	// grpcurl -plaintext -import-path ./proto -proto ./proto/clob.proto -d '{"market_id":"0189c0a8-7e80-7e80-8000-000000000001","net":"testnet"}' $SERVER clob.Clob/AddMarket
 	//
+
+	// TODO - use NATS
+
 	clobAddr := os.Getenv("CLOB_HOST") + ":" + os.Getenv("CLOB_PORT")
 
 	conn, err := grpc.NewClient(clobAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))

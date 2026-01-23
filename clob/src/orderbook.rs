@@ -129,7 +129,64 @@ impl OrderBookService {
         } else {
             Err(format!("Market not found {}", market_id).into())
         }
-    }   
+    }
+
+    pub async fn cancel_order(&self, market_id: &str, tx_id: &str) -> Result<bool, Box<dyn std::error::Error>> {
+        // No guards for performance - assume validated upstream
+
+        let order_books = self.order_books.read().await;
+        if let Some(order_book) = order_books.get(&market_id.to_lowercase()) {
+            let mut book = order_book.write().await;
+
+            // Try to find and remove the order from buy orders
+            if let Some(pos) = book.buy_orders.iter().position(|o| o.tx_id == tx_id) {
+                book.buy_orders.remove(pos);
+
+                log::info!("Order with tx_id {} cancelled from buy orders in market {}", tx_id, market_id);
+                return Ok(true);
+            }
+
+            // Try to find and remove the order from sell orders
+            if let Some(pos) = book.sell_orders.iter().position(|o| o.tx_id == tx_id) {
+                book.sell_orders.remove(pos);
+
+                log::info!("Order with tx_id {} cancelled from sell orders in market {}", tx_id, market_id);
+                return Ok(true);
+            }
+
+            log::warn!("Order with tx_id {} not found in market {}", tx_id, market_id);
+            Ok(false)
+        } else {
+            Err("Market not found".into())
+        }
+    }
+
+    pub async fn get_orders_for_user(&self, evm_address: &str) -> Result<Vec<CreateOrderRequestClob>, Box<dyn std::error::Error>> {
+        // No guards for performance - assume validated upstream
+
+        let order_books = self.order_books.read().await;
+        let mut user_orders = Vec::new();
+
+        for (_market_id, order_book) in order_books.iter() {
+            let book = order_book.read().await;
+
+            // Check buy orders
+            for order in &book.buy_orders {
+                if order.account_id.eq_ignore_ascii_case(evm_address) {
+                    user_orders.push(order.clone());
+                }
+            }
+
+            // Check sell orders
+            for order in &book.sell_orders {
+                if order.account_id.eq_ignore_ascii_case(evm_address) {
+                    user_orders.push(order.clone());
+                }
+            }
+        }
+
+        Ok(user_orders)
+    }
 }
 
 #[derive(Debug)]

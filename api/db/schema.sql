@@ -41,6 +41,22 @@ CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA partman;
 COMMENT ON EXTENSION pg_partman IS 'Extension to manage partitioned tables by time or ID';
 
 
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: your_db_user
+--
+
+CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	NEW.updated_at = CURRENT_TIMESTAMP;
+	RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_updated_at_column() OWNER TO your_db_user;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -163,6 +179,7 @@ CREATE TABLE public.markets (
     resolved_at timestamp without time zone,
     image_url character varying(2048),
     smart_contract_id character varying(256) DEFAULT '0.0.0'::character varying NOT NULL,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT smart_contract_id_check CHECK (((length((smart_contract_id)::text) >= 5) AND ((smart_contract_id)::text ~~ '%.%.%'::text)))
 );
 
@@ -261,6 +278,8 @@ CREATE TABLE public.order_requests (
     keytype integer NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     generated_at timestamp without time zone NOT NULL,
+    cancelled_at timestamp without time zone,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT order_requests_account_id_check CHECK ((length(account_id) >= 5)),
     CONSTRAINT order_requests_evmaddress_check CHECK ((length(evmaddress) = 40)),
     CONSTRAINT order_requests_keytype_check CHECK ((keytype = ANY (ARRAY[1, 2, 3]))),
@@ -286,6 +305,7 @@ CREATE TABLE public.positions (
     n_yes bigint NOT NULL,
     n_no bigint NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP CONSTRAINT positions_created_at_not_null NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP CONSTRAINT positions_created_at_not_null1 NOT NULL,
     CONSTRAINT positions_account_id_check CHECK ((length(evm_address) >= 5)),
     CONSTRAINT positions_n_no_check CHECK ((n_no >= 0)),
     CONSTRAINT positions_n_yes_check CHECK ((n_yes >= 0))
@@ -611,6 +631,20 @@ ALTER INDEX public.price_history_market_id_ts_idx ATTACH PARTITION public.price_
 --
 
 ALTER INDEX public.price_history_pkey ATTACH PARTITION public.price_history_default_pkey;
+
+
+--
+-- Name: markets update_markets_updated_at; Type: TRIGGER; Schema: public; Owner: your_db_user
+--
+
+CREATE TRIGGER update_markets_updated_at BEFORE UPDATE ON public.markets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: order_requests update_order_requests_updated_at; Type: TRIGGER; Schema: public; Owner: your_db_user
+--
+
+CREATE TRIGGER update_order_requests_updated_at BEFORE UPDATE ON public.order_requests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --

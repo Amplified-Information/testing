@@ -138,17 +138,7 @@ static_resources:
                 - name: envoy.filters.http.cors # this must be high priority!
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
-                
-                # global basic auth - don't want this - want to apply more selective basic auth
-                # - name: envoy.filters.http.basic_auth
-                #   disabled: ${IS_BASIC_AUTH_DISABLED}
-                #   typed_config:
-                #     "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuth
-                #     users:
-                #       # generate with: `echo -n "<some_password>" | openssl dgst -binary -sha1 | openssl base64`. N.B. the {SHA} prefix is required
-                #       inline_string: |-
-                #         admin:{SHA}cb139wnHtEw+LxCG6hOFfbtg3Vs=
-                
+                # basic_auth would go here...
                 - name: envoy.filters.http.grpc_web
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb

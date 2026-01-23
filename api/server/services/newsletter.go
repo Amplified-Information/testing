@@ -18,7 +18,7 @@ func (n *NewsletterService) Init(d *repositories.DbRepository) error {
 	// and inject the DbService:
 	n.dbRepository = d
 
-	log.Printf("Newsletter service initialized successfully")
+	log.Printf("Service: Newsletter service initialized successfully")
 	return nil
 }
 

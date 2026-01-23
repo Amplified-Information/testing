@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	pb_api "api/gen"
 	pb_clob "api/gen/clob"
 	sqlc "api/gen/sqlc"
-	"api/server/lib"
 
 	"time"
 
@@ -45,7 +43,7 @@ func (dbRepository *DbRepository) InitDb() error {
 		return fmt.Errorf("failed to ping database: %v", err)
 	}
 
-	log.Println("Database connected successfully")
+	log.Println("DB: DbRepository connected successfully")
 	return nil
 }
 
@@ -63,7 +61,7 @@ func (dbRepository *DbRepository) IsDuplicateTxId(txId uuid.UUID) (bool, error) 
 }
 
 // SaveOrderRequest saves an order request to the database
-func (dbRepository *DbRepository) SaveOrderRequest(req *pb_api.PredictionIntentRequest) (*sqlc.OrderRequest, error) {
+func (dbRepository *DbRepository) SaveOrderIntentRequest(req *pb_api.PredictionIntentRequest) (*sqlc.OrderRequest, error) {
 	if dbRepository.db == nil {
 		return nil, fmt.Errorf("could not connect to database")
 	}
@@ -109,6 +107,26 @@ func (dbRepository *DbRepository) SaveOrderRequest(req *pb_api.PredictionIntentR
 	return &newOrderRequest, nil
 }
 
+func (dbRepository *DbRepository) CancelOrderIntent(txId string) error {
+	if dbRepository.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	txUUID, err := uuid.Parse(txId)
+	if err != nil {
+		return fmt.Errorf("invalid txId uuid: %v", err)
+	}
+
+	q := sqlc.New(dbRepository.db)
+	err = q.CancelOrderIntent(context.Background(), txUUID)
+	if err != nil {
+		return fmt.Errorf("CancelOrderIntent failed: %v", err)
+	}
+
+	log.Printf("Cancelled order intent in database for txId: %s", txId)
+	return nil
+}
+
 func (dbRepository *DbRepository) RecordMatch(orderRequestClobTuple [2]*pb_clob.CreateOrderRequestClob, isPartial bool) (*sqlc.Match, error) {
 	// Record the match in the database for auditing
 	if dbRepository.db == nil {
@@ -142,176 +160,6 @@ func (dbRepository *DbRepository) RecordMatch(orderRequestClobTuple [2]*pb_clob.
 	return &match, nil
 }
 
-func (dbRepository *DbRepository) GetMarketById(marketId string) (*sqlc.Market, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	marketUUID, err := uuid.Parse(marketId)
-	if err != nil {
-		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	q := sqlc.New(dbRepository.db)
-	market, err := q.GetMarket(context.Background(), marketUUID)
-	if err != nil {
-		return nil, fmt.Errorf("GetMarket failed: %v", err)
-	}
-
-	// log.Printf("Fetched market from database: %s", market.MarketID.String())
-	return &market, nil
-}
-
-func (dbRepository *DbRepository) GetMarkets(limit int32, offset int32) ([]sqlc.Market, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	q := sqlc.New(dbRepository.db)
-	markets, err := q.GetMarkets(context.Background(), sqlc.GetMarketsParams{
-		Limit:  limit,
-		Offset: offset,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("GetMarkets failed: %v", err)
-	}
-
-	// log.Printf("Fetched %d markets from database", len(markets))
-	return markets, nil
-}
-
-func (dbRepository *DbRepository) CreateMarket(req *pb_api.CreateMarketRequest, smartContractId string) (*sqlc.Market, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	marketUUID, err := uuid.Parse(req.MarketId)
-	if err != nil {
-		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	net := strings.ToLower(req.Net)
-	isValid := lib.IsValidNetwork(net)
-	if !isValid {
-		return nil, fmt.Errorf("invalid network: %s", net)
-	}
-
-	imageUrl := strings.TrimSpace(req.ImageUrl)
-
-	statement := strings.TrimSpace(req.Statement)
-
-	isValidSmartContractId := lib.IsValidAccountId(smartContractId)
-	if !isValidSmartContractId {
-		return nil, fmt.Errorf("invalid smart contract ID: %s", smartContractId)
-	}
-
-	// Start a transaction
-	tx, err := dbRepository.db.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %v", err)
-	}
-
-	// Use the transaction with the query builder
-	q := sqlc.New(tx)
-	market, err := q.CreateMarket(context.Background(), sqlc.CreateMarketParams{
-		MarketID:        marketUUID,
-		Net:             net,
-		Statement:       statement,
-		ImageUrl:        sql.NullString{String: imageUrl, Valid: imageUrl != ""},
-		SmartContractID: smartContractId,
-	})
-	if err != nil {
-		tx.Rollback() // Rollback the transaction on error
-		return nil, fmt.Errorf("CreateMarket failed: %v", err)
-	}
-
-	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %v", err)
-	}
-
-	log.Printf("Created new market in database: %s", market.MarketID.String())
-	return &market, nil
-}
-
-// func (dbRepository *DbRepository) GetPricesByMarketInRange(marketId string, ts1 time.Time, ts2 time.Time) ([]sqlc.GetPricesByMarketInRangeRow, error) {
-// 	if dbRepository.db == nil {
-// 		return nil, fmt.Errorf("database not initialized")
-// 	}
-
-// 	marketUUID, err := uuid.Parse(marketId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
-// 	}
-
-// 	q := sqlc.New(dbRepository.db)
-// 	priceHistory, err := q.GetPricesByMarketInRange(context.Background(), sqlc.GetPricesByMarketInRangeParams{
-// 		MarketID: marketUUID,
-// 		Ts:       ts1,
-// 		Ts_2:     ts2,
-// 	})
-// 	if err != nil {
-// 		return nil, fmt.Errorf("GetPricesByMarketSince failed: %v", err)
-// 	}
-
-//		return priceHistory, nil
-//	}
-func (dbRepository *DbRepository) GetPriceHistory(marketId string, from time.Time, to time.Time, limit int32, offset int32) ([]sqlc.GetPriceHistoryEfficientRow, error) { // yes, it returns []string due to - price NUMERIC(18,10)
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	marketUUID, err := uuid.Parse(marketId)
-	if err != nil {
-		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	q := sqlc.New(dbRepository.db)
-	rows, err := q.GetPriceHistoryEfficient(context.Background(), sqlc.GetPriceHistoryEfficientParams{
-		MarketID: marketUUID,
-		Ts:       from,
-		Ts_2:     to,
-		Limit:    limit,
-		Offset:   offset,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("GetAggregatedPriceHistory failed: %v", err)
-	}
-
-	return rows, nil
-}
-
-func (dbRepository *DbRepository) SavePriceHistory(marketId string, txId string, price float64) error {
-	if dbRepository.db == nil {
-		return fmt.Errorf("database not initialized")
-	}
-
-	marketUUID, err := uuid.Parse(marketId)
-	if err != nil {
-		return fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	txUUID, err := uuid.Parse(txId)
-	if err != nil {
-		return fmt.Errorf("invalid txId uuid: %v", err)
-	}
-
-	params := sqlc.InsertPriceParams{
-		MarketID: marketUUID,
-		TxID:     txUUID,
-		Price:    fmt.Sprintf("%f", price), // use of NUMERIC(18,10) avoids floating point imprecision
-		Ts:       time.Now().UTC(),
-	}
-
-	q := sqlc.New(dbRepository.db)
-	err = q.InsertPrice(context.Background(), params)
-	if err != nil {
-		return fmt.Errorf("InsertPriceHistory failed: %v", err)
-	}
-
-	return nil
-}
-
 func (dbRepository *DbRepository) CreateSettlement(txIdUuid1 string, txIdUuid2 string, txHash string) error {
 	if dbRepository.db == nil {
 		return fmt.Errorf("database not initialized")
@@ -342,74 +190,6 @@ func (dbRepository *DbRepository) CreateSettlement(txIdUuid1 string, txIdUuid2 s
 	return nil
 }
 
-func (dbRepository *DbRepository) GetCommentsByMarketId(marketId string, limit int32, offset int32) (*pb_api.GetCommentsResponse, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-	marketUUID, err := uuid.Parse(marketId)
-	if err != nil {
-		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	q := sqlc.New(dbRepository.db)
-	rows, err := q.GetCommentsByMarketId(context.Background(), sqlc.GetCommentsByMarketIdParams{
-		MarketID: marketUUID,
-		Limit:    limit,
-		Offset:   offset,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("GetCommentsByMarketId failed: %v", err)
-	}
-
-	var resonseObject pb_api.GetCommentsResponse
-	for _, row := range rows {
-		commentResponse := &pb_api.Comment{
-			AccountId: row.AccountID,
-			Content:   row.Content,
-			Sig:       row.Sig,
-			PublicKey: row.PublicKey,
-			KeyType:   uint32(row.KeyType),
-			CreatedAt: row.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		}
-		resonseObject.Comments = append(resonseObject.Comments, commentResponse)
-	}
-
-	return &resonseObject, nil
-}
-
-func (dbRepository *DbRepository) CreateComment(marketId string, accountId string, content string, sig string, publicKey string, keyType uint32) (*sqlc.AddCommentRow, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	marketUUID, err := uuid.Parse(marketId)
-	if err != nil {
-		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	if !lib.IsValidAccountId(accountId) {
-		return nil, fmt.Errorf("invalid accountId: %s", accountId)
-	}
-
-	params := sqlc.AddCommentParams{
-		MarketID:  marketUUID,
-		AccountID: accountId,
-		Content:   content,
-		Sig:       sig,
-		PublicKey: publicKey,
-		KeyType:   int32(keyType),
-	}
-
-	q := sqlc.New(dbRepository.db)
-	row, err := q.AddComment(context.Background(), params)
-	if err != nil {
-		return nil, fmt.Errorf("AddComment failed: %v", err)
-	}
-
-	log.Printf("Added comment to database for market %s by account %s", marketId, accountId)
-	return &row, nil
-}
-
 func (dbRepository *DbRepository) CreateNewsletterSubscription(email string, ipAddress string, userAgent string) error {
 	if dbRepository.db == nil {
 		return fmt.Errorf("database not initialized")
@@ -429,34 +209,6 @@ func (dbRepository *DbRepository) CreateNewsletterSubscription(email string, ipA
 
 	log.Printf("Created newsletter subscription for email: %s", email)
 	return nil
-}
-
-func (dbRepository *DbRepository) CountUnresolvedMarkets() (int64, error) {
-	if dbRepository.db == nil {
-		return 0, fmt.Errorf("database not initialized")
-	}
-
-	q := sqlc.New(dbRepository.db)
-	count, err := q.CountUnresolvedMarkets(context.Background())
-	if err != nil {
-		return 0, fmt.Errorf("CountUnresolvedMarkets failed: %v", err)
-	}
-
-	return count, nil
-}
-
-func (dbRepository *DbRepository) GetAllUnresolvedMarkets() ([]sqlc.Market, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	q := sqlc.New(dbRepository.db)
-	markets, err := q.GetAllUnresolvedMarkets(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("GetUnresolvedMarkets failed: %v", err)
-	}
-
-	return markets, nil
 }
 
 func (dbRepository *DbRepository) GetTotalVolumeUsdInTimePeriod(timePeriod string) (float64, error) {
@@ -493,51 +245,4 @@ func (dbRespository *DbRepository) UpsertUserPositions(evmAddress string, market
 
 	log.Printf("Updated user position tokens: %+v", result)
 	return &result, nil
-}
-
-func (dbRepository *DbRepository) GetUserPortfolio(evmAddress string) ([]sqlc.GetUserPortfolioRow, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	q := sqlc.New(dbRepository.db)
-	result, err := q.GetUserPortfolio(context.Background(), evmAddress)
-	return result, err
-}
-
-func (dbRepository *DbRepository) GetUserPortfolioByMarketId(evmAddress string, marketId string) ([]sqlc.GetUserPortfolioByMarketIdRow, error) {
-	if dbRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	marketIdUUID, err := uuid.Parse(marketId)
-	if err != nil {
-		return nil, fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	q := sqlc.New(dbRepository.db)
-	result, err := q.GetUserPortfolioByMarketId(context.Background(), sqlc.GetUserPortfolioByMarketIdParams{
-		EvmAddress: evmAddress,
-		MarketID:   marketIdUUID,
-	})
-	return result, err
-}
-
-func (dbRepository *DbRepository) GetLatestPriceByMarket(marketId string) (string, error) {
-	if dbRepository.db == nil {
-		return "", fmt.Errorf("database not initialized")
-	}
-
-	marketUUID, err := uuid.Parse(marketId)
-	if err != nil {
-		return "", fmt.Errorf("invalid marketId uuid: %v", err)
-	}
-
-	q := sqlc.New(dbRepository.db)
-	priceRow, err := q.GetLatestPriceByMarket(context.Background(), marketUUID)
-	if err != nil {
-		return "", fmt.Errorf("GetLatestPriceByMarket failed: %v", err)
-	}
-
-	return priceRow.Price, nil
 }

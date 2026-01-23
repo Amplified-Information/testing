@@ -7,3 +7,8 @@ RETURNING *;
 SELECT COUNT(*) > 0 AS exists
 FROM order_requests
 WHERE tx_id = $1;
+
+-- name: CancelOrderIntent :exec
+UPDATE order_requests
+SET cancelled_at = CURRENT_TIMESTAMP
+WHERE tx_id = $1 AND cancelled_at IS NULL;

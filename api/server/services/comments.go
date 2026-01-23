@@ -11,19 +11,33 @@ import (
 )
 
 type CommentsService struct {
-	dbRepository *repositories.DbRepository
+	commentsRepository *repositories.CommentsRepository
 }
 
-func (c *CommentsService) Init(d *repositories.DbRepository) error {
+func (c *CommentsService) Init(d *repositories.CommentsRepository) error {
 	// and inject the DbService:
-	c.dbRepository = d
+	c.commentsRepository = d
 
-	log.Printf("Comments service initialized successfully")
+	log.Printf("Service: Comments service initialized successfully")
 	return nil
 }
 
 func (c *CommentsService) GetComments(req *pb_api.GetCommentsRequest) (*pb_api.GetCommentsResponse, error) {
-	response, err := c.dbRepository.GetCommentsByMarketId(req.MarketId, *req.Limit, *req.Offset)
+	// guards
+
+	// defaults - optional fields *req.Limit and *req.Offset
+	var limit int32 = 100
+	var offset int32 = 0
+
+	if req.Limit != nil {
+		limit = *req.Limit
+	}
+	if req.Offset != nil {
+		offset = *req.Offset
+	}
+
+	// OK
+	response, err := c.commentsRepository.GetCommentsByMarketId(req.MarketId, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +123,7 @@ func (c *CommentsService) CreateComment(req *pb_api.CreateCommentRequest) (*pb_a
 	/////
 	// OK
 	/////
-	row, err := c.dbRepository.CreateComment(req.MarketId, req.AccountId, req.Content, req.Sig, req.PublicKey, req.KeyType)
+	row, err := c.commentsRepository.CreateComment(req.MarketId, req.AccountId, req.Content, req.Sig, req.PublicKey, req.KeyType)
 	if err != nil {
 		return nil, err
 	}

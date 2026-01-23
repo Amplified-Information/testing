@@ -17,6 +17,10 @@ service ClobPublic {
 service ClobInternal {
   rpc CreateOrder (CreateOrderRequestClob) returns (StdResponse);
   rpc CreateMarket (CreateMarketRequest) returns (StdResponse);
+
+  rpc CancelOrder(CancelOrderRequest) returns (StdResponse);
+  rpc GetOrdersForUser(UserRequest) returns (OrdersForUserResponse);
+  // rpc PauseMarketToggle (MarketIdRequest) returns (StdResponse);
 }
 
 message Empty {}
@@ -38,8 +42,8 @@ message CreateOrderRequestClob {
 }
 
 message StdResponse {
-  string message = 1;
-  int32 errorCode = 2;
+  string message = 1     [json_name = "message"];
+  int32 error_code = 2   [json_name = "errorCode"];
 }
 
 message BookRequest {
@@ -48,10 +52,10 @@ message BookRequest {
 }
 
 message OrderDetail {
-  string tx_id = 1;
-  string account_id = 2;
-  double price_usd = 3;
-  double qty = 4;
+  string tx_id = 1      [json_name = "txId"];
+  string account_id = 2 [json_name = "accountId"];
+  double price_usd = 3  [json_name = "priceUsd"];
+  double qty = 4        [json_name = "qty"];
 }
 
 message BookSnapshot {
@@ -72,4 +76,17 @@ message PriceUpdate {  // want [timestampMs[], priceUsdBid[], priceUsdAsk[]] for
   double price_bid_usd = 1    [json_name = "priceBidUsd"];
   double price_ask_usd = 2    [json_name = "priceAskUsd"];
   int64 timestamp_ms = 3      [json_name = "timestampMs"];
+}
+
+message CancelOrderRequest {
+  string market_id = 1    [json_name = "marketId",    (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+  string tx_id = 2        [json_name = "txId",        (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
+}
+
+message UserRequest {
+  string evm_address = 1  [json_name = "evmAddress", (validate.rules).string = {pattern: "(?i)^0x[a-f0-9]{40}$"} /* Ethereum address */];
+}
+
+message OrdersForUserResponse {
+  repeated CreateOrderRequestClob open_orders = 1;
 }

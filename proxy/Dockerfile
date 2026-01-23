@@ -1,5 +1,5 @@
 # cd prism/proxy
-# export VERSION=0.1.11
+# export VERSION=0.1.13
 # cat ../docker-compose-proxy.yml | grep image:
 # docker build -t ghcr.io/prismmarketlabs/proxy:$VERSION .
 # docker push ghcr.io/prismmarketlabs/proxy:$VERSION

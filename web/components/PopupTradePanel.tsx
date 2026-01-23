@@ -378,7 +378,7 @@ const PopupTradePanel = () => {
               console.log('Submitting predictionOrderIntentRequest...')
               console.log(predictionIntentRequest)
 
-              const result = await apiClient.predictIntent(predictionIntentRequest)
+              const result = await apiClient.createPredictionIntent(predictionIntentRequest)
               console.log('PredictIntent response:', result)
             } catch (e) {
               console.error(e)

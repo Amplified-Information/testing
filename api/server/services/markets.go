@@ -16,22 +16,24 @@ import (
 )
 
 type MarketService struct {
-	dbRepository  *repositories.DbRepository
-	hederaService *HederaService
-	priceService  *PriceService
+	marketsRepository *repositories.MarketsRepository
+	hederaService     *HederaService
+	priceService      *PriceService
+	priceRepository   *repositories.PriceRepository
 }
 
-func (m *MarketService) Init(dbRepository *repositories.DbRepository, hederaService *HederaService, priceService *PriceService) error {
-	m.dbRepository = dbRepository
-	m.hederaService = hederaService
-	m.priceService = priceService
+func (ms *MarketService) Init(marketsRepository *repositories.MarketsRepository, hederaService *HederaService, priceService *PriceService) error {
+	ms.marketsRepository = marketsRepository
+	ms.hederaService = hederaService
+	ms.priceService = priceService
+	ms.priceRepository = priceService.priceRepository
 
-	log.Printf("Market service initialized successfully")
+	log.Printf("Service: Market service initialized successfully")
 	return nil
 }
 
 func (m *MarketService) GetMarketById(marketId string) (*pb_api.MarketResponse, error) {
-	market, err := m.dbRepository.GetMarketById(marketId)
+	market, err := m.marketsRepository.GetMarketById(marketId)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +56,7 @@ func (m *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsRe
 		limit = int32(DB_MAX_ROWS)
 	}
 
-	markets, err := m.dbRepository.GetMarkets(limit, offset)
+	markets, err := m.marketsRepository.GetMarkets(limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +104,7 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 	contractID, err := hiero.ContractIDFromString(
 		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(req.Net))),
 	)
-	market, err := m.dbRepository.CreateMarket(req, contractID.String())
+	market, err := m.marketsRepository.CreateMarket(req, contractID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a new market row (marketId=%s) on the db: %w", req.MarketId, err)
 	}
@@ -141,9 +143,7 @@ func (m *MarketService) mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.
 
 	priceUsd, err := m.priceService.GetLatestPriceByMarket(market.MarketID.String())
 	if err != nil {
-		log.Printf("Warning: failed to get latest price for market %s: %v", market.MarketID.String(), err)
-		// set the market price to 0.5
-		priceUsd = 0.5
+		return nil, fmt.Errorf("failed to get latest price for market %s: %v", market.MarketID.String(), err)
 	}
 
 	marketResponse := &pb_api.MarketResponse{
@@ -159,7 +159,7 @@ func (m *MarketService) mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.
 	return marketResponse, nil
 }
 
-func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.PriceHistoryResponse, error) {
+func (ms *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.PriceHistoryResponse, error) {
 	// guards
 	from, err := time.Parse(time.RFC3339, req.From)
 	if err != nil {
@@ -173,6 +173,17 @@ func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.P
 		return nil, fmt.Errorf("'from' must be before 'to'")
 	}
 
+	// optionals
+	var limit int32 = 100 // optional, default is 100
+	var offset int32 = 0  // optional, default is 0
+	if req.Limit != nil {
+		limit = *req.Limit
+	}
+	if req.Offset != nil {
+		offset = *req.Offset
+	}
+
+	// OK
 	resolutionDurations := map[string]time.Duration{
 		"second": time.Second,
 		"minute": time.Minute,
@@ -186,21 +197,12 @@ func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.P
 	}
 
 	// --- Enforce max duration based on limit ---
-	limit := int32(1000) // optional, default is 100
-	if req.Limit != nil && *req.Limit > 0 && *req.Limit <= 1000 {
-		limit = *req.Limit
-	}
 	maxDuration := interval * time.Duration(limit)
 	if to.Sub(from) > maxDuration {
 		return nil, fmt.Errorf("time range too large for resolution %s (max %v)", req.Resolution, maxDuration)
 	}
 
-	offset := int32(0) // optional, default is 0
-	if req.Offset != nil && *req.Offset >= 0 {
-		offset = *req.Offset
-	}
-
-	rows, err := m.dbRepository.GetPriceHistory(req.MarketId, from, to, limit, offset)
+	rows, err := ms.priceRepository.GetPriceHistory(req.MarketId, from, to, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -247,7 +249,7 @@ func (m *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.P
 }
 
 func (m *MarketService) GetNumMarkets() uint32 {
-	nMarkets, err := m.dbRepository.CountUnresolvedMarkets()
+	nMarkets, err := m.marketsRepository.CountUnresolvedMarkets()
 	if err != nil {
 		return 0
 	}
