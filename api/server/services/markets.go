@@ -6,7 +6,6 @@ import (
 	"api/server/lib"
 	repositories "api/server/repositories"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -16,56 +15,58 @@ import (
 )
 
 type MarketService struct {
+	log               *LogService
 	marketsRepository *repositories.MarketsRepository
 	hederaService     *HederaService
 	priceService      *PriceService
 	priceRepository   *repositories.PriceRepository
 }
 
-func (ms *MarketService) Init(marketsRepository *repositories.MarketsRepository, hederaService *HederaService, priceService *PriceService) error {
+func (ms *MarketService) Init(log *LogService, marketsRepository *repositories.MarketsRepository, hederaService *HederaService, priceService *PriceService) error {
+	ms.log = log
 	ms.marketsRepository = marketsRepository
 	ms.hederaService = hederaService
 	ms.priceService = priceService
 	ms.priceRepository = priceService.priceRepository
 
-	log.Printf("Service: Market service initialized successfully")
+	ms.log.Log(INFO, "Service: Market service initialized successfully")
 	return nil
 }
 
-func (m *MarketService) GetMarketById(marketId string) (*pb_api.MarketResponse, error) {
-	market, err := m.marketsRepository.GetMarketById(marketId)
+func (ms *MarketService) GetMarketById(marketId string) (*pb_api.MarketResponse, error) {
+	market, err := ms.marketsRepository.GetMarketById(marketId)
 	if err != nil {
-		return nil, err
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to get market by id: %v", err))
 	}
 
-	response, err := m.mapMarketToMarketResponse(market)
+	response, err := ms.mapMarketToMarketResponse(market)
 	if err != nil {
-		return nil, err
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to map market to market response: %v", err))
 	}
 	return response, nil
 }
 
-func (m *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsResponse, error) {
+func (ms *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsResponse, error) {
 	result := os.Getenv("DB_MAX_ROWS")
 	DB_MAX_ROWS, err := strconv.Atoi(result)
 	if err != nil {
-		return nil, fmt.Errorf("invalid DB_MAX_ROWS environment variable: %v", err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("invalid DB_MAX_ROWS environment variable: %v", err))
 	}
 	if limit > int32(DB_MAX_ROWS) {
-		log.Printf("Warning: limit %d exceeds DB_MAX_ROWS %d, setting limit to DB_MAX_ROWS\n", limit, DB_MAX_ROWS)
+		ms.log.Log(WARN, fmt.Sprintf("Warning: limit %d exceeds DB_MAX_ROWS %d, setting limit to DB_MAX_ROWS", limit, DB_MAX_ROWS))
 		limit = int32(DB_MAX_ROWS)
 	}
 
-	markets, err := m.marketsRepository.GetMarkets(limit, offset)
+	markets, err := ms.marketsRepository.GetMarkets(limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to get markets: %v", err))
 	}
 
 	var marketResponses []*pb_api.MarketResponse
 	for _, market := range markets {
-		marketResponse, err := m.mapMarketToMarketResponse(&market)
+		marketResponse, err := ms.mapMarketToMarketResponse(&market)
 		if err != nil {
-			return nil, err
+			return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to map market to market response: %v", err))
 		}
 		marketResponses = append(marketResponses, marketResponse)
 	}
@@ -77,7 +78,7 @@ func (m *MarketService) GetMarkets(limit int32, offset int32) (*pb_api.MarketsRe
 }
 
 // TODO - idempotent?
-func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.CreateMarketResponse, error) {
+func (ms *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.CreateMarketResponse, error) {
 	// guards
 	// protobuf validation does a great job sofar ;)
 
@@ -87,16 +88,16 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 
 	// Step 1:
 	// create a market on the **smart contract** - return with error if it fails
-	remainingAllowance, err := m.hederaService.CreateNewMarket(req)
+	remainingAllowance, err := ms.hederaService.CreateNewMarket(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new market (marketId=%s) on Hedera: %w", req.MarketId, err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to create new market (marketId=%s) on Hedera: %v", req.MarketId, err))
 	}
 
 	// Step 2:
 	// create market on the **CLOB**
 	err = lib.CreateMarketOnClob(req.MarketId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new market (marketId=%s) on CLOB: %w", req.MarketId, err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to create new market (marketId=%s) on CLOB: %v", req.MarketId, err))
 	}
 
 	// Step 3:
@@ -104,17 +105,17 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 	contractID, err := hiero.ContractIDFromString(
 		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(req.Net))),
 	)
-	market, err := m.marketsRepository.CreateMarket(req, contractID.String())
+	market, err := ms.marketsRepository.CreateMarket(req, contractID.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to create a new market row (marketId=%s) on the db: %w", req.MarketId, err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to create a new market row (marketId=%s) on the db: %v", req.MarketId, err))
 	}
 
 	/////
 	// Output: map the result to MarketResponse
 	/////
-	marketResponse, err := m.mapMarketToMarketResponse(market)
+	marketResponse, err := ms.mapMarketToMarketResponse(market)
 	if err != nil {
-		return nil, err
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to map market to market response: %v", err))
 	}
 	return &pb_api.CreateMarketResponse{
 		MarketResponse:     marketResponse,
@@ -122,11 +123,11 @@ func (m *MarketService) CreateMarket(req *pb_api.CreateMarketRequest) (*pb_api.C
 	}, nil
 }
 
-func (m *MarketService) mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, error) {
+func (ms *MarketService) mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.MarketResponse, error) {
 	var createdAt string
 	var resolvedAt string
 	if !market.CreatedAt.Valid {
-		return nil, fmt.Errorf("invalid market: createdAt is null")
+		return nil, ms.log.Log(ERROR, "invalid market: createdAt is null")
 	}
 	if !market.ResolvedAt.Valid {
 		resolvedAt = "" // market may not yet be resolved
@@ -141,9 +142,9 @@ func (m *MarketService) mapMarketToMarketResponse(market *sqlc.Market) (*pb_api.
 		imageUrl = ""
 	}
 
-	priceUsd, err := m.priceService.GetLatestPriceByMarket(market.MarketID.String())
+	priceUsd, err := ms.priceService.GetLatestPriceByMarket(market.MarketID.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest price for market %s: %v", market.MarketID.String(), err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("failed to get latest price for market %s: %v", market.MarketID.String(), err))
 	}
 
 	marketResponse := &pb_api.MarketResponse{
@@ -163,14 +164,14 @@ func (ms *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.
 	// guards
 	from, err := time.Parse(time.RFC3339, req.From)
 	if err != nil {
-		return nil, fmt.Errorf("invalid RFC3339 'from' timestamp: %w", err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("invalid RFC3339 'from' timestamp: %v", err))
 	}
 	to, err := time.Parse(time.RFC3339, req.To)
 	if err != nil {
-		return nil, fmt.Errorf("invalid RFC3339 'to' timestamp: %w", err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("invalid RFC3339 'to' timestamp: %v", err))
 	}
 	if to.Before(from) {
-		return nil, fmt.Errorf("'from' must be before 'to'")
+		return nil, ms.log.Log(ERROR, "'from' must be before 'to'")
 	}
 
 	// optionals
@@ -193,18 +194,18 @@ func (ms *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.
 	}
 	interval, ok := resolutionDurations[req.Resolution]
 	if !ok {
-		return nil, fmt.Errorf("unsupported resolution: %s", req.Resolution)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("unsupported resolution: %s", req.Resolution))
 	}
 
 	// --- Enforce max duration based on limit ---
 	maxDuration := interval * time.Duration(limit)
 	if to.Sub(from) > maxDuration {
-		return nil, fmt.Errorf("time range too large for resolution %s (max %v)", req.Resolution, maxDuration)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("time range too large for resolution %s (max %v)", req.Resolution, maxDuration))
 	}
 
 	rows, err := ms.priceRepository.GetPriceHistory(req.MarketId, from, to, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("query failed: %w", err)
+		return nil, ms.log.Log(ERROR, fmt.Sprintf("query failed: %v", err))
 	}
 
 	ticks := make([]float32, len(rows))
@@ -248,8 +249,8 @@ func (ms *MarketService) PriceHistory(req *pb_api.PriceHistoryRequest) (*pb_api.
 	// return response, nil
 }
 
-func (m *MarketService) GetNumMarkets() uint32 {
-	nMarkets, err := m.marketsRepository.CountUnresolvedMarkets()
+func (ms *MarketService) GetNumMarkets() uint32 {
+	nMarkets, err := ms.marketsRepository.CountUnresolvedMarkets()
 	if err != nil {
 		return 0
 	}

@@ -6,40 +6,41 @@ import (
 	repositories "api/server/repositories"
 	"context"
 	"fmt"
-	"log"
 	"os"
 )
 
 type NewsletterService struct {
+	log          *LogService
 	dbRepository *repositories.DbRepository
 }
 
-func (n *NewsletterService) Init(d *repositories.DbRepository) error {
+func (ns *NewsletterService) Init(log *LogService, d *repositories.DbRepository) error {
+	ns.log = log
 	// and inject the DbService:
-	n.dbRepository = d
+	ns.dbRepository = d
 
-	log.Printf("Service: Newsletter service initialized successfully")
+	ns.log.Log(INFO, "Service: Newsletter service initialized successfully")
 	return nil
 }
 
-func (n *NewsletterService) SubscribeNewsletter(ctx context.Context, req *pb_api.NewsLetterRequest) (*pb_api.StdResponse, error) {
+func (ns *NewsletterService) SubscribeNewsletter(ctx context.Context, req *pb_api.NewsLetterRequest) (*pb_api.StdResponse, error) {
 	ipAddress := lib.GetIPFromContext(ctx)
 	userAgent := lib.GetUserAgentFromContext(ctx)
 	email := req.GetEmail()
 
-	log.Printf("Subscribing email %s to newsletter from IP %s with User-Agent %s", email, ipAddress, userAgent)
+	ns.log.Log(INFO, fmt.Sprintf("Subscribing email %s to newsletter from IP %s with User-Agent %s", email, ipAddress, userAgent))
 
 	// TODO - send email to the user inviting them to prism
 
 	// Send notification email to admin:
 	err := lib.SendEmail(os.Getenv("EMAIL_ADDRESS"), "New Newsletter Subscription", fmt.Sprintf("Email: %s\nIP Address: %s\nUser-Agent: %s", email, ipAddress, userAgent))
 	if err != nil {
-		log.Printf("Failed to send notification email: %v", err)
-		return nil, fmt.Errorf("failed to send notification email: %v", "internal error" /* err - don't pass the full reason to the user*/)
+		return nil, ns.log.Log(ERROR, "failed to send notification email: %v", "internal error" /* err - don't pass the full reason to the user*/)
 	}
 
-	err = n.dbRepository.CreateNewsletterSubscription(email, ipAddress, userAgent)
+	err = ns.dbRepository.CreateNewsletterSubscription(email, ipAddress, userAgent)
 	if err != nil {
+		ns.log.Log(ERROR, fmt.Sprintf("Failed to create newsletter subscription for email %s: %v", email, err))
 		return &pb_api.StdResponse{
 			Message:   "Failed to subscribe to newsletter",
 			ErrorCode: 1,

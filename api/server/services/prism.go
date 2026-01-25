@@ -13,6 +13,7 @@ import (
 )
 
 type Prism struct {
+	log               *LogService
 	dbRepository      *repositories.DbRepository
 	marketsRepository *repositories.MarketsRepository
 
@@ -21,7 +22,9 @@ type Prism struct {
 	marketService *MarketService
 }
 
-func (p *Prism) InitPrism(dbRepository *repositories.DbRepository, marketsRepository *repositories.MarketsRepository, natsService *NatsService, hederaService *HederaService, marketService *MarketService) {
+func (p *Prism) InitPrism(log *LogService, dbRepository *repositories.DbRepository, marketsRepository *repositories.MarketsRepository, natsService *NatsService, hederaService *HederaService, marketService *MarketService) {
+	// inject deps:
+	p.log = log
 	p.dbRepository = dbRepository
 	p.marketsRepository = marketsRepository
 
@@ -29,7 +32,7 @@ func (p *Prism) InitPrism(dbRepository *repositories.DbRepository, marketsReposi
 	p.hederaService = hederaService
 	p.marketService = marketService
 
-	log.Printf("Service: Prism service initialized successfully, %p", p)
+	p.log.Log(INFO, fmt.Sprintf("Service: Prism service initialized successfully, %p", p))
 }
 
 func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
@@ -59,11 +62,11 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 	marketCreationFeeUsdc := os.Getenv("MARKET_CREATION_FEE_USDC")
 	// Validate MARKET_CREATION_FEE_USDC is not empty and is a valid number
 	if marketCreationFeeUsdc == "" {
-		return nil, fmt.Errorf("MARKET_CREATION_FEE_USDC environment variable is empty")
+		return nil, p.log.Log(ERROR, "MARKET_CREATION_FEE_USDC environment variable is empty")
 	}
 	marketCreationFeeScaledUsdc, err := strconv.ParseUint(marketCreationFeeUsdc, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("MARKET_CREATION_FEE_USDC environment variable is not a valid float: %v", err)
+		return nil, p.log.Log(ERROR, fmt.Sprintf("MARKET_CREATION_FEE_USDC environment variable is not a valid float: %v", err))
 	}
 
 	tokenIdsMap := make(map[string]string)
@@ -79,7 +82,7 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 	minOrderSizeUsdEnv := os.Getenv("MIN_ORDER_SIZE_USD")
 	minOrderSizeUsd, err := strconv.ParseFloat(minOrderSizeUsdEnv, 64)
 	if err != nil {
-		return nil, fmt.Errorf("MIN_ORDER_SIZE_USD environment variable is not a valid float: %v", err)
+		return nil, p.log.Log(ERROR, fmt.Sprintf("MIN_ORDER_SIZE_USD environment variable is not a valid float: %v", err))
 	}
 
 	totalVolumeUsd := make(map[string]float64)
@@ -88,7 +91,7 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 		period := strings.ToLower(strings.TrimSpace(period))
 		volume, err := p.dbRepository.GetTotalVolumeUsdInTimePeriod(period)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get total volume USD for network %s: %v", period, err)
+			return nil, p.log.Log(ERROR, fmt.Sprintf("failed to get total volume USD for network %s: %v", period, err))
 		}
 		totalVolumeUsd[period] = volume
 	}
@@ -109,16 +112,16 @@ func (p *Prism) MacroMetadata() (*pb_api.MacroMetadataResponse, error) {
 	return response, nil
 }
 
-func (p *Prism) TriggerRecreateClob() error {
-	log.Printf("TriggerRecreateClob called on Prism instance: %p", p)
+func (p *Prism) TriggerRecreateClob() (bool, error) {
+	p.log.Log(INFO, fmt.Sprintf("TriggerRecreateClob called on Prism instance: %p", p))
 
 	// retrieve all unresolved markets from the database:
 	if p.dbRepository == nil {
-		return fmt.Errorf("dbRepository is not initialized")
+		return false, p.log.Log(ERROR, "dbRepository is not initialized")
 	}
 	markets, err := p.marketsRepository.GetAllUnresolvedMarkets()
 	if err != nil {
-		return fmt.Errorf("failed to get unresolved markets: %v", err)
+		return false, p.log.Log(ERROR, fmt.Sprintf("failed to get unresolved markets: %v", err))
 	}
 
 	// loop through each unresolved market:
@@ -128,11 +131,31 @@ func (p *Prism) TriggerRecreateClob() error {
 		log.Printf("Recreating CLOB for market ID: %s", market.MarketID.String())
 		err = lib.CreateMarketOnClob(market.MarketID.String())
 		if err != nil {
-			return fmt.Errorf("failed to create new market (marketId=%s) on CLOB: %w", market.MarketID.String(), err)
+			return false, p.log.Log(ERROR, fmt.Sprintf("failed to create new market (marketId=%s) on CLOB: %v", market.MarketID.String(), err))
 		}
 
 		// step 2 - retrieve from db all the orders for restoring to the CLOB
-		// TODO
+		// Marshal the CLOB req: *pb_api.PredictionIntentRequest to JSON
+		/*
+			clobRequestObj := &pb_clob.CreateOrderRequestClob{
+				TxId:        req.TxId,
+				Net:         req.Net,
+				MarketId:    req.MarketId,
+				AccountId:   req.AccountId,
+				MarketLimit: req.MarketLimit,
+				PriceUsd:    req.PriceUsd,
+				Qty:         req.Qty, // the clob will decrement this value over time as matches occur
+				QtyOrig:     req.Qty, // need to keep track of the original qty for on/off-chain signature validation
+				Sig:         req.Sig,
+				PublicKey:   req.PublicKey, // passing extra key info - i) avoid lookups ii) handle situation where user has changed their key
+				EvmAddress:  req.EvmAddress,
+				KeyType:     int32(req.KeyType),
+			}
+			clobRequestJSON, err := json.Marshal(clobRequestObj)
+			if err != nil {
+				return false, p.log.Log(ERROR, fmt.Sprintf("failed to marshal CLOB request: %v", err))
+			}
+		*/
 
 		// step 3 - push all the retrieved orders onto the CLOB:
 		// TODO
@@ -147,5 +170,5 @@ func (p *Prism) TriggerRecreateClob() error {
 		// log.Printf("Successfully recreated CLOB for market ID: %s", market.MarketID.String())
 	}
 
-	return nil
+	return true, nil
 }

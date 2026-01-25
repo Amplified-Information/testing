@@ -26,14 +26,17 @@ type server struct {
 	positionsRepository repositories.PositionsRepository
 	priceRepository     repositories.PriceRepository
 
-	prismService            services.Prism
-	natsService             services.NatsService
-	marketsService          services.MarketService
 	commentsService         services.CommentsService
+	hederaService           services.HederaService
+	logService              services.LogService
+	marketsService          services.MarketService
+	natsService             services.NatsService
 	newsletterService       services.NewsletterService
 	positionsService        services.PositionsService
-	priceService            services.PriceService
 	predictionIntentService services.PredictionIntentService
+	prismService            services.Prism
+	priceService            services.PriceService
+
 	// don't forget to register in RegisterApiServiceServer grpc call in main()
 }
 
@@ -101,10 +104,10 @@ func (s *server) GetUserPortfolio(ctx context.Context, req *pb_api.UserPortfolio
 }
 
 func (s *server) TriggerRecreateClob(ctx context.Context, req *pb_api.Empty) (*pb_api.StdResponse, error) {
-	err := s.prismService.TriggerRecreateClob()
+	isOK, err := s.prismService.TriggerRecreateClob()
 
 	var errorCode int32 = 0
-	if err != nil {
+	if err != nil || isOK == false {
 		errorCode = 1
 	}
 
@@ -229,9 +232,13 @@ func main() {
 	/////
 	// service layer
 	/////
+	// initialize Log service
+	logService := services.LogService{}
+	logService.InitLogger(services.INFO)
+
 	// initialize Hedera service
 	hederaService := services.HederaService{}
-	err = hederaService.InitHedera(&dbRepository, &priceRepository)
+	err = hederaService.InitHedera(&logService, &dbRepository, &priceRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Hedera service: %v", err)
 	}
@@ -239,42 +246,42 @@ func main() {
 
 	// initialize price service
 	priceService := services.PriceService{}
-	err = priceService.InitPriceService(&priceRepository)
+	err = priceService.InitPriceService(&logService, &priceRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Price service: %v", err)
 	}
 
 	// initialize Markets service
 	marketsService := services.MarketService{}
-	err = marketsService.Init(&marketsRepository, &hederaService, &priceService)
+	err = marketsService.Init(&logService, &marketsRepository, &hederaService, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Markets service: %v", err)
 	}
 
 	// initialize Comments service
 	commentsService := services.CommentsService{}
-	err = commentsService.Init(&commentsRepository)
+	err = commentsService.Init(&logService, &commentsRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Comments service: %v", err)
 	}
 
 	// initialize Newsletter service
 	newsletterService := services.NewsletterService{}
-	err = newsletterService.Init(&dbRepository)
+	err = newsletterService.Init(&logService, &dbRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Newsletter service: %v", err)
 	}
 
 	// initialize Positions service
 	positionsService := services.PositionsService{}
-	err = positionsService.Init(&positionsRepository, &marketsRepository, &priceService)
+	err = positionsService.Init(&logService, &positionsRepository, &marketsRepository, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Positions service: %v", err)
 	}
 
 	// initialize NATS
 	natsService := services.NatsService{}
-	err = natsService.InitNATS(&hederaService, &dbRepository)
+	err = natsService.InitNATS(&logService, &hederaService, &dbRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize NATS: %v", err)
 	}
@@ -284,14 +291,14 @@ func main() {
 
 	// initialize PredictionIntent service
 	predictionIntentService := services.PredictionIntentService{}
-	err = predictionIntentService.Init(&dbRepository, &marketsRepository, &natsService, &hederaService)
+	err = predictionIntentService.Init(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService)
 	if err != nil {
 		log.Fatalf("Failed to initialize PredictionIntent service: %v", err)
 	}
 
 	// initialize prism service
 	prismService := services.Prism{}
-	prismService.InitPrism(&dbRepository, &marketsRepository, &natsService, &hederaService, &marketsService)
+	prismService.InitPrism(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService, &marketsService)
 	// TODO: defer prismService cleanup
 
 	// Now start gRPC service
@@ -312,14 +319,16 @@ func main() {
 		positionsRepository: positionsRepository,
 		priceRepository:     priceRepository,
 
-		prismService:            prismService,
-		natsService:             natsService,
-		marketsService:          marketsService,
 		commentsService:         commentsService,
+		hederaService:           hederaService,
+		logService:              logService,
+		marketsService:          marketsService,
+		natsService:             natsService,
 		newsletterService:       newsletterService,
 		positionsService:        positionsService,
-		priceService:            priceService,
 		predictionIntentService: predictionIntentService,
+		priceService:            priceService,
+		prismService:            prismService,
 	}
 	// must pass the grpc server to bother internal and the public servers!
 	pb_api.RegisterApiServiceInternalServer(grpcServer, sharedServer)

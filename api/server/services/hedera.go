@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"math/big"
 	"strconv"
@@ -22,12 +21,14 @@ import (
 )
 
 type HederaService struct {
+	log             *LogService
 	hedera_clients  map[string]*hiero.Client // look up based on 'previewnet', 'testnet', 'mainnet'
 	dbRepository    *repositories.DbRepository
 	priceRepository *repositories.PriceRepository
 }
 
-func (hs *HederaService) InitHedera(dbRepository *repositories.DbRepository, priceRepository *repositories.PriceRepository) error {
+func (hs *HederaService) InitHedera(log *LogService, dbRepository *repositories.DbRepository, priceRepository *repositories.PriceRepository) error {
+	hs.log = log
 	hs.dbRepository = dbRepository
 	hs.priceRepository = priceRepository
 
@@ -87,7 +88,7 @@ func (hs *HederaService) initHederaNet(networkSelected string) (*hiero.Client, e
 
 	client.SetOperator(operatorId, operatorKey)
 
-	log.Printf("Service: Hedera service (%s) initialized successfully", strings.ToUpper(networkSelected))
+	hs.log.Log(INFO, fmt.Sprintf("Service: Hedera service (%s) initialized successfully", strings.ToUpper(networkSelected)))
 	return client, nil
 }
 
@@ -116,24 +117,24 @@ func (hs *HederaService) GetPublicKey(accountId hiero.AccountID, net string) (*h
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&jsonParseResult); err != nil {
-		return nil, keyType, fmt.Errorf("failed to parse mirror node response: %v", err)
+		return nil, keyType, hs.log.Log(ERROR, fmt.Sprintf("failed to parse mirror node response: %v", err))
 	}
 
 	publicKey := &hiero.PublicKey{}
 	if strings.HasPrefix(strings.ToUpper(jsonParseResult.Key.Type_), "ECDSA") {
 		key, err := hiero.PublicKeyFromStringECDSA(jsonParseResult.Key.Key)
 		if err != nil {
-			return nil, keyType, fmt.Errorf("failed to parse public key (ECDSA) from string: %v", err)
+			return nil, keyType, hs.log.Log(ERROR, fmt.Sprintf("failed to parse public key (ECDSA) from string: %v", err))
 		}
 		publicKey = &key
 	} else if strings.HasPrefix(strings.ToUpper(jsonParseResult.Key.Type_), "ED25519") {
 		key, err := hiero.PublicKeyFromStringEd25519(jsonParseResult.Key.Key)
 		if err != nil {
-			return nil, keyType, fmt.Errorf("failed to parse public key (ED25519) from string: %v", err)
+			return nil, keyType, hs.log.Log(ERROR, fmt.Sprintf("failed to parse public key (ED25519) from string: %v", err))
 		}
 		publicKey = &key
 	} else {
-		return nil, keyType, fmt.Errorf("unsupported key type: %s", jsonParseResult.Key.Type_)
+		return nil, keyType, hs.log.Log(ERROR, fmt.Sprintf("unsupported key type: %s", jsonParseResult.Key.Type_))
 	}
 
 	switch strings.ToUpper(jsonParseResult.Key.Type_) {
@@ -146,18 +147,18 @@ func (hs *HederaService) GetPublicKey(accountId hiero.AccountID, net string) (*h
 	return publicKey, keyType, nil
 }
 
-func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
+func (hs *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID, smartContractId hiero.ContractID, usdcAddress hiero.ContractID, usdcDecimals uint64) (float64, error) {
 	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
 	// log.Printf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/allowances/tokens?spender.id=eq:%s&token.id=eq:%s", networkSelected.String(), accountId.String(), smartContractId.String(), usdcAddress.String())
 
 	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
 	if err != nil {
-		return 0, fmt.Errorf("error fetching allowance: %w", err)
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("error fetching allowance: %v", err))
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return 0, fmt.Errorf("network response was not ok: status %d", resp.StatusCode)
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("network response was not ok: status %d", resp.StatusCode))
 	}
 
 	var result struct {
@@ -167,7 +168,7 @@ func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, a
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return 0, fmt.Errorf("failed to parse response: %w", err)
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("failed to parse response: %v", err))
 	}
 
 	if len(result.Allowances) == 0 {
@@ -177,6 +178,99 @@ func (h *HederaService) GetSpenderAllowanceUsd(networkSelected hiero.LedgerID, a
 	// Convert to float64 and apply decimals
 	amount := float64(result.Allowances[0].Amount) / math.Pow(10, float64(usdcDecimals))
 	return amount, nil
+}
+
+func (hs *HederaService) GetUsdcBalanceUsd(networkSelected hiero.LedgerID, accountId hiero.AccountID) (float64, error) {
+
+	usdcAddressStr := os.Getenv(fmt.Sprintf("%s_USDC_ADDRESS", strings.ToUpper(networkSelected.String())))
+	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
+
+	if usdcAddressStr == "" || usdcDecimalsStr == "" {
+		return 0, hs.log.Log(ERROR, "USDC_ADDRESS or USDC_DECIMALS environment variable is not set")
+	}
+	usdcDecimals, err := strconv.ParseUint(usdcDecimalsStr, 10, 64)
+	if err != nil {
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("invalid USDC_DECIMALS: %v", err))
+	}
+	usdcAddress, err := hiero.ContractIDFromString(usdcAddressStr)
+	if err != nil {
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("invalid USDC address: %v", err))
+	}
+
+	// OK - proceed
+
+	mirrorNodeURL := fmt.Sprintf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/balances/tokens/%s", networkSelected.String(), accountId.String(), usdcAddress.String())
+	// log.Printf("https://%s.mirrornode.hedera.com/api/v1/accounts/%s/balances/tokens/%s", networkSelected.String(), accountId.String(), usdcAddress.String())
+
+	resp, err := lib.Fetch(lib.GET, mirrorNodeURL, nil)
+	if err != nil {
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("error fetching balance: %v", err))
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("network response was not ok: status %d", resp.StatusCode))
+	}
+
+	// exmple response:
+	// {
+	// "account": "0.0.7090546",
+	// "alias": "IQFB26XZHOJJEC6OKC2MBUVI43OP5P6W",
+	// "auto_renew_period": 7776000,
+	// "balance": {
+	//   "balance": 103786314034,
+	//   "timestamp": "1769239151.584544000",
+	//   "tokens": [
+	//     {
+	//       "token_id": "0.0.5449",
+	//       "balance": 126508520
+	//     },
+	//     {
+	//       "token_id": "0.0.429274",
+	//       "balance": 19500000
+	//     },
+	//     {
+	//       "token_id": "0.0.7611287",
+	//       "balance": 21000000
+	//     },
+	//     {
+	//       "token_id": "0.0.7611460",
+	//       "balance": 21000000
+	//     },
+	//     {
+	//       "token_id": "0.0.7611462",
+	//       "balance": 21000000
+	//     }
+	//   ]
+	// },
+
+	var result struct {
+		Account string `json:"account"`
+		Balance struct {
+			Balance int64 `json:"balance"`
+			Tokens  []struct {
+				TokenID string `json:"token_id"`
+				Balance int64  `json:"balance"`
+			} `json:"tokens"`
+		} `json:"balance"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("failed to parse response: %v", err))
+	}
+
+	// Find the token balance for the specified usdcAddress
+	var usdcBalance int64
+	for _, token := range result.Balance.Tokens {
+		if token.TokenID == usdcAddress.String() {
+			usdcBalance = token.Balance
+			break
+		}
+	}
+
+	// Convert to float64 and apply decimals
+	balance := float64(usdcBalance) / math.Pow(10, float64(usdcDecimals))
+	return balance, nil
 }
 
 /*
@@ -207,25 +301,25 @@ This function takes a number of input parameters from the YES and NO side
 * @return bool - Returns true if the transaction is successful, otherwise false.
 * @return error - Returns an error if the transaction fails or the receipt cannot be retrieved.
 */
-func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClob, sideNo *pb_clob.CreateOrderRequestClob) (bool, error) {
+func (hs *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClob, sideNo *pb_clob.CreateOrderRequestClob) (bool, error) {
 	// validate that sideYes.MarketId == sideNo.MarketId and sideYes.MarketId != ""
 	if sideYes.MarketId != sideNo.MarketId || sideYes.MarketId == "" {
-		return false, fmt.Errorf("market IDs do not match or invalid: %s vs %s", sideYes.MarketId, sideNo.MarketId)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("market IDs do not match or invalid: %s vs %s", sideYes.MarketId, sideNo.MarketId))
 	}
 
 	// validate that a price is not zero
 	if sideYes.PriceUsd == 0.0 || sideNo.PriceUsd == 0.0 {
-		return false, fmt.Errorf("priceUsd cannot be zero: %f vs %f", sideYes.PriceUsd, sideNo.PriceUsd)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("priceUsd cannot be zero: %f vs %f", sideYes.PriceUsd, sideNo.PriceUsd))
 	}
 
 	// validate that one price is negative and one price is positive
 	if (sideYes.PriceUsd > 0 && sideNo.PriceUsd > 0) || (sideYes.PriceUsd < 0 && sideNo.PriceUsd < 0) {
-		return false, fmt.Errorf("both prices have the same sign: %f vs %f", sideYes.PriceUsd, sideNo.PriceUsd)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("both prices have the same sign: %f vs %f", sideYes.PriceUsd, sideNo.PriceUsd))
 	}
 
 	// validate that both orders are on the same network
 	if (sideYes.Net != sideNo.Net) || (sideYes.Net == "") {
-		return false, fmt.Errorf("networks do not match or are invalid: %s vs %s", sideYes.Net, sideNo.Net)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("networks do not match or are invalid: %s vs %s", sideYes.Net, sideNo.Net))
 	}
 
 	// OK - proceed
@@ -239,33 +333,33 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	usdcDecimalsStr := os.Getenv("USDC_DECIMALS")
 	usdcDecimals, err := strconv.ParseUint(usdcDecimalsStr, 10, 64)
 	if err != nil {
-		return false, fmt.Errorf("invalid USDC_DECIMALS: %w", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("invalid USDC_DECIMALS: %v", err))
 	}
 	// For signature verification, we need seperate reconstruction of the payloads for YES and NO positions, including collateralUsd
 	// const collateralUsd_abs_scaled = floatToBigIntScaledDecimals(Math.abs(predictionIntentRequest.priceUsd * predictionIntentRequest.qty), usdcDecimals).toString()
 	collateralUsdAbsScaledYes, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideYes.PriceUsd*sideYes.QtyOrig /* N.B. use QtyOrig and not Qty (remaining amount) */), int(usdcDecimals))
 	if err != nil {
-		return false, fmt.Errorf("failed to scale collateralUsdAbsYes: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to scale collateralUsdAbsYes: %v", err))
 	}
 
 	collateralUsdAbsScaledNo, err := lib.FloatToBigIntScaledDecimals(math.Abs(sideNo.PriceUsd*sideNo.QtyOrig /* N.B. use QtyOrig and not Qty (remaining amount) */), int(usdcDecimals))
 	if err != nil {
-		return false, fmt.Errorf("failed to scale collateralUsdAbsNo: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to scale collateralUsdAbsNo: %v", err))
 	}
 
 	sigYes, err := base64.StdEncoding.DecodeString(sideYes.Sig) // Sig is base64-encoded
 	if err != nil {
-		log.Printf("Error decoding sigYes64 from base64: %v", err)
+		hs.log.Log(ERROR, fmt.Sprintf("Error decoding sigYes64 from base64: %v", err))
 		return false, err
 	}
 	sigNo, err := base64.StdEncoding.DecodeString(sideNo.Sig) // Sig is base64-encoded
 	if err != nil {
-		log.Printf("Error decoding sigNo64 from base64: %v", err)
+		hs.log.Log(ERROR, fmt.Sprintf("Error decoding sigNo64 from base64: %v", err))
 		return false, err
 	}
 
-	log.Printf("sigYes (len=%d): %x", len(sigYes), sigYes)
-	log.Printf("sigNo (len=%d): %x", len(sigNo), sigNo)
+	hs.log.Log(INFO, fmt.Sprintf("sigYes (len=%d): %x", len(sigYes), sigYes))
+	hs.log.Log(INFO, fmt.Sprintf("sigNo (len=%d): %x", len(sigNo), sigNo))
 
 	serializedPayloadYes, err := lib.AssemblePayloadHexForSigning(&pb_api.PredictionIntentRequest{
 		PriceUsd:   sideYes.PriceUsd,
@@ -275,7 +369,7 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 		TxId:       sideYes.TxId,
 	}, usdcDecimals)
 	if err != nil {
-		return false, fmt.Errorf("failed to extract YES payload for signing: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to extract YES payload for signing: %v", err))
 	}
 
 	serializedPayloadNo, err := lib.AssemblePayloadHexForSigning(&pb_api.PredictionIntentRequest{
@@ -286,28 +380,28 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 		TxId:       sideNo.TxId,
 	}, usdcDecimals)
 	if err != nil {
-		return false, fmt.Errorf("failed to extract NO payload for signing: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to extract NO payload for signing: %v", err))
 	}
 
-	log.Printf("serializedPayloadYes: %s", serializedPayloadYes)
-	log.Printf("serializedPayloadNo: %s", serializedPayloadNo)
+	hs.log.Log(INFO, fmt.Sprintf("serializedPayloadYes: %s", serializedPayloadYes))
+	hs.log.Log(INFO, fmt.Sprintf("serializedPayloadNo: %s", serializedPayloadNo))
 
 	// calculate the keccak256 hash of the serialized payload
 	payloadYes, _ := lib.Hex2utf8(serializedPayloadYes)
 	payloadNo, _ := lib.Hex2utf8(serializedPayloadNo)
 	keccakYes := lib.Keccak256([]byte(payloadYes))
 	keccakNo := lib.Keccak256([]byte(payloadNo))
-	log.Printf("keccakYes calc'd server-side (hex): %x", keccakYes)
-	log.Printf("keccakNo calc'd server-side (hex): %x", keccakNo)
+	hs.log.Log(INFO, fmt.Sprintf("keccakYes calc'd server-side (hex): %x", keccakYes))
+	hs.log.Log(INFO, fmt.Sprintf("keccakNo calc'd server-side (hex): %x", keccakNo))
 
 	// create a hiero public key for the hex string and key type (ecdasa/ed25519)
 	publicKeyYes, err := lib.PublicKeyForKeyType(sideYes.PublicKey, lib.HederaKeyType(sideYes.KeyType))
 	if err != nil {
-		return false, fmt.Errorf("failed to get publicKeyYes: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to get publicKeyYes: %v", err))
 	}
 	publicKeyNo, err := lib.PublicKeyForKeyType(sideNo.PublicKey, lib.HederaKeyType(sideNo.KeyType))
 	if err != nil {
-		return false, fmt.Errorf("failed to get publicKeyNo: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to get publicKeyNo: %v", err))
 	}
 
 	/////
@@ -316,23 +410,23 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	/////
 	marketIdBig, err := lib.Uuid7_to_bigint(sideYes.MarketId) // same for yes and no sides
 	if err != nil {
-		return false, fmt.Errorf("failed to convert marketId to bigint: %w", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to convert marketId to bigint: %v", err))
 	}
 
 	txIdYesBig, err := lib.Uuid7_to_bigint(sideYes.TxId)
 	if err != nil {
-		return false, fmt.Errorf("failed to convert txIdUuidYes to bigint: %w", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to convert txIdUuidYes to bigint: %v", err))
 	}
 	txIdNoBig, err := lib.Uuid7_to_bigint(sideNo.TxId)
 	if err != nil {
-		return false, fmt.Errorf("failed to convert txIdUuidNo to bigint: %w", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to convert txIdUuidNo to bigint: %v", err))
 	}
 
 	// sigObjYes and sigObjNo (Hedera format signature objects)
 	sigObjYes, err := lib.BuildSignatureMap(publicKeyYes, sigYes, lib.HederaKeyType(sideYes.KeyType))
 	sigObjNo, err := lib.BuildSignatureMap(publicKeyNo, sigNo, lib.HederaKeyType(sideNo.KeyType))
-	log.Printf("sigYes (keyType=%d) (hex): %x", sideYes.KeyType, sigYes)
-	log.Printf("sigNo (keyType=%d) (hex): %x", sideNo.KeyType, sigNo)
+	hs.log.Log(INFO, fmt.Sprintf("sigYes (keyType=%d) (hex): %x", sideYes.KeyType, sigYes))
+	hs.log.Log(INFO, fmt.Sprintf("sigNo (keyType=%d) (hex): %x", sideNo.KeyType, sigNo))
 
 	/////
 	// submit to the smart contract :)
@@ -348,51 +442,50 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	params.AddBytes(sigObjYes)                         // sigObjYes
 	params.AddBytes(sigObjNo)                          // sigObjNo
 
-	log.Printf("Prepared smart contract parameters for BuyPositionTokens")
-	log.Println("marketIdBytes (hex):", hex.EncodeToString(marketIdBig.Bytes()))
-	log.Println("accountIdYes:", sideYes.EvmAddress)
-	log.Println("accountIdNo:", sideNo.EvmAddress)
-	log.Println("collateralUsdAbsScaledYes:", collateralUsdAbsScaledYes.String())
-	log.Println("collateralUsdAbsScaledNo:", collateralUsdAbsScaledNo.String())
-	log.Println("txIdYesBig (hex):", hex.EncodeToString(txIdYesBig.Bytes()))
-	log.Println("txIdNoBig (hex):", hex.EncodeToString(txIdNoBig.Bytes()))
-	log.Printf("sigObjYes (len=%d): %x", len(sigObjYes), sigObjYes)
-	log.Printf("sigObjNo (len=%d): %x", len(sigObjNo), sigObjNo)
-
+	hs.log.Log(INFO, "Prepared smart contract parameters for BuyPositionTokens")
+	hs.log.Log(INFO, fmt.Sprintf("marketIdBytes (hex): %s", hex.EncodeToString(marketIdBig.Bytes())))
+	hs.log.Log(INFO, fmt.Sprintf("accountIdYes: %s", sideYes.EvmAddress))
+	hs.log.Log(INFO, fmt.Sprintf("accountIdNo: %s", sideNo.EvmAddress))
+	hs.log.Log(INFO, fmt.Sprintf("collateralUsdAbsScaledYes: %s", collateralUsdAbsScaledYes.String()))
+	hs.log.Log(INFO, fmt.Sprintf("collateralUsdAbsScaledNo: %s", collateralUsdAbsScaledNo.String()))
+	hs.log.Log(INFO, fmt.Sprintf("txIdYesBig (hex): %s", hex.EncodeToString(txIdYesBig.Bytes())))
+	hs.log.Log(INFO, fmt.Sprintf("txIdNoBig (hex): %s", hex.EncodeToString(txIdNoBig.Bytes())))
+	hs.log.Log(INFO, fmt.Sprintf("sigObjYes (len=%d): %x", len(sigObjYes), sigObjYes))
+	hs.log.Log(INFO, fmt.Sprintf("sigObjNo (len=%d): %x", len(sigObjNo), sigObjNo))
 	contractID, err := hiero.ContractIDFromString(
 		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(sideYes.Net))),
 	)
 	if err != nil {
-		return false, fmt.Errorf("invalid contract ID: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("invalid contract ID: %v", err))
 	}
 
 	tx, err := hiero.NewContractExecuteTransaction().
 		SetContractID(contractID).
 		SetGas(5_000_000). // TODO - can this be lowered? 2M in 4_buy.ts
 		SetFunction("buyPositionTokensOnBehalfAtomic", params).
-		Execute(h.hedera_clients[sideYes.Net]) // both sides are guaranteed to be on the same network
+		Execute(hs.hedera_clients[sideYes.Net]) // both sides are guaranteed to be on the same network
 	if err != nil {
-		return false, fmt.Errorf("failed to execute contract: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to execute contract: %v", err))
 	}
 
-	receipt, err := tx.GetReceipt(h.hedera_clients[sideYes.Net]) // both sides are guaranteed to be on the same network
+	receipt, err := tx.GetReceipt(hs.hedera_clients[sideYes.Net]) // both sides are guaranteed to be on the same network
 	if err != nil {
-		return false, fmt.Errorf("failed to get transaction receipt: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to get transaction receipt: %v", err))
 	}
 
 	// the smart contract function returns (nYes, nNo)
-	record, err := tx.GetRecord(h.hedera_clients[sideYes.Net])
+	record, err := tx.GetRecord(hs.hedera_clients[sideYes.Net])
 	if err != nil {
-		return false, fmt.Errorf("failed to get transaction record: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("failed to get transaction record: %v", err))
 	}
 	nYesTokens := new(big.Int).SetBytes(record.CallResult.GetUint256(0))
 	nNoTokens := new(big.Int).SetBytes(record.CallResult.GetUint256(1))
 	nYesTokens2 := new(big.Int).SetBytes(record.CallResult.GetUint256(2))
 	nNoTokens2 := new(big.Int).SetBytes(record.CallResult.GetUint256(3))
 
-	log.Printf("Token balances (marketId=%s): %s (yes=%s, no=%s) |  %s (yes=%s, no=%s)", sideYes.MarketId /* yes===no*/, sideYes.EvmAddress, nYesTokens.String(), nNoTokens.String(), sideNo.EvmAddress, nYesTokens2.String(), nNoTokens2.String())
+	hs.log.Log(INFO, fmt.Sprintf("Token balances (marketId=%s): %s (yes=%s, no=%s) |  %s (yes=%s, no=%s)", sideYes.MarketId /* yes===no*/, sideYes.EvmAddress, nYesTokens.String(), nNoTokens.String(), sideNo.EvmAddress, nYesTokens2.String(), nNoTokens2.String()))
 
-	log.Printf("buyPositionTokensOnBehalfAtomic(marketId=%s, ...) status: %s", sideYes.MarketId, receipt.Status.String())
+	hs.log.Log(INFO, fmt.Sprintf("buyPositionTokensOnBehalfAtomic(marketId=%s, ...) status: %s", sideYes.MarketId, receipt.Status.String()))
 
 	/////
 	// db
@@ -401,22 +494,22 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	// - 3. record the YES/NO balances
 	/////
 
-	if h.dbRepository == nil {
+	if hs.dbRepository == nil {
 		return false, fmt.Errorf("dbRepository is not initialized")
 	}
 
 	// 1. record the successful on-chain settlement
 	txHash := receipt.TransactionID.String()
-	log.Printf("TransactionID (txHash) for successful settlement: %s", txHash)
-	err = h.dbRepository.CreateSettlement(sideYes.TxId, sideNo.TxId, txHash)
+	hs.log.Log(INFO, fmt.Sprintf("TransactionID (txHash) for successful settlement: %s", txHash))
+	err = hs.dbRepository.CreateSettlement(sideYes.TxId, sideNo.TxId, txHash)
 	if err != nil {
-		return false, fmt.Errorf("Error logging a successful tx to settlements table: %v", err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("Error logging a successful tx to settlements table: %v", err))
 	}
 
 	// 2. record the price
-	err = h.priceRepository.SavePriceHistory(sideYes.MarketId, sideYes.TxId, sideYes.PriceUsd) // TODO - check this
+	err = hs.priceRepository.SavePriceHistory(sideYes.MarketId, sideYes.TxId, sideYes.PriceUsd) // TODO - check this
 	if err != nil {
-		return false, fmt.Errorf("Error saving price history for market %s: %v", sideYes.MarketId, err)
+		return false, hs.log.Log(ERROR, fmt.Sprintf("Error saving price history for market %s: %v", sideYes.MarketId, err))
 	}
 	// don't need to save the No side
 	// err = h.dbRepository.SavePriceHistory(sideNo.MarketId, sideNo.PriceUsd)
@@ -425,25 +518,25 @@ func (h *HederaService) BuyPositionTokens(sideYes *pb_clob.CreateOrderRequestClo
 	// }
 
 	// 3. record the YES/NO balances
-	resultYes, err := h.dbRepository.UpsertUserPositions(sideYes.EvmAddress, sideYes.MarketId, nYesTokens.Int64(), nNoTokens.Int64())
+	resultYes, err := hs.dbRepository.UpsertUserPositions(sideYes.EvmAddress, sideYes.MarketId, nYesTokens.Int64(), nNoTokens.Int64())
 	if err != nil {
 		return false, fmt.Errorf("Error upserting user position tokens for %s on market %s: %v", sideYes.EvmAddress, sideYes.MarketId, err)
 	}
-	fmt.Printf("In marketId=%s, user with evmAddress=%s, has nYes=%d | nNo=%d\n", resultYes.MarketID, resultYes.EvmAddress, resultYes.NYes, resultYes.NNo)
-	resultNo, err := h.dbRepository.UpsertUserPositions(sideNo.EvmAddress, sideNo.MarketId, nYesTokens2.Int64(), nNoTokens2.Int64())
+	hs.log.Log(INFO, fmt.Sprintf("In marketId=%s, user with evmAddress=%s, has nYes=%d | nNo=%d", resultYes.MarketID, resultYes.EvmAddress, resultYes.NYes, resultYes.NNo))
+	resultNo, err := hs.dbRepository.UpsertUserPositions(sideNo.EvmAddress, sideNo.MarketId, nYesTokens2.Int64(), nNoTokens2.Int64())
 	if err != nil {
 		return false, fmt.Errorf("Error upserting user position tokens for %s on market %s: %v", sideNo.EvmAddress, sideNo.MarketId, err)
 	}
-	fmt.Printf("In marketId=%s, user with evmAddress=%s, has nYes=%d | nNo=%d\n", resultNo.MarketID, resultNo.EvmAddress, resultNo.NYes, resultNo.NNo)
+	hs.log.Log(INFO, fmt.Sprintf("In marketId=%s, user with evmAddress=%s, has nYes=%d | nNo=%d", resultNo.MarketID, resultNo.EvmAddress, resultNo.NYes, resultNo.NNo))
 	// if we get here, return true
 	return true, nil
 }
 
-func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) (uint64, error) {
+func (hs *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) (uint64, error) {
 	// call the smart contract function createNewMarket(uint128 marketId, string memory _statement)
 	marketIdBig, err := lib.Uuid7_to_bigint(req.MarketId)
 	if err != nil {
-		return 0, fmt.Errorf("failed to convert marketId to bigint: %w", err)
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("failed to convert marketId to bigint: %v", err))
 	}
 	params := hiero.NewContractFunctionParameters()
 	params.AddUint128BigInt(marketIdBig) // marketId
@@ -453,33 +546,32 @@ func (h *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) (uint64
 		os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(req.Net))),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("invalid smart contract ID: %v", err)
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("invalid smart contract ID: %v", err))
 	}
 
-	log.Printf("Creating a new market on Prism smart contract (%s)", contractID)
+	hs.log.Log(INFO, fmt.Sprintf("Creating a new market on Prism smart contract (%s)", contractID))
 	result, err := hiero.NewContractExecuteTransaction().
 		SetContractID(contractID).
 		SetGas(2_000_000). // TODO - can this be lowered?
 		SetFunction("createNewMarket", params).
-		Execute(h.hedera_clients[req.Net])
+		Execute(hs.hedera_clients[req.Net])
 	if err != nil {
-		return 0, fmt.Errorf("failed to execute contract: %v", err)
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("failed to execute contract: %v", err))
 	}
 
-	record, err := result.GetRecord(h.hedera_clients[req.Net])
+	record, err := result.GetRecord(hs.hedera_clients[req.Net])
 	if err != nil {
-		log.Printf("CreateNewMarket - tx failed (could not get transaction record). Hedera txId = %s. %v", result.TransactionID.String(), err)
-		return 0, fmt.Errorf("failed to get transaction record: %v", err)
+		return 0, hs.log.Log(ERROR, fmt.Sprintf("CreateNewMarket - tx failed (could not get transaction record). Hedera txId = %s. %v", result.TransactionID.String(), err))
 	}
 
-	// receipt, err := result.GetReceipt(h.hedera_clients[req.Net])
+	// receipt, err := result.GetReceipt(hs.hedera_clients[req.Net])
 	// if err != nil {
 	// 	return fmt.Errorf("failed to get transaction receipt: %v", err)
 	// }
 
 	remainingAllowance := new(big.Int).SetBytes(record.CallResult.GetUint256(0))
 
-	log.Printf("Remaining allowance: %v", remainingAllowance.Uint64())
+	hs.log.Log(INFO, fmt.Sprintf("Remaining allowance: %v", remainingAllowance.Uint64()))
 
 	return remainingAllowance.Uint64(), nil
 }

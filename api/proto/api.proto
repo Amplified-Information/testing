@@ -27,6 +27,7 @@ service ApiServicePublic {
 service ApiServiceInternal {
   // rpc endpoints go here
   rpc TriggerRecreateClob(Empty) returns (StdResponse);
+  // rpc DeleteMarket(MarketIdRequest) returns (StdResponse); // systematically delete a market
 }
 
 message Empty {}

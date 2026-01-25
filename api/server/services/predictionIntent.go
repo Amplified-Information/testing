@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"strconv"
@@ -23,6 +22,7 @@ import (
 )
 
 type PredictionIntentService struct {
+	log               *LogService
 	dbRepository      *repositories.DbRepository
 	marketsRepository *repositories.MarketsRepository
 
@@ -30,14 +30,15 @@ type PredictionIntentService struct {
 	hederaService *HederaService
 }
 
-func (pis *PredictionIntentService) Init(dbRepository *repositories.DbRepository, marketsRepository *repositories.MarketsRepository, natsService *NatsService, hederaService *HederaService) error {
+func (pis *PredictionIntentService) Init(logService *LogService, dbRepository *repositories.DbRepository, marketsRepository *repositories.MarketsRepository, natsService *NatsService, hederaService *HederaService) error {
 	pis.dbRepository = dbRepository
 	pis.marketsRepository = marketsRepository
 
 	pis.natsService = natsService
 	pis.hederaService = hederaService
+	pis.log = logService
 
-	log.Printf("Service: PredictionIntent service initialized successfully, %p", pis)
+	pis.log.Log(INFO, fmt.Sprintf("Service: PredictionIntent service initialized successfully, %p", pis))
 
 	return nil
 }
@@ -55,7 +56,7 @@ func (pis *PredictionIntentService) CreatePredictionIntent(req *pb_api.Predictio
 	// Validate timestamp is within the last TIMESTAMP_ALLOWED_PAST_SECONDS seconds
 	timestamp, err := time.Parse(time.RFC3339, req.GeneratedAt)
 	if err != nil {
-		return "", fmt.Errorf("invalid timestamp format: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("invalid timestamp format: %v", err))
 	}
 
 	// TODO - validate the evmAddress is 20 bytes hex
@@ -65,112 +66,116 @@ func (pis *PredictionIntentService) CreatePredictionIntent(req *pb_api.Predictio
 	now := time.Now().UTC()
 	allowedPastSeconds, err := strconv.Atoi(os.Getenv("TIMESTAMP_ALLOWED_PAST_SECONDS"))
 	if err != nil {
-		return "", fmt.Errorf("invalid TIMESTAMP_ALLOWED_PAST_SECONDS environment variable: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("invalid TIMESTAMP_ALLOWED_PAST_SECONDS environment variable: %v", err))
 	}
 	allowedFutureSeconds, err := strconv.Atoi(os.Getenv("TIMESTAMP_ALLOWED_FUTURE_SECONDS"))
 	if err != nil {
-		return "", fmt.Errorf("invalid TIMESTAMP_ALLOWED_FUTURE_SECONDS environment variable: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("invalid TIMESTAMP_ALLOWED_FUTURE_SECONDS environment variable: %v", err))
 	}
 	pastDelta := now.Add(-1 * time.Duration(allowedPastSeconds) * time.Second)
 	futureDelta := now.Add(time.Duration(allowedFutureSeconds) * time.Second)
 
 	if timestamp.Before(pastDelta) {
-		return "", fmt.Errorf("timestamp is too old: %s", req.GeneratedAt)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("timestamp is too old: %s", req.GeneratedAt))
 	}
 
 	if timestamp.After(futureDelta) {
-		return "", fmt.Errorf("timestamp is too far in the future: %s. Now: %s", req.GeneratedAt, now)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("timestamp is too far in the future: %s. Now: %s", req.GeneratedAt, now))
 	}
 
 	// check we haven't received this txid previously
 	txUUID, err := uuid.Parse(req.TxId)
 	if err != nil {
-		return "", fmt.Errorf("invalid txId uuid: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("invalid txId uuid: %v", err))
 	}
 	exists, err := pis.dbRepository.IsDuplicateTxId(txUUID)
 	if err != nil {
-		return "", fmt.Errorf("failed to check existing txId: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to check existing txId: %v", err))
 	}
 	if exists {
-		log.Printf("DUPLICATE txId: %s", req.TxId)
+		pis.log.Log(WARN, fmt.Sprintf("DUPLICATE txId: %s", req.TxId))
 		return "", fmt.Errorf("duplicate txId: %s", req.TxId)
 	}
 
 	// validate that the network sent is valid
 	netSelectedByUser := strings.ToLower(req.Net)
 	if !lib.IsValidNetwork(netSelectedByUser) {
-		return "", fmt.Errorf("invalid network: %s", req.Net)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("invalid network: %s", req.Net))
 	}
 
 	// First look up the Hedera accountId against the mirror node
 	publicKeyLookedUp, keyTypeLookedUp, err := pis.hederaService.GetPublicKey(accountId, netSelectedByUser)
 	if err != nil {
-		return "", fmt.Errorf("failed to get public key: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to get public key: %v", err))
 	}
-	log.Printf("Mirror node response for account %s on network %s: %s", accountId, netSelectedByUser, publicKeyLookedUp.String())
+	pis.log.Log(INFO, fmt.Sprintf("Mirror node response for account %s on network %s: %s", accountId, netSelectedByUser, publicKeyLookedUp.String()))
 
 	// keyType sent from the front-end (no 0x prefix) must match the keyType looked up on the mirror node
 	if !lib.IsValidKeyType(req.KeyType) {
-		return "", fmt.Errorf("keyType mismatch: expected %d, got %d", keyTypeLookedUp, req.KeyType)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("keyType mismatch: expected %d, got %d", keyTypeLookedUp, req.KeyType))
 	}
 
 	// public key sent from the front-end (no 0x prefix) must match the public key looked up on the mirror node
 	publicKey, err := hiero.PublicKeyFromString(req.PublicKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse public key from string: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to parse public key from string: %v", err))
 	}
 	if publicKeyLookedUp.String() != publicKey.String() || publicKey.String() == "" {
-		return "", fmt.Errorf("public key mismatch: expected %s, got %s", publicKeyLookedUp.String(), publicKey.String())
+		return "", pis.log.Log(ERROR, fmt.Sprintf("public key mismatch: expected %s, got %s", publicKeyLookedUp.String(), publicKey.String()))
 	}
 
 	// Now it's safe to proceed with the publicKey passed from the frontend...
 	usdcDecimals, err := strconv.ParseUint(os.Getenv("USDC_DECIMALS"), 10, 64)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse USDC_DECIMALS: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to parse USDC_DECIMALS: %v", err))
 	}
 
 	payloadHex, err := lib.AssemblePayloadHexForSigning(req, usdcDecimals)
 	if err != nil {
-		return "", fmt.Errorf("failed to extract payload for signing: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to extract payload for signing: %v", err))
 	}
 	// N.B. treat the hex string as a Utf8 string - don't want the hex conversion to remove leading zeros!!!
 	payloadUtf8 := payloadHex // Yes, this is intentional
-	log.Printf("payloadUtf8: %s", payloadUtf8)
+	pis.log.Log(INFO, fmt.Sprintf("payloadUtf8: %s", payloadUtf8))
 
 	isValidSig, err := lib.VerifySig(&publicKey, payloadUtf8, req.Sig)
 	if err != nil {
-		log.Printf("Failed to verify signature: %v", err)
-		return "", fmt.Errorf("failed to verify signature: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to verify signature: %v", err))
 	}
 	if !isValidSig {
-		log.Printf("Invalid signature for account %s", req.AccountId)
-		return "", fmt.Errorf("invalid signature")
+		return "", pis.log.Log(ERROR, fmt.Sprintf("invalid signature for account %s", req.AccountId))
 	}
 	// if we get here, the sig is valid
-	log.Printf("**Signature is valid for account %s**", req.AccountId)
+	pis.log.Log(INFO, fmt.Sprintf("**Signature is valid for account %s**", req.AccountId))
 
-	// Now ensure we have an allowance
+	// Ensure user has provided enough of an allowance
 	_networkSelected, err := hiero.LedgerIDFromString(netSelectedByUser)
 	if err != nil {
-		return "", fmt.Errorf("failed to get network selected: %v", err)
+		return "", pis.log.Log(ERROR, "failed to get network selected: %v", err)
 	}
 	_smartContractId, err := hiero.ContractIDFromString(os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(netSelectedByUser))))
 	if err != nil {
-		return "", fmt.Errorf("failed to validate %s_SMART_CONTRACT_ID: %v", strings.ToUpper(netSelectedByUser), err)
+		return "", pis.log.Log(ERROR, "failed to validate %s_SMART_CONTRACT_ID: %v", strings.ToUpper(netSelectedByUser), err)
 	}
 	usdcAddress, err := hiero.ContractIDFromString(os.Getenv(fmt.Sprintf("%s_USDC_ADDRESS", strings.ToUpper(netSelectedByUser))))
 	if err != nil {
-		return "", fmt.Errorf("failed to validate %s_USDC_ADDRESS: %v", strings.ToUpper(netSelectedByUser), err)
+		return "", pis.log.Log(ERROR, "failed to validate %s_USDC_ADDRESS: %v", strings.ToUpper(netSelectedByUser), err)
 	}
 
 	spenderAllowanceUsd, err := pis.hederaService.GetSpenderAllowanceUsd(*_networkSelected, accountId, _smartContractId, usdcAddress, usdcDecimals)
 	if err != nil {
-		return "", fmt.Errorf("failed to get spender allowance: %v", err)
+		return "", pis.log.Log(ERROR, "failed to get spender allowance: %v", err)
 	}
-	log.Printf(("Spender allowance for account %s on contract %s: $%.2f"), accountId.String(), _smartContractId.String(), spenderAllowanceUsd)
+	pis.log.Log(INFO, ("Spender allowance for account %s on contract %s: $%.2f"), accountId.String(), _smartContractId.String(), spenderAllowanceUsd)
+
 	if spenderAllowanceUsd < math.Abs(req.GetPriceUsd()*req.GetQty()) {
-		log.Printf("ERROR: Spender allowance ($USD%.2f) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, req.GetPriceUsd()*req.GetQty())
-		return "", fmt.Errorf("Spender allowance ($USD%.2f USD token = %s) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, usdcAddress.String(), req.GetPriceUsd()*req.GetQty())
+		return "", pis.log.Log(ERROR, "Spender allowance ($USD%.2f USD token = %s) too low for this predictionIntent ($USD%.2f)", spenderAllowanceUsd, usdcAddress.String(), req.GetPriceUsd()*req.GetQty())
+	}
+
+	// ensure the spenderAllowanceUsd is >= usdc balance currently in the user's wallet
+	currentUserBalanceUsdc, err := pis.hederaService.GetUsdcBalanceUsd(*_networkSelected, accountId)
+	if currentUserBalanceUsdc < spenderAllowanceUsd {
+		return "", pis.log.Log(ERROR, "User's USDC balance ($USD%.2f) is less than the allowance ($USD%.2f)", currentUserBalanceUsdc, spenderAllowanceUsd)
 	}
 
 	/// OK - All validations passed
@@ -179,7 +184,7 @@ func (pis *PredictionIntentService) CreatePredictionIntent(req *pb_api.Predictio
 	// store the OrderRequest in the database - the txid must be unique or this fails
 	_, err = pis.dbRepository.SaveOrderIntentRequest(req)
 	if err != nil {
-		return "", fmt.Errorf("database error: failed to save order request: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("database error: failed to save order request: %v", err))
 	}
 
 	/////
@@ -203,16 +208,16 @@ func (pis *PredictionIntentService) CreatePredictionIntent(req *pb_api.Predictio
 	}
 	clobRequestJSON, err := json.Marshal(clobRequestObj)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal CLOB request: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to marshal CLOB request: %v", err))
 	}
 
 	// Publish the message to NATS:
 	err = pis.natsService.Publish(lib.SUBJECT_CLOB_ORDERS, clobRequestJSON)
 	if err != nil {
-		return "", fmt.Errorf("failed to publish to NATS: %v", err)
+		return "", pis.log.Log(ERROR, fmt.Sprintf("failed to publish to NATS: %v", err))
 	}
 
-	log.Printf("Published order to NATS subject '%s': %s", lib.SUBJECT_CLOB_ORDERS, string(clobRequestJSON))
+	pis.log.Log(INFO, fmt.Sprintf("Published order to NATS subject '%s': %s", lib.SUBJECT_CLOB_ORDERS, string(clobRequestJSON)))
 
 	return fmt.Sprintf("Processed input for user %s", req.AccountId), nil
 }
@@ -230,7 +235,7 @@ func (pis *PredictionIntentService) CancelPredictionIntent(req *pb_api.CancelOrd
 	// 1 - Mark the order as cancelled in the database
 	err := pis.dbRepository.CancelOrderIntent(req.TxId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to cancel order intent: %v", err)
+		return nil, pis.log.Log(ERROR, fmt.Sprintf("failed to cancel order intent: %v", err))
 	}
 
 	// TODO - in future, this will be done using NATS/Jetstream
@@ -257,7 +262,7 @@ func (pis *PredictionIntentService) CancelPredictionIntent(req *pb_api.CancelOrd
 
 	conn, err := grpc.NewClient(clobAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to cancel order (marketId=%s, txId=%s) - connect to CLOB gRPC server failed: %w", req.MarketId, req.TxId, err)
+		return nil, pis.log.Log(ERROR, fmt.Sprintf("failed to cancel order (marketId=%s, txId=%s) - connect to CLOB gRPC server failed: %v", req.MarketId, req.TxId, err))
 	}
 	defer conn.Close()
 
@@ -270,7 +275,7 @@ func (pis *PredictionIntentService) CancelPredictionIntent(req *pb_api.CancelOrd
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to cancel order (marketId=%s, txId=%s) on the CLOB (%s): %w", req.MarketId, req.TxId, clobAddr, err)
+		return nil, pis.log.Log(ERROR, fmt.Sprintf("failed to cancel order (marketId=%s, txId=%s) on the CLOB (%s): %v", req.MarketId, req.TxId, clobAddr, err))
 	}
 
 	// OK if we got here:

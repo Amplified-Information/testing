@@ -14,12 +14,16 @@ import (
 )
 
 type NatsService struct {
+	log           *LogService
 	nats          *nats.Conn
 	hederaService *HederaService
 	dbRepository  *repositories.DbRepository
 }
 
-func (n *NatsService) InitNATS(h *HederaService, d *repositories.DbRepository) error {
+func (ns *NatsService) InitNATS(log *LogService, h *HederaService, d *repositories.DbRepository) error {
+	ns.log = log
+
+	// connect to NATS
 	natsURL := os.Getenv("NATS_URL")
 	if natsURL == "" {
 		natsURL = nats.DefaultURL
@@ -28,62 +32,63 @@ func (n *NatsService) InitNATS(h *HederaService, d *repositories.DbRepository) e
 	if err != nil {
 		return fmt.Errorf("failed to connect to NATS: %v", err)
 	}
-	n.nats = natsConn
+	ns.nats = natsConn
 
 	// and inject the HederaService:
-	n.hederaService = h
+	ns.hederaService = h
 	// and inject the DbService:
-	n.dbRepository = d
+	ns.dbRepository = d
 
-	log.Println("Service: NATS service initialized successfully")
+	ns.log.Log(INFO, "Service: NATS service initialized successfully")
 	return nil
 }
 
-func (n *NatsService) CloseNATS() error {
-	if n.nats != nil {
-		n.nats.Close()
+func (ns *NatsService) CloseNATS() error {
+	if ns.nats != nil {
+		ns.nats.Close()
 	}
 	return nil
 }
 
-func (n *NatsService) Publish(subject string, data []byte) error {
-	if n.nats == nil {
-		return fmt.Errorf("NATS connection not initialized")
+func (ns *NatsService) Publish(subject string, data []byte) error {
+	if ns.nats == nil {
+		return ns.log.Log(ERROR, "NATS connection not initialized")
 	}
-	if err := n.nats.Publish(subject, data); err != nil {
+	if err := ns.nats.Publish(subject, data); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (n *NatsService) Subscribe(subject string, handler nats.MsgHandler) (*nats.Subscription, error) {
-	if n.nats == nil {
-		return nil, fmt.Errorf("NATS connection not initialized")
+func (ns *NatsService) Subscribe(subject string, handler nats.MsgHandler) (*nats.Subscription, error) {
+	if ns.nats == nil {
+		return nil, ns.log.Log(ERROR, "NATS connection not initialized")
 	}
 
-	subscription, err := n.nats.Subscribe(subject, handler)
+	subscription, err := ns.nats.Subscribe(subject, handler)
 	if err != nil {
-		return nil, fmt.Errorf("failed to subscribe to subject %s: %v", subject, err)
+		return nil, ns.log.Log(ERROR, fmt.Sprintf("failed to subscribe to subject %s: %v", subject, err))
 	}
 
 	return subscription, nil
 }
 
-func (n *NatsService) HandleOrderMatches() error {
+func (ns *NatsService) HandleOrderMatches() error {
 	log.Printf("HandleOrderMatches subscription starting...")
-	_, err := n.Subscribe(lib.NATS_CLOB_MATCHES_WILDCARD, func(msg *nats.Msg) {
+	_, err := ns.Subscribe(lib.NATS_CLOB_MATCHES_WILDCARD, func(msg *nats.Msg) {
 
-		fmt.Printf("NATS %s: %s\n", msg.Subject, string(msg.Data))
+		ns.log.Log(INFO, fmt.Sprintf("NATS %s: %s\n", msg.Subject, string(msg.Data)))
 
+		// Guards
 		var orderRequestClobTuple [2]*pb_clob.CreateOrderRequestClob
 		if err := json.Unmarshal(msg.Data, &orderRequestClobTuple); err != nil {
-			log.Printf("Error parsing order data: %v", err)
+			ns.log.Log(ERROR, fmt.Sprintf("Error parsing order data: %v", err))
 			return
 		}
 
 		// assert that [0].marketId and [1].marketId are the same
 		if orderRequestClobTuple[0].MarketId != orderRequestClobTuple[1].MarketId {
-			log.Printf("PROBLEM: the marketIds (%s, %s) don't match! (txid=%s).", orderRequestClobTuple[0].MarketId, orderRequestClobTuple[1].MarketId, orderRequestClobTuple[0].TxId)
+			ns.log.Log(ERROR, fmt.Sprintf("PROBLEM: the marketIds (%s, %s) don't match! (txid=%s).", orderRequestClobTuple[0].MarketId, orderRequestClobTuple[1].MarketId, orderRequestClobTuple[0].TxId))
 			return
 		}
 
@@ -99,15 +104,20 @@ func (n *NatsService) HandleOrderMatches() error {
 
 		// assert that priceUsd is not 0.0
 		if orderRequestClobTuple[0].PriceUsd == 0.0 {
-			log.Printf("PROBLEM: priceUsd is 0.0 - this is not allowed (txid=%s).", orderRequestClobTuple[0].TxId)
+			ns.log.Log(ERROR, fmt.Sprintf("PROBLEM: priceUsd is 0.0 - this is not allowed (txid=%s).", orderRequestClobTuple[0].TxId))
 			return
 		}
 
 		// assert that the keyType is not 0
 		if orderRequestClobTuple[0].KeyType == 0 || orderRequestClobTuple[1].KeyType == 0 {
-			log.Printf("PROBLEM: keyType is 0 - this is not allowed (txid=%s).", orderRequestClobTuple[0].TxId)
+			ns.log.Log(ERROR, fmt.Sprintf("PROBLEM: keyType is 0 - this is not allowed (txid=%s).", orderRequestClobTuple[0].TxId))
 			return
 		}
+
+		// TODO - assert that the user's allowance >= the size of the matched order
+		// usersCurrentAllowance // query the mirror node for allowance
+
+		// OK
 
 		/////
 		// db
@@ -120,16 +130,16 @@ func (n *NatsService) HandleOrderMatches() error {
 		case lib.NATS_CLOB_MATCHES_FULL:
 			isPartial = false
 		default:
-			log.Printf("NATS: Invalid subject")
+			ns.log.Log(ERROR, "NATS: Invalid subject")
 			return
 		}
 
-		_, err := n.dbRepository.RecordMatch(
+		_, err := ns.dbRepository.RecordMatch(
 			[2]*pb_clob.CreateOrderRequestClob{orderRequestClobTuple[0], orderRequestClobTuple[1]},
 			isPartial,
 		)
 		if err != nil {
-			log.Printf("Error recording match in database: %v", err)
+			ns.log.Log(ERROR, fmt.Sprintf("Error recording match in database: %v", err))
 		}
 
 		/////
@@ -138,12 +148,12 @@ func (n *NatsService) HandleOrderMatches() error {
 		// BuyPositionTokens determines which account recieves the YES and which account receives the NO (price_usd < 0 => NO)
 		/////
 
-		isOK, err := n.hederaService.BuyPositionTokens(orderRequestClobTuple[0], orderRequestClobTuple[1])
+		isOK, err := ns.hederaService.BuyPositionTokens(orderRequestClobTuple[0], orderRequestClobTuple[1])
 		if err != nil {
-			log.Printf("Error submitting match to smart contract: %v ", err)
+			ns.log.Log(ERROR, fmt.Sprintf("Error submitting match to smart contract: %v ", err))
 		}
 		if !isOK {
-			log.Printf("BuyPositionTokens returned !isOK for txId=%s, txId=%s", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId)
+			ns.log.Log(ERROR, fmt.Sprintf("BuyPositionTokens returned !isOK for txId=%s, txId=%s", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId))
 		}
 	})
 	if err != nil {

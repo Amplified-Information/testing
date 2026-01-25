@@ -11,14 +11,15 @@ import (
 )
 
 type CommentsService struct {
+	log                *LogService
 	commentsRepository *repositories.CommentsRepository
 }
 
-func (c *CommentsService) Init(d *repositories.CommentsRepository) error {
-	// and inject the DbService:
+func (c *CommentsService) Init(log *LogService, d *repositories.CommentsRepository) error {
+	c.log = log
 	c.commentsRepository = d
 
-	log.Printf("Service: Comments service initialized successfully")
+	c.log.Log(INFO, "Service: Comments service initialized successfully")
 	return nil
 }
 
@@ -80,7 +81,7 @@ func (c *CommentsService) CreateComment(req *pb_api.CreateCommentRequest) (*pb_a
 	}
 	// ensure content is not too long
 	if len(req.Content) > 1000 {
-		return nil, fmt.Errorf("comment content is too long (max 1000 chars)")
+		return nil, c.log.Log(ERROR, "comment content is too long (max 1000 chars)")
 	}
 
 	// ensure sig length is reasonable

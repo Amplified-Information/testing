@@ -5,22 +5,23 @@ import (
 	sqlc "api/gen/sqlc"
 	repositories "api/server/repositories"
 	"fmt"
-	"log"
 )
 
 type PositionsService struct {
+	log                 *LogService
 	positionsRepository *repositories.PositionsRepository
 	marketsRepository   *repositories.MarketsRepository
 	priceService        *PriceService
 }
 
-func (ps *PositionsService) Init(positionsRepository *repositories.PositionsRepository, marketsRepository *repositories.MarketsRepository, priceService *PriceService) error {
+func (ps *PositionsService) Init(log *LogService, positionsRepository *repositories.PositionsRepository, marketsRepository *repositories.MarketsRepository, priceService *PriceService) error {
 	// and inject the deps:
+	ps.log = log
 	ps.positionsRepository = positionsRepository
 	ps.marketsRepository = marketsRepository
 	ps.priceService = priceService
 
-	log.Printf("Service: Positions service initialized successfully")
+	ps.log.Log(INFO, "Service: Positions service initialized successfully")
 	return nil
 }
 
@@ -37,7 +38,7 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 		result, err = ps.positionsRepository.GetUserPortfolioByMarketId(req.EvmAddress, *req.MarketId)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user portfolio: %w", err)
+		return nil, ps.log.Log(ERROR, fmt.Sprintf("failed to get user portfolio: %v", err))
 	}
 
 	response := &pb_api.UserPortfolioResponse{
@@ -47,12 +48,12 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 	for _, row := range result {
 		priceUsd, err := ps.priceService.GetLatestPriceByMarket(row.MarketID.String())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest price for market %s: %w", row.MarketID.String(), err)
+			return nil, ps.log.Log(ERROR, fmt.Sprintf("failed to get latest price for market %s: %v", row.MarketID.String(), err))
 		}
 
 		market, err := ps.marketsRepository.GetMarketById(row.MarketID.String())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get market %s: %w", row.MarketID.String(), err)
+			return nil, ps.log.Log(ERROR, fmt.Sprintf("failed to get market %s: %v", row.MarketID.String(), err))
 		}
 
 		position := &pb_api.Position{
