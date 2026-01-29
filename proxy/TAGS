@@ -39,3 +39,9 @@ removed all basic auth - done at web app level
 
 0.1.13
 tidy up to remove unecessary lines
+
+0.1.14
+CORS changes
+
+0.1.15
+CORS update - added domains

@@ -231,6 +231,11 @@ migrate -database $DB_URL -path db/migrations down
 
 ```bash
 cd api
+
+source ./loadEnv.sh local
+DB_URL=postgres://$DB_UNAME:$DB_PWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable
+echo $DB_URL
+
 pg_dump $DB_URL --schema-only | sed '/^\\/d' > ./db/schema.sql
 ```
 

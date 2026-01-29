@@ -123,6 +123,11 @@ static_resources:
                         "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy
                         allow_origin_string_match:
                           - exact: "https://f7faefde-e59f-4956-9496-bd84da96dad3.lovableproject.com"
+                          - suffix: ".lovable.app"
+                          - suffix: ".getrichwithai.tech"
+                          - exact: "https://amplified.info"
+                          - exact: "https://prism.amplified.info"
+                          - suffix: ".amplified.info"
                           - exact: "http://localhost:5173"
                         allow_methods: "POST, OPTIONS"
                         allow_headers: "authorization,content-type,x-grpc-web"

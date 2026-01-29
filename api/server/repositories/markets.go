@@ -187,3 +187,19 @@ func (marketsRepository *MarketsRepository) GetAllUnresolvedMarkets() ([]sqlc.Ma
 
 	return markets, nil
 }
+
+func (marketsRepository *MarketsRepository) GetAllMatchesForMarketIdTxId(marketID uuid.UUID, txId uuid.UUID) ([]sqlc.Match, error) {
+	if marketsRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	q := sqlc.New(marketsRepository.db)
+	matches, err := q.GetAllMatchesForMarketIdTxId(context.Background(), sqlc.GetAllMatchesForMarketIdTxIdParams{
+		MarketID: marketID,
+		TxId1:    txId,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetAllMatchesForMarketIdTxId failed: %v", err)
+	}
+
+	return matches, nil
+}

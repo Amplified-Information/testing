@@ -4,7 +4,6 @@ import (
 	pb_api "api/gen"
 	sqlc "api/gen/sqlc"
 	repositories "api/server/repositories"
-	"fmt"
 )
 
 type PositionsService struct {
@@ -38,7 +37,7 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 		result, err = ps.positionsRepository.GetUserPortfolioByMarketId(req.EvmAddress, *req.MarketId)
 	}
 	if err != nil {
-		return nil, ps.log.Log(ERROR, fmt.Sprintf("failed to get user portfolio: %v", err))
+		return nil, ps.log.Log(ERROR, "failed to get user portfolio: %v", err)
 	}
 
 	response := &pb_api.UserPortfolioResponse{
@@ -48,12 +47,12 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 	for _, row := range result {
 		priceUsd, err := ps.priceService.GetLatestPriceByMarket(row.MarketID.String())
 		if err != nil {
-			return nil, ps.log.Log(ERROR, fmt.Sprintf("failed to get latest price for market %s: %v", row.MarketID.String(), err))
+			return nil, ps.log.Log(ERROR, "failed to get latest price for market %s: %v", row.MarketID.String(), err)
 		}
 
 		market, err := ps.marketsRepository.GetMarketById(row.MarketID.String())
 		if err != nil {
-			return nil, ps.log.Log(ERROR, fmt.Sprintf("failed to get market %s: %v", row.MarketID.String(), err))
+			return nil, ps.log.Log(ERROR, "failed to get market %s: %v", row.MarketID.String(), err)
 		}
 
 		position := &pb_api.Position{
@@ -69,6 +68,7 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 
 	// On-chain query equivalent:
 	// contractID, err := hiero.ContractIDFromString(
+	// be careful - is _SMART_CONTRACT_ID the correct one here?
 	// 	os.Getenv(fmt.Sprintf("%s_SMART_CONTRACT_ID", strings.ToUpper(req.Net))),
 	// )
 	// if err != nil {

@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { ServerStreamingCall } from '@protobuf-ts/runtime-rpc' // Ensure this is the correct library for your project
 import { useAppContext } from '../AppProvider'
 import { clobClient } from '../grpcClient'
-import { getMidPrice, getSpreadPercent } from '../lib/utils'
+import { getMidPrice, getSpreadPercent, isValidUUIDv7 } from '../lib/utils'
 import CancelOrder from './CancelOrder'
 import { BookSnapshot } from '../gen/clob'
 
@@ -23,6 +23,9 @@ const GraphOrderBook = ({ marketId }: { marketId: string }) => {
     async function startStream() {
       let call: ServerStreamingCall | undefined
       try {
+        if (!isValidUUIDv7(marketId!)){
+          return
+        }
         call = clobClient.streamBook(
           { 
             marketId,
@@ -65,7 +68,7 @@ const GraphOrderBook = ({ marketId }: { marketId: string }) => {
         
         {(book?.asks ?? []).slice().sort((a, b) => a.priceUsd - b.priceUsd).map((ask, idx) => (
           <li key={`ask-${idx}`}>
-            <span style={{ color: 'red' }}>
+            <span style={{ color: 'red' }} title={ask.txId}>
               ${(0 - ask.priceUsd).toFixed(4)} &mdash; {ask.qty.toFixed(2)}</span>
               &nbsp;{ask.accountId === signerZero?.getAccountId().toString() ? <CancelOrder marketId={marketId} txId={ask.txId} /> : ''}
           </li>
@@ -73,7 +76,7 @@ const GraphOrderBook = ({ marketId }: { marketId: string }) => {
         --- mid-price: {typeof getMidPrice(book) === 'undefined' ? 'N/A' : getMidPrice(book)!.toFixed(4)}, spread: {typeof getSpreadPercent(book) === 'undefined' ? 'N/A' : getSpreadPercent(book)!.toFixed(2)}% ---
         {(book?.bids ?? []).slice().sort((a, b) => b.priceUsd - a.priceUsd).map((bid, idx) => (
           <li key={`bid-${idx}`}>
-            <span style={{ color: 'green' }}>
+            <span style={{ color: 'green' }} title={bid.txId}>
             ${bid.priceUsd.toFixed(4)} &mdash; {bid.qty.toFixed(2)}</span>
             &nbsp;{bid.accountId === signerZero?.getAccountId().toString() ? <CancelOrder marketId={marketId} txId={bid.txId} /> : ''}
           </li>

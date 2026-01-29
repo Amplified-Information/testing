@@ -5,6 +5,7 @@ This project is divided into a number of folders:
 - `scs`: on-chain smart contracts
 - `clob`: an off-chain CLOB which matches cryptographically signed buy/sell order intents
 - `infra`: infrastructure-as-code (AWS-orientated)
+- `mw`: middleware for web app (server-side control of preview links across social media platforms)
 - `web`: prism web front-end
 - `web.lp`: a landing page
 - ~~`web.eng`: a (stale) engineering front-end~~
@@ -104,6 +105,7 @@ ssh-add ~/Desktop/prod.pem
 # You can now connect to a remote box using `ssh -A ...` and the ssh agent will automatically use the appropriate key you loaded into the ssh agent using the ssh-add command above
 
 # example of setting up the tunnel for a remote db connection:
+./bastions.sh # get the HOST
 export HOST=ec2-44-222-140-176.compute-1.amazonaws.com # retrieve from the AWS EC2 web UI
 ssh -A -L 9999:10.0.1.12:5432 -N admin@$HOST
 ```

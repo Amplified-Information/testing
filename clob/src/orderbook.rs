@@ -1,6 +1,11 @@
 use tokio::sync::RwLock;
-use std::{sync::Arc, collections::HashMap};
+use std::{sync::Arc, collections::{HashMap, HashSet}};
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 use log;
+
+// Global LUT for tx_id's
+static TX_ID_LUT: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 pub mod proto {
     tonic::include_proto!("clob");
@@ -51,14 +56,24 @@ impl OrderBookService {
     //     order_books.remove(market_id);
     // }
 
+    pub async fn order_exists(&self, tx_id: &str) -> bool {
+        let lut = TX_ID_LUT.lock().unwrap();
+        lut.contains(tx_id)
+    }
+
     pub async fn place_order(&self, order: CreateOrderRequestClob) -> Result<(), Box<dyn std::error::Error>> {
         // No guards for performance - assume validated upstream
-
         let order_books = self.order_books.read().await;
-        // let poly_id = order.net.clone() + ":" + &order.market_id;   // <hederaNet>:<UUID>
         if let Some(order_book) = order_books.get(&order.market_id.to_lowercase()) {
+            let tx_id = order.tx_id.clone();
             let mut book = order_book.write().await;
             book.add_order(order).await;
+
+            // Add tx_id to the LUT to avoid duplicate tx_ids
+            let mut lut = TX_ID_LUT.lock().unwrap();
+            lut.insert(tx_id);
+
+            // return OK
             Ok(())
         } else {
             Err("Market not found".into())
@@ -231,6 +246,7 @@ impl OrderBook {
 
                 let orc2= existing_order.clone();
                 if incoming_order.qty <= existing_order.qty {
+                    // FULL match!
                     existing_order.qty -= incoming_order.qty;
                     if existing_order.qty == 0.0 {
                         opposite_orders.remove(i);
@@ -238,7 +254,6 @@ impl OrderBook {
 
                     log::info!("MATCH \t OrderRequestClob: {:?}", incoming_order);
                     
-
                     // Notify NATS of full match - spawn to fire/forget
                     let orc1 = incoming_order.clone();
                     let nats_clone = nats_service.clone();
@@ -250,6 +265,7 @@ impl OrderBook {
                     
                     return;
                 } else {
+                    // PARTIAL match
                     incoming_order.qty -= existing_order.qty;
                     opposite_orders.remove(i);
 

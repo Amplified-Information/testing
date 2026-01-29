@@ -57,3 +57,6 @@ restructured API - more repositories and services
 
 0.2.20
 post refactoring fixes
+
+0.3.0
+major refactor to include clob recreation functionality, structure refactor, logging updates

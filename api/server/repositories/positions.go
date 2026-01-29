@@ -74,3 +74,24 @@ func (positionsRepository *PositionsRepository) GetUserPortfolioByMarketId(evmAd
 	}
 	return converted, err
 }
+
+func (dbRespository *DbRepository) UpsertUserPositions(evmAddress string, marketId string, nYesTokens int64, nNoTokens int64) (*sqlc.Position, error) {
+	if dbRespository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbRespository.db)
+
+	result, err := q.UpsertPositions(context.Background(), sqlc.UpsertPositionsParams{
+		MarketID:   uuid.MustParse(marketId),
+		EvmAddress: evmAddress,
+		NYes:       nYesTokens,
+		NNo:        nNoTokens,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("UpsertUserPositions failed: %v", err)
+	}
+
+	log.Printf("Updated user position tokens: %+v", result)
+	return &result, nil
+}

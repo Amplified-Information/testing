@@ -24,3 +24,6 @@ Update to clob.proto
 
 0.2.8
 Added new endpoints to support cancelling orders, retrieving open orders
+
+0.2.9
+Updates to CLOB to support clob recreation from power failure

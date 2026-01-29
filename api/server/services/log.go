@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"log"
+	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -35,12 +35,20 @@ func (ls *LogService) InitLogger(level LogLevel) {
 	default:
 		zapLevel = zapcore.InfoLevel
 	}
-	cfg := zap.NewProductionConfig()
-	cfg.Level = zap.NewAtomicLevelAt(zapLevel)
-	l, _ := cfg.Build()
-	ls.logger = l.Sugar()
 
-	log.Printf("Service: Log service initialized successfully, %p", ls)
+	encoderCfg := zap.NewDevelopmentEncoderConfig()
+	encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder                  // Colorize level
+	encoderCfg.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05") // Human-readable
+
+	core := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(encoderCfg),
+		zapcore.AddSync(zapcore.Lock(os.Stdout)),
+		zap.NewAtomicLevelAt(zapLevel),
+	)
+	logger := zap.New(core)
+	ls.logger = logger.Sugar()
+
+	ls.logger.Infof("Service: Log service initialized successfully, %p", ls)
 }
 
 func (ls *LogService) Log(level LogLevel, msg string, args ...interface{}) error {

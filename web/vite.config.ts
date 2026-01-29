@@ -13,7 +13,7 @@ export default defineConfig({
   //     '@shared': path.resolve(__dirname, '../shared'),
   //   },
   // },
-  base: './', // also change main.tsx
+  base: '/', // also change main.tsx. N.B. do not use './'!!
   build: {
     outDir: 'dist',
     rollupOptions: {

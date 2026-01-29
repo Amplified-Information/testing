@@ -15,6 +15,10 @@ const Market = () => {
 
   useEffect(() => {
     ;(async () => {
+      
+      if (!isValidUUIDv7(marketId!)){
+        return
+      }
       // retrieve one market (marketId)
       // update/add this market to markets (setMarkets), where marketId matches
       const result = await apiClient.getMarketById({ marketId: marketId! })
@@ -22,7 +26,7 @@ const Market = () => {
       setMarketId(result.response.marketId)
       setMarket(result.response)
       setMarkets([result.response, ...markets.filter(m => m.marketId !== marketId)])
-
+      
       console.log('market: ', result.response)
     })()
   }, [])
@@ -72,7 +76,7 @@ const Market = () => {
           </span>
         </div>
         <button
-          className="mt-6 w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow transition-all duration-200 text-lg"
+          className="mt-6 w-full from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow transition-all duration-200 text-lg"
           onClick={() => { setShowPopupTradePanel(true) }}
         >
           Bet now ${ ((bidUsd + askUsd) / 2).toFixed(2) }

@@ -84,3 +84,12 @@ web - compatibility with new API and clob changes
 
 0.4.16
 web - cancel order functionality
+
+0.4.17
+web - some updates to prevent empty marketId API calls
+
+0.4.18
+web - fix SPA issue on dev
+
+0.4.19
+web - /assets/ nginx config

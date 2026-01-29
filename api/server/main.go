@@ -14,28 +14,33 @@ import (
 	repositories "api/server/repositories"
 
 	"google.golang.org/grpc"
+
+	cron "github.com/robfig/cron/v3"
 )
 
 type server struct {
 	pb_api.UnimplementedApiServiceInternalServer
 	pb_api.UnimplementedApiServicePublicServer
 
-	commentsRepository  repositories.CommentsRepository
-	dbRepository        repositories.DbRepository
-	marketsRepository   repositories.MarketsRepository
-	positionsRepository repositories.PositionsRepository
-	priceRepository     repositories.PriceRepository
+	commentsRepository          repositories.CommentsRepository
+	dbRepository                repositories.DbRepository
+	marketsRepository           repositories.MarketsRepository
+	matchesRepository           repositories.MatchesRepository
+	positionsRepository         repositories.PositionsRepository
+	predictionIntentsRepository repositories.PredictionIntentsRepository
+	priceRepository             repositories.PriceRepository
 
-	commentsService         services.CommentsService
-	hederaService           services.HederaService
-	logService              services.LogService
-	marketsService          services.MarketService
-	natsService             services.NatsService
-	newsletterService       services.NewsletterService
-	positionsService        services.PositionsService
-	predictionIntentService services.PredictionIntentService
-	prismService            services.Prism
-	priceService            services.PriceService
+	commentsService          services.CommentsService
+	cronService              services.CronService
+	hederaService            services.HederaService
+	logService               services.LogService
+	marketsService           services.MarketsService
+	natsService              services.NatsService
+	newsletterService        services.NewsletterService
+	positionsService         services.PositionsService
+	predictionIntentsService services.PredictionIntentsService
+	prismService             services.Prism
+	priceService             services.PriceService
 
 	// don't forget to register in RegisterApiServiceServer grpc call in main()
 }
@@ -51,7 +56,7 @@ func (s *server) CreatePredictionIntent(ctx context.Context, req *pb_api.Predict
 		return &pb_api.StdResponse{Message: fmt.Sprintf("Invalid request: %v", err)}, err
 	}
 
-	response, err := s.predictionIntentService.CreatePredictionIntent(req)
+	response, err := s.predictionIntentsService.CreatePredictionIntent(req)
 
 	return &pb_api.StdResponse{
 		Message: response,
@@ -118,7 +123,7 @@ func (s *server) TriggerRecreateClob(ctx context.Context, req *pb_api.Empty) (*p
 }
 
 func (s *server) CancelPredictionIntent(ctx context.Context, req *pb_api.CancelOrderRequest) (*pb_api.StdResponse, error) {
-	cancelResp, err := s.predictionIntentService.CancelPredictionIntent(req)
+	cancelResp, err := s.predictionIntentsService.CancelPredictionIntent(req)
 	return cancelResp, err
 }
 
@@ -222,12 +227,26 @@ func main() {
 	}
 	defer positionsRepository.CloseDb()
 
+	predictionIntentsRepository := repositories.PredictionIntentsRepository{}
+	err = predictionIntentsRepository.InitDb()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer predictionIntentsRepository.CloseDb()
+
 	priceRepository := repositories.PriceRepository{}
 	err = priceRepository.InitDb()
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer priceRepository.CloseDb()
+
+	matchesRepository := repositories.MatchesRepository{}
+	err = matchesRepository.InitDb()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer matchesRepository.CloseDb()
 
 	/////
 	// service layer
@@ -238,7 +257,7 @@ func main() {
 
 	// initialize Hedera service
 	hederaService := services.HederaService{}
-	err = hederaService.InitHedera(&logService, &dbRepository, &priceRepository)
+	err = hederaService.InitHedera(&logService, &dbRepository, &priceRepository, &marketsRepository, &matchesRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Hedera service: %v", err)
 	}
@@ -252,7 +271,7 @@ func main() {
 	}
 
 	// initialize Markets service
-	marketsService := services.MarketService{}
+	marketsService := services.MarketsService{}
 	err = marketsService.Init(&logService, &marketsRepository, &hederaService, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Markets service: %v", err)
@@ -263,6 +282,12 @@ func main() {
 	err = commentsService.Init(&logService, &commentsRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize Comments service: %v", err)
+	}
+
+	cronService := services.CronService{}
+	err = cronService.Init(&logService, &marketsRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize Cron service: %v", err)
 	}
 
 	// initialize Newsletter service
@@ -281,7 +306,7 @@ func main() {
 
 	// initialize NATS
 	natsService := services.NatsService{}
-	err = natsService.InitNATS(&logService, &hederaService, &dbRepository)
+	err = natsService.InitNATS(&logService, &hederaService, &dbRepository, &matchesRepository, &predictionIntentsRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize NATS: %v", err)
 	}
@@ -289,16 +314,19 @@ func main() {
 	// NATS start listening for matches
 	natsService.HandleOrderMatches()
 
-	// initialize PredictionIntent service
-	predictionIntentService := services.PredictionIntentService{}
-	err = predictionIntentService.Init(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService)
+	// initialize PredictionIntents service
+	predictionIntentsService := services.PredictionIntentsService{}
+	err = predictionIntentsService.Init(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService, &predictionIntentsRepository)
 	if err != nil {
-		log.Fatalf("Failed to initialize PredictionIntent service: %v", err)
+		log.Fatalf("Failed to initialize PredictionIntents service: %v", err)
 	}
 
 	// initialize prism service
 	prismService := services.Prism{}
-	prismService.InitPrism(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService, &marketsService)
+	err = prismService.InitPrism(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService, &marketsService, &predictionIntentsService)
+	if err != nil {
+		log.Fatalf("Failed to initialize Prism service: %v", err)
+	}
 	// TODO: defer prismService cleanup
 
 	// Now start gRPC service
@@ -313,26 +341,38 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	sharedServer := &server{
-		commentsRepository:  commentsRepository,
-		dbRepository:        dbRepository,
-		marketsRepository:   marketsRepository,
-		positionsRepository: positionsRepository,
-		priceRepository:     priceRepository,
+		commentsRepository:          commentsRepository,
+		dbRepository:                dbRepository,
+		marketsRepository:           marketsRepository,
+		matchesRepository:           matchesRepository,
+		positionsRepository:         positionsRepository,
+		predictionIntentsRepository: predictionIntentsRepository,
+		priceRepository:             priceRepository,
 
-		commentsService:         commentsService,
-		hederaService:           hederaService,
-		logService:              logService,
-		marketsService:          marketsService,
-		natsService:             natsService,
-		newsletterService:       newsletterService,
-		positionsService:        positionsService,
-		predictionIntentService: predictionIntentService,
-		priceService:            priceService,
-		prismService:            prismService,
+		commentsService:          commentsService,
+		cronService:              cronService,
+		hederaService:            hederaService,
+		logService:               logService,
+		marketsService:           marketsService,
+		natsService:              natsService,
+		newsletterService:        newsletterService,
+		positionsService:         positionsService,
+		predictionIntentsService: predictionIntentsService,
+		priceService:             priceService,
+		prismService:             prismService,
 	}
 	// must pass the grpc server to bother internal and the public servers!
 	pb_api.RegisterApiServiceInternalServer(grpcServer, sharedServer)
 	pb_api.RegisterApiServicePublicServer(grpcServer, sharedServer)
+
+	// start a cron job
+	c := cron.New(cron.WithSeconds())
+	_, err = c.AddFunc("0 * * * *", cronService.CronJob) // Every hour on the hour
+	if err != nil {
+		log.Fatalf("Failed to schedule cron job: %v", err)
+	}
+	c.Start()
+	defer c.Stop()
 
 	// Start a HTTP health check server on port 8889
 	go func() {

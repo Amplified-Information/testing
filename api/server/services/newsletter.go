@@ -28,7 +28,7 @@ func (ns *NewsletterService) SubscribeNewsletter(ctx context.Context, req *pb_ap
 	userAgent := lib.GetUserAgentFromContext(ctx)
 	email := req.GetEmail()
 
-	ns.log.Log(INFO, fmt.Sprintf("Subscribing email %s to newsletter from IP %s with User-Agent %s", email, ipAddress, userAgent))
+	ns.log.Log(INFO, "Subscribing email %s to newsletter from IP %s with User-Agent %s", email, ipAddress, userAgent)
 
 	// TODO - send email to the user inviting them to prism
 
@@ -40,7 +40,7 @@ func (ns *NewsletterService) SubscribeNewsletter(ctx context.Context, req *pb_ap
 
 	err = ns.dbRepository.CreateNewsletterSubscription(email, ipAddress, userAgent)
 	if err != nil {
-		ns.log.Log(ERROR, fmt.Sprintf("Failed to create newsletter subscription for email %s: %v", email, err))
+		ns.log.Log(ERROR, "Failed to create newsletter subscription for email %s: %v", email, err)
 		return &pb_api.StdResponse{
 			Message:   "Failed to subscribe to newsletter",
 			ErrorCode: 1,

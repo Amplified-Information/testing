@@ -1,4 +1,15 @@
 -- name: CreateMatch :one
-INSERT INTO matches (tx_id1, tx_id2, is_partial)
-VALUES ($1, $2, $3)
+INSERT INTO matches (market_id, tx_id1, tx_id2, qty1, qty2, is_partial, tx_hash)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
+
+-- name: GetAllMatchesForMarketIdTxId :many
+SELECT *
+FROM matches
+WHERE market_id = $1 AND (tx_id1 = $2 OR tx_id2 = $2)
+ORDER BY created_at DESC;
+
+-- name: UpdateMatchTxHash :exec
+UPDATE matches
+SET tx_hash = $4
+WHERE (market_id = $1 AND tx_id1 = $2 AND tx_id2 = $3) OR (market_id = $1 AND tx_id1 = $3 AND tx_id2 = $2);

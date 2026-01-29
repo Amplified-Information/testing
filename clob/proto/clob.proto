@@ -26,6 +26,7 @@ service ClobInternal {
 
 message Empty {}
 
+// Note: ensure there's a persistent record of all the values here - need to be able to re-create the CLOB state from these values alone
 message CreateOrderRequestClob {
   string tx_id = 1 [json_name = "txId", (validate.rules).string = {pattern: "(?i)^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"} /* Strict RFC-9562-compliant UUIDv7 */];
   string net = 2 [json_name = "net"];

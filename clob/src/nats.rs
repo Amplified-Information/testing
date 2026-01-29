@@ -26,8 +26,12 @@ impl NatsService {
         while let Some(message) = subscriber.next().await {
             match serde_json::from_slice::<CreateOrderRequestClob>(&message.payload) {
                 Ok(order) => {
-                    let _ = order_book_service.place_order(order)
-                        .await;
+                    // Check if the order with the same txId already exists
+                    if order_book_service.order_exists(&order.tx_id).await {
+                        log::warn!("Duplicate order txId detected: {}. Order not entered into the orderbook.", order.tx_id);
+                    } else {
+                        let _ = order_book_service.place_order(order).await;
+                    }
                 }
                 Err(err) => {
                     log::error!(
