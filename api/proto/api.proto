@@ -85,6 +85,7 @@ message Position {
 }
 message UserPortfolioResponse {
   map<string, Position> positions = 1   [json_name = "positions"];
+  map<string, Position> orderbook_positions = 2   [json_name = "orderbookPositions"];
 }
 
 message MarketIdRequest {

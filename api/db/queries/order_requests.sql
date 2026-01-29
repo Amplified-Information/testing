@@ -11,12 +11,12 @@ WHERE tx_id = $1;
 -- name: CancelOrderIntent :exec
 UPDATE order_requests
 SET cancelled_at = CURRENT_TIMESTAMP
-WHERE tx_id = $1 AND cancelled_at IS NULL;
+WHERE tx_id = $1 AND cancelled_at IS NULL AND fully_matched_at IS NULL AND evicted_at IS NULL;
 
 -- name: GetAllPredictionIntentsByMarketId :many
 SELECT *
 FROM order_requests
-WHERE market_id = $1 AND cancelled_at IS NULL;
+WHERE market_id = $1 AND cancelled_at IS NULL AND fully_matched_at IS NULL AND evicted_at IS NULL;
 
 -- name: MarkPredictionIntentAsRegenerated :exec
 UPDATE order_requests
@@ -29,8 +29,18 @@ SET fully_matched_at = CURRENT_TIMESTAMP
 WHERE market_id = $1 AND tx_id = $2
 RETURNING *;
 
--- name: GetLivePredictionIntentsByMarketIdSortedByAccountID :many
+-- name: GetAllAccountIdsForMarketId :many
+SELECT DISTINCT account_id
+FROM order_requests
+WHERE market_id = $1 AND cancelled_at IS NULL AND fully_matched_at IS NULL AND evicted_at IS NULL;
+
+-- name: GetLivePredictionIntentsByMarketIdAndAccountId :many
 SELECT *
 FROM order_requests
-WHERE market_id = $1 AND cancelled_at IS NULL AND fully_matched_at IS NULL
+WHERE market_id = $1 AND account_id = $2 AND cancelled_at IS NULL AND fully_matched_at IS NULL AND evicted_at IS NULL
 ORDER BY account_id;
+
+-- name: MarkEvicted :exec
+UPDATE order_requests
+SET evicted_at = CURRENT_TIMESTAMP
+WHERE tx_id = $1;

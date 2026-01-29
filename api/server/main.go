@@ -123,7 +123,7 @@ func (s *server) TriggerRecreateClob(ctx context.Context, req *pb_api.Empty) (*p
 }
 
 func (s *server) CancelPredictionIntent(ctx context.Context, req *pb_api.CancelOrderRequest) (*pb_api.StdResponse, error) {
-	cancelResp, err := s.predictionIntentsService.CancelPredictionIntent(req)
+	cancelResp, err := s.predictionIntentsService.CancelPredictionIntent(req.MarketId, req.TxId)
 	return cancelResp, err
 }
 
@@ -284,12 +284,6 @@ func main() {
 		log.Fatalf("Failed to initialize Comments service: %v", err)
 	}
 
-	cronService := services.CronService{}
-	err = cronService.Init(&logService, &marketsRepository)
-	if err != nil {
-		log.Fatalf("Failed to initialize Cron service: %v", err)
-	}
-
 	// initialize Newsletter service
 	newsletterService := services.NewsletterService{}
 	err = newsletterService.Init(&logService, &dbRepository)
@@ -319,6 +313,12 @@ func main() {
 	err = predictionIntentsService.Init(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService, &predictionIntentsRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize PredictionIntents service: %v", err)
+	}
+
+	cronService := services.CronService{}
+	err = cronService.Init(&logService, &marketsRepository, &predictionIntentsRepository, &hederaService, &predictionIntentsService)
+	if err != nil {
+		log.Fatalf("Failed to initialize Cron service: %v", err)
 	}
 
 	// initialize prism service
@@ -367,12 +367,13 @@ func main() {
 
 	// start a cron job
 	c := cron.New(cron.WithSeconds())
-	_, err = c.AddFunc("0 * * * *", cronService.CronJob) // Every hour on the hour
+	_, err = c.AddFunc("0 * * * * *", cronService.CronJob) // Every hour on the hour
 	if err != nil {
 		log.Fatalf("Failed to schedule cron job: %v", err)
 	}
 	c.Start()
 	defer c.Stop()
+	// cronService.KickOutOrderIntentsNotBackedByFunds()
 
 	// Start a HTTP health check server on port 8889
 	go func() {

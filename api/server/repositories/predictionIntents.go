@@ -173,18 +173,46 @@ func (pir *PredictionIntentsRepository) MarkOrderRequestAsFullyMatched(marketId 
 	return nil
 }
 
-func (pir *PredictionIntentsRepository) GetLivePredictionIntentsByMarketIdSortedByAccountID(marketId uuid.UUID) ([]sqlc.OrderRequest, error) {
+func (pir *PredictionIntentsRepository) GetAllAccountIdsForMarketId(marketId uuid.UUID) ([]string, error) {
 	if pir.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	marketUUID := uuid.MustParse(fmt.Sprintf("%d", marketId))
-
 	q := sqlc.New(pir.db)
-	predictionIntents, err := q.GetLivePredictionIntentsByMarketIdSortedByAccountID(context.Background(), marketUUID)
+	accountIds, err := q.GetAllAccountIdsForMarketId(context.Background(), marketId)
 	if err != nil {
-		return nil, fmt.Errorf("GetLivePredictionIntents failed: %v", err)
+		return nil, fmt.Errorf("GetAllAccountIdsForMarketId failed: %v", err)
 	}
 
-	return predictionIntents, nil
+	return accountIds, nil
+}
+
+func (pir *PredictionIntentsRepository) GetLivePredictionIntentsByMarketIdAndAccountId(marketId uuid.UUID, accountId string) ([]sqlc.OrderRequest, error) {
+	if pir.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(pir.db)
+	orderIntents, err := q.GetLivePredictionIntentsByMarketIdAndAccountId(context.Background(), sqlc.GetLivePredictionIntentsByMarketIdAndAccountIdParams{
+		MarketID:  marketId,
+		AccountID: accountId,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetLivePredictionIntentsByMarketIdAndAccountId failed: %v", err)
+	}
+
+	return orderIntents, nil
+}
+
+func (pir *PredictionIntentsRepository) MarkEvicted(txId uuid.UUID) error {
+	if pir.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(pir.db)
+	err := q.MarkEvicted(context.Background(), txId)
+	if err != nil {
+		return fmt.Errorf("MarkEvicted failed: %v", err)
+	}
+	return nil
 }

@@ -837,6 +837,8 @@ resource "aws_security_group" "allow_hedera_rpc_egress" {
   description = "Allow outbound Hedera RPC traffic"
   vpc_id      = aws_vpc.main.id
 
+  # Port 50212 — Smart Contract Service (EVM gRPC)
+
   # ipv4
   egress {
     from_port   = 50212
@@ -849,6 +851,23 @@ resource "aws_security_group" "allow_hedera_rpc_egress" {
   egress {
     from_port        = 50212
     to_port          = 50212
+    protocol         = "tcp"
+    ipv6_cidr_blocks = ["::/0"] # or restrict to Hedera node IP(s) if preferred
+  }
+
+  # Port 50211 — Consensus / Crypto / Token / File services
+
+  egress {
+    from_port   = 50211
+    to_port     = 50211
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # or restrict to Hedera node IP(s) if preferred
+  }
+
+  # ipv6
+  egress {
+    from_port        = 50211
+    to_port          = 50211
     protocol         = "tcp"
     ipv6_cidr_blocks = ["::/0"] # or restrict to Hedera node IP(s) if preferred
   }

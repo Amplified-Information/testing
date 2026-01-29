@@ -64,6 +64,10 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 		}
 		response.Positions[row.MarketID.String()] = position
 	}
+
+	// TODO
+	response.OrderbookPositions = make(map[string]*pb_api.Position)
+
 	return response, nil
 
 	// On-chain query equivalent:

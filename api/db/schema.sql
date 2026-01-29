@@ -286,6 +286,7 @@ CREATE TABLE public.order_requests (
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     regenerated_at timestamp with time zone,
     fully_matched_at timestamp with time zone,
+    evicted_at timestamp with time zone,
     CONSTRAINT order_requests_account_id_check CHECK ((length(account_id) >= 5)),
     CONSTRAINT order_requests_evmaddress_check CHECK ((length(evmaddress) = 40)),
     CONSTRAINT order_requests_keytype_check CHECK ((keytype = ANY (ARRAY[1, 2, 3]))),

@@ -250,7 +250,7 @@ func (pis *PredictionIntentsService) CreatePredictionIntent(req *pb_api.Predicti
 	return fmt.Sprintf("Processed input for user %s", req.AccountId), nil
 }
 
-func (pis *PredictionIntentsService) CancelPredictionIntent(req *pb_api.CancelOrderRequest) (*pb_api.StdResponse, error) {
+func (pis *PredictionIntentsService) CancelPredictionIntent(txId string, marketId string) (*pb_api.StdResponse, error) {
 	// guards
 
 	// OK
@@ -261,7 +261,7 @@ func (pis *PredictionIntentsService) CancelPredictionIntent(req *pb_api.CancelOr
 	// 2. Remove the order from the CLOB
 
 	// 1 - Mark the order as cancelled in the database
-	err := pis.predictionIntentsRepository.CancelOrderIntent(req.TxId)
+	err := pis.predictionIntentsRepository.CancelOrderIntent(txId)
 	if err != nil {
 		return nil, pis.log.Log(ERROR, "failed to cancel order intent: %v", err)
 	}
@@ -290,7 +290,7 @@ func (pis *PredictionIntentsService) CancelPredictionIntent(req *pb_api.CancelOr
 
 	conn, err := grpc.NewClient(clobAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, pis.log.Log(ERROR, "failed to cancel order (marketId=%s, txId=%s) - connect to CLOB gRPC server failed: %v", req.MarketId, req.TxId, err)
+		return nil, pis.log.Log(ERROR, "failed to cancel order (marketId=%s, txId=%s) - connect to CLOB gRPC server failed: %v", marketId, txId, err)
 	}
 	defer conn.Close()
 
@@ -298,17 +298,17 @@ func (pis *PredictionIntentsService) CancelPredictionIntent(req *pb_api.CancelOr
 	_, err = clobClient.CancelOrder(
 		context.Background(),
 		&pb_clob.CancelOrderRequest{
-			MarketId: req.MarketId,
-			TxId:     req.TxId,
+			MarketId: marketId,
+			TxId:     txId,
 		},
 	)
 	if err != nil {
-		return nil, pis.log.Log(ERROR, "failed to cancel order (marketId=%s, txId=%s) on the CLOB (%s): %v", req.MarketId, req.TxId, clobAddr, err)
+		return nil, pis.log.Log(ERROR, "failed to cancel order (marketId=%s, txId=%s) on the CLOB (%s): %v", marketId, txId, clobAddr, err)
 	}
 
 	// OK if we got here:
 	response := &pb_api.StdResponse{
-		Message: fmt.Sprintf("Cancelled order intent with txId: %s", req.TxId),
+		Message: fmt.Sprintf("Cancelled order intent with txId: %s", txId),
 	}
 	return response, nil
 }
@@ -317,6 +317,14 @@ func (pis *PredictionIntentsService) GetAllPredictionIntentsByMarketId(marketId 
 	predictionIntent, err := pis.predictionIntentsRepository.GetAllPredictionIntentsByMarketId(marketId)
 	if err != nil {
 		return nil, pis.log.Log(ERROR, "failed to get prediction intent by MarketId %s: %v", marketId, err)
+	}
+	return predictionIntent, nil
+}
+
+func (pis *PredictionIntentsService) GetAllPredictionIntentsForMarketIdAndAccountId(marketId uuid.UUID) ([]string, error) {
+	predictionIntent, err := pis.predictionIntentsRepository.GetAllAccountIdsForMarketId(marketId)
+	if err != nil {
+		return nil, pis.log.Log(ERROR, "failed to get all users with open orders for marketId: %s (%v)", marketId.String(), err)
 	}
 	return predictionIntent, nil
 }

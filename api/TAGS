@@ -60,3 +60,6 @@ post refactoring fixes
 
 0.3.0
 major refactor to include clob recreation functionality, structure refactor, logging updates
+
+0.3.1
+added a cron job to evict spoofed orders
