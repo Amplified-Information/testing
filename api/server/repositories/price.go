@@ -97,7 +97,7 @@ func (priceRepository *PriceRepository) SavePriceHistory(marketId string, txId s
 		return fmt.Errorf("invalid txId uuid: %v", err)
 	}
 
-	params := sqlc.InsertPriceParams{
+	params := sqlc.CreatePriceParams{
 		MarketID: marketUUID,
 		TxID:     txUUID,
 		Price:    fmt.Sprintf("%f", price), // use of NUMERIC(18,10) avoids floating point imprecision
@@ -105,9 +105,9 @@ func (priceRepository *PriceRepository) SavePriceHistory(marketId string, txId s
 	}
 
 	q := sqlc.New(priceRepository.db)
-	err = q.InsertPrice(context.Background(), params)
+	err = q.CreatePrice(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("InsertPriceHistory failed: %v", err)
+		return fmt.Errorf("CreatePriceHistory failed: %v", err)
 	}
 
 	return nil

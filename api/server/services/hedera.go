@@ -567,5 +567,7 @@ func (hs *HederaService) CreateNewMarket(req *pb_api.CreateMarketRequest) (uint6
 
 	hs.log.Log(INFO, "Remaining allowance: %v", remainingAllowance.Uint64())
 
+	hs.log.Log(INFO, "CreateNewMarket - tx successful. Hedera txId = %s", result.TransactionID.String())
+
 	return remainingAllowance.Uint64(), nil
 }

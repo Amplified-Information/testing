@@ -6,6 +6,12 @@
 read -p "Enter SERVICE (api, clob, proxy, eventbus, web): " SERVICE
 SERVICE=${SERVICE:-api}
 
+docker info > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "ERROR: 'docker info' failed. Please ensure Docker is running and you have permission to access it."
+  exit 1
+fi
+
 
 read -p "Enter TAG_SRC ***ensure your build pipeline has completed successfully*** (default: latest): " TAG_SRC
 TAG_SRC=${TAG_SRC:-latest}

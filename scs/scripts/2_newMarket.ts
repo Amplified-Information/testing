@@ -73,6 +73,7 @@ const main = async () => {
   } catch (e) {
     console.error('Error creating new market:', e)
     console.error('Error creating new market. Perhaps the market already exists?')
+    console.error('Perhaps you need to set an allowance for the smart contract?')
     process.exit(1)
   }
 }

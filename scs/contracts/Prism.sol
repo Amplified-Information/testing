@@ -35,7 +35,7 @@ contract Prism {
   address owner;
   mapping(address => bool) public associatedTokens;
 
-  mapping(uint128 => bool) public usedTxIds; // to prevent replay attacks
+  // mapping(uint128 => bool) public usedTxIds; // to prevent replay attacks
 
   mapping(uint128 => string) public statements;
   mapping(uint128 => bool) public outcomes;               // true = YES wins, false = NO wins
@@ -112,6 +112,7 @@ contract Prism {
     address signerNo,
     uint256 collateralUsdAbsScaledYes, // need to send Yes and No collateral amounts for sig verification
     uint256 collateralUsdAbsScaledNo,
+    
     uint128 txIdYes,
     uint128 txIdNo,
     bytes calldata sigObjYes,
@@ -119,6 +120,9 @@ contract Prism {
   ) external onlyOwner returns (uint256 yes, uint256 no, uint256 yes2, uint256 no2) {
     require(resolutionTimes[marketId] == 0, "Market resolved");
     require(bytes(statements[marketId]).length > 0, "No market statement has been set");
+
+
+    /*
     // prevent replay attacks by ensuring unique txIds // TODO - storage size ;(
     require(!usedTxIds[txIdYes], "Duplicate txIdYes");
     require(!usedTxIds[txIdNo], "Duplicate txIdNo");
@@ -131,6 +135,7 @@ contract Prism {
       collateralUsdAbsScaled_lower = collateralUsdAbsScaledNo; // always transfer the lower amount of collateral (partial match)
       usedTxIds[txIdYes] = true; // mark the lower side (YES) as used
     }
+    */
 
     // on-chain signature verifiaction using an on-chain assembled payload:
     require(isAuthorized(signerYes, assemblePayload(0xf0 /* YES MUST have this prefix */, collateralUsdAbsScaledYes, signerYes, marketId, txIdYes), sigObjYes), "isAuthorized YES failed");

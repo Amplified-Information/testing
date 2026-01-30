@@ -65,6 +65,7 @@ message MacroMetadataResponse {
   double min_order_size_usd = 8               [json_name = "minOrderSizeUsd"];
   double tvl_usd = 9                          [json_name = "tvlUsd"];
   map<string, double> total_volume_usd = 10   [json_name = "totalVolumeUsd"];
+  uint32 active_traders = 11                  [json_name = "activeTraders"];
 }
 
 message NewsLetterRequest {
@@ -102,11 +103,14 @@ message MarketResponse {
   string net = 2                [json_name = "net"];
   string statement = 3          [json_name = "statement"];
   bool is_paused = 4            [json_name = "isPaused"];
-  string created_at = 5         [json_name = "createdAt"];
-  string resolved_at = 6        [json_name = "resolvedAt"];
-  string image_url = 7          [json_name = "imageUrl"];
-  float price_usd = 8           [json_name = "priceUsd"];
+  bool is_suspended = 5         [json_name = "isSuspended"];
+  string created_at = 6         [json_name = "createdAt"];
+  string resolved_at = 7        [json_name = "resolvedAt"];
+  string image_url = 8          [json_name = "imageUrl"];
+  float price_usd = 9           [json_name = "priceUsd"];
   // string smart_contract_id = 9  [json_name = "smartContractId"]; // not needed - smart_contract_id is a column in the markets table
+  string description = 10        [json_name = "description"];
+  string closes_at = 11         [json_name = "closesAt"];
 }
 
 message CreateMarketResponse {
@@ -124,6 +128,8 @@ message CreateMarketRequest {
   string statement = 3            [json_name = "statement",   (validate.rules).string = {min_len: 5, max_len: 500}];
   string image_url = 4            [json_name = "imageUrl",    (validate.rules).string = {uri: true, max_len: 2048}];
   //string smart_contract_id = 5; // not needed - smart_contract_id is added to the markets table at run-time based on the net
+  optional string closes_at = 5   [json_name = "closesAt",    (validate.rules).string = {pattern: "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}Z$"} /* UTC ISO 8601 (Zulu time only) */];
+  string description = 6          [json_name = "description", (validate.rules).string = {max_len: 2000}];
 }
 
 message PriceHistoryRequest {

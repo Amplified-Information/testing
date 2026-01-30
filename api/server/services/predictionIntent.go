@@ -250,20 +250,19 @@ func (pis *PredictionIntentsService) CreatePredictionIntent(req *pb_api.Predicti
 	return fmt.Sprintf("Processed input for user %s", req.AccountId), nil
 }
 
-func (pis *PredictionIntentsService) CancelPredictionIntent(txId string, marketId string) (*pb_api.StdResponse, error) {
+func (pis *PredictionIntentsService) CancelPredictionIntent(marketId string, txId string) (*pb_api.StdResponse, error) {
 	// guards
 
 	// OK
 
-	// TODO: implement the cancellation logic
 	// 1. Mark the position as cancelled in the database
-	// - order_requests: set the cancelled_at timestamp
+	// - prediction_intents: set the cancelled_at timestamp
 	// 2. Remove the order from the CLOB
 
 	// 1 - Mark the order as cancelled in the database
-	err := pis.predictionIntentsRepository.CancelOrderIntent(txId)
+	err := pis.predictionIntentsRepository.CancelPredictionIntent(txId)
 	if err != nil {
-		return nil, pis.log.Log(ERROR, "failed to cancel order intent: %v", err)
+		return nil, pis.log.Log(ERROR, "failed to cancel prediction intent: %v", err)
 	}
 
 	// TODO - in future, this will be done using NATS/Jetstream
@@ -313,8 +312,8 @@ func (pis *PredictionIntentsService) CancelPredictionIntent(txId string, marketI
 	return response, nil
 }
 
-func (pis *PredictionIntentsService) GetAllPredictionIntentsByMarketId(marketId string) (*[]sqlc.OrderRequest, error) {
-	predictionIntent, err := pis.predictionIntentsRepository.GetAllPredictionIntentsByMarketId(marketId)
+func (pis *PredictionIntentsService) GetAllOpenPredictionIntentsByMarketId(marketId string) (*[]sqlc.PredictionIntent, error) {
+	predictionIntent, err := pis.predictionIntentsRepository.GetAllOpenPredictionIntentsByMarketId(marketId)
 	if err != nil {
 		return nil, pis.log.Log(ERROR, "failed to get prediction intent by MarketId %s: %v", marketId, err)
 	}

@@ -1,3 +1,20 @@
+-- CREATE
+
+-- name: AddComment :one
+INSERT INTO comments (market_id, account_id, content, sig, public_key, key_type)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING 
+  comment_id, account_id, content, created_at;
+
+
+
+
+
+
+
+
+-- READ
+
 -- name: GetCommentsByMarketId :many
 -- params: market_id, limit, offset
 SELECT 
@@ -17,11 +34,19 @@ ORDER BY
 LIMIT 
   $2 OFFSET $3;
 
--- name: AddComment :one
-INSERT INTO comments (market_id, account_id, content, sig, public_key, key_type)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING 
-  comment_id, account_id, content, created_at;
+
+
+
+
+
+
+-- UPDATE
+
+
+
+
+
+-- DELETE
 
 -- name: DeleteComment :exec
 DELETE FROM comments

@@ -43,10 +43,26 @@ func (matchesRepository *MatchesRepository) InitDb() error {
 	return nil
 }
 
-func (matchesRepository *MatchesRepository) CreateMatch(orderRequestClobTuple [2]*pb_clob.CreateOrderRequestClob, isPartial bool, txHash string) (*sqlc.Match, error) {
-	// Record the match in the database for auditing
+// Record the match in the database for auditing
+func (matchesRepository *MatchesRepository) CreateMatch(orderRequestClobTuple [2]*pb_clob.CreateOrderRequestClob, txHash string) (*sqlc.Match, error) {
+	// guards
 	if matchesRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
+	}
+
+	// txId1 MUST be the YES side (positive priceUsd)
+	// txId2 MUST be the NO side (negative priceUsd)
+	// the CLOB should already be enforcing this on the way in to this function - if not, error here
+	if orderRequestClobTuple[0].PriceUsd < 0 {
+		return nil, fmt.Errorf("txId1 must be the YES side (positive priceUsd), but got negative priceUsd: %f", orderRequestClobTuple[0].PriceUsd)
+	}
+	if orderRequestClobTuple[1].PriceUsd > 0 {
+		return nil, fmt.Errorf("txId2 must be the NO side (negative priceUsd), but got positive priceUsd: %f", orderRequestClobTuple[1].PriceUsd)
+	}
+
+	// marketIds should match
+	if orderRequestClobTuple[0].MarketId != orderRequestClobTuple[1].MarketId {
+		return nil, fmt.Errorf("marketIds do not match: %s vs %s", orderRequestClobTuple[0].MarketId, orderRequestClobTuple[1].MarketId)
 	}
 
 	marketId, err := uuid.Parse(orderRequestClobTuple[0].MarketId)
@@ -64,14 +80,15 @@ func (matchesRepository *MatchesRepository) CreateMatch(orderRequestClobTuple [2
 		return nil, fmt.Errorf("invalid txId2 uuid: %v", err)
 	}
 
+	// OK
+
 	params := sqlc.CreateMatchParams{
-		MarketID:  marketId,
-		TxId1:     txId1,
-		TxId2:     txId2,
-		IsPartial: isPartial,
-		Qty1:      orderRequestClobTuple[0].Qty,
-		Qty2:      orderRequestClobTuple[1].Qty,
-		TxHash:    txHash,
+		MarketID: marketId,
+		TxId1:    txId1,
+		TxId2:    txId2,
+		Qty1:     orderRequestClobTuple[0].Qty,
+		Qty2:     orderRequestClobTuple[1].Qty,
+		TxHash:   txHash,
 	}
 
 	q := sqlc.New(matchesRepository.db)
@@ -163,4 +180,20 @@ func (matchesRepository *MatchesRepository) UpdateMatchTxHash(marketId string, t
 	log.Printf("Updated match txHash on database for txIds: {%s, %s}", tx1, tx2)
 
 	return nil
+}
+
+func (matchesRepository *MatchesRepository) GetAllMatchesForMarketIdTxId(marketID uuid.UUID, txId uuid.UUID) ([]sqlc.Match, error) {
+	if matchesRepository.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	q := sqlc.New(matchesRepository.db)
+	matches, err := q.GetAllMatchesForMarketIdTxId(context.Background(), sqlc.GetAllMatchesForMarketIdTxIdParams{
+		MarketID: marketID,
+		TxId1:    txId,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetAllMatchesForMarketIdTxId failed: %v", err)
+	}
+
+	return matches, nil
 }

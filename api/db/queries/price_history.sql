@@ -1,13 +1,23 @@
--- name: InsertPrice :exec
+-- CREATE
+
+-- name: CreatePrice :exec
 INSERT INTO price_history (market_id, tx_id, price, ts)
 VALUES ($1, $2, $3, $4);
 
 
--- name: InsertPriceReturn :one
+-- name: CreatePriceReturn :one
 INSERT INTO price_history (market_id, tx_id, price, ts)
 VALUES ($1, $2, $3, $4)
 RETURNING market_id, tx_id, price, ts;
 
+
+
+
+
+
+
+
+-- READ
 
 -- name: GetPriceHistoryEfficient :many
 -- params: market_id, from, to, limit, offset
@@ -66,10 +76,23 @@ WHERE ts >= $1
 ORDER BY ts ASC;
 
 
+
+
+
+-- DELETE
+
 -- name: DeletePricesBefore :exec
 -- Not usually required if you drop partitions, but useful if you store in a single table
 DELETE FROM price_history
 WHERE ts < $1;
+
+
+
+
+
+
+
+
 
 
 

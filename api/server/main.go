@@ -323,7 +323,7 @@ func main() {
 
 	// initialize prism service
 	prismService := services.Prism{}
-	err = prismService.InitPrism(&logService, &dbRepository, &marketsRepository, &natsService, &hederaService, &marketsService, &predictionIntentsService)
+	err = prismService.InitPrism(&logService, &dbRepository, &marketsRepository, &matchesRepository, &natsService, &hederaService, &marketsService, &predictionIntentsService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Prism service: %v", err)
 	}
@@ -367,13 +367,13 @@ func main() {
 
 	// start a cron job
 	c := cron.New(cron.WithSeconds())
-	_, err = c.AddFunc("0 * * * * *", cronService.CronJob) // Every hour on the hour
+	_, err = c.AddFunc("0 * * * * *", cronService.CronJob) // Every minute on the minute
 	if err != nil {
 		log.Fatalf("Failed to schedule cron job: %v", err)
 	}
 	c.Start()
 	defer c.Stop()
-	// cronService.KickOutOrderIntentsNotBackedByFunds()
+	cronService.KickOutOrderIntentsNotBackedByFunds()
 
 	// Start a HTTP health check server on port 8889
 	go func() {

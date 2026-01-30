@@ -46,7 +46,7 @@ func (pir *PredictionIntentsRepository) InitDb() error {
 }
 
 // SaveOrderRequest saves an order request to the database
-func (pir *PredictionIntentsRepository) CreateOrderIntentRequest(req *pb_api.PredictionIntentRequest) (*sqlc.OrderRequest, error) {
+func (pir *PredictionIntentsRepository) CreateOrderIntentRequest(req *pb_api.PredictionIntentRequest) (*sqlc.PredictionIntent, error) {
 	if pir.db == nil {
 		return nil, fmt.Errorf("could not connect to database")
 	}
@@ -67,7 +67,7 @@ func (pir *PredictionIntentsRepository) CreateOrderIntentRequest(req *pb_api.Pre
 	}
 	generatedAt = generatedAt.UTC()
 
-	params := sqlc.CreateOrderRequestParams{
+	params := sqlc.CreatePredictionIntentParams{
 		TxID:         txUUID,
 		Net:          req.Net,
 		MarketID:     marketUUID,
@@ -83,16 +83,16 @@ func (pir *PredictionIntentsRepository) CreateOrderIntentRequest(req *pb_api.Pre
 	}
 
 	q := sqlc.New(pir.db)
-	newOrderRequest, err := q.CreateOrderRequest(context.Background(), params)
+	newPredictionIntent, err := q.CreatePredictionIntent(context.Background(), params)
 	if err != nil {
-		return nil, fmt.Errorf("CreateOrderRequest failed: %v", err)
+		return nil, fmt.Errorf("CreatePredictionIntent failed: %v", err)
 	}
 
-	log.Printf("Saved order request to database for account %s", req.AccountId)
-	return &newOrderRequest, nil
+	log.Printf("Saved prediction intent to database for account %s", req.AccountId)
+	return &newPredictionIntent, nil
 }
 
-func (pir *PredictionIntentsRepository) CancelOrderIntent(txId string) error {
+func (pir *PredictionIntentsRepository) CancelPredictionIntent(txId string) error {
 	if pir.db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -103,16 +103,16 @@ func (pir *PredictionIntentsRepository) CancelOrderIntent(txId string) error {
 	}
 
 	q := sqlc.New(pir.db)
-	err = q.CancelOrderIntent(context.Background(), txUUID)
+	err = q.CancelPredictionIntent(context.Background(), txUUID)
 	if err != nil {
-		return fmt.Errorf("CancelOrderIntent failed: %v", err)
+		return fmt.Errorf("CancelPredictionIntent failed: %v", err)
 	}
 
-	log.Printf("Cancelled order intent in database for txId: %s", txId)
+	log.Printf("Cancelled prediction intent in database for txId: %s", txId)
 	return nil
 }
 
-func (pir *PredictionIntentsRepository) GetAllPredictionIntentsByMarketId(marketId string) (*[]sqlc.OrderRequest, error) {
+func (pir *PredictionIntentsRepository) GetAllOpenPredictionIntentsByMarketId(marketId string) (*[]sqlc.PredictionIntent, error) {
 	if pir.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
@@ -123,9 +123,9 @@ func (pir *PredictionIntentsRepository) GetAllPredictionIntentsByMarketId(market
 	}
 
 	q := sqlc.New(pir.db)
-	predictionIntents, err := q.GetAllPredictionIntentsByMarketId(context.Background(), marketUUID)
+	predictionIntents, err := q.GetAllOpenPredictionIntentsByMarketId(context.Background(), marketUUID)
 	if err != nil {
-		return nil, fmt.Errorf("GetAllPredictionIntentsByMarketId failed: %v", err)
+		return nil, fmt.Errorf("GetAllOpenPredictionIntentsByMarketId failed: %v", err)
 	}
 
 	// log.Printf("Fetched %d prediction intents from database for market ID: %s", len(predictionIntents), marketId)
@@ -145,7 +145,7 @@ func (dbRepository *DbRepository) MarkPredictionIntentAsRegenerated(txId string)
 	return nil
 }
 
-func (pir *PredictionIntentsRepository) MarkOrderRequestAsFullyMatched(marketId string, txId string) error {
+func (pir *PredictionIntentsRepository) MarkPredictionIntentAsFullyMatched(marketId string, txId string) error {
 	if pir.db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -161,15 +161,15 @@ func (pir *PredictionIntentsRepository) MarkOrderRequestAsFullyMatched(marketId 
 	}
 
 	q := sqlc.New(pir.db)
-	_, err = q.MarkOrderRequestAsFullyMatched(context.Background(), sqlc.MarkOrderRequestAsFullyMatchedParams{
+	_, err = q.MarkPredictionIntentAsFullyMatched(context.Background(), sqlc.MarkPredictionIntentAsFullyMatchedParams{
 		MarketID: marketUUID,
 		TxID:     txUUID,
 	})
 	if err != nil {
-		return fmt.Errorf("MarkOrderRequestAsFullyMatched failed: %v", err)
+		return fmt.Errorf("MarkPredictionIntentAsFullyMatched failed: %v", err)
 	}
 
-	log.Printf("Marked order request as fully matched in database for txId: %s", txId)
+	log.Printf("Marked prediction intent as fully matched in database for txId: %s", txId)
 	return nil
 }
 
@@ -187,32 +187,32 @@ func (pir *PredictionIntentsRepository) GetAllAccountIdsForMarketId(marketId uui
 	return accountIds, nil
 }
 
-func (pir *PredictionIntentsRepository) GetLivePredictionIntentsByMarketIdAndAccountId(marketId uuid.UUID, accountId string) ([]sqlc.OrderRequest, error) {
+func (pir *PredictionIntentsRepository) GetAllOpenPredictionIntentsByMarketIdAndAccountId(marketId uuid.UUID, accountId string) ([]sqlc.PredictionIntent, error) {
 	if pir.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
 	q := sqlc.New(pir.db)
-	orderIntents, err := q.GetLivePredictionIntentsByMarketIdAndAccountId(context.Background(), sqlc.GetLivePredictionIntentsByMarketIdAndAccountIdParams{
+	orderIntents, err := q.GetAllOpenPredictionIntentsByMarketIdAndAccountId(context.Background(), sqlc.GetAllOpenPredictionIntentsByMarketIdAndAccountIdParams{
 		MarketID:  marketId,
 		AccountID: accountId,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("GetLivePredictionIntentsByMarketIdAndAccountId failed: %v", err)
+		return nil, fmt.Errorf("GetAllOpenPredictionIntentsByMarketIdAndAccountId failed: %v", err)
 	}
 
 	return orderIntents, nil
 }
 
-func (pir *PredictionIntentsRepository) MarkEvicted(txId uuid.UUID) error {
+func (pir *PredictionIntentsRepository) MarkPredictionIntentAsEvicted(txId uuid.UUID) error {
 	if pir.db == nil {
 		return fmt.Errorf("database not initialized")
 	}
 
 	q := sqlc.New(pir.db)
-	err := q.MarkEvicted(context.Background(), txId)
+	err := q.MarkPredictionIntentAsEvicted(context.Background(), txId)
 	if err != nil {
-		return fmt.Errorf("MarkEvicted failed: %v", err)
+		return fmt.Errorf("MarkPredictionIntentAsEvicted failed: %v", err)
 	}
 	return nil
 }

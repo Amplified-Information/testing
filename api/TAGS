@@ -63,3 +63,9 @@ major refactor to include clob recreation functionality, structure refactor, log
 
 0.3.1
 added a cron job to evict spoofed orders
+
+0.3.2
+Debugging API and bug fixes
+
+0.3.3
+clob rebuild anomoly. Added description field to CreateMarketRequest and response

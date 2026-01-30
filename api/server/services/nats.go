@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"math"
 	"os"
 
 	pb_clob "api/gen/clob"
@@ -144,44 +145,108 @@ func (ns *NatsService) HandleOrderMatches() error {
 		// db
 		// Record the match on a database (auditing)
 		/////
-		isPartial := false
-		switch msg.Subject {
-		case lib.NATS_CLOB_MATCHES_PARTIAL:
-			isPartial = true
-		case lib.NATS_CLOB_MATCHES_FULL:
-			isPartial = false
-		default:
-			ns.log.Log(ERROR, "NATS: Invalid subject")
-			return
-		}
+		// isPartial := false
+		// switch msg.Subject {
+		// case lib.NATS_CLOB_MATCHES_PARTIAL:
+		// 	isPartial = true
+		// case lib.NATS_CLOB_MATCHES_FULL:
+		// 	isPartial = false
+		// default:
+		// 	ns.log.Log(ERROR, "NATS: Invalid subject")
+		// 	return
+		// }
 
 		_, err := ns.matchesRepository.CreateMatch(
+			// note: orderRequestClobTuple[0] is YES side (positive priceUsd)
+			//			 orderRequestClobTuple[1] is NO side (negative priceUsd)
 			[2]*pb_clob.CreateOrderRequestClob{orderRequestClobTuple[0], orderRequestClobTuple[1]},
-			isPartial,
 			"notYetAvailable",
 		)
 		if err != nil {
 			ns.log.Log(ERROR, "Error recording match in database: %v", err)
 		}
 
-		// if it's a full match, log the relevant txId as "fully_match_at" on order_requests table...
-		// this fully_matched_at timestamp is useful for the cron job to avoid scanning over too large a set of order requests
-		if !isPartial { // a full match
-			// find out if it's tx1 or tx2 that is fully matched
-			var fullyMatchedTxId string
-			if orderRequestClobTuple[0].Qty-orderRequestClobTuple[1].Qty <= 0 {
-				fullyMatchedTxId = orderRequestClobTuple[1].TxId
-			} else if orderRequestClobTuple[1].Qty-orderRequestClobTuple[0].Qty <= 0 {
-				fullyMatchedTxId = orderRequestClobTuple[0].TxId
-			} else {
-				ns.log.Log(ERROR, "invalid fullyMatchTxId")
-			}
+		/////
+		// Now, for every match (doesn't matter if partial or full), if the qty remaining is <=0; mark the relevant prediction intent (timestamp) as "fully matched" in the db
+		// find out if it's tx1 or tx2 that is fully matched
+		var amountUsdTx0 float64 = orderRequestClobTuple[0].Qty / orderRequestClobTuple[0].PriceUsd
+		var amountUsdTx1 float64 = math.Abs(orderRequestClobTuple[1].Qty / orderRequestClobTuple[1].PriceUsd)
 
-			err := ns.predictionIntents.MarkOrderRequestAsFullyMatched(orderRequestClobTuple[0].MarketId, fullyMatchedTxId)
+		markAsMatched := [2]bool{false, false}
+		if amountUsdTx0 < amountUsdTx1 {
+			markAsMatched[0] = true // mark tx0 for deletion
+		} else {
+			markAsMatched[1] = true // mark tx1 for deletion
+		}
+		if amountUsdTx0 == amountUsdTx1 {
+			markAsMatched[0] = true // mark both for deletion
+			markAsMatched[1] = true
+		}
+
+		marketId := orderRequestClobTuple[0].MarketId
+		if markAsMatched[0] == true { // mark tx0 for deletion
+			ns.log.Log(INFO, "marking tx0 (%s) as fully matched with tx1 (%s)", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId)
+			err = ns.predictionIntents.MarkPredictionIntentAsFullyMatched(marketId, orderRequestClobTuple[0].TxId)
 			if err != nil {
-				ns.log.Log(ERROR, "Error marking order request as fully matched in database: %v", err)
+				ns.log.Log(ERROR, "Error marking prediction intent as fully matched in database: %v", err)
 			}
 		}
+		if markAsMatched[1] == true { // mark tx1 for deletion
+			ns.log.Log(INFO, "marking tx1 (%s) as fully matched with tx0 (%s)", orderRequestClobTuple[1].TxId, orderRequestClobTuple[0].TxId)
+			err = ns.predictionIntents.MarkPredictionIntentAsFullyMatched(marketId, orderRequestClobTuple[0].TxId)
+			if err != nil {
+				ns.log.Log(ERROR, "Error marking prediction intent as fully matched in database: %v", err)
+			}
+		}
+
+		// if amountUsdTx0-amountUsdTx1 <= 0 {
+		// 	// check if one side if wiped out:
+		// 	// Only mark as fully matched if the difference is <= 0
+		// 	ns.log.Log(INFO, "Marking txId %s as fully matched in database (amountUsdTx0 - amountUsdTx1 <= 0)", orderRequestClobTuple[0].TxId)
+		// 	err = ns.predictionIntents.MarkPredictionIntentAsFullyMatched(orderRequestClobTuple[0].MarketId, orderRequestClobTuple[0].TxId)
+		// 	if err != nil {
+		// 		ns.log.Log(ERROR, "Error marking prediction intent as fully matched in database: %v", err)
+		// 	}
+		// } else if amountUsdTx1-amountUsdTx0 <= 0 {
+		// 	// also must check if the other side is wiped out:
+		// 	// Only mark as fully matched if the difference is <= 0
+		// 	ns.log.Log(INFO, "Marking txId %s as fully matched in database (amountUsdTx1 - amountUsdTx0 <= 0)", orderRequestClobTuple[1].TxId)
+		// 	err = ns.predictionIntents.MarkPredictionIntentAsFullyMatched(orderRequestClobTuple[0].MarketId, orderRequestClobTuple[1].TxId)
+		// 	if err != nil {
+		// 		ns.log.Log(ERROR, "Error marking prediction intent as fully matched in database: %v", err)
+		// 	}
+		// } else if amountUsdTx1 == amountUsdTx0 { // full match
+		// 	// also much check if there's an exact match:
+		// 	// exact match - both are fully matched
+		// 	ns.log.Log(INFO, "Marking BOTH txIds %s and %s as fully matched in database (amountUsdTx1 == amountUsdTx0)", orderRequestClobTuple[0].TxId, orderRequestClobTuple[1].TxId)
+		// 	err = ns.predictionIntents.MarkPredictionIntentAsFullyMatched(orderRequestClobTuple[0].MarketId, orderRequestClobTuple[0].TxId)
+		// 	if err != nil {
+		// 		ns.log.Log(ERROR, "Error marking prediction intent as fully matched in database: %v", err)
+		// 	}
+		// 	err = ns.predictionIntents.MarkPredictionIntentAsFullyMatched(orderRequestClobTuple[0].MarketId, orderRequestClobTuple[1].TxId)
+		// 	if err != nil {
+		// 		ns.log.Log(ERROR, "Error marking prediction intent as fully matched in database: %v", err)
+		// 	}
+		// }
+
+		// // if it's a full match, log the relevant txId as "fully_match_at" on prediction_intents table...
+		// // this fully_matched_at timestamp is useful for the cron job to avoid scanning over too large a set of order requests
+		// if !isPartial { // a full match
+		// 	// find out if it's tx1 or tx2 that is fully matched
+		// 	var fullyMatchedTxId string
+		// 	if orderRequestClobTuple[0].Qty-orderRequestClobTuple[1].Qty <= 0 {
+		// 		fullyMatchedTxId = orderRequestClobTuple[0].TxId
+		// 	} else if orderRequestClobTuple[1].Qty-orderRequestClobTuple[0].Qty <= 0 {
+		// 		fullyMatchedTxId = orderRequestClobTuple[1].TxId
+		// 	} else {
+		// 		ns.log.Log(ERROR, "invalid fullyMatchTxId")
+		// 	}
+
+		// 	// err := ns.predictionIntents.MarkPredictionIntentAsFullyMatched(orderRequestClobTuple[0].MarketId, fullyMatchedTxId)
+		// 	// if err != nil {
+		// 	// 	ns.log.Log(ERROR, "Error marking prediction intent as fully matched in database: %v", err)
+		// 	// }
+		// }
 
 		/////
 		// smart contract

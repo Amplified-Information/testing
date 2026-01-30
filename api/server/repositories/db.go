@@ -91,3 +91,17 @@ func (dbRepository *DbRepository) GetTotalVolumeUsdInTimePeriod(timePeriod strin
 
 	return 42, nil
 }
+
+func (dbRepository *DbRepository) GetNumActiveTraders() (uint32, error) {
+	if dbRepository.db == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(dbRepository.db)
+	nActiveTraders, err := q.GetNumActiveTradersLast30days(context.Background())
+	if err != nil {
+		return 0, fmt.Errorf("GetNumActiveTraders failed: %v", err)
+	}
+
+	return uint32(nActiveTraders), nil
+}

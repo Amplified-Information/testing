@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -108,6 +109,16 @@ func (marketsRepository *MarketsRepository) CreateMarket(req *pb_api.CreateMarke
 		return nil, fmt.Errorf("invalid smart contract ID: %s", smartContractId)
 	}
 
+	closesAt := time.Now().Add(30 * 24 * time.Hour) // default: 30 days from now
+	if req.ClosesAt != nil {                        // the optional param is not set
+		closesAtTime, err := time.Parse(time.RFC3339, *req.ClosesAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid closesAt time format: %v", err)
+		}
+		closesAt = closesAtTime
+	}
+
+	// OK
 	// Start a transaction
 	tx, err := marketsRepository.db.Begin()
 	if err != nil {
@@ -122,6 +133,7 @@ func (marketsRepository *MarketsRepository) CreateMarket(req *pb_api.CreateMarke
 		Statement:       statement,
 		ImageUrl:        sql.NullString{String: imageUrl, Valid: imageUrl != ""},
 		SmartContractID: smartContractId,
+		ClosesAt:        closesAt,
 	})
 	if err != nil {
 		tx.Rollback() // Rollback the transaction on error
@@ -186,20 +198,4 @@ func (marketsRepository *MarketsRepository) GetAllUnresolvedMarkets() ([]sqlc.Ma
 	}
 
 	return markets, nil
-}
-
-func (marketsRepository *MarketsRepository) GetAllMatchesForMarketIdTxId(marketID uuid.UUID, txId uuid.UUID) ([]sqlc.Match, error) {
-	if marketsRepository.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-	q := sqlc.New(marketsRepository.db)
-	matches, err := q.GetAllMatchesForMarketIdTxId(context.Background(), sqlc.GetAllMatchesForMarketIdTxIdParams{
-		MarketID: marketID,
-		TxId1:    txId,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("GetAllMatchesForMarketIdTxId failed: %v", err)
-	}
-
-	return matches, nil
 }

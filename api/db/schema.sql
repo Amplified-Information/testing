@@ -180,6 +180,8 @@ CREATE TABLE public.markets (
     image_url character varying(2048),
     smart_contract_id character varying(256) DEFAULT '0.0.0'::character varying NOT NULL,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    closes_at timestamp with time zone DEFAULT (now() + '30 days'::interval) NOT NULL,
+    description text,
     CONSTRAINT smart_contract_id_check CHECK (((length((smart_contract_id)::text) >= 5) AND ((smart_contract_id)::text ~~ '%.%.%'::text)))
 );
 
@@ -196,7 +198,6 @@ CREATE TABLE public.matches (
     tx_id2 uuid NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     market_id uuid NOT NULL,
-    is_partial boolean NOT NULL,
     tx_hash character varying(256) NOT NULL,
     qty1 double precision NOT NULL,
     qty2 double precision NOT NULL
@@ -265,43 +266,6 @@ ALTER SEQUENCE public.newsletter_id_seq OWNED BY public.newsletter.id;
 
 
 --
--- Name: order_requests; Type: TABLE; Schema: public; Owner: your_db_user
---
-
-CREATE TABLE public.order_requests (
-    tx_id uuid NOT NULL,
-    net text DEFAULT 'testnet'::text NOT NULL,
-    market_id uuid NOT NULL,
-    account_id text NOT NULL,
-    market_limit text NOT NULL,
-    price_usd double precision NOT NULL,
-    qty double precision NOT NULL,
-    sig text NOT NULL,
-    public_key_hex text NOT NULL,
-    evmaddress text NOT NULL,
-    keytype integer NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    generated_at timestamp without time zone NOT NULL,
-    cancelled_at timestamp without time zone,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    regenerated_at timestamp with time zone,
-    fully_matched_at timestamp with time zone,
-    evicted_at timestamp with time zone,
-    CONSTRAINT order_requests_account_id_check CHECK ((length(account_id) >= 5)),
-    CONSTRAINT order_requests_evmaddress_check CHECK ((length(evmaddress) = 40)),
-    CONSTRAINT order_requests_keytype_check CHECK ((keytype = ANY (ARRAY[1, 2, 3]))),
-    CONSTRAINT order_requests_market_limit_check CHECK ((market_limit = ANY (ARRAY['market'::text, 'limit'::text]))),
-    CONSTRAINT order_requests_net_check CHECK ((net = ANY (ARRAY['testnet'::text, 'mainnet'::text, 'previewnet'::text]))),
-    CONSTRAINT order_requests_price_usd_check CHECK (((price_usd >= ('-1.0'::numeric)::double precision) AND (price_usd <= (1.0)::double precision))),
-    CONSTRAINT order_requests_public_key_hex_check CHECK (((length(public_key_hex) > 10) AND (length(public_key_hex) <= 256))),
-    CONSTRAINT order_requests_qty_check CHECK ((qty > (0.0)::double precision)),
-    CONSTRAINT order_requests_sig_check CHECK (((length(sig) > 10) AND (length(sig) < 256)))
-);
-
-
-ALTER TABLE public.order_requests OWNER TO your_db_user;
-
---
 -- Name: positions; Type: TABLE; Schema: public; Owner: your_db_user
 --
 
@@ -342,6 +306,43 @@ ALTER SEQUENCE public.positions_id_seq OWNER TO your_db_user;
 
 ALTER SEQUENCE public.positions_id_seq OWNED BY public.positions.id;
 
+
+--
+-- Name: prediction_intents; Type: TABLE; Schema: public; Owner: your_db_user
+--
+
+CREATE TABLE public.prediction_intents (
+    tx_id uuid CONSTRAINT order_requests_tx_id_not_null NOT NULL,
+    net text DEFAULT 'testnet'::text CONSTRAINT order_requests_net_not_null NOT NULL,
+    market_id uuid CONSTRAINT order_requests_market_id_not_null NOT NULL,
+    account_id text CONSTRAINT order_requests_account_id_not_null NOT NULL,
+    market_limit text CONSTRAINT order_requests_market_limit_not_null NOT NULL,
+    price_usd double precision CONSTRAINT order_requests_price_usd_not_null NOT NULL,
+    qty double precision CONSTRAINT order_requests_qty_not_null NOT NULL,
+    sig text CONSTRAINT order_requests_sig_not_null NOT NULL,
+    public_key_hex text CONSTRAINT order_requests_public_key_hex_not_null NOT NULL,
+    evmaddress text CONSTRAINT order_requests_evmaddress_not_null NOT NULL,
+    keytype integer CONSTRAINT order_requests_keytype_not_null NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP CONSTRAINT order_requests_created_at_not_null NOT NULL,
+    generated_at timestamp without time zone CONSTRAINT order_requests_generated_at_not_null NOT NULL,
+    cancelled_at timestamp without time zone,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP CONSTRAINT order_requests_updated_at_not_null NOT NULL,
+    regenerated_at timestamp with time zone,
+    fully_matched_at timestamp with time zone,
+    evicted_at timestamp with time zone,
+    CONSTRAINT order_requests_account_id_check CHECK ((length(account_id) >= 5)),
+    CONSTRAINT order_requests_evmaddress_check CHECK ((length(evmaddress) = 40)),
+    CONSTRAINT order_requests_keytype_check CHECK ((keytype = ANY (ARRAY[1, 2, 3]))),
+    CONSTRAINT order_requests_market_limit_check CHECK ((market_limit = ANY (ARRAY['market'::text, 'limit'::text]))),
+    CONSTRAINT order_requests_net_check CHECK ((net = ANY (ARRAY['testnet'::text, 'mainnet'::text, 'previewnet'::text]))),
+    CONSTRAINT order_requests_price_usd_check CHECK (((price_usd >= ('-1.0'::numeric)::double precision) AND (price_usd <= (1.0)::double precision))),
+    CONSTRAINT order_requests_public_key_hex_check CHECK (((length(public_key_hex) > 10) AND (length(public_key_hex) <= 256))),
+    CONSTRAINT order_requests_qty_check CHECK ((qty > (0.0)::double precision)),
+    CONSTRAINT order_requests_sig_check CHECK (((length(sig) > 10) AND (length(sig) < 256)))
+);
+
+
+ALTER TABLE public.prediction_intents OWNER TO your_db_user;
 
 --
 -- Name: price_history; Type: TABLE; Schema: public; Owner: your_db_user
@@ -764,10 +765,10 @@ ALTER TABLE ONLY public.newsletter
 
 
 --
--- Name: order_requests order_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
+-- Name: prediction_intents order_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: your_db_user
 --
 
-ALTER TABLE ONLY public.order_requests
+ALTER TABLE ONLY public.prediction_intents
     ADD CONSTRAINT order_requests_pkey PRIMARY KEY (tx_id);
 
 
@@ -1246,10 +1247,10 @@ CREATE TRIGGER update_markets_updated_at BEFORE UPDATE ON public.markets FOR EAC
 
 
 --
--- Name: order_requests update_order_requests_updated_at; Type: TRIGGER; Schema: public; Owner: your_db_user
+-- Name: prediction_intents update_order_requests_updated_at; Type: TRIGGER; Schema: public; Owner: your_db_user
 --
 
-CREATE TRIGGER update_order_requests_updated_at BEFORE UPDATE ON public.order_requests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_order_requests_updated_at BEFORE UPDATE ON public.prediction_intents FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
