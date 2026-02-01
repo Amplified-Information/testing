@@ -62,10 +62,6 @@ func (pis *PredictionIntentsService) CreatePredictionIntent(req *pb_api.Predicti
 		return "", pis.log.Log(ERROR, "invalid timestamp format: %v", err)
 	}
 
-	// TODO - validate the evmAddress is 20 bytes hex
-	// TODO - validate the publicKey is valid
-	// TODO - validate the publicKey type is valid
-
 	now := time.Now().UTC()
 	allowedPastSeconds, err := strconv.Atoi(os.Getenv("TIMESTAMP_ALLOWED_PAST_SECONDS"))
 	if err != nil {
@@ -209,12 +205,6 @@ func (pis *PredictionIntentsService) CreatePredictionIntent(req *pb_api.Predicti
 	/// OK - All validations passed
 	/// Now you can (attempt to) put the order on the CLOB (subject to on-chain sig verification)
 
-	// store the OrderRequest in the database - the txid must be unique or this fails
-	_, err = pis.predictionIntentsRepository.CreateOrderIntentRequest(req)
-	if err != nil {
-		return "", pis.log.Log(ERROR, "database error: failed to save order request: %v", err)
-	}
-
 	/////
 	// notify the CLOB via NATS:
 	/////
@@ -246,6 +236,12 @@ func (pis *PredictionIntentsService) CreatePredictionIntent(req *pb_api.Predicti
 	}
 
 	pis.log.Log(INFO, "Published order to NATS subject '%s': %s", lib.SUBJECT_CLOB_ORDERS, string(clobRequestJSON))
+
+	// now store the OrderRequest in the database - the txid must be unique or this fails
+	_, err = pis.predictionIntentsRepository.CreateOrderIntentRequest(req)
+	if err != nil {
+		return "", pis.log.Log(ERROR, "database error: failed to save order request: %v", err)
+	}
 
 	return fmt.Sprintf("Processed input for user %s", req.AccountId), nil
 }

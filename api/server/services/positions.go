@@ -7,17 +7,19 @@ import (
 )
 
 type PositionsService struct {
-	log                 *LogService
-	positionsRepository *repositories.PositionsRepository
-	marketsRepository   *repositories.MarketsRepository
-	priceService        *PriceService
+	log                         *LogService
+	positionsRepository         *repositories.PositionsRepository
+	marketsRepository           *repositories.MarketsRepository
+	predictionIntentsRepository *repositories.PredictionIntentsRepository
+	priceService                *PriceService
 }
 
-func (ps *PositionsService) Init(log *LogService, positionsRepository *repositories.PositionsRepository, marketsRepository *repositories.MarketsRepository, priceService *PriceService) error {
+func (ps *PositionsService) Init(log *LogService, positionsRepository *repositories.PositionsRepository, marketsRepository *repositories.MarketsRepository, predictionIntentsRepository *repositories.PredictionIntentsRepository, priceService *PriceService) error {
 	// and inject the deps:
 	ps.log = log
 	ps.positionsRepository = positionsRepository
 	ps.marketsRepository = marketsRepository
+	ps.predictionIntentsRepository = predictionIntentsRepository
 	ps.priceService = priceService
 
 	ps.log.Log(INFO, "Service: Positions service initialized successfully")
@@ -41,7 +43,8 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 	}
 
 	response := &pb_api.UserPortfolioResponse{
-		Positions: make(map[string]*pb_api.Position),
+		Positions:          make(map[string]*pb_api.Positions),
+		OrderbookPositions: make(map[string]*pb_api.Positions),
 	}
 
 	for _, row := range result {
@@ -62,11 +65,42 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 			IsPaused:   market.IsPaused,
 			ResolvedAt: market.ResolvedAt.Time.String(),
 		}
-		response.Positions[row.MarketID.String()] = position
+		if _, ok := response.Positions[row.MarketID.String()]; !ok {
+			response.Positions[row.MarketID.String()] = &pb_api.Positions{}
+		}
+		response.Positions[row.MarketID.String()].Positions = append(response.Positions[row.MarketID.String()].Positions, position)
 	}
 
-	// TODO
-	response.OrderbookPositions = make(map[string]*pb_api.Position)
+	// now construct the open orderbookPositions by retrieving all open orders from prediction_intents:
+	// response.OrderbookPositions = make(map[string]*pb_api.Position) // REMOVE this line, already initialized above as map[string][]*pb_api.Position
+	predictionIntents, err := ps.predictionIntentsRepository.GetAllOpenPredictionIntentsByEvmAddress(req.EvmAddress)
+	if err != nil {
+		return nil, ps.log.Log(ERROR, "failed to get open prediction intents for account with evm address %s: %v", req.EvmAddress, err)
+	}
+	// loop through each predictionIntents and add to OrderbookPositions
+	for _, pi := range predictionIntents {
+		priceUsd, err := ps.priceService.GetLatestPriceByMarket(pi.MarketID.String())
+		if err != nil {
+			return nil, ps.log.Log(ERROR, "failed to get latest price for market %s: %v", pi.MarketID.String(), err)
+		}
+
+		market, err := ps.marketsRepository.GetMarketById(pi.MarketID.String())
+		if err != nil {
+			return nil, ps.log.Log(ERROR, "failed to get market %s: %v", pi.MarketID.String(), err)
+		}
+
+		orderbookPosition := &pb_api.Position{
+			Yes:        0,
+			No:         0,
+			PriceUsd:   priceUsd,
+			IsPaused:   market.IsPaused,
+			ResolvedAt: market.ResolvedAt.Time.String(),
+		}
+		if _, ok := response.OrderbookPositions[pi.MarketID.String()]; !ok {
+			response.OrderbookPositions[pi.MarketID.String()] = &pb_api.Positions{}
+		}
+		response.OrderbookPositions[pi.MarketID.String()].Positions = append(response.OrderbookPositions[pi.MarketID.String()].Positions, orderbookPosition)
+	}
 
 	return response, nil
 

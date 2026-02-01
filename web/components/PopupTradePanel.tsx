@@ -136,7 +136,7 @@ const PopupTradePanel = () => {
       net: networkSelected.toString().toLowerCase(),
       priceUsd: buySell === 'buy' ? priceUsd : 0 - priceUsd,
       publicKey: userAccountInfo.key.key,
-      qty: amountUsd / priceUsd, // N.B.
+      qty: buySell === 'buy' ? amountUsd / priceUsd : amountUsd /  (1 - priceUsd), // N.B.
       sig: '',
       txId: uuidv7()
     }

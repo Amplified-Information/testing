@@ -72,3 +72,9 @@ clob rebuild anomoly. Added description field to CreateMarketRequest and respons
 
 0.3.4
 interface with new smart contract - correct calculation of position tokens
+
+0.3.5
+New smart contract address - correct calculation of position tokens. Uniqueness constraint on txId on order_intents table
+
+0.3.6
+user positions endpoint (active and pending orders)

@@ -84,9 +84,12 @@ message Position {
   bool is_paused = 4          [json_name = "isPaused"];
   string resolved_at = 5      [json_name = "resolvedAt"];
 }
+message Positions {
+  repeated Position positions = 1       [json_name = "positions"];
+}
 message UserPortfolioResponse {
-  map<string, Position> positions = 1   [json_name = "positions"];
-  map<string, Position> orderbook_positions = 2   [json_name = "orderbookPositions"];
+  map<string, Positions> positions = 1   [json_name = "positions"];
+  map<string, Positions> orderbook_positions = 2   [json_name = "orderbookPositions"];
 }
 
 message MarketIdRequest {

@@ -143,19 +143,23 @@ contract Prism {
     require(!usedTxIds[txIdNo], "Duplicate txIdNo");
 
     uint256 collateralUsdAbsScaled_lower = 0; // the lower of the two collateral amounts
-    uint256 qty_lower = 0;                    // the lower of the two qty amounts
     if (collateralUsdAbsScaledYes > collateralUsdAbsScaledNo) {
       collateralUsdAbsScaled_lower = collateralUsdAbsScaledYes;
-      qty_lower = qtyScaledYes;
       usedTxIds[txIdNo] = true; // mark the lower side (NO) as used
     } else {
       collateralUsdAbsScaled_lower = collateralUsdAbsScaledNo; // always transfer the lower amount of collateral (partial match)
-      qty_lower = qtyScaledNo;
       usedTxIds[txIdYes] = true; // mark the lower side (YES) as used
     }
     if (collateralUsdAbsScaledYes == collateralUsdAbsScaledNo) { // edge case - exact match - both txIds should be marked as used
       usedTxIds[txIdYes] = true;
       usedTxIds[txIdNo] = true;
+    }
+
+    uint256 qty_lower = 0; // the lower of the two qty amounts
+    if (qtyScaledYes < qtyScaledNo) {
+      qty_lower = qtyScaledYes;
+    } else {
+      qty_lower = qtyScaledNo;
     }
 
     // on-chain signature verifiaction using an on-chain assembled payload (check the original values at order entry):
@@ -169,10 +173,9 @@ contract Prism {
     totalCollateralUsd[marketId] += (2 * collateralUsdAbsScaled_lower);
 
     // Now set the position token quantities for the two buyers:
-    uint256 ONE = 10 ** collateralTokenNdecimals; // 1.0 scaled by collateralTokenNdecimals
-    uint256 midMarketPriceUsdAbsScaled = (priceUsdAbsScaledYes + priceUsdAbsScaledNo) / 2;                            // always between 0 and 1 (scaled by collateralTOkenNdecimals). Usually, midMarketPrice = yesPrice = noPrice
-    yesTokens[marketId][signerYes] += ((collateralUsdAbsScaled_lower * ONE) / midMarketPriceUsdAbsScaled);        // 1:1 mapping of collateral qty to position tokens
-    noTokens[marketId][signerNo] += ((collateralUsdAbsScaled_lower * ONE) / (ONE - midMarketPriceUsdAbsScaled));  // 1:1 mapping of collateral qty to position tokens
+    // uint256 nPositionTokens = (collateralUsdAbsScaled_lower * (10 ** collateralTokenNdecimals)) / qty_lower;   // number of position tokens to mint for each side (YES and NO)
+    yesTokens[marketId][signerYes] += qty_lower;                    // 1:1 mapping of collateral qty to position tokens
+    noTokens[marketId][signerNo]   += qty_lower;                    // 1:1 mapping of collateral qty to position tokens
 
     emit PositionTokensPurchased(marketId, signerYes, collateralUsdAbsScaled_lower, priceUsdAbsScaledYes);
     emit PositionTokensPurchased(marketId, signerNo, collateralUsdAbsScaled_lower, priceUsdAbsScaledNo);

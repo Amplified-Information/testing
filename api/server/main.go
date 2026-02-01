@@ -293,7 +293,7 @@ func main() {
 
 	// initialize Positions service
 	positionsService := services.PositionsService{}
-	err = positionsService.Init(&logService, &positionsRepository, &marketsRepository, &priceService)
+	err = positionsService.Init(&logService, &positionsRepository, &marketsRepository, &predictionIntentsRepository, &priceService)
 	if err != nil {
 		log.Fatalf("Failed to initialize Positions service: %v", err)
 	}

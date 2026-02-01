@@ -93,3 +93,6 @@ web - fix SPA issue on dev
 
 0.4.19
 web - /assets/ nginx config
+
+0.4.20
+web - correct constuction of predictionIntentRequest object

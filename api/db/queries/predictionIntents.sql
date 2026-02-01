@@ -30,6 +30,13 @@ FROM prediction_intents
 WHERE market_id = $1 
 AND cancelled_at IS NULL AND fully_matched_at IS NULL AND evicted_at IS NULL;
 
+-- name: GetAllOpenPredictionIntentsByEvmAddress :many
+SELECT *
+FROM prediction_intents
+WHERE evmaddress = $1 
+AND cancelled_at IS NULL AND fully_matched_at IS NULL AND evicted_at IS NULL;
+
+
 
 -- name: IsDuplicateTxId :one
 SELECT COUNT(*) > 0 AS exists

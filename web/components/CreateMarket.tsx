@@ -122,7 +122,8 @@ const CreateMarket = () => {
                 marketId: uuidv7(),
                 net: 'testnet',
                 statement,
-                imageUrl: imageUrl
+                imageUrl: imageUrl,
+                description: statement // todo - its own description
               })
               const response = result.response
               console.log('CreateMarketResponse', response)

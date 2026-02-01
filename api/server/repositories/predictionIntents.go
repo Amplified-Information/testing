@@ -216,3 +216,17 @@ func (pir *PredictionIntentsRepository) MarkPredictionIntentAsEvicted(txId uuid.
 	}
 	return nil
 }
+
+func (pir *PredictionIntentsRepository) GetAllOpenPredictionIntentsByEvmAddress(evmAddress string) ([]sqlc.PredictionIntent, error) {
+	if pir.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	q := sqlc.New(pir.db)
+	predictionIntents, err := q.GetAllOpenPredictionIntentsByEvmAddress(context.Background(), evmAddress)
+	if err != nil {
+		return nil, fmt.Errorf("GetAllOpenPredictionIntentsByEvmAddress failed: %v", err)
+	}
+
+	return predictionIntents, nil
+}
