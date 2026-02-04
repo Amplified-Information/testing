@@ -78,3 +78,6 @@ New smart contract address - correct calculation of position tokens. Uniqueness 
 
 0.3.6
 user positions endpoint (active and pending orders)
+
+0.3.7
+restored functionality of user positions

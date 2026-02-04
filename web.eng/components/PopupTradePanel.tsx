@@ -208,7 +208,7 @@ const PopupTradePanel = () => {
             }}
           />
           <span className="px-3 py-1 rounded-l border border-gray-600 bg-gray-800 text-white peer-checked:bg-green-700 peer-checked:border-green-400 transition-colors">
-            Buy
+            YES
           </span>
         </label>
         <label className="flex items-center cursor-pointer">
@@ -222,36 +222,31 @@ const PopupTradePanel = () => {
             }}
           />
           <span className="px-3 py-1 rounded-r border border-gray-600 bg-gray-800 text-white peer-checked:bg-red-700 peer-checked:border-red-400 transition-colors">
-            Sell
+            NO
           </span>
         </label>
         &nbsp;&nbsp; ${bidUsd.toFixed(2)} | ${Math.abs(askUsd).toFixed(2)}
       </div>
 
-      <label>Amount you wish to bet</label>
-      <input
-        type="number"
-        value={amountUsd.toFixed(2)}
-        placeholder="Amount"
-        className="input input-bordered w-full mb-2"
-        onChange={(e) => {
-          // guards
-          const _amountUsd = Number(e.currentTarget.value)
-
-          // attempt to place order above allowance:
-          if (_amountUsd > spenderAllowanceUsd) {
-            toast.error(`Order size exceeds your current allowance of $${spenderAllowanceUsd.toFixed(2)}`)
-          }
-
-          if (_amountUsd < minOrderSizeUsd) {
-            toast.error(`Minimum order amount is $${minOrderSizeUsd.toFixed(2)}`)
-            return
-          }
-
-          // OK
-          setAmountUsd(_amountUsd)
-        }}
-      />
+      <label>USD size of position:</label>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span>$</span><input type="number" value={amountUsd.toFixed(2)} placeholder="Amount" className="input input-bordered w-full"
+          onChange={(e) => {
+            // guards
+            const _amountUsd = Number(e.currentTarget.value)
+            // attempt to place order above allowance:
+            if (_amountUsd > spenderAllowanceUsd) {
+              toast.error(`Order size exceeds your current allowance of $${spenderAllowanceUsd.toFixed(2)}`)
+            }
+            if (_amountUsd < minOrderSizeUsd) {
+              toast.error(`Minimum order amount is $${minOrderSizeUsd.toFixed(2)}`)
+              return
+            }
+            // OK
+            setAmountUsd(_amountUsd)
+          }}
+        />
+      </div>
 
       {/* limit order by default - disabling market order for now */}
       <div className="flex items-center mb-2">

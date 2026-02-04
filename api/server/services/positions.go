@@ -30,45 +30,43 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 	// guards
 
 	// OK
-	var result []sqlc.GetUserPortfolioRow
+	var userPositions []sqlc.GetUserPositionsRow
 	var err error
 
 	if req.MarketId == nil { // optional parameter
-		result, err = ps.positionsRepository.GetUserPortfolio(req.EvmAddress)
+		userPositions, err = ps.positionsRepository.GetUserPositions(req.EvmAddress)
 	} else {
-		result, err = ps.positionsRepository.GetUserPortfolioByMarketId(req.EvmAddress, *req.MarketId)
+		userPositions, err = ps.positionsRepository.GetUserPositionsByMarketId(req.EvmAddress, *req.MarketId)
 	}
 	if err != nil {
 		return nil, ps.log.Log(ERROR, "failed to get user portfolio: %v", err)
 	}
 
 	response := &pb_api.UserPortfolioResponse{
-		Positions:          make(map[string]*pb_api.Positions),
-		OrderbookPositions: make(map[string]*pb_api.Positions),
+		Positions:             make(map[string]*pb_api.Position),
+		OpenPredictionIntents: make(map[string]*pb_api.PredictionIntents),
 	}
 
-	for _, row := range result {
-		priceUsd, err := ps.priceService.GetLatestPriceByMarket(row.MarketID.String())
+	for _, userPosition := range userPositions {
+		priceUsd, err := ps.priceService.GetLatestPriceByMarket(userPosition.MarketID.String())
 		if err != nil {
-			return nil, ps.log.Log(ERROR, "failed to get latest price for market %s: %v", row.MarketID.String(), err)
+			return nil, ps.log.Log(ERROR, "failed to get latest price for market %s: %v", userPosition.MarketID.String(), err)
 		}
 
-		market, err := ps.marketsRepository.GetMarketById(row.MarketID.String())
+		market, err := ps.marketsRepository.GetMarketById(userPosition.MarketID.String())
 		if err != nil {
-			return nil, ps.log.Log(ERROR, "failed to get market %s: %v", row.MarketID.String(), err)
+			return nil, ps.log.Log(ERROR, "failed to get market %s: %v", userPosition.MarketID.String(), err)
 		}
 
 		position := &pb_api.Position{
-			Yes:        uint64(row.NYes),
-			No:         uint64(row.NNo),
+			Yes:        uint64(userPosition.NYes),
+			No:         uint64(userPosition.NNo),
 			PriceUsd:   priceUsd,
 			IsPaused:   market.IsPaused,
 			ResolvedAt: market.ResolvedAt.Time.String(),
 		}
-		if _, ok := response.Positions[row.MarketID.String()]; !ok {
-			response.Positions[row.MarketID.String()] = &pb_api.Positions{}
-		}
-		response.Positions[row.MarketID.String()].Positions = append(response.Positions[row.MarketID.String()].Positions, position)
+
+		response.Positions[userPosition.MarketID.String()] = position
 	}
 
 	// now construct the open orderbookPositions by retrieving all open orders from prediction_intents:
@@ -79,27 +77,20 @@ func (ps *PositionsService) GetUserPortfolio(req *pb_api.UserPortfolioRequest) (
 	}
 	// loop through each predictionIntents and add to OrderbookPositions
 	for _, pi := range predictionIntents {
-		priceUsd, err := ps.priceService.GetLatestPriceByMarket(pi.MarketID.String())
-		if err != nil {
-			return nil, ps.log.Log(ERROR, "failed to get latest price for market %s: %v", pi.MarketID.String(), err)
+		orderbookPosition := &pb_api.PredictionIntent{
+			TxId:        pi.TxID.String(),
+			Net:         pi.Net,
+			MarketId:    pi.MarketID.String(),
+			GeneratedAt: pi.GeneratedAt.String(),
+			AccountId:   pi.AccountID,
+			MarketLimit: pi.MarketLimit,
+			PriceUsd:    pi.PriceUsd,
+			Qty:         pi.Qty,
 		}
-
-		market, err := ps.marketsRepository.GetMarketById(pi.MarketID.String())
-		if err != nil {
-			return nil, ps.log.Log(ERROR, "failed to get market %s: %v", pi.MarketID.String(), err)
+		if _, ok := response.OpenPredictionIntents[pi.MarketID.String()]; !ok {
+			response.OpenPredictionIntents[pi.MarketID.String()] = &pb_api.PredictionIntents{}
 		}
-
-		orderbookPosition := &pb_api.Position{
-			Yes:        0,
-			No:         0,
-			PriceUsd:   priceUsd,
-			IsPaused:   market.IsPaused,
-			ResolvedAt: market.ResolvedAt.Time.String(),
-		}
-		if _, ok := response.OrderbookPositions[pi.MarketID.String()]; !ok {
-			response.OrderbookPositions[pi.MarketID.String()] = &pb_api.Positions{}
-		}
-		response.OrderbookPositions[pi.MarketID.String()].Positions = append(response.OrderbookPositions[pi.MarketID.String()].Positions, orderbookPosition)
+		response.OpenPredictionIntents[pi.MarketID.String()].PredictionIntents = append(response.OpenPredictionIntents[pi.MarketID.String()].PredictionIntents, orderbookPosition)
 	}
 
 	return response, nil

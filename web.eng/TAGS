@@ -96,3 +96,6 @@ web - /assets/ nginx config
 
 0.4.20
 web - correct constuction of predictionIntentRequest object
+
+0.4.21
+web - update order entry panel Buy/Sell to Yes/No

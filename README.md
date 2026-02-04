@@ -6,10 +6,10 @@ This project is divided into a number of folders:
 - `clob`: an off-chain CLOB which matches cryptographically signed buy/sell order intents
 - `infra`: infrastructure-as-code (AWS-orientated)
 - `mw`: middleware for web app (server-side control of preview links across social media platforms)
-- `web`: prism web front-end
+- `web`: prism web front-end (a git **submodule** to a separate front-end)
 - `web.lp`: a landing page
-- ~~`web.eng`: a (stale) engineering front-end~~
-- ~~`web.lvbl`: an attempt to integrate the lovable app~~
+- `web.eng`: an engineering front-end
+- `web.uat`: a web app for the uat environment
 - `api`: an API backend
 - `proxy`: a proxy to marshall traffic
 - `eventbus`: event bus for pub/sub message communication
@@ -310,6 +310,10 @@ source ./1_loadEnvVars.sh
 docker compose restart
 ```
 
+View running versions/tags/docker image shas:
+
+`docker compose ps -q | xargs docker inspect --format '{{.Name}} {{.Config.Image}} {{.Image}}'`
+
 ### AWS secrets
 
 Use `aws ssm` to store and retrieve secrets for a particular environment.
@@ -480,3 +484,81 @@ The marketId, the amount under consideration and the initiator account (immutabl
 See: `assemblePayloadHexForSigning(...)` in ./web.eng/lib/utils.ts
 
 See: `AssemblePayloadHexForSigning(...)` in ./api/server/lib/sign.go
+
+## Add a submodule to your monorepo (web)
+
+`web` is a submodule
+
+`prism-front-end` is being developed separately in its own separate repo.
+
+```bash
+cd prism
+# add the submodule and make it available in the "web" folder
+git submodule add git@github.com:PrismMarketLabs/prism-front-end.git web
+```
+
+1. add the following notification github workflow to prism-front-end (.github/workflows/notify-parent.yml):
+
+```yml
+# .github/workflows/notify-parent.yml
+name: Notify Parent Repo
+
+on:
+  push:
+    branches: [main] # or your default branch
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call parent repo workflow
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.PARENT_REPO_TOKEN }}" \
+            https://api.github.com/repos/PrismMarketLabs/prism/dispatches \
+            -d '{"event_type":"web-submodule-updated"}'
+```
+
+2. create a token (classic) called "PARENT_REPO_TOKEN" (https://github.com/settings/tokens) with scopes: [repo]. Call it "repo_notifications"
+
+ghp_******
+
+3. Add this repo_notifications token to the prism-front-end submodule's repo (repository secrets): https://github.com/PrismMarketLabs/prism-front-end/settings/secrets/actions
+
+4. Add the following to the standard build-web.yml (rename it build-web__submodule__.yml to be explicit about it being a submodule):
+
+```yml
+on:
+  repository_dispatch:
+    types: [web-submodule-updated]
+  push:
+    paths:
+      - 'web/**'
+
+
+
+...
+
+
+  steps:
+  - name: Checkout code
+    uses: actions/checkout@v3
+    with:
+      submodules: true  # Fetch submodules
+      token: ${{ secrets.READ_REPO }}  # N.B. need a repository secret (repo scope)
+
+...
+
+```
+
+5. Create another token called "READ_REPO":
+
+- https://github.com/settings/tokens
+
+- add it to the prism-front-end so the prism github Action can pull in the submodule code
+
+- https://github.com/PrismMarketLabs/prism/settings/secrets/actions
+
+- "Repository secrets": "READ_REPO" xxxxxxxx
+

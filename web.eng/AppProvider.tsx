@@ -81,7 +81,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [book, setBook] = useState<BookSnapshot>({ bids: [], asks: [] })
   const [spenderAllowanceUsd, setSpenderAllowanceUsd] = useState<number>(0)
   const [userAccountInfo, setUserAccountInfo] = useState<UserAccountInfo | undefined>(undefined)
-  const [userPortfolio, setUserPortfolio] = useState<UserPortfolioResponse>({ positions: {}, orderbookPositions: {} })
+  const [userPortfolio, setUserPortfolio] = useState<UserPortfolioResponse>({ positions: {}, openPredictionIntents: {} })
 
   const [availableNetworks, setAvailableNetworks] = useState<LedgerId[]>([])
   const [smartContractIds, setSmartContractIds] = useState<{[key: string]: string }>({})

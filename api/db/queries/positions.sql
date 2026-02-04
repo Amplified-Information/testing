@@ -18,7 +18,7 @@ RETURNING *;
 
 -- READ
 
--- name: GetUserPortfolio :many
+-- name: GetUserPositions :many
 SELECT
   market_id,
   evm_address,
@@ -28,7 +28,7 @@ SELECT
 FROM positions
 WHERE evm_address = $1;
 
--- name: GetUserPortfolioByMarketId :many
+-- name: GetUserPositionsByMarketId :many
 SELECT
   market_id,
   evm_address,

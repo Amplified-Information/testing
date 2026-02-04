@@ -42,17 +42,17 @@ func (positionsRepository *PositionsRepository) InitDb() error {
 	return nil
 }
 
-func (positionsRepository *PositionsRepository) GetUserPortfolio(evmAddress string) ([]sqlc.GetUserPortfolioRow, error) {
+func (positionsRepository *PositionsRepository) GetUserPositions(evmAddress string) ([]sqlc.GetUserPositionsRow, error) {
 	if positionsRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
 	q := sqlc.New(positionsRepository.db)
-	result, err := q.GetUserPortfolio(context.Background(), evmAddress)
+	result, err := q.GetUserPositions(context.Background(), evmAddress)
 	return result, err
 }
 
-func (positionsRepository *PositionsRepository) GetUserPortfolioByMarketId(evmAddress string, marketId string) ([]sqlc.GetUserPortfolioRow, error) {
+func (positionsRepository *PositionsRepository) GetUserPositionsByMarketId(evmAddress string, marketId string) ([]sqlc.GetUserPositionsRow, error) {
 	if positionsRepository.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
@@ -63,14 +63,14 @@ func (positionsRepository *PositionsRepository) GetUserPortfolioByMarketId(evmAd
 	}
 
 	q := sqlc.New(positionsRepository.db)
-	result, err := q.GetUserPortfolioByMarketId(context.Background(), sqlc.GetUserPortfolioByMarketIdParams{
+	result, err := q.GetUserPositionsByMarketId(context.Background(), sqlc.GetUserPositionsByMarketIdParams{
 		EvmAddress: evmAddress,
 		MarketID:   marketIdUUID,
 	})
-	// Convert []sqlc.GetUserPortfolioByMarketIdRow to []sqlc.GetUserPortfolioRow
-	converted := make([]sqlc.GetUserPortfolioRow, len(result))
+	// Convert []sqlc.GetUserPositionsByMarketIdRow to []sqlc.GetUserPositionsRow
+	converted := make([]sqlc.GetUserPositionsRow, len(result))
 	for i, v := range result {
-		converted[i] = sqlc.GetUserPortfolioRow(v)
+		converted[i] = sqlc.GetUserPositionsRow(v)
 	}
 	return converted, err
 }
